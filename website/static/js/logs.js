@@ -24,6 +24,7 @@ function populateLogTable(logs) {
             <td>${detail.timestamp}</td>
             <td>${detail.domain}</td>
             <td ${blockedClass}>${detail.blocked}</td>
+            <td>${detail.client.Name}  |  ${detail.client.IP}</td>
         </tr>`,
       );
     });

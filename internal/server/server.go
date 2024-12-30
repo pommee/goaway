@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goaway/internal/blacklist"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -48,9 +49,15 @@ type cachedRecord struct {
 }
 
 type RequestLogEntry struct {
-	Timestamp time.Time `json:"timestamp"`
-	Domain    string    `json:"domain"`
-	Blocked   bool      `json:"blocked"`
+	Timestamp  time.Time `json:"timestamp"`
+	Domain     string    `json:"domain"`
+	Blocked    bool      `json:"blocked"`
+	ClientInfo *Client   `json:"client"`
+}
+
+type Client struct {
+	IP   string
+	Name string
 }
 
 func NewDNSServer(config ServerConfig) (DNSServer, error) {
@@ -104,12 +111,19 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	clientIP := strings.Split(w.RemoteAddr().String(), ":")[0]
+	var clientName = "None"
+
+	lookupNames, _ := net.LookupAddr(clientIP)
+	if len(lookupNames) > 0 {
+		clientName = lookupNames[0]
+	}
+
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 	msg.Authoritative = true
 
 	for _, question := range r.Question {
-		// Record the request timestamp, domain name, and blocked status
 		timestamp := time.Now()
 		domain := strings.TrimSuffix(question.Name, ".")
 
@@ -117,22 +131,22 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		if s.IsBlacklisted(question.Name) {
 			s.handleBlacklisted(w, msg, question.Name)
 			s.RequestLog = append(s.RequestLog, RequestLogEntry{
-				Timestamp: timestamp,
-				Domain:    domain,
-				Blocked:   true,
+				Timestamp:  timestamp,
+				Domain:     domain,
+				Blocked:    true,
+				ClientInfo: &Client{IP: clientIP, Name: clientName},
 			})
-			// Save the request log to file after each log entry
 			go s.SaveRequestLog(s.Config.RequestLogFile)
 			return
 		}
 
 		s.handleQuery(w, msg, question)
 		s.RequestLog = append(s.RequestLog, RequestLogEntry{
-			Timestamp: timestamp,
-			Domain:    domain,
-			Blocked:   false,
+			Timestamp:  timestamp,
+			Domain:     domain,
+			Blocked:    false,
+			ClientInfo: &Client{IP: clientIP, Name: clientName},
 		})
-		// Save the request log to file after each log entry
 		go s.SaveRequestLog(s.Config.RequestLogFile)
 	}
 
