@@ -1,7 +1,7 @@
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
 
-.PHONY: build start example-queries
+.PHONY: build start example-queries test
 
 build:
 	docker build -t goaway \
@@ -13,3 +13,6 @@ start: build
 
 example-queries:
 	@./dig-domains.sh
+
+test:
+	go test ./test -count=1
