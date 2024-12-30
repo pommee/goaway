@@ -36,13 +36,8 @@ type DNSServer struct {
 }
 
 type CounterDetails struct {
-	AllowedRequests int           `json:"allowed_requests"`
-	BlockedRequests int           `json:"blocked_requests"`
-	Details         []DomainStats `json:"details"`
-}
-
-type DomainStats struct {
-	Blocked int `json:"blocked"`
+	AllowedRequests int `json:"allowed_requests"`
+	BlockedRequests int `json:"blocked_requests"`
 }
 
 type cachedRecord struct {
@@ -64,7 +59,7 @@ type Client struct {
 
 func NewDNSServer(config ServerConfig) (DNSServer, error) {
 	if !fileExists(config.CountersFile) {
-		newCounters := &CounterDetails{Details: []DomainStats{}}
+		newCounters := &CounterDetails{}
 		saveCounters(config.CountersFile, *newCounters)
 	}
 	counters, _ := LoadCounters(config.CountersFile)

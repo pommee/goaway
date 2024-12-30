@@ -103,7 +103,11 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 	allowedQueries := websiteServer.dnsServer.Counters.AllowedRequests
 	blockedQueries := websiteServer.dnsServer.Counters.BlockedRequests
 	totalQueries := allowedQueries + blockedQueries
-	percentageBlocked := (float64(blockedQueries) / float64(totalQueries)) * 100
+
+	var percentageBlocked float64
+	if totalQueries > 0 {
+		percentageBlocked = (float64(blockedQueries) / float64(totalQueries)) * 100
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowedQueries,
@@ -111,7 +115,6 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 		"total":             totalQueries,
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    len(websiteServer.dnsServer.Blacklist.Domains),
-		"details":           websiteServer.dnsServer.Counters.Details,
 	})
 }
 
