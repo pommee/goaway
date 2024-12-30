@@ -8,6 +8,8 @@ body {
 
 /* Sidenav */
 .sidenav {
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 240px;
     position: fixed;
@@ -16,7 +18,6 @@ body {
     left: 0;
     background-color: #111;
     padding-top: 20px;
-    transition: width 0.3s ease-in-out;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
 }
 
@@ -298,4 +299,23 @@ body {
 hr.rounded {
     border: 1px solid #313131;
     margin: 20px 10px 30px 10px;
+}
+
+#github-link {
+    margin-top: auto; /* Pushes the GitHub link to the bottom */
+    margin-bottom: 30px;
+    color: #818181;
+    text-decoration: none;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+}
+
+#github-link:hover {
+    color: #f1f1f1;
+    background-color: #575757;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-radius: 10px;
 }
