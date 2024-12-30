@@ -7,8 +7,10 @@ import (
 	"goaway/internal/website"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -39,7 +41,7 @@ func loadConfigFromEnv() server.ServerConfig {
 		Port:           dnsPort,
 		WebsitePort:    websitePort,
 		UpstreamDNS:    getEnv("UPSTREAM_DNS", "8.8.8.8:53"),
-		BlacklistPath:  getEnv("BLACKLIST_PATH", "blacklist.txt"),
+		BlacklistPath:  getEnv("BLACKLIST_PATH", "blacklist.json"),
 		CountersFile:   getEnv("COUNTERS_FILE", "counters.json"),
 		RequestLogFile: getEnv("REQUEST_LOG_FILE", "requests.json"),
 		CacheTTL:       cacheTTL,
@@ -56,25 +58,26 @@ func getEnv(key, fallback string) string {
 func main() {
 	config := loadConfigFromEnv()
 	server, err := server.NewDNSServer(config)
-	var wg sync.WaitGroup
-
 	if err != nil {
 		log.Printf("Server initialization failed. %s", err)
 		os.Exit(1)
 	}
 
 	blockedDomains, serverInstance := server.Init()
+
+	var wg sync.WaitGroup
+	errorChannel := make(chan struct{}, 1)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := serverInstance.ListenAndServe(); err != nil {
-			log.Printf("Server failed to start. %s", err)
-			os.Exit(1)
+			log.Printf("DNS server failed to start. %s", err)
+			errorChannel <- struct{}{}
 		}
 	}()
 
-	log.Printf("Starting DNS server, port: %d, upstream: %s, blacklist: %s, cache TTL: %v\n", config.Port, config.UpstreamDNS, config.BlacklistPath, config.CacheTTL)
-	log.Printf("Loaded %d domains into blacklist\n", blockedDomains)
+	asciiart.AsciiArt(config, blockedDomains)
 
 	wg.Add(1)
 	go func() {
@@ -83,6 +86,22 @@ func main() {
 		websiteInstance.Start(content, &server, config.WebsitePort)
 	}()
 
-	asciiart.AsciiArt()
-	wg.Wait()
+	go func() {
+		wg.Wait()
+	}()
+
+	select {
+	case <-errorChannel:
+		log.Println("Exiting due to server failure.")
+		os.Exit(1)
+	case <-waitForInterrupt():
+		log.Println("Received interrupt, shutting down.")
+		os.Exit(0)
+	}
+}
+
+func waitForInterrupt() chan os.Signal {
+	sigChannel := make(chan os.Signal, 1)
+	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
+	return sigChannel
 }
