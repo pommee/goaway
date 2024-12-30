@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>goaway</title>
+        <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        />
+        <link
+            href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/static/css/style.css" />
+        <link rel="stylesheet" href="/static/css/settings.css" />
+        <style></style>
+    </head>
+
+    <body>
+        <!-- Top bar with centered text -->
+        <div id="top-bar">
+            <p id="cpu-usage">1</p>
+            <p id="cpu-temp">1</p>
+            <p id="mem-usage">1</p>
+        </div>
+
+        <div id="sidenav" class="sidenav">
+            <p>goaway</p>
+            <img id="logo" src="/static/logo.png" />
+            <a href="./index.html"
+                ><i class="icon fa-solid fa-house"></i>Dashboard</a
+            >
+            <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
+            <a href="./domains.html"
+                ><i class="icon fa-solid fa-server"></i>Domains</a
+            >
+            <a class="selected" href="#"
+                ><i class="icon fa-solid fa-gears"></i>Settings</a
+            >
+        </div>
+
+        <!-- Main content area -->
+        <div id="main">
+            <h2>Settings - WIP</h2>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label for="setting-1">Enable Dark Mode</label>
+                    <div class="toggle">
+                        <input type="checkbox" id="setting-1" />
+                        <span>On</span>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label for="setting-2">Font Size</label>
+                    <input
+                        type="number"
+                        id="setting-2"
+                        value="14"
+                        min="10"
+                        max="30"
+                    />
+                </div>
+
+                <div class="setting-item">
+                    <label for="setting-3">Notification Volume</label>
+                    <input
+                        type="range"
+                        id="setting-3"
+                        min="0"
+                        max="100"
+                        value="50"
+                    />
+                </div>
+
+                <div class="setting-item">
+                    <label for="setting-4">Max Connections</label>
+                    <input type="text" id="setting-4" value="10" />
+                </div>
+
+                <div class="setting-item">
+                    <label for="setting-5">Enable Logging</label>
+                    <div class="toggle">
+                        <input type="checkbox" id="setting-5" />
+                        <span>Off</span>
+                    </div>
+                </div>
+
+                <!-- Add more settings here -->
+            </div>
+        </div>
+
+        <script src="/static/js/serverStatus.js"></script>
+        <script src="/static/js/util.js"></script>
+        <script src="/static/js/settings.js"></script>
+    </body>
+</html>

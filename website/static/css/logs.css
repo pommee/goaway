@@ -1,0 +1,109 @@
+/* Table styling */
+#log-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px; /* Space between the top and the table */
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#log-table th,
+#log-table td {
+    padding: 12px 15px;
+    text-align: left;
+    color: #f1f1f1;
+}
+
+#log-table td.wasBlocked {
+    color: red;
+}
+
+#log-table th {
+    background-color: #444;
+    font-weight: bold;
+}
+
+#log-table tr {
+    font-size: 0.8rem;
+}
+
+#log-table tbody tr:nth-child(even) {
+    background-color: #333;
+}
+
+#log-table tbody tr:nth-child(odd) {
+    background-color: #292929;
+}
+
+#log-table tbody tr:hover {
+    background-color: #555;
+}
+
+/* DataTables Pagination Styling */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background-color: #444;
+    color: #f1f1f1;
+    border: none;
+    padding: 6px 12px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background-color: #555;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: #515151;
+}
+
+/* DataTables Search Box */
+.dataTables_filter input {
+    margin-bottom: 10px;
+    background-color: #444;
+    color: #f1f1f1;
+    border: 1px solid #666;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.dataTables_filter input:focus {
+    outline: none;
+    border-color: #888;
+}
+
+/* DataTables Length Selection */
+.dataTables_length select {
+    background-color: #444;
+    color: #f1f1f1;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.dataTables_length select:focus {
+    outline: none;
+    border-color: #888;
+}
+
+.toggle-block-btn {
+    background-color: #444;
+    color: #f1f1f1;
+    border: 0;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.toggle-block-btn:hover {
+    background-color: orange;
+}
+
+.block-btn {
+    background-color: #960012; /* Red for "Block" */
+}
+
+.unblock-btn {
+    background-color: #28a745; /* Green for "Un-Block" */
+}

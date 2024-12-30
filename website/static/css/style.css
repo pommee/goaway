@@ -1,0 +1,234 @@
+body {
+    font-family: "JetBrains Mono";
+    background: #313131;
+    color: white;
+    margin-top: 60px; /* Adjust for the top bar height */
+}
+
+/* The side navigation menu */
+.sidenav {
+    height: 100%;
+    width: 200px;
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Stay on top */
+    top: 0; /* Stay at the top */
+    left: 0;
+    background-color: #111; /* Black */
+    overflow-x: hidden; /* Disable horizontal scroll */
+}
+
+/* The navigation menu links */
+.sidenav a {
+    padding: 8px 8px 8px 12px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: flex;
+    transition: 0.3s;
+}
+
+.sidenav .icon {
+    margin-top: 8px;
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav a:hover {
+    color: #f1f1f1;
+}
+
+.sidenav a.selected {
+    color: white;
+}
+
+.sidenav p,
+.sidenav #logo {
+    margin-left: 55px;
+    margin-bottom: 25px;
+}
+
+.sidenav p {
+    margin: 10px 0 20px 45px;
+    color: cornflowerblue;
+    font-weight: bold;
+    font-size: 1.6rem;
+}
+
+#top-bar {
+    background-color: #111;
+    padding: 10px 0;
+    text-align: center;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#top-bar p {
+    margin: 0;
+    width: 150px; /* Set a fixed width */
+    text-align: center; /* Center the text inside the element */
+    margin-right: 40px; /* Maintain the spacing between elements */
+    white-space: nowrap; /* Prevent text from wrapping */
+    overflow: hidden;
+    text-overflow:;
+}
+
+/* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+@media screen and (max-height: 450px) {
+    .sidenav {
+        padding-top: 15px;
+    }
+    .sidenav a {
+        font-size: 18px;
+    }
+}
+
+/* Main content area, adjusted for the sidenav */
+#main {
+    margin: 25px 25px 0 225px;
+}
+
+/* Card container for the cards on the right side */
+.card-container {
+    display: flex;
+    gap: 35px; /* Space between the cards */
+    justify-content: flex-start;
+}
+
+.card {
+    position: relative;
+    background-color: #444;
+    color: white;
+    width: 30%;
+    padding: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 10%;
+    width: 100px;
+    height: 100px;
+    transform: translateY(-50%);
+    opacity: 0.2;
+    background-repeat: no-repeat;
+    background-size: contain;
+    z-index: 0;
+}
+
+.card p {
+    margin-top: 0;
+    color: #f1f1f1;
+    position: relative;
+    z-index: 1;
+}
+
+.card .card-text {
+    font-size: 1.5rem;
+    font-weight: 900;
+    position: relative;
+    z-index: 1;
+}
+
+#card-queries {
+    background: green;
+}
+
+#card-blocked {
+    background: cornflowerblue;
+}
+
+#card-blocked-percentage {
+    background: #c28c27;
+}
+
+#card-blocked-domains {
+    background: #960012;
+}
+
+#card-queries::before {
+    background-image: url("https://cdn-icons-png.flaticon.com/512/7234/7234056.png");
+}
+
+#card-blocked::before {
+    background-image: url("https://cdn-icons-png.flaticon.com/512/814/814158.png");
+}
+
+#card-blocked-percentage::before {
+    background-image: url("https://cdn-icons-png.flaticon.com/512/134/134644.png");
+}
+
+#card-blocked-domains::before {
+    background-image: url("https://cdn-icons-png.flaticon.com/512/1150/1150575.png");
+}
+
+.update-animation {
+    animation: bounce 0.5s ease-in-out;
+}
+
+@keyframes bounce {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.chart-container {
+    background: #212121;
+    padding: 1px 10px 70px 10px;
+    border-radius: 12px;
+    height: 400px;
+    margin-top: 20px;
+}
+
+.notification {
+    background-color: #f8f9fa;
+    border: 1px solid #d6d8db;
+    padding: 16px;
+    margin: 10px;
+    border-radius: 5px;
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    opacity: 1;
+    transition: opacity 1s ease;
+}
+
+.notification-header {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.notification-message {
+    font-size: 14px;
+}
+
+.notification.info {
+    background-color: cornflowerblue;
+    border-color: #c3e6cb;
+}
+
+.notification.error {
+    background-color: red;
+    border-color: #f5c6cb;
+}
+
+.notification.warning {
+    background-color: #9cb50e;
+    border-color: #ffeeba;
+}

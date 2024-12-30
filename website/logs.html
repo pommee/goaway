@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>goaway</title>
+        <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        />
+        <link
+            href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"
+        />
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+        <link rel="stylesheet" href="/static/css/style.css" />
+        <link rel="stylesheet" href="/static/css/logs.css" />
+    </head>
+
+    <body>
+        <!-- Top bar with centered text -->
+        <div id="top-bar">
+            <p id="cpu-usage">1</p>
+            <p id="cpu-temp">1</p>
+            <p id="mem-usage">1</p>
+        </div>
+
+        <div id="sidenav" class="sidenav">
+            <p>goaway</p>
+            <img id="logo" src="/static/logo.png" />
+            <a href="./index.html"
+                ><i class="icon fa-solid fa-house"></i>Dashboard</a
+            >
+            <a class="selected" href="#"
+                ><i class="icon fa-solid fa-list"></i>Logs</a
+            >
+            <a href="./domains.html"
+                ><i class="icon fa-solid fa-server"></i>Domains</a
+            >
+            <a href="./settings.html"
+                ><i class="icon fa-solid fa-gears"></i>Settings</a
+            >
+        </div>
+
+        <!-- Main content area -->
+        <div id="main">
+            <div id="log-table-container">
+                <table id="log-table" class="display">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Domain</th>
+                            <th>Blocked</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <script src="/static/js/serverStatus.js"></script>
+        <script src="/static/js/logs.js"></script>
+    </body>
+</html>
