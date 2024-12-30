@@ -45,7 +45,6 @@ func (websiteServer *API) Start(content embed.FS, dnsServer *server.DNSServer, p
 	websiteServer.serve()
 	websiteServer.serveWebsite(content)
 
-	log.Printf("Started admin panel at http://localhost:%d/index.html\n", port)
 	wg.Wait()
 }
 
