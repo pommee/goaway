@@ -20,7 +20,7 @@ services:
       dns_network:
         ipv4_address: 172.0.0.2
     volumes:
-      - ./blacklist.txt:/app/blacklist.txt
+      - ./blacklist.json:/app/blacklist.json
 
 networks:
   dns_network:

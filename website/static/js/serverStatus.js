@@ -37,7 +37,7 @@ const quotes = [
 ];
 
 function getServerStatus() {
-  fetch("http://localhost:8080/server")
+  fetch(GetServerIP() + "/server")
     .then(function (response) {
       if (!response.ok) {
         throw new Error("Network response was not ok");

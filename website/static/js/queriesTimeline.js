@@ -1,7 +1,7 @@
 let chart = null;
 
 function getQueries() {
-  fetch("http://localhost:8080/queriesData")
+  fetch(GetServerIP() + "/queriesData")
     .then(function (response) {
       if (!response.ok) {
         throw new Error("Network response was not ok");

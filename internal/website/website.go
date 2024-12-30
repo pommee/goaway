@@ -6,6 +6,7 @@ import (
 	"goaway/internal/server"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,7 +22,6 @@ type API struct {
 	router    *gin.Engine
 	dnsServer *server.DNSServer
 	port      int
-	logsCh    <-chan string
 }
 
 func (websiteServer *API) create() {
@@ -166,24 +166,25 @@ func (websiteServer *API) serveWebsite(content embed.FS) {
 		".js":   "application/javascript",
 	}
 
-	// Read all the files in the embedded directory
-	err := fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
+	ipAddress, err := getServerIP()
+	if err != nil {
+		fmt.Println("Error getting IP address:", err)
+	}
+
+	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip directories
 		if d.IsDir() {
 			return nil
 		}
 
-		// Get the file content
 		fileContent, err := content.ReadFile(path)
 		if err != nil {
 			return err
 		}
 
-		// Determine MIME type based on file extension
 		ext := strings.ToLower(path[strings.LastIndex(path, "."):])
 		mimeType, ok := mimeTypes[ext]
 		if !ok {
@@ -194,6 +195,25 @@ func (websiteServer *API) serveWebsite(content embed.FS) {
 		// Generate the route based on the file path
 		route := strings.TrimPrefix(path, "website")
 		websiteServer.router.GET(route, func(c *gin.Context) {
+			// Set the server IP address header
+			c.Header("X-Server-IP", ipAddress)
+
+			// If the file is an HTML file, add a script to store the IP address in localStorage
+			if ext == ".html" {
+				script := `
+					<script>
+						window.onload = function() {
+							// Check if the IP is not already stored
+							if (!localStorage.getItem("serverIP")) {
+								var serverIP = document.location.origin;
+								localStorage.setItem("serverIP", serverIP);
+							}
+						}
+					</script>
+				`
+				fileContent = append(fileContent, []byte(script)...)
+			}
+
 			c.Data(200, mimeType, fileContent)
 		})
 
@@ -202,4 +222,17 @@ func (websiteServer *API) serveWebsite(content embed.FS) {
 	if err != nil {
 		fmt.Println("Error embedding files:", err)
 	}
+}
+
+func getServerIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			return ipnet.IP.String(), nil
+		}
+	}
+	return "", fmt.Errorf("server IP not found")
 }

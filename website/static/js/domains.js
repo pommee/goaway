@@ -21,7 +21,7 @@ const elements = {
 
 // API endpoints
 const API = {
-  base: "http://localhost:8080",
+  base: GetServerIP(),
   domains: "/domains",
   updateStatus: (domain, blocked) =>
     `/updateBlockStatus?domain=${domain}&blocked=${blocked}`,

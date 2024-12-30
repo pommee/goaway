@@ -9,7 +9,7 @@ const cardBlockedDomains = document.querySelector(
 );
 
 function getStatus() {
-  fetch("http://localhost:8080/metrics")
+  fetch(GetServerIP() + "/metrics")
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");

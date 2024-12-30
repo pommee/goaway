@@ -1,3 +1,9 @@
+const serverIp = "<?= .ServerIP ?>";
+
+function GetServerIP() {
+  return localStorage.getItem("serverIP");
+}
+
 function showNotification(headerMessage, type, ...message) {
   const notification = document.createElement("div");
   notification.classList.add("notification", type);
