@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var blacklistFilepath string
+
 type Blacklist struct {
 	Modified string          `json:"modified"`
 	Version  string          `json:"version"`
@@ -21,10 +23,12 @@ type OrderedBlacklist struct {
 	Domains  []interface{} `json:"domains"`
 }
 
-func LoadBlacklist() (Blacklist, error) {
-	file, err := os.Open("blacklist.json")
+func LoadBlacklist(filepath string) (Blacklist, error) {
+	blacklistFilepath = filepath
+
+	file, err := os.Open(filepath)
 	if err != nil {
-		return Blacklist{}, fmt.Errorf("could not load blacklist.json: %w", err)
+		return Blacklist{}, fmt.Errorf("could not load %s: %w", blacklistFilepath, err)
 	}
 	defer file.Close()
 
@@ -36,7 +40,7 @@ func LoadBlacklist() (Blacklist, error) {
 	}
 
 	if err := json.NewDecoder(file).Decode(&temp); err != nil {
-		return Blacklist{}, fmt.Errorf("blacklist.json is invalid: %w", err)
+		return Blacklist{}, fmt.Errorf("%s is invalid: %w", blacklistFilepath, err)
 	}
 
 	domainMap := make(map[string]bool)
@@ -75,7 +79,6 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 	delete(b.Domains, domain)
 
 	return b.updateBlacklistJSON(func(data *OrderedBlacklist) {
-		// Rebuild the list of domains with the current domains
 		newDomains := []interface{}{}
 		for domain := range b.Domains {
 			newDomains = append(newDomains, domain)
@@ -85,14 +88,14 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 }
 
 func (b *Blacklist) updateBlacklistJSON(updateFunc func(*OrderedBlacklist)) error {
-	file, err := os.ReadFile("blacklist.json")
+	file, err := os.ReadFile(blacklistFilepath)
 	if err != nil {
-		return fmt.Errorf("failed to read blacklist.json: %w", err)
+		return fmt.Errorf("failed to read %s: %w", blacklistFilepath, err)
 	}
 
 	var data OrderedBlacklist
 	if err := json.Unmarshal(file, &data); err != nil {
-		return fmt.Errorf("failed to parse blacklist.json: %w", err)
+		return fmt.Errorf("failed to parse %s: %w", blacklistFilepath, err)
 	}
 
 	updateFunc(&data)
@@ -101,8 +104,8 @@ func (b *Blacklist) updateBlacklistJSON(updateFunc func(*OrderedBlacklist)) erro
 	if err != nil {
 		return fmt.Errorf("failed to encode updated data: %w", err)
 	}
-	if err := os.WriteFile("blacklist.json", updatedFile, 0644); err != nil {
-		return fmt.Errorf("failed to write to blacklist.json: %w", err)
+	if err := os.WriteFile(blacklistFilepath, updatedFile, 0644); err != nil {
+		return fmt.Errorf("failed to write to %s: %w", blacklistFilepath, err)
 	}
 
 	return nil

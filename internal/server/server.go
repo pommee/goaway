@@ -72,7 +72,7 @@ func NewDNSServer(config ServerConfig) (DNSServer, error) {
 		return DNSServer{}, fmt.Errorf("failed to load request log: %w", err)
 	}
 
-	dnsBlacklist, _ := blacklist.LoadBlacklist()
+	dnsBlacklist, _ := blacklist.LoadBlacklist(config.BlacklistPath)
 	return DNSServer{
 		Config:             config,
 		Blacklist:          dnsBlacklist,
@@ -114,7 +114,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		domain := strings.TrimSuffix(question.Name, ".")
 
 		// Check if the domain is blacklisted
-		if s.isBlacklisted(question.Name) {
+		if s.IsBlacklisted(question.Name) {
 			s.handleBlacklisted(w, msg, question.Name)
 			s.RequestLog = append(s.RequestLog, RequestLogEntry{
 				Timestamp: timestamp,
@@ -139,7 +139,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	s.logStats()
 }
 
-func (s *DNSServer) isBlacklisted(domain string) bool {
+func (s *DNSServer) IsBlacklisted(domain string) bool {
 	domain = strings.TrimSuffix(domain, ".")
 	return s.Blacklist.Domains[domain]
 }
