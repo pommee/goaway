@@ -12,10 +12,14 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/Masterminds/semver"
 )
 
 //go:embed website/*
 var content embed.FS
+
+var version, commit, date string
 
 func loadConfigFromEnv() server.ServerConfig {
 	dnsPort, err := strconv.Atoi(getEnv("DNS_PORT", "53"))
@@ -57,6 +61,11 @@ func getEnv(key, fallback string) string {
 
 func main() {
 	config := loadConfigFromEnv()
+	current, err := semver.NewVersion(version)
+	if err != nil {
+		current, _ = semver.NewVersion("0.0.0")
+	}
+
 	server, err := server.NewDNSServer(config)
 	if err != nil {
 		log.Printf("Server initialization failed. %s", err)
@@ -77,7 +86,7 @@ func main() {
 		}
 	}()
 
-	asciiart.AsciiArt(config, blockedDomains)
+	asciiart.AsciiArt(config, blockedDomains, current.Original())
 
 	wg.Add(1)
 	go func() {

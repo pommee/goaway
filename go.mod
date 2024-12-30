@@ -3,6 +3,7 @@ module goaway
 go 1.23.2
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/miekg/dns v1.1.62
 	github.com/shirou/gopsutil v3.21.11+incompatible
