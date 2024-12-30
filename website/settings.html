@@ -56,49 +56,127 @@
 
         <!-- Main content area -->
         <div id="main">
-            <h2>Settings - WIP</h2>
+            <h2>Admin panel - WIP</h2>
             <div class="settings-list">
                 <div class="setting-item">
-                    <label for="setting-1">Enable Dark Mode</label>
-                    <div class="toggle">
-                        <input type="checkbox" id="setting-1" />
-                        <span>On</span>
+                    <div class="label-container">
+                        <label for="setting-1">Enable Dark Mode</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="setting-1" />
+                            <span>On</span>
+                        </div>
                     </div>
+                    <p class="setting-explanation">
+                        Enables or disables dark mode for the application.
+                    </p>
                 </div>
+            </div>
 
+            <h2>Server - WIP</h2>
+            <div class="settings-list">
                 <div class="setting-item">
-                    <label for="setting-2">Font Size</label>
-                    <input
-                        type="number"
-                        id="setting-2"
-                        value="14"
-                        min="10"
-                        max="30"
-                    />
-                </div>
-
-                <div class="setting-item">
-                    <label for="setting-3">Notification Volume</label>
-                    <input
-                        type="range"
-                        id="setting-3"
-                        min="0"
-                        max="100"
-                        value="50"
-                    />
-                </div>
-
-                <div class="setting-item">
-                    <label for="setting-4">Max Connections</label>
-                    <input type="text" id="setting-4" value="10" />
-                </div>
-
-                <div class="setting-item">
-                    <label for="setting-5">Enable Logging</label>
-                    <div class="toggle">
-                        <input type="checkbox" id="setting-5" />
-                        <span>Off</span>
+                    <div class="label-container">
+                        <label for="setting-5">Enable Logging</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="setting-5" />
+                            <span>Off</span>
+                        </div>
                     </div>
+                    <p class="setting-explanation">
+                        Toggle logs in the container. Default is true.
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-log-level">Log Level</label>
+                        <select id="setting-log-level">
+                            <option value="info">Info</option>
+                            <option value="debug">Debug</option>
+                            <option value="warn">Warn</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <p class="setting-explanation">
+                        Different log levels produce different amount of logs.
+                        Default is info.
+                    </p>
+                    <p class="setting-explanation">
+                        [NOTE] - Setting this to debug will produce large
+                        amounts of logs.
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-ttl">Cache TTL (in seconds)</label>
+                        <input
+                            type="number"
+                            id="setting-ttl"
+                            value="60"
+                            min="0"
+                            max="86400"
+                        />
+                    </div>
+                    <p class="setting-explanation">
+                        Once a domain is resolved, it will be cached. Default is
+                        60 seconds.
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-max-cache-size"
+                            >Max Cache Size</label
+                        >
+                        <input
+                            type="number"
+                            id="setting-max-cache-size"
+                            value="1000"
+                            min="100"
+                            max="10000"
+                        />
+                    </div>
+                    <p class="setting-explanation">
+                        Amount of domains to keep in the cache. Will remove the
+                        oldest domain once max is reached.
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-upstream-dns"
+                            >Upstream DNS Server</label
+                        >
+                        <input
+                            type="text"
+                            id="setting-upstream-dns"
+                            value="8.8.8.8"
+                        />
+                    </div>
+                    <p class="setting-explanation">
+                        Upstream DNS server to resolve domains. Default is
+                        8.8.8.8:53 (Google).
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-timeout"
+                            >DNS Request Timeout (in seconds)</label
+                        >
+                        <input
+                            type="number"
+                            id="setting-timeout"
+                            value="60"
+                            min="1"
+                            max="3600"
+                        />
+                    </div>
+                    <p class="setting-explanation">
+                        Amount of time the server shall spend on trying to
+                        resolve a domain. Default is 60 seconds.
+                    </p>
                 </div>
             </div>
         </div>
