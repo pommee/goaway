@@ -1,60 +1,77 @@
 body {
-    font-family: "JetBrains Mono";
-    background: #313131;
+    font-family: "JetBrains Mono", monospace;
+    background-color: #313131;
     color: white;
-    margin-top: 60px; /* Adjust for the top bar height */
+    margin-top: 60px;
+    /* Adjust for the top bar height */
 }
 
-/* The side navigation menu */
+/* Sidenav */
 .sidenav {
     height: 100%;
-    width: 200px;
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Stay on top */
-    top: 0; /* Stay at the top */
+    width: 240px;
+    /* Increased width for better readability */
+    position: fixed;
+    /* Stay in place */
+    z-index: 1;
+    /* Stay on top */
+    top: 0;
     left: 0;
-    background-color: #111; /* Black */
-    overflow-x: hidden; /* Disable horizontal scroll */
+    background-color: #111;
+    padding-top: 20px;
+    transition: width 0.3s ease-in-out;
+    /* Smooth transition for resizing */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
 }
 
-/* The navigation menu links */
+/* Hover effects for the sidenav links */
 .sidenav a {
-    padding: 8px 8px 8px 12px;
+    padding: 12px 20px;
+    margin-top: 10px;
     text-decoration: none;
-    font-size: 25px;
+    font-size: 20px;
     color: #818181;
     display: flex;
+    align-items: center;
     transition: 0.3s;
 }
 
-.sidenav .icon {
-    margin-top: 8px;
-    margin-right: 8px;
-    font-size: 18px;
-}
-
-/* When you mouse over the navigation links, change their color */
 .sidenav a:hover {
     color: #f1f1f1;
+    background-color: #575757;
+    /* Subtle background change on hover */
+    border-radius: 5px;
 }
 
+.sidenav .icon {
+    margin-right: 20px;
+    font-size: 20px;
+}
+
+/* Highlight selected link */
 .sidenav a.selected {
-    color: white;
+    color: #f1f1f1;
+    background-color: #444;
+    /* Darker background for selected item */
+    border-radius: 0 10px 10px 0;
 }
 
+/* Title and Logo Styling */
 .sidenav p,
 .sidenav #logo {
-    margin-left: 55px;
-    margin-bottom: 25px;
+    color: cornflowerblue;
+    margin-left: 60px;
+    margin-bottom: 20px;
 }
 
 .sidenav p {
-    margin: 10px 0 20px 45px;
     color: cornflowerblue;
     font-weight: bold;
-    font-size: 1.6rem;
+    font-size: 1.7rem;
+    margin-top: 0;
 }
 
+/* Top bar styling */
 #top-bar {
     background-color: #111;
     padding: 10px 0;
@@ -63,52 +80,47 @@ body {
     width: 100%;
     top: 0;
     left: 0;
-    z-index: 1;
+    z-index: 0;
     display: flex;
     justify-content: center;
     align-items: center;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
 }
 
 #top-bar p {
     margin: 0;
-    width: 150px; /* Set a fixed width */
-    text-align: center; /* Center the text inside the element */
-    margin-right: 40px; /* Maintain the spacing between elements */
-    white-space: nowrap; /* Prevent text from wrapping */
-    overflow: hidden;
-    text-overflow:;
+    width: 180px;
+    text-align: center;
+    font-size: 18px;
+    color: white;
 }
 
-/* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
-@media screen and (max-height: 450px) {
-    .sidenav {
-        padding-top: 15px;
-    }
-    .sidenav a {
-        font-size: 18px;
-    }
-}
-
-/* Main content area, adjusted for the sidenav */
+/* Main content area */
 #main {
-    margin: 25px 25px 0 225px;
+    margin: 30px 30px 0 250px;
+    /* Adjusted for sidenav */
 }
 
-/* Card container for the cards on the right side */
 .card-container {
     display: flex;
-    gap: 35px; /* Space between the cards */
+    gap: 35px;
     justify-content: flex-start;
 }
 
+/* Card Styling */
 .card {
     position: relative;
     background-color: #444;
     color: white;
     width: 30%;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: scale(1.05);
 }
 
 .card::before {
@@ -116,10 +128,10 @@ body {
     position: absolute;
     top: 50%;
     right: 10%;
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     transform: translateY(-50%);
-    opacity: 0.2;
+    opacity: 0.15;
     background-repeat: no-repeat;
     background-size: contain;
     z-index: 0;
@@ -134,7 +146,7 @@ body {
 
 .card .card-text {
     font-size: 1.5rem;
-    font-weight: 900;
+    font-weight: bold;
     position: relative;
     z-index: 1;
 }
@@ -179,22 +191,26 @@ body {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.02);
     }
+
     100% {
         transform: scale(1);
     }
 }
 
+/* Chart container */
 .chart-container {
     background: #212121;
-    padding: 1px 10px 70px 10px;
+    padding: 2px 5px 30px 5px;
     border-radius: 12px;
     height: 400px;
     margin-top: 20px;
 }
 
+/* Notification styles */
 .notification {
     background-color: #f8f9fa;
     border: 1px solid #d6d8db;
@@ -231,4 +247,39 @@ body {
 .notification.warning {
     background-color: #9cb50e;
     border-color: #ffeeba;
+}
+
+@media screen and (max-width: 1024px) {
+    .sidenav {
+        width: 180px;
+    }
+
+    .sidenav a {
+        font-size: 18px;
+    }
+
+    #main {
+        margin-left: 200px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .sidenav {
+        width: 0;
+        padding-top: 20px;
+        transition: width 0.3s ease-in-out;
+    }
+
+    .sidenav a {
+        font-size: 16px;
+        padding: 10px 15px;
+    }
+
+    #main {
+        margin-left: 0;
+    }
+
+    #top-bar p {
+        font-size: 14px;
+    }
 }

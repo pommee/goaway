@@ -1,6 +1,5 @@
 /* Table styling */
 #log-table {
-    width: 100%;
     border-collapse: collapse;
     margin-top: 20px; /* Space between the top and the table */
     background-color: #2a2a2a;
