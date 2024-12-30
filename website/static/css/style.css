@@ -10,18 +10,30 @@ body {
 .sidenav {
     height: 100%;
     width: 240px;
-    /* Increased width for better readability */
     position: fixed;
-    /* Stay in place */
     z-index: 1;
-    /* Stay on top */
     top: 0;
     left: 0;
     background-color: #111;
     padding-top: 20px;
     transition: width 0.3s ease-in-out;
-    /* Smooth transition for resizing */
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.sidenav .top-section {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.top-section .top-section-header {
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.top-section .top-section-text {
+    color: white;
+    font-size: 0.8rem;
 }
 
 /* Hover effects for the sidenav links */
@@ -39,8 +51,9 @@ body {
 .sidenav a:hover {
     color: #f1f1f1;
     background-color: #575757;
-    /* Subtle background change on hover */
-    border-radius: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-radius: 10px;
 }
 
 .sidenav .icon {
@@ -48,30 +61,31 @@ body {
     font-size: 20px;
 }
 
-/* Highlight selected link */
 .sidenav a.selected {
     color: #f1f1f1;
     background-color: #444;
-    /* Darker background for selected item */
-    border-radius: 0 10px 10px 0;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-radius: 10px;
 }
 
-/* Title and Logo Styling */
 .sidenav p,
 .sidenav #logo {
     color: cornflowerblue;
-    margin-left: 60px;
-    margin-bottom: 20px;
+}
+
+.sidenav #logo {
+    margin-right: 10px;
+    width: 25%;
 }
 
 .sidenav p {
     color: cornflowerblue;
     font-weight: bold;
-    font-size: 1.7rem;
+    font-size: 1.2rem;
     margin-top: 0;
 }
 
-/* Top bar styling */
 #top-bar {
     background-color: #111;
     padding: 10px 0;
@@ -95,10 +109,8 @@ body {
     color: white;
 }
 
-/* Main content area */
 #main {
     margin: 30px 30px 0 250px;
-    /* Adjusted for sidenav */
 }
 
 .card-container {
@@ -107,7 +119,6 @@ body {
     justify-content: flex-start;
 }
 
-/* Card Styling */
 .card {
     position: relative;
     background-color: #444;
@@ -204,7 +215,7 @@ body {
 /* Chart container */
 .chart-container {
     background: #212121;
-    padding: 2px 5px 30px 5px;
+    padding: 1px 10px 35px 10px;
     border-radius: 12px;
     height: 400px;
     margin-top: 20px;
@@ -282,4 +293,9 @@ body {
     #top-bar p {
         font-size: 14px;
     }
+}
+
+hr.rounded {
+    border: 1px solid #313131;
+    margin: 20px 10px 30px 10px;
 }

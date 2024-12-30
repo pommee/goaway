@@ -1,6 +1,40 @@
 const cpuUsageElement = document.getElementById("cpu-usage");
 const cpuTempElement = document.getElementById("cpu-temp");
 const memoryUsageElement = document.getElementById("mem-usage");
+const quoteElement = document.getElementsByClassName("top-section-text")[0];
+
+const quotes = [
+  "Block party!",
+  "No ads!",
+  "Bye-bye, spam!",
+  "Adios, ads!",
+  "Get lost!",
+  "Bye, trackers!",
+  "Stop, right there!",
+  "Catch you later!",
+  "Ad free zone!",
+  "Blockzilla strikes!",
+  "Ad-ocalypse now!",
+  "Nope, not today!",
+  "Buzz off, ads!",
+  "Ads? Not here!",
+  "Shh... no ads.",
+  "Ad blocker engaged!",
+  "Gone in a click!",
+  "Ads begone!",
+  "Block mode: ON!",
+  "Spam, who?",
+  "No entry for ads!",
+  "Bye-bye bandwidth hogs!",
+  "Ad-free vibes!",
+  "Don't block me!",
+  "Not in my house!",
+  "Get out, ads!",
+  "Bye-bye popups!",
+  "Say no to ads!",
+  "Ad block, power!",
+  "Stay adless!",
+];
 
 function getServerStatus() {
   fetch("http://localhost:8080/server")
@@ -28,7 +62,12 @@ function updateHeader(serverStatus) {
 
 document.addEventListener("DOMContentLoaded", function () {
   getServerStatus();
+  quote();
   setInterval(function () {
     getServerStatus();
   }, 2500);
 });
+
+function quote() {
+  quoteElement.innerText = quotes[Math.floor(Math.random() * quotes.length)];
+}
