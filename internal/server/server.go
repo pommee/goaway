@@ -173,8 +173,6 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
-	start := time.Now()
-
 	if cached, found := s.cache.Load(domain); found {
 		cachedRecord := cached.(cachedRecord)
 		if time.Now().Before(cachedRecord.ExpiresAt) {
