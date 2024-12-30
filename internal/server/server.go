@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -30,6 +31,7 @@ type DNSServer struct {
 	lastLogTime        time.Time
 	logIntervalSeconds int
 	cache              map[string]cachedRecord
+	cacheMutex         sync.Mutex
 	RequestLog         []RequestLogEntry
 }
 
@@ -116,7 +118,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	lookupNames, _ := net.LookupAddr(clientIP)
 	if len(lookupNames) > 0 {
-		clientName = lookupNames[0]
+		clientName = strings.TrimSuffix(lookupNames[0], ".")
 	}
 
 	msg := new(dns.Msg)
@@ -176,6 +178,9 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
+	s.cacheMutex.Lock()
+	defer s.cacheMutex.Unlock()
+
 	if cached, found := s.cache[domain]; found && time.Now().Before(cached.ExpiresAt) {
 		return cached.IPAddresses
 	}
