@@ -3,10 +3,10 @@ package main
 import (
 	"embed"
 	"goaway/internal/asciiart"
+	"goaway/internal/logger"
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"goaway/internal/website"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,11 +18,11 @@ import (
 
 //go:embed website/*
 var content embed.FS
-
 var version, commit, date string
+var log = logger.GetLogger()
 
 func main() {
-	var dnsPort, webserverPort int
+	var dnsPort, webserverPort, logLevel int
 
 	rootCmd := &cobra.Command{
 		Use:   "goaway",
@@ -30,11 +30,13 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			config, err := settings.LoadSettings()
 			if err != nil {
-				log.Fatalf("Failed to load config: %s", err)
+				log.Error("Failed to load config: %s", err)
 			}
 
 			config.Port = dnsPort
 			config.WebsitePort = webserverPort
+			config.LogLevel = logger.ToLogLevel(logLevel)
+			log.SetLevel(logger.LogLevel(logLevel))
 			settings.SaveSettings(&config)
 
 			current, err := semver.NewVersion(version)
@@ -44,7 +46,7 @@ func main() {
 
 			server, err := server.NewDNSServer(config)
 			if err != nil {
-				log.Printf("Server initialization failed. %s", err)
+				log.Error("Server initialization failed. %s", err)
 				os.Exit(1)
 			}
 
@@ -59,7 +61,7 @@ func main() {
 			go func() {
 				defer wg.Done()
 				if err := serverInstance.ListenAndServe(); err != nil {
-					log.Printf("DNS server failed to start. %s", err)
+					log.Error("DNS server failed to start. %s", err)
 					errorChannel <- struct{}{}
 				}
 			}()
@@ -77,10 +79,10 @@ func main() {
 
 			select {
 			case <-errorChannel:
-				log.Println("Exiting due to server failure.")
+				log.Error("Exiting due to server failure")
 				os.Exit(1)
 			case <-waitForInterrupt():
-				log.Println("Received interrupt, shutting down.")
+				log.Error("Received interrupt, shutting down.")
 				os.Exit(0)
 			}
 		},
@@ -88,9 +90,10 @@ func main() {
 
 	rootCmd.Flags().IntVar(&dnsPort, "dnsport", 53, "Port for the DNS server")
 	rootCmd.Flags().IntVar(&webserverPort, "webserverport", 8080, "Port for the web server")
+	rootCmd.Flags().IntVar(&logLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR\nSetting 'loglevel' to 1 will show all logs except for DEBUG.\n0 will activate all logs.")
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalf("Command execution failed: %s", err)
+		log.Error("Command execution failed: %s", err)
 	}
 }
 

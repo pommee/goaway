@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   saveButton.addEventListener("click", () => {
-    collectSettings();
+    saveSettings();
     isModified = false;
     hidePopup();
   });
@@ -47,6 +47,7 @@ async function initializeSettings() {
 
   const cacheTTLInSeconds = settings.CacheTTL / 1000000000;
   document.getElementById("cacheTTL").value = cacheTTLInSeconds;
+  document.getElementById("logLevel").selectedIndex = settings.LogLevel;
 }
 
 async function getSettings() {
@@ -68,7 +69,7 @@ async function getSettings() {
   }
 }
 
-function collectSettings() {
+function saveSettings() {
   const settings = {};
 
   document

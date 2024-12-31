@@ -2,11 +2,12 @@ package website
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
+	"goaway/internal/logger"
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"io/fs"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -18,6 +19,8 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 )
+
+var log = logger.GetLogger()
 
 type API struct {
 	router    *gin.Engine
@@ -79,17 +82,17 @@ func (websiteServer *API) serve() {
 func (websiteServer *API) handleServer(c *gin.Context) {
 	cpuUsage, err := cpu.Percent(0, false)
 	if err != nil {
-		log.Fatal(err)
+		log.Error("%s", err)
 	}
 
 	temp, err := getCPUTemperature()
 	if err != nil {
-		log.Fatal(err)
+		log.Error("%s", err)
 	}
 
 	vMem, err := mem.VirtualMemory()
 	if err != nil {
-		log.Fatal(err)
+		log.Error("%s", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -149,7 +152,7 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	}
 
 	if err := action(domain); err != nil {
-		log.Println(err)
+		log.Error("%s", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
@@ -181,6 +184,9 @@ func (websiteServer *API) updateSettings(c *gin.Context) {
 	}
 
 	settings.UpdateSettings(websiteServer.dnsServer, updatedSettings)
+	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
+	log.Info("Updated settings!")
+	log.Debug(string(settingsJson))
 
 	c.JSON(http.StatusOK, gin.H{
 		"settings": websiteServer.dnsServer.Config,

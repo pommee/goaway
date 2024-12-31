@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goaway/internal/blacklist"
-	"log"
+	"goaway/internal/logger"
 	"net"
 	"os"
 	"strings"
@@ -14,9 +14,12 @@ import (
 	"github.com/miekg/dns"
 )
 
+var log = logger.GetLogger()
+
 type ServerConfig struct {
 	Port           int
 	WebsitePort    int
+	LogLevel       logger.LogLevel
 	UpstreamDNS    string
 	BlacklistPath  string
 	CountersFile   string
@@ -67,7 +70,7 @@ func NewDNSServer(config ServerConfig) (DNSServer, error) {
 	if !fileExists(config.RequestLogFile) {
 		err := os.WriteFile(config.RequestLogFile, []byte("[]"), 0644)
 		if err != nil {
-			log.Printf("Error writing file: %v\n", err)
+			log.Error("Error writing file %s", err)
 		}
 	}
 
@@ -157,7 +160,7 @@ func (s *DNSServer) IsBlacklisted(domain string) bool {
 
 func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string) {
 	domain = strings.TrimSuffix(domain, ".")
-	log.Printf("Blocked: %s\n", domain)
+	log.Info("Blocked: %s", domain)
 	msg.Rcode = dns.RcodeNameError // NXDOMAIN = blacklisted domain
 	w.WriteMsg(msg)
 
@@ -176,6 +179,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
 	if cached, found := s.cache.Load(domain); found {
 		cachedRecord := cached.(cachedRecord)
 		if time.Now().Before(cachedRecord.ExpiresAt) {
+			log.Debug("Cached response for %s", domain)
 			return cachedRecord.IPAddresses
 		}
 	}
@@ -190,7 +194,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, s.Config.UpstreamDNS)
 		if err != nil {
-			log.Printf("Resolution error: %v\n", err)
+			log.Error("Resolution error: %v", err)
 		} else {
 			ipAddresses = in.Answer
 		}
@@ -200,7 +204,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		log.Printf("DNS lookup for %s timed out\n", domain)
+		log.Warning("DNS lookup for %s timed out", domain)
 		return nil
 	}
 
@@ -219,7 +223,7 @@ func (s *DNSServer) logStats() {
 
 		err := saveCounters(s.Config.CountersFile, s.Counters)
 		if err != nil {
-			log.Printf("Failed to save counters: %v\n", err)
+			log.Error("Failed to save counters: %v", err)
 		}
 	}
 }

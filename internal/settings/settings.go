@@ -2,16 +2,20 @@ package settings
 
 import (
 	"encoding/json"
+	"goaway/internal/logger"
 	"goaway/internal/server"
-	"log"
 	"os"
+	"strings"
 	"time"
 )
+
+var log = logger.GetLogger()
 
 type Config struct {
 	ServerConfig struct {
 		Port           int    `json:"Port"`
 		WebsitePort    int    `json:"WebsitePort"`
+		LogLevel       int    `json:"LogLevel"`
 		UpstreamDNS    string `json:"UpstreamDNS"`
 		BlacklistPath  string `json:"BlacklistPath"`
 		CountersFile   string `json:"CountersFile"`
@@ -33,13 +37,14 @@ func LoadSettings() (server.ServerConfig, error) {
 
 	cacheTTL, err := time.ParseDuration(config.ServerConfig.CacheTTL)
 	if err != nil {
-		log.Printf("Could not parse CacheTTL. Error: %s\n", err)
+		log.Error("Could not parse CacheTTL. %s", err)
 		cacheTTL = time.Minute
 	}
 
 	return server.ServerConfig{
 		Port:           config.ServerConfig.Port,
 		WebsitePort:    config.ServerConfig.WebsitePort,
+		LogLevel:       logger.ToLogLevel(config.ServerConfig.LogLevel),
 		UpstreamDNS:    config.ServerConfig.UpstreamDNS,
 		BlacklistPath:  config.ServerConfig.BlacklistPath,
 		CountersFile:   config.ServerConfig.CountersFile,
@@ -53,6 +58,7 @@ func SaveSettings(config *server.ServerConfig) error {
 		ServerConfig: struct {
 			Port           int    `json:"Port"`
 			WebsitePort    int    `json:"WebsitePort"`
+			LogLevel       int    `json:"LogLevel"`
 			UpstreamDNS    string `json:"UpstreamDNS"`
 			BlacklistPath  string `json:"BlacklistPath"`
 			CountersFile   string `json:"CountersFile"`
@@ -61,6 +67,7 @@ func SaveSettings(config *server.ServerConfig) error {
 		}{
 			Port:           config.Port,
 			WebsitePort:    config.WebsitePort,
+			LogLevel:       logger.ToInteger(config.LogLevel),
 			UpstreamDNS:    config.UpstreamDNS,
 			BlacklistPath:  config.BlacklistPath,
 			CountersFile:   config.CountersFile,
@@ -81,6 +88,9 @@ func UpdateSettings(dnsServer *server.DNSServer, updatedSettings map[string]inte
 	if ttl, ok := updatedSettings["cacheTTL"].(string); ok {
 		updateCacheTTL(&dnsServer.Config, ttl)
 	}
+	if logLevel, ok := updatedSettings["logLevel"].(string); ok {
+		updateLogLevel(&dnsServer.Config, logger.FromString(strings.ToUpper(logLevel)))
+	}
 	SaveSettings(&dnsServer.Config)
 }
 
@@ -88,4 +98,9 @@ func updateCacheTTL(config *server.ServerConfig, ttl string) {
 	if parsedTTL, err := time.ParseDuration(ttl + "s"); err == nil {
 		config.CacheTTL = parsedTTL
 	}
+}
+
+func updateLogLevel(config *server.ServerConfig, logLevel logger.LogLevel) {
+	config.LogLevel = logLevel
+	log.SetLevel(config.LogLevel)
 }
