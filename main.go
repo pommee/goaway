@@ -35,6 +35,7 @@ func main() {
 
 			config.Port = dnsPort
 			config.WebsitePort = webserverPort
+			settings.SaveSettings(&config)
 
 			current, err := semver.NewVersion(version)
 			if err != nil {
