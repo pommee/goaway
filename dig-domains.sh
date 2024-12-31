@@ -9,7 +9,19 @@ if [ -z "${dns_server_ip}" ]; then
     exit 1
 fi
 
+success_count=0
+fail_count=0
+
 echo "Sending ${#domains[@]} requests..."
 for domain in "${domains[@]}"; do
-    dig +short @$dns_server_ip -p $dns_server_port $domain
+    result=$(dig +short @$dns_server_ip -p $dns_server_port $domain)
+
+    if [[ "$result" == "NXDOMAIN" || -z "$result" ]]; then
+        ((fail_count++))
+    else
+        ((success_count++))
+    fi
 done
+
+echo "$success_count requests succeeded."
+echo "$fail_count requests failed."

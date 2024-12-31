@@ -186,7 +186,7 @@ func (websiteServer *API) updateSettings(c *gin.Context) {
 	settings.UpdateSettings(websiteServer.dnsServer, updatedSettings)
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Info("Updated settings!")
-	log.Debug(string(settingsJson))
+	log.Debug("%s", string(settingsJson))
 
 	c.JSON(http.StatusOK, gin.H{
 		"settings": websiteServer.dnsServer.Config,
