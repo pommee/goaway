@@ -61,10 +61,10 @@
                 <div class="setting-item">
                     <div class="label-container">
                         <label for="setting-1">Enable Dark Mode</label>
-                        <div class="toggle">
-                            <input type="checkbox" id="setting-1" />
-                            <span>On</span>
-                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="darkMode" />
+                            <span class="slider"></span>
+                        </label>
                     </div>
                     <p class="setting-explanation">
                         Enables or disables dark mode for the application.
@@ -76,21 +76,23 @@
             <div class="settings-list">
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-5">Enable Logging</label>
-                        <div class="toggle">
-                            <input type="checkbox" id="setting-5" />
-                            <span>Off</span>
-                        </div>
+                        <label for="setting-5">Disable Logging</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="disableLogging" />
+                            <span class="slider"></span>
+                        </label>
                     </div>
                     <p class="setting-explanation">
-                        Toggle logs in the container. Default is true.
+                        Toggle logs in the container. Default is false.
                     </p>
                 </div>
 
-                <div class="setting-item">
+                <div class="setting-item modern">
                     <div class="label-container">
-                        <label for="setting-log-level">Log Level</label>
-                        <select id="setting-log-level">
+                        <label for="logLevel" class="setting-label"
+                            >Log Level</label
+                        >
+                        <select id="logLevel">
                             <option value="info">Info</option>
                             <option value="debug">Debug</option>
                             <option value="warn">Warn</option>
@@ -98,12 +100,13 @@
                         </select>
                     </div>
                     <p class="setting-explanation">
-                        Different log levels produce different amount of logs.
-                        Default is info.
+                        Different log levels produce different amounts of logs.
+                        Default is <strong>Info</strong>.
                     </p>
-                    <p class="setting-explanation">
-                        [NOTE] - Setting this to debug will produce large
-                        amounts of logs.
+                    <p class="setting-note">
+                        <i class="fa-solid fa-circle-info"></i> Setting this to
+                        <strong>Debug</strong> will produce large amounts of
+                        logs.
                     </p>
                 </div>
 
@@ -112,7 +115,7 @@
                         <label for="setting-ttl">Cache TTL (in seconds)</label>
                         <input
                             type="number"
-                            id="setting-ttl"
+                            id="cacheTTL"
                             value="60"
                             min="0"
                             max="86400"
@@ -131,7 +134,7 @@
                         >
                         <input
                             type="number"
-                            id="setting-max-cache-size"
+                            id="maxCacheSize"
                             value="1000"
                             min="100"
                             max="10000"
@@ -148,11 +151,7 @@
                         <label for="setting-upstream-dns"
                             >Upstream DNS Server</label
                         >
-                        <input
-                            type="text"
-                            id="setting-upstream-dns"
-                            value="8.8.8.8"
-                        />
+                        <input type="text" id="upstreamDNS" value="8.8.8.8" />
                     </div>
                     <p class="setting-explanation">
                         Upstream DNS server to resolve domains. Default is
@@ -167,7 +166,7 @@
                         >
                         <input
                             type="number"
-                            id="setting-timeout"
+                            id="domainResolveTimeout"
                             value="60"
                             min="1"
                             max="3600"
@@ -178,6 +177,15 @@
                         resolve a domain. Default is 60 seconds.
                     </p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Save Reminder Popup -->
+        <div id="save-popup" class="popup">
+            <p>Save latest changes?</p>
+            <div class="popup-buttons">
+                <button id="save-btn">Save</button>
+                <button id="dismiss-btn">Dismiss</button>
             </div>
         </div>
 

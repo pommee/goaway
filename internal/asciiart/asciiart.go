@@ -16,7 +16,7 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config server.ServerConfig, blockedDomains int, version string) {
+func AsciiArt(config *server.ServerConfig, blockedDomains int, version string) {
 
 	adminPanelURL := fmt.Sprintf("http://localhost:%d/index.html", config.WebsitePort)
 

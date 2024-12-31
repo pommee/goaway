@@ -71,6 +71,134 @@
     margin-right: 10px;
 }
 
+.setting-item select {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    font-size: 1.2rem;
+    width: 100px;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 8px;
+    outline: none;
+    background-color: transparent;
+}
+
+.setting-item select:hover {
+    background-color: #3a3a3a;
+    border-color: #555;
+}
+
+.setting-item select:focus {
+    background-color: #2e2e2e;
+    border-color: #007acc;
+}
+
 h2 {
     color: cornflowerblue;
+}
+
+/* Toggle switch container */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+/* Hide default checkbox */
+.toggle input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Toggle slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    border-radius: 24px;
+    transition: background-color 0.3s;
+}
+
+/* Slider circle */
+.slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition:
+        transform 0.3s,
+        background-color 0.3s;
+}
+
+/* Checked state styles */
+input[type="checkbox"]:checked + .slider {
+    background-color: #007acc;
+}
+
+input[type="checkbox"]:checked + .slider::before {
+    transform: translateX(26px);
+    background-color: #fff;
+}
+
+/* Hover effect */
+.slider:hover {
+    background-color: #555;
+}
+
+input[type="checkbox"]:checked + .slider:hover {
+    background-color: #005f99;
+}
+
+.popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    background-color: #212121;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    color: white;
+    display: none; /* Hidden by default */
+    z-index: 1000;
+}
+
+.popup p {
+    margin: 0 0 10px;
+    font-size: 1rem;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.popup-buttons button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#save-btn {
+    background-color: #007acc;
+    color: white;
+}
+
+#dismiss-btn {
+    background-color: #444;
+    color: white;
 }

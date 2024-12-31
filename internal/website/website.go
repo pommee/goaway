@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"goaway/internal/server"
+	"goaway/internal/settings"
 	"io/fs"
 	"log"
 	"net"
@@ -70,6 +71,9 @@ func (websiteServer *API) serve() {
 	websiteServer.router.GET("/queriesData", websiteServer.handleQueriesData)
 	websiteServer.router.GET("/updateBlockStatus", websiteServer.handleUpdateBlockStatus)
 	websiteServer.router.GET("/domains", websiteServer.getDomains)
+
+	websiteServer.router.GET("/settings", websiteServer.getSettings)
+	websiteServer.router.POST("/settings", websiteServer.updateSettings)
 }
 
 func (websiteServer *API) handleServer(c *gin.Context) {
@@ -159,6 +163,28 @@ func (websiteServer *API) getDomains(c *gin.Context) {
 		domains = append(domains, domain)
 	}
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
+}
+
+func (websiteServer *API) getSettings(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"settings": websiteServer.dnsServer.Config,
+	})
+}
+
+func (websiteServer *API) updateSettings(c *gin.Context) {
+	var updatedSettings map[string]interface{}
+	if err := c.BindJSON(&updatedSettings); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid settings data",
+		})
+		return
+	}
+
+	settings.UpdateSettings(websiteServer.dnsServer, updatedSettings)
+
+	c.JSON(http.StatusOK, gin.H{
+		"settings": websiteServer.dnsServer.Config,
+	})
 }
 
 func (websiteServer *API) serveWebsite(content embed.FS) {

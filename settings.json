@@ -1,0 +1,11 @@
+{
+  "serverConfig": {
+    "Port": 53,
+    "WebsitePort": 8080,
+    "UpstreamDNS": "8.8.8.8:53",
+    "BlacklistPath": "./blacklist.json",
+    "CountersFile": "./counters.json",
+    "RequestLogFile": "./requests.json",
+    "CacheTTL": "1m"
+  }
+}

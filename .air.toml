@@ -3,8 +3,8 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-args_bin = []
 bin = "./tmp/main"
+args_bin = ["--dnsport 6121"]
 cmd = "go build -o ./tmp/main ."
 delay = 1000
 exclude_dir = ["assets", "tmp", "vendor", "testdata"]

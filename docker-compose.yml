@@ -4,7 +4,9 @@ services:
     build:
       context: .
     container_name: goaway
-    env_file: ".env"
+    environment:
+      - DNS_PORT=${DNS_PORT}
+      - WEBSITE_PORT=${WEBSITE_PORT}
     ports:
       - "${DNS_PORT}:${DNS_PORT}/udp"
       - "${DNS_PORT}:${DNS_PORT}/tcp"

@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /dns-server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /goaway
 
 FROM alpine:3.18
 
@@ -21,16 +21,17 @@ RUN adduser -D appuser && \
     apk add --no-cache libcap
 
 WORKDIR /app
-COPY --from=builder /dns-server .
+COPY --from=builder /goaway .
 COPY blacklist.json .
+COPY settings.json .
 
 RUN chown -R appuser:appuser /app && \
-    setcap 'cap_net_bind_service=+ep' /app/dns-server
+    setcap 'cap_net_bind_service=+ep' /app/goaway
 
-ENV DNS_PORT=${DNS_PORT} \
-    WEBSITE_PORT=${WEBSITE_PORT}
-
-EXPOSE $DNS_PORT/tcp $DNS_PORT/udp $WEBSITE_PORT/tcp
+EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
 
 USER appuser
-ENTRYPOINT ["/app/dns-server"]
+
+COPY entrypoint.sh /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
