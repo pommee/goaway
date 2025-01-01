@@ -5,19 +5,9 @@
         <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-        />
-        <link
-            href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
-            rel="stylesheet"
-        />
-        <link
-            rel="stylesheet"
-            type="text/css"
-            href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"
-        />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+        <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
@@ -42,21 +32,12 @@
                 </div>
             </div>
             <hr class="rounded" />
-            <a href="./index.html"
-                ><i class="icon fa-solid fa-house-user"></i>Dashboard</a
-            >
+            <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
             <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-            <a class="selected" href="#"
-                ><i class="icon fa-solid fa-server"></i>Domains</a
-            >
-            <a href="./settings.html"
-                ><i class="icon fa-solid fa-gears"></i>Settings</a
-            >
-            <a
-                href="https://github.com/pommee/goaway"
-                target="_blank"
-                id="github-link"
-            >
+            <a class="selected" href="#"><i class="icon fa-solid fa-server"></i>Domains</a>
+            <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
+            <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
+            <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
                 <i class="icon fa-brands fa-github"></i> GitHub
             </a>
         </div>
@@ -67,18 +48,12 @@
             <div id="add-domain-modal" class="modal">
                 <div class="modal-content">
                     <h2>Add Domain to Block List</h2>
-                    <input
-                        type="text"
-                        id="domain-name"
-                        placeholder="Enter domain to block"
-                    />
+                    <input type="text" id="domain-name" placeholder="Enter domain to block" />
                     <button id="confirm-add-domain-btn">Add Domain</button>
                     <button id="cancel-btn">Cancel</button>
                 </div>
             </div>
-            <button id="add-domain-btn" onclick="openAddDomainModal()">
-                Add Domain
-            </button>
+            <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
         </div>
 
         <script src="/static/js/util.js"></script>

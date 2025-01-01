@@ -5,14 +5,8 @@
         <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-        />
-        <link
-            href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
-            rel="stylesheet"
-        />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+        <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
         <link rel="stylesheet" href="/static/css/style.css" />
         <link rel="stylesheet" href="/static/css/settings.css" />
         <style></style>
@@ -35,21 +29,12 @@
                 </div>
             </div>
             <hr class="rounded" />
-            <a href="./index.html"
-                ><i class="icon fa-solid fa-house-user"></i>Dashboard</a
-            >
+            <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
             <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-            <a href="./domains.html"
-                ><i class="icon fa-solid fa-server"></i>Domains</a
-            >
-            <a class="selected" href="#"
-                ><i class="icon fa-solid fa-gears"></i>Settings</a
-            >
-            <a
-                href="https://github.com/pommee/goaway"
-                target="_blank"
-                id="github-link"
-            >
+            <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
+            <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
+            <a class="selected" href="#"><i class="icon fa-solid fa-gears"></i>Settings</a>
+            <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
                 <i class="icon fa-brands fa-github"></i> GitHub
             </a>
         </div>
@@ -66,9 +51,7 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <p class="setting-explanation">
-                        Enables or disables dark mode for the application.
-                    </p>
+                    <p class="setting-explanation">Enables or disables dark mode for the application.</p>
                 </div>
             </div>
 
@@ -82,16 +65,12 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <p class="setting-explanation">
-                        Toggle logs in the container. Default is false.
-                    </p>
+                    <p class="setting-explanation">Toggle logs in the container. Default is false.</p>
                 </div>
 
                 <div class="setting-item modern">
                     <div class="label-container">
-                        <label for="logLevel" class="setting-label"
-                            >Log Level</label
-                        >
+                        <label for="logLevel" class="setting-label">Log Level</label>
                         <select id="logLevel">
                             <option value="debug">Debug</option>
                             <option value="info">Info</option>
@@ -100,81 +79,51 @@
                         </select>
                     </div>
                     <p class="setting-explanation">
-                        Different log levels produce different amounts of logs.
-                        Default is <strong>Info</strong>.
+                        Different log levels produce different amounts of logs. Default is <strong>Info</strong>.
                     </p>
                     <p class="setting-note">
-                        <i class="fa-solid fa-circle-info"></i> Setting this to
-                        <strong>Debug</strong> will produce large amounts of
-                        logs.
+                        <i class="fa-solid fa-circle-info"></i> Setting this to <strong>Debug</strong> will produce
+                        large amounts of logs.
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <div class="label-container">
                         <label for="setting-ttl">Cache TTL (in seconds)</label>
-                        <input
-                            type="number"
-                            id="cacheTTL"
-                            value="60"
-                            min="0"
-                            max="86400"
-                        />
+                        <input type="number" id="cacheTTL" value="60" min="0" max="86400" />
                     </div>
                     <p class="setting-explanation">
-                        Once a domain is resolved, it will be cached. Default is
-                        60 seconds.
+                        Once a domain is resolved, it will be cached. Default is 60 seconds.
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-max-cache-size"
-                            >Max Cache Size</label
-                        >
-                        <input
-                            type="number"
-                            id="maxCacheSize"
-                            value="1000"
-                            min="100"
-                            max="10000"
-                        />
+                        <label for="setting-max-cache-size">Max Cache Size</label>
+                        <input type="number" id="maxCacheSize" value="1000" min="100" max="10000" />
                     </div>
                     <p class="setting-explanation">
-                        Amount of domains to keep in the cache. Will remove the
-                        oldest domain once max is reached.
+                        Amount of domains to keep in the cache. Will remove the oldest domain once max is reached.
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-upstream-dns"
-                            >Upstream DNS Server</label
-                        >
+                        <label for="setting-upstream-dns">Upstream DNS Server</label>
                         <input type="text" id="upstreamDNS" value="8.8.8.8" />
                     </div>
                     <p class="setting-explanation">
-                        Upstream DNS server to resolve domains. Default is
-                        8.8.8.8:53 (Google).
+                        Upstream DNS server to resolve domains. Default is 8.8.8.8:53 (Google).
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-timeout"
-                            >DNS Request Timeout (in seconds)</label
-                        >
-                        <input
-                            type="number"
-                            id="domainResolveTimeout"
-                            value="60"
-                            min="1"
-                            max="3600"
-                        />
+                        <label for="setting-timeout">DNS Request Timeout (in seconds)</label>
+                        <input type="number" id="domainResolveTimeout" value="60" min="1" max="3600" />
                     </div>
                     <p class="setting-explanation">
-                        Amount of time the server shall spend on trying to
-                        resolve a domain. Default is 60 seconds.
+                        Amount of time the server shall spend on trying to resolve a domain. Default is 60 seconds.
                     </p>
                 </div>
             </div>

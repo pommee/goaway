@@ -1,4 +1,9 @@
-const serverIp = "<?= .ServerIP ?>";
+window.onload = function () {
+  if (!GetServerIP()) {
+    var serverIP = document.location.origin;
+    localStorage.setItem("serverIP", serverIP);
+  }
+};
 
 function GetServerIP() {
   return localStorage.getItem("serverIP");

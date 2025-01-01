@@ -1,0 +1,28 @@
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: start;
+}
+
+.client-card {
+    border: 2px solid #515151;
+    border-radius: 8px;
+    width: 250px;
+    text-align: center;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.client-card .client-card-header {
+    margin-bottom: 8px;
+}
+
+.client-card .client-card-subheader {
+    color: gray;
+}
+
+.client-card .client-card-footer {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: #888;
+}

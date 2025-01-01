@@ -79,7 +79,9 @@ func NewDNSServer(config ServerConfig) (DNSServer, error) {
 		return DNSServer{}, fmt.Errorf("failed to load request log: %w", err)
 	}
 
+	start := time.Now()
 	dnsBlacklist, _ := blacklist.LoadBlacklist(config.BlacklistPath)
+	log.Debug("Loading %s took %v", config.BlacklistPath, time.Since(start))
 	return DNSServer{
 		Config:             config,
 		Blacklist:          dnsBlacklist,

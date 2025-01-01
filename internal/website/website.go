@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/cpu"
@@ -77,6 +78,8 @@ func (websiteServer *API) serve() {
 
 	websiteServer.router.GET("/settings", websiteServer.getSettings)
 	websiteServer.router.POST("/settings", websiteServer.updateSettings)
+
+	websiteServer.router.GET("/clients", websiteServer.getClients)
 }
 
 func (websiteServer *API) handleServer(c *gin.Context) {
@@ -193,6 +196,43 @@ func (websiteServer *API) updateSettings(c *gin.Context) {
 	})
 }
 
+func (websiteServer *API) getClients(c *gin.Context) {
+	uniqueClients := make(map[string]struct {
+		Name     string
+		LastSeen time.Time
+	})
+
+	for _, logEntry := range websiteServer.dnsServer.RequestLog {
+		client := logEntry.ClientInfo
+		if client == nil {
+			continue
+		}
+
+		if existing, exists := uniqueClients[client.IP]; !exists || logEntry.Timestamp.After(existing.LastSeen) {
+			uniqueClients[client.IP] = struct {
+				Name     string
+				LastSeen time.Time
+			}{
+				Name:     client.Name,
+				LastSeen: logEntry.Timestamp,
+			}
+		}
+	}
+
+	var clients []map[string]interface{}
+	for ip, entry := range uniqueClients {
+		clients = append(clients, map[string]interface{}{
+			"IP":       ip,
+			"Name":     entry.Name,
+			"lastSeen": entry.LastSeen,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"clients": clients,
+	})
+}
+
 func (websiteServer *API) serveWebsite(content embed.FS) {
 	// Create a map to associate file extensions with their MIME types
 	mimeTypes := map[string]string{
@@ -201,12 +241,7 @@ func (websiteServer *API) serveWebsite(content embed.FS) {
 		".js":   "application/javascript",
 	}
 
-	ipAddress, err := getServerIP()
-	if err != nil {
-		fmt.Println("Error getting IP address:", err)
-	}
-
-	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -231,24 +266,6 @@ func (websiteServer *API) serveWebsite(content embed.FS) {
 		route := strings.TrimPrefix(path, "website")
 		websiteServer.router.GET(route, func(c *gin.Context) {
 			// Set the server IP address header
-			c.Header("X-Server-IP", ipAddress)
-
-			// If the file is an HTML file, add a script to store the IP address in localStorage
-			if ext == ".html" {
-				script := `
-					<script>
-						window.onload = function() {
-							// Check if the IP is not already stored
-							if (!localStorage.getItem("serverIP")) {
-								var serverIP = document.location.origin;
-								localStorage.setItem("serverIP", serverIP);
-							}
-						}
-					</script>
-				`
-				fileContent = append(fileContent, []byte(script)...)
-			}
-
 			c.Data(200, mimeType, fileContent)
 		})
 
