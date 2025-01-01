@@ -16,44 +16,53 @@ function getQueries() {
     });
 }
 
-function aggregateDataByHour(data) {
-  // Create an object to store hourly data for the last 24 hours
+function aggregateData(data, hours = null) {
   const now = new Date();
-  const hourlyData = {};
+  const resultData = {};
 
-  // Initialize last 24 hours with zero values
-  for (let i = 23; i >= 0; i--) {
-    const hour = new Date(now.getTime() - i * 3600000);
-    hour.setMinutes(0, 0, 0);
-    hourlyData[hour.getTime()] = {
-      timestamp: hour,
-      blocked: 0,
-      nonBlocked: 0,
-    };
+  if (hours !== null) {
+    for (let i = hours - 1; i >= 0; i--) {
+      const hour = new Date(now.getTime() - i * 3600000);
+      hour.setMinutes(0, 0, 0);
+      resultData[hour.getTime()] = {
+        timestamp: hour,
+        blocked: 0,
+        nonBlocked: 0,
+      };
+    }
   }
 
-  // Aggregate the actual data
   data.forEach((entry) => {
     const timestamp = new Date(entry.timestamp);
     timestamp.setMinutes(0, 0, 0);
     const timeKey = timestamp.getTime();
 
-    if (hourlyData[timeKey]) {
-      if (entry.blocked) {
-        hourlyData[timeKey].blocked++;
-      } else {
-        hourlyData[timeKey].nonBlocked++;
-      }
+    if (!resultData[timeKey]) {
+      resultData[timeKey] = {
+        timestamp,
+        blocked: 0,
+        nonBlocked: 0,
+      };
+    }
+
+    if (entry.blocked) {
+      resultData[timeKey].blocked++;
+    } else {
+      resultData[timeKey].nonBlocked++;
     }
   });
 
-  return hourlyData;
+  return resultData;
 }
 
 function updateTimeline(data) {
+  const allData = aggregateData(data.details);
+  const allChartData = Object.values(allData);
+
   if (!chart) {
-    const aggregatedData = aggregateDataByHour(data.details);
-    const chartData = Object.values(aggregatedData);
+    const initialData = aggregateData(data.details, 60); // Initialize with 60 hours
+    const initialChartData = Object.values(initialData);
+
     const ctx = document.getElementById("requestChart").getContext("2d");
     chart = new Chart(ctx, {
       type: "bar",
@@ -61,7 +70,7 @@ function updateTimeline(data) {
         datasets: [
           {
             label: "blocked",
-            data: chartData,
+            data: allChartData,
             parsing: {
               xAxisKey: "timestamp",
               yAxisKey: "blocked",
@@ -72,7 +81,7 @@ function updateTimeline(data) {
           },
           {
             label: "non-blocked",
-            data: chartData,
+            data: allChartData,
             parsing: {
               xAxisKey: "timestamp",
               yAxisKey: "nonBlocked",
@@ -100,6 +109,8 @@ function updateTimeline(data) {
               text: "Time",
             },
             stacked: true,
+            min: initialChartData[0]?.timestamp || null,
+            max: initialChartData[initialChartData.length - 1]?.timestamp || null,
           },
           y: {
             beginAtZero: true,
@@ -133,11 +144,17 @@ function updateTimeline(data) {
       },
     });
   } else {
-    const aggregatedData = aggregateDataByHour(data.details);
-    const chartData = Object.values(aggregatedData);
+    const currentMin = chart.options.scales.x.min;
+    const currentMax = chart.options.scales.x.max;
+
     chart.data.datasets.forEach((dataset) => {
-      dataset.data = chartData;
+      dataset.data = allChartData;
     });
+
+    // Preserve current zoom/pan state
+    chart.options.scales.x.min = currentMin;
+    chart.options.scales.x.max = currentMax;
+
     chart.update();
   }
 }
