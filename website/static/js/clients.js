@@ -30,35 +30,30 @@ function formatTimestamp(timestamp) {
 }
 
 function populateClientsTable(data) {
-  console.log(data);
-
-  const container = document.getElementById("client-cards-container");
   container.innerHTML = "";
 
-  for (let i = 0; i < 10; i++) {
-    data.clients.forEach((client) => {
-      const card = document.createElement("div");
-      card.className = "client-card";
+  data.clients.forEach((client) => {
+    const card = document.createElement("div");
+    card.className = "client-card";
 
-      const header = document.createElement("h1");
-      header.className = "client-card-header";
-      header.textContent = client.Name;
+    const header = document.createElement("h1");
+    header.className = "client-card-header";
+    header.textContent = client.Name;
 
-      const subheader = document.createElement("h3");
-      subheader.className = "client-card-subheader";
-      subheader.textContent = client.IP;
+    const subheader = document.createElement("h3");
+    subheader.className = "client-card-subheader";
+    subheader.textContent = client.IP;
 
-      const footer = document.createElement("p");
-      footer.className = "client-card-footer";
-      footer.textContent = `Last seen: ${formatTimestamp(client.lastSeen)}`;
+    const footer = document.createElement("p");
+    footer.className = "client-card-footer";
+    footer.textContent = `Last seen: ${formatTimestamp(client.lastSeen)}`;
 
-      card.appendChild(header);
-      card.appendChild(subheader);
-      card.appendChild(footer);
+    card.appendChild(header);
+    card.appendChild(subheader);
+    card.appendChild(footer);
 
-      container.appendChild(card);
-    });
-  }
+    container.appendChild(card);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {

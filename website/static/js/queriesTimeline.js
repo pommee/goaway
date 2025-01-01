@@ -60,7 +60,7 @@ function updateTimeline(data) {
   const allChartData = Object.values(allData);
 
   if (!chart) {
-    const initialData = aggregateData(data.details, 60); // Initialize with 60 hours
+    const initialData = aggregateData(data.details, 60);
     const initialChartData = Object.values(initialData);
 
     const ctx = document.getElementById("requestChart").getContext("2d");
