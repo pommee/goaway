@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-ping/ping"
 	"github.com/golang-jwt/jwt"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
@@ -93,6 +94,7 @@ func (api *API) setupRoutes() {
 		authorized.GET("/settings", api.getSettings)
 		authorized.POST("/settings", api.updateSettings)
 		authorized.GET("/clients", api.getClients)
+		authorized.GET("/upstreams", api.getUpstreams)
 	}
 }
 
@@ -402,6 +404,55 @@ func (websiteServer *API) getClients(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"clients": clients,
+	})
+}
+
+func (websiteServer *API) getUpstreams(c *gin.Context) {
+	upstreams := websiteServer.dnsServer.Config.UpstreamDNS
+	results := make([]map[string]string, 0)
+
+	for _, upstream := range upstreams {
+		host := strings.TrimSuffix(upstream, ":53")
+		entry := make(map[string]string)
+		entry["upstream"] = upstream
+
+		// Measure DNS lookup time
+		start := time.Now()
+		names, addrErr := net.LookupAddr(host)
+		duration := time.Since(start)
+
+		if addrErr != nil {
+			entry["name"] = "Error: " + addrErr.Error()
+			entry["dnsPing"] = "Error: " + addrErr.Error()
+		} else if len(names) > 0 {
+			entry["name"] = strings.TrimSuffix(names[0], ".")
+			entry["dnsPing"] = duration.String()
+		} else {
+			entry["name"] = "No name found"
+			entry["dnsPing"] = duration.String()
+		}
+
+		pinger, err := ping.NewPinger(host)
+		if err != nil {
+			entry["icmpPing"] = "Error: " + err.Error()
+		} else {
+			pinger.Count = 1
+			pinger.Timeout = 2 * time.Second
+			pinger.OnRecv = func(pkt *ping.Packet) {
+				entry["icmpPing"] = pkt.Rtt.String()
+			}
+
+			err := pinger.Run()
+			if err != nil {
+				entry["icmpPing"] = "Error: " + err.Error()
+			}
+		}
+
+		results = append(results, entry)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"upstreams": results,
 	})
 }
 

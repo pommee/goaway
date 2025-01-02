@@ -32,7 +32,9 @@
             <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
             <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
             <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
-            <a class="selected" href="#"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
+            <a class="selected" href="./upstream.html"
+                ><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a
+            >
             <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
             <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
             <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
@@ -42,10 +44,7 @@
 
         <!-- Main content area -->
         <div id="main">
-            <h1>Upstream DNS Configuration</h1>
-            <p>Enter your upstream DNS IPs below (one per line):</p>
-            <textarea id="upstream-dns" rows="10" cols="50" placeholder="8.8.8.8\n8.8.4.4"></textarea>
-            <button id="save-dns" onclick="saveDns()">Save</button>
+            <div id="client-cards-container" class="cards-container"></div>
         </div>
 
         <script src="/static/js/util.js"></script>

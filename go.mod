@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-ping/ping v1.2.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/miekg/dns v1.1.62
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -25,6 +26,7 @@ require (
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect

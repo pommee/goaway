@@ -1,54 +1,42 @@
-#upstream-dns {
-    background-color: #444;
-    color: white;
-    border: 1px solid #818181;
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: flex-start;
+    margin: 20px;
+}
+
+.upstream-card {
+    border: 1px solid cornflowerblue;
     border-radius: 8px;
-    padding: 10px;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 1rem;
-    width: 100%;
-    resize: vertical;
+    width: 280px;
+    text-align: center;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
 
-#upstream-dns::placeholder {
-    color: #818181;
+.upstream-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
-#save-dns {
-    padding: 10px 15px;
-    background-color: #444;
-    color: #f1f1f1;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
+.upstream-card-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
-#save-dns:hover {
-    background-color: #575757;
-    transform: scale(1.05);
+.upstream-card-subheader {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
 }
 
-#save-dns:focus {
-    outline: none;
-    border-color: #f1f1f1;
-}
-
-@media screen and (max-width: 1024px) {
-    #main {
-        margin-left: 200px;
-    }
-}
-
-@media screen and (max-width: 768px) {
-    #main {
-        margin-left: 0;
-    }
-
-    #upstream-dns {
-        font-size: 0.9rem;
-    }
-
-    #save-dns {
-        font-size: 0.9rem;
-    }
+.upstream-card-footer {
+    color: #555;
+    font-size: 0.85rem;
+    margin: 5px 0;
 }
