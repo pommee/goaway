@@ -120,57 +120,66 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	timestamp := time.Now()
-
 	clientIP := strings.Split(w.RemoteAddr().String(), ":")[0]
-	var clientName = "None"
-
-	lookupNames, _ := net.LookupAddr(clientIP)
-	if len(lookupNames) > 0 {
-		clientName = strings.TrimSuffix(lookupNames[0], ".")
-	}
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 	msg.Authoritative = true
 
-	for _, question := range r.Question {
-		domain := strings.TrimSuffix(question.Name, ".")
+	var wg sync.WaitGroup
+	results := make(chan RequestLogEntry, len(r.Question))
 
-		if s.IsBlacklisted(question.Name) {
-			s.handleBlacklisted(w, msg, question.Name)
-			s.RequestLog = append(s.RequestLog, RequestLogEntry{
-				Timestamp:      timestamp,
-				Domain:         domain,
-				Blocked:        true,
-				Cached:         false,
-				ResponseTimeNS: time.Since(timestamp),
-				ClientInfo:     &Client{IP: clientIP, Name: clientName},
-			})
-		} else {
-			s.handleQuery(w, msg, question, timestamp, domain, clientIP, clientName)
-		}
-		go s.SaveRequestLog(s.Config.RequestLogFile)
+	for _, question := range r.Question {
+		wg.Add(1)
+		go func(question dns.Question) {
+			defer wg.Done()
+
+			if s.IsBlacklisted(question.Name) {
+				s.handleBlacklisted(w, msg, question.Name)
+				results <- RequestLogEntry{
+					Timestamp:      timestamp,
+					Domain:         question.Name,
+					Blocked:        true,
+					Cached:         false,
+					ResponseTimeNS: time.Since(timestamp),
+					ClientInfo:     &Client{IP: clientIP},
+				}
+			} else {
+				entry := s.handleQuery(w, msg, question, timestamp, question.Name, clientIP)
+				results <- entry
+			}
+		}(question)
 	}
 
-	s.logStats()
-}
+	wg.Wait()
+	close(results)
 
-func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP, clientName string) {
+	var requestLogMutex sync.Mutex
+	for entry := range results {
+		requestLogMutex.Lock()
+		s.RequestLog = append(s.RequestLog, entry)
+		requestLogMutex.Unlock()
+	}
+
+	go s.SaveRequestLog(s.Config.RequestLogFile)
+	go s.logStats()
+}
+func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP string) RequestLogEntry {
 	answers, cached := s.resolve(question.Name, question.Qtype)
 	msg.Answer = append(msg.Answer, answers...)
-	w.WriteMsg(msg)
-	responseTime := time.Since(timestamp)
+	_ = w.WriteMsg(msg)
 
+	responseTime := time.Since(timestamp)
 	s.Counters.AllowedRequests++
 
-	s.RequestLog = append(s.RequestLog, RequestLogEntry{
+	return RequestLogEntry{
 		Timestamp:      timestamp,
 		Domain:         domain,
 		Blocked:        false,
 		Cached:         cached,
 		ResponseTimeNS: responseTime,
-		ClientInfo:     &Client{IP: clientIP, Name: clientName},
-	})
+		ClientInfo:     &Client{IP: clientIP},
+	}
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
@@ -185,6 +194,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 	var ipAddresses []dns.RR
 	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		m := new(dns.Msg)
 		m.SetQuestion(dns.Fqdn(domain), qtype)
 		m.RecursionDesired = true
@@ -193,32 +203,30 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 		in, _, err := c.Exchange(m, s.Config.BestUpstreamDNS)
 		if err != nil {
 			log.Error("Resolution error: %v", err)
-		} else {
-			ipAddresses = in.Answer
+			return
 		}
-		close(done)
+		ipAddresses = in.Answer
 	}()
 
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(3 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
 		return nil, false
 	}
 
-	go func() {
+	if len(ipAddresses) > 0 {
 		s.cache.Store(domain, cachedRecord{
 			IPAddresses: ipAddresses,
 			ExpiresAt:   time.Now().Add(s.Config.CacheTTL),
 		})
-	}()
+	}
 
 	return ipAddresses, false
 }
 
 func (s *DNSServer) IsBlacklisted(domain string) bool {
-	domain = strings.TrimSuffix(domain, ".")
-	return s.Blacklist.Domains[domain]
+	return s.Blacklist.Domains[strings.TrimSuffix(domain, ".")]
 }
 
 func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string) {
