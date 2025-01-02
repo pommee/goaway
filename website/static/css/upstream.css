@@ -1,0 +1,54 @@
+#upstream-dns {
+    background-color: #444;
+    color: white;
+    border: 1px solid #818181;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1rem;
+    width: 100%;
+    resize: vertical;
+}
+
+#upstream-dns::placeholder {
+    color: #818181;
+}
+
+#save-dns {
+    padding: 10px 15px;
+    background-color: #444;
+    color: #f1f1f1;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#save-dns:hover {
+    background-color: #575757;
+    transform: scale(1.05);
+}
+
+#save-dns:focus {
+    outline: none;
+    border-color: #f1f1f1;
+}
+
+@media screen and (max-width: 1024px) {
+    #main {
+        margin-left: 200px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    #main {
+        margin-left: 0;
+    }
+
+    #upstream-dns {
+        font-size: 0.9rem;
+    }
+
+    #save-dns {
+        font-size: 0.9rem;
+    }
+}

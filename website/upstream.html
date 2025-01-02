@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
 
     <link rel="stylesheet" href="/static/css/style.css" />
-    <link rel="stylesheet" href="/static/css/clients.css" />
+    <link rel="stylesheet" href="/static/css/upstream.css" />
 </head>
 
 <body>
@@ -33,8 +33,8 @@
         <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
         <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
         <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
-        <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
-        <a class="selected" href="#"><i class="icon fa-solid fa-users"></i>Clients</a>
+        <a class="selected" href="#"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
+        <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
         <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
         <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
             <i class="icon fa-brands fa-github"></i> GitHub
@@ -43,25 +43,15 @@
 
     <!-- Main content area -->
     <div id="main">
-        <div id="client-cards-container" class="cards-container"></div>
-    </div>
-    <div id="client-modal" class="modal">
-        <div class="modal-content">
-            <span id="modal-close" class="close">&times;</span>
-            <h2 id="modal-client-name"></h2>
-            <p id="modal-client-ip"></p>
-            <p id="modal-client-last-seen"></p>
-            <div class="modal-actions">
-                <button id="block-client" class="action-button">TODO</button>
-                <button id="unblock-client" class="action-button">TODO</button>
-                <button id="remove-client" class="action-button">TODO</button>
-            </div>
-        </div>
+        <h1>Upstream DNS Configuration</h1>
+        <p>Enter your upstream DNS IPs below (one per line):</p>
+        <textarea id="upstream-dns" rows="10" cols="50" placeholder="8.8.8.8\n8.8.4.4"></textarea>
+        <button id="save-dns" onclick="saveDns()">Save</button>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
-    <script src="/static/js/clients.js"></script>
+    <script src="/static/js/upstream.js"></script>
 </body>
 
 </html>
