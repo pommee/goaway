@@ -1,4 +1,12 @@
 const container = document.getElementById("client-cards-container");
+const modal = document.getElementById("client-modal");
+const modalClose = document.getElementById("modal-close");
+const modalClientName = document.getElementById("modal-client-name");
+const modalClientIP = document.getElementById("modal-client-ip");
+const modalClientLastSeen = document.getElementById("modal-client-last-seen");
+const blockClientButton = document.getElementById("block-client");
+const unblockClientButton = document.getElementById("unblock-client");
+const removeClientButton = document.getElementById("remove-client");
 
 function getClients() {
   fetch(GetServerIP() + "/clients")
@@ -16,6 +24,69 @@ function getClients() {
     });
 }
 
+function populateClientsTable(data) {
+  container.innerHTML = "";
+
+  data.clients.forEach((client) => {
+    const card = document.createElement("div");
+    card.className = "client-card";
+
+    const header = document.createElement("h1");
+    header.className = "client-card-header";
+    header.textContent = client.Name;
+
+    const subheader = document.createElement("h4");
+    subheader.className = "client-card-subheader";
+    subheader.textContent = client.IP;
+
+    const footer = document.createElement("p");
+    footer.className = "client-card-footer";
+    footer.textContent = `Last seen: ${formatTimestamp(client.lastSeen)}`;
+
+    card.appendChild(header);
+    card.appendChild(subheader);
+    card.appendChild(footer);
+
+    card.addEventListener("click", () => openModal(client));
+
+    container.appendChild(card);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  getClients();
+});
+
+function openModal(client) {
+  modal.style.display = "flex";
+  modalClientName.textContent = `Name: ${client.Name}`;
+  modalClientIP.textContent = `IP: ${client.IP}`;
+  modalClientLastSeen.textContent = `Last Seen: ${formatTimestamp(client.lastSeen)}`;
+
+  blockClientButton.onclick = () => {
+    alert(`Blocking client: ${client.Name}`);
+  };
+
+  unblockClientButton.onclick = () => {
+    alert(`Unblocking client: ${client.Name}`);
+  };
+
+  removeClientButton.onclick = () => {
+    alert(`Removing client: ${client.Name}`);
+  };
+}
+
+function closeModal() {
+  modal.style.display = "none";
+}
+
+modalClose.onclick = closeModal;
+
+window.onclick = (event) => {
+  if (event.target === modal) {
+    closeModal();
+  }
+};
 function formatTimestamp(timestamp) {
   const date = new Date(timestamp);
 
@@ -28,34 +99,3 @@ function formatTimestamp(timestamp) {
 
   return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
 }
-
-function populateClientsTable(data) {
-  container.innerHTML = "";
-
-  data.clients.forEach((client) => {
-    const card = document.createElement("div");
-    card.className = "client-card";
-
-    const header = document.createElement("h1");
-    header.className = "client-card-header";
-    header.textContent = client.Name;
-
-    const subheader = document.createElement("h3");
-    subheader.className = "client-card-subheader";
-    subheader.textContent = client.IP;
-
-    const footer = document.createElement("p");
-    footer.className = "client-card-footer";
-    footer.textContent = `Last seen: ${formatTimestamp(client.lastSeen)}`;
-
-    card.appendChild(header);
-    card.appendChild(subheader);
-    card.appendChild(footer);
-
-    container.appendChild(card);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  getClients();
-});

@@ -1,4 +1,3 @@
-// logger/logger.go
 package logger
 
 import (
@@ -18,9 +17,10 @@ const (
 )
 
 type Logger struct {
-	mu       sync.Mutex
-	logLevel LogLevel
-	logger   *log.Logger
+	mu              sync.Mutex
+	logLevel        LogLevel
+	LoggingDisabled bool
+	logger          *log.Logger
 }
 
 var (
@@ -31,17 +31,29 @@ var (
 func GetLogger() *Logger {
 	once.Do(func() {
 		instance = &Logger{
-			logLevel: INFO,
-			logger:   log.New(os.Stdout, "", log.LstdFlags),
+			logLevel:        INFO,
+			LoggingDisabled: false,
+			logger:          log.New(os.Stdout, "", log.LstdFlags),
 		}
 	})
 	return instance
 }
 
+func (l *Logger) ToggleLogging(disableLogging bool) {
+	if !l.LoggingDisabled && disableLogging {
+		l.Info("Logging is being disabled. Go to admin panel -> Settings to turn it back on.")
+	}
+	l.mu.Lock()
+	l.LoggingDisabled = disableLogging
+	l.mu.Unlock()
+}
+
 func (l *Logger) SetLevel(level LogLevel) {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.logLevel = level
+	if !l.LoggingDisabled {
+		l.logLevel = level
+	}
+	l.mu.Unlock()
 }
 
 func (l *Logger) log(levelStr string, message string) {
@@ -50,12 +62,12 @@ func (l *Logger) log(levelStr string, message string) {
 	l.logger.Printf("%s%s", levelStr, message)
 }
 
-func (l *Logger) verifyLogLevel(level LogLevel) bool {
-	return level >= l.logLevel
+func (l *Logger) verifyLog(level LogLevel) bool {
+	return level >= l.logLevel && !l.LoggingDisabled
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {
-	if !l.verifyLogLevel(DEBUG) {
+	if !l.verifyLog(DEBUG) {
 		return
 	}
 	if len(args) > 0 {
@@ -67,7 +79,7 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 }
 
 func (l *Logger) Info(format string, args ...interface{}) {
-	if !l.verifyLogLevel(INFO) {
+	if !l.verifyLog(INFO) {
 		return
 	}
 	if len(args) > 0 {
@@ -79,7 +91,7 @@ func (l *Logger) Info(format string, args ...interface{}) {
 }
 
 func (l *Logger) Warning(format string, args ...interface{}) {
-	if !l.verifyLogLevel(WARNING) {
+	if !l.verifyLog(WARNING) {
 		return
 	}
 	if len(args) > 0 {
@@ -91,7 +103,7 @@ func (l *Logger) Warning(format string, args ...interface{}) {
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
-	if !l.verifyLogLevel(ERROR) {
+	if !l.verifyLog(ERROR) {
 		return
 	}
 	if len(args) > 0 {

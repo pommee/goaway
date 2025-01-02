@@ -17,14 +17,15 @@ import (
 var log = logger.GetLogger()
 
 type ServerConfig struct {
-	Port           int
-	WebsitePort    int
-	LogLevel       logger.LogLevel
-	UpstreamDNS    string
-	BlacklistPath  string
-	CountersFile   string
-	RequestLogFile string
-	CacheTTL       time.Duration
+	Port            int
+	WebsitePort     int
+	LogLevel        logger.LogLevel
+	LoggingDisabled bool
+	UpstreamDNS     string
+	BlacklistPath   string
+	CountersFile    string
+	RequestLogFile  string
+	CacheTTL        time.Duration
 }
 
 type DNSServer struct {
@@ -60,7 +61,7 @@ type Client struct {
 	Name string
 }
 
-func NewDNSServer(config ServerConfig) (DNSServer, error) {
+func NewDNSServer(config *ServerConfig) (DNSServer, error) {
 	if !fileExists(config.CountersFile) {
 		newCounters := &CounterDetails{}
 		saveCounters(config.CountersFile, *newCounters)
@@ -83,7 +84,7 @@ func NewDNSServer(config ServerConfig) (DNSServer, error) {
 	dnsBlacklist, _ := blacklist.LoadBlacklist(config.BlacklistPath)
 	log.Debug("Loading %s took %v", config.BlacklistPath, time.Since(start))
 	return DNSServer{
-		Config:             config,
+		Config:             *config,
 		Blacklist:          dnsBlacklist,
 		Counters:           counters,
 		lastLogTime:        time.Now(),

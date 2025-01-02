@@ -3,6 +3,7 @@
     "Port": 53,
     "WebsitePort": 8080,
     "LogLevel": 1,
+    "LoggingDisabled": false,
     "UpstreamDNS": "8.8.8.8:53",
     "BlacklistPath": "./blacklist.json",
     "CountersFile": "./counters.json",

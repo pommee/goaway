@@ -9,7 +9,7 @@
 .setting-item {
     display: flex;
     flex-direction: column;
-    padding: 10px;
+    padding: 5px;
     border-bottom: 1px solid #444;
 }
 

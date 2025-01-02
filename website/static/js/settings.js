@@ -48,6 +48,7 @@ async function initializeSettings() {
   const cacheTTLInSeconds = settings.CacheTTL / 1000000000;
   document.getElementById("cacheTTL").value = cacheTTLInSeconds;
   document.getElementById("logLevel").selectedIndex = settings.LogLevel;
+  document.getElementById("disableLogging").checked = settings.LoggingDisabled;
 }
 
 async function getSettings() {
