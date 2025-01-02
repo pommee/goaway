@@ -22,8 +22,9 @@ RUN adduser -D appuser && \
 
 WORKDIR /app
 COPY --from=builder /goaway .
-COPY blacklist.json .
-COPY settings.json .
+
+RUN [ -f requests.json ] && cp requests.json /app/ || echo "requests.json not found"
+RUN [ -f counters.json ] && cp counters.json /app/ || echo "counters.json not found"
 
 RUN chown -R appuser:appuser /app && \
     setcap 'cap_net_bind_service=+ep' /app/goaway

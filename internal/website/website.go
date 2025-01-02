@@ -133,7 +133,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Name:     "jwt",
 		Value:    token,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(tokenDuration),
 	})
