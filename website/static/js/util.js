@@ -1,9 +1,7 @@
-window.onload = function () {
-  if (!GetServerIP()) {
-    var serverIP = document.location.origin;
-    localStorage.setItem("serverIP", serverIP);
-  }
-};
+if (!GetServerIP()) {
+  var serverIP = document.location.origin;
+  localStorage.setItem("serverIP", serverIP);
+}
 
 function GetServerIP() {
   return localStorage.getItem("serverIP");
@@ -26,6 +24,7 @@ function GetRequest(url) {
               "info",
               "You have been logged out. Please log in again.",
             );
+            localStorage.clear();
             window.location.href = "/login.html";
           }
           throw new Error("Network response was not ok");
@@ -39,6 +38,11 @@ function GetRequest(url) {
         reject(error);
       });
   });
+}
+
+function Logout() {
+  localStorage.clear();
+  window.location.href = "/login.html";
 }
 
 function showNotification(headerMessage, type, ...message) {

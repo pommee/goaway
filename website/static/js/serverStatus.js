@@ -36,20 +36,9 @@ const quotes = [
   "Stay adless!",
 ];
 
-function getServerStatus() {
-  fetch(GetServerIP() + "/server")
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then(function (data) {
-      updateHeader(data);
-    })
-    .catch(function (error) {
-      console.error("Failed to fetch logs:", error);
-    });
+async function getServerStatus() {
+  const serverStatus = await GetRequest("/server");
+  updateHeader(serverStatus);
 }
 
 function updateHeader(serverStatus) {
@@ -60,11 +49,11 @@ function updateHeader(serverStatus) {
     "Mem: " + serverStatus.usedMemPercentage.toFixed(1) + "%";
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  getServerStatus();
+document.addEventListener("DOMContentLoaded", async function () {
+  await getServerStatus();
   quote();
-  setInterval(function () {
-    getServerStatus();
+  setInterval(async function () {
+    await getServerStatus();
   }, 2500);
 });
 

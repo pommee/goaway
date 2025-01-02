@@ -1,5 +1,10 @@
-window.onload = function () {
+window.onload = async function () {
   const notificationData = localStorage.getItem("persistentNotification");
+
+  authenticationRequired = await GetRequest("/authentication");
+  if (authenticationRequired.disabled) {
+    window.location.href = "/index.html";
+  }
 
   if (notificationData) {
     const { headerMessage, type, message } = JSON.parse(notificationData);

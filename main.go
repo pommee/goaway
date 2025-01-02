@@ -27,21 +27,21 @@ var (
 
 func main() {
 	var dnsPort, webserverPort, logLevel int
-	var disableLogging bool
+	var disableLogging, disableAuth bool
 
-	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &disableLogging)
+	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &disableLogging, &disableAuth)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Error("Command execution failed: %s", err)
 	}
 }
 
-func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging *bool) *cobra.Command {
+func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging, disableAuth *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "goaway",
 		Short: "GoAway is a DNS filtering tool with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			runServer(*dnsPort, *webserverPort, *logLevel, *disableLogging)
+			runServer(*dnsPort, *webserverPort, *logLevel, *disableLogging, *disableAuth)
 		},
 	}
 
@@ -49,11 +49,12 @@ func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging *bo
 	cmd.Flags().IntVar(webserverPort, "webserverport", 8080, "Port for the web server")
 	cmd.Flags().IntVar(logLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
 	cmd.Flags().BoolVar(disableLogging, "disablelogging", false, "If true, then no logs will appear in the container")
+	cmd.Flags().BoolVar(disableAuth, "noauth", false, "If true, then no authentication is required for the admin dashboard")
 
 	return cmd
 }
 
-func runServer(dnsPort, webserverPort, logLevel int, disableLogging bool) {
+func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth bool) {
 	config, err := settings.LoadSettings()
 	if err != nil {
 		log.Error("Failed to load config: %s", err)
@@ -77,7 +78,7 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging bool) {
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original())
 
-	startServices(&dnsServer, serverInstance, webserverPort)
+	startServices(&dnsServer, serverInstance, webserverPort, disableAuth)
 }
 
 func getVersionOrDefault() *semver.Version {
@@ -88,7 +89,7 @@ func getVersionOrDefault() *semver.Version {
 	return versionObj
 }
 
-func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webserverPort int) {
+func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webserverPort int, disableAuth bool) {
 	var wg sync.WaitGroup
 	errorChannel := make(chan struct{}, 1)
 
@@ -104,7 +105,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		websiteInstance := website.API{}
+		websiteInstance := website.API{DisableAuthentication: disableAuth}
 		websiteInstance.Start(content, dnsServer, webserverPort)
 	}()
 

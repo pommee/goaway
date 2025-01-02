@@ -38,14 +38,22 @@ type Credentials struct {
 }
 
 type API struct {
-	router        *gin.Engine
-	dnsServer     *server.DNSServer
-	port          int
-	adminPassword string
+	router                *gin.Engine
+	dnsServer             *server.DNSServer
+	port                  int
+	DisableAuthentication bool
+	adminPassword         string
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int) {
-	api.adminPassword = generateRandomPassword(14)
+	password, exists := os.LookupEnv("GOAWAY_PASSWORD")
+	if !exists {
+		api.adminPassword = generateRandomPassword(14)
+		log.Info("Randomly generated admin password: %s", api.adminPassword)
+	} else {
+		api.adminPassword = password
+		log.Info("Using custom password: [hidden]")
+	}
 
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
@@ -62,7 +70,6 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int) {
 	go func() {
 		defer wg.Done()
 		log.Info("Starting server on port %d", port)
-		log.Info("Randomly generated admin password: %s", api.adminPassword)
 		api.router.Run(fmt.Sprintf(":%d", port))
 	}()
 
@@ -83,19 +90,23 @@ func generateRandomPassword(length int) string {
 func (api *API) setupRoutes() {
 	api.router.POST("/login", api.handleLogin)
 	api.router.GET("/server", api.handleServer)
+	api.router.GET("/authentication", api.getAuthentication)
 
 	authorized := api.router.Group("/")
-	authorized.Use(authMiddleware())
-	{
-		authorized.GET("/metrics", api.handleMetrics)
-		authorized.GET("/queriesData", api.handleQueriesData)
-		authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
-		authorized.GET("/domains", api.getDomains)
-		authorized.GET("/settings", api.getSettings)
-		authorized.POST("/settings", api.updateSettings)
-		authorized.GET("/clients", api.getClients)
-		authorized.GET("/upstreams", api.getUpstreams)
+	if !api.DisableAuthentication {
+		authorized.Use(authMiddleware())
+	} else {
+		log.Info("Authentication is disabled.")
 	}
+
+	authorized.GET("/metrics", api.handleMetrics)
+	authorized.GET("/queriesData", api.handleQueriesData)
+	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
+	authorized.GET("/domains", api.getDomains)
+	authorized.GET("/settings", api.getSettings)
+	authorized.POST("/settings", api.updateSettings)
+	authorized.GET("/clients", api.getClients)
+	authorized.GET("/upstreams", api.getUpstreams)
 }
 
 func (api *API) handleLogin(c *gin.Context) {
@@ -274,6 +285,10 @@ func (websiteServer *API) handleServer(c *gin.Context) {
 		"cpuUsage":          cpuUsage[0],
 		"cpuTemp":           temp,
 	})
+}
+
+func (websiteServer *API) getAuthentication(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"disabled": websiteServer.DisableAuthentication})
 }
 
 func (websiteServer *API) handleMetrics(c *gin.Context) {

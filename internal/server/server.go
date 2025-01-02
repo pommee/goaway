@@ -120,7 +120,13 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	timestamp := time.Now()
+	var clientName string
+
 	clientIP := strings.Split(w.RemoteAddr().String(), ":")[0]
+	lookupNames, _ := net.LookupAddr(clientIP)
+	if len(lookupNames) > 0 {
+		clientName = strings.TrimSuffix(lookupNames[0], ".")
+	}
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
@@ -142,10 +148,10 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 					Blocked:        true,
 					Cached:         false,
 					ResponseTimeNS: time.Since(timestamp),
-					ClientInfo:     &Client{IP: clientIP},
+					ClientInfo:     &Client{IP: clientIP, Name: clientName},
 				}
 			} else {
-				entry := s.handleQuery(w, msg, question, timestamp, question.Name, clientIP)
+				entry := s.handleQuery(w, msg, question, timestamp, question.Name, clientIP, clientName)
 				results <- entry
 			}
 		}(question)
@@ -164,7 +170,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	go s.SaveRequestLog(s.Config.RequestLogFile)
 	go s.logStats()
 }
-func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP string) RequestLogEntry {
+func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP, clientName string) RequestLogEntry {
 	answers, cached := s.resolve(question.Name, question.Qtype)
 	msg.Answer = append(msg.Answer, answers...)
 	_ = w.WriteMsg(msg)
@@ -178,7 +184,7 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 		Blocked:        false,
 		Cached:         cached,
 		ResponseTimeNS: responseTime,
-		ClientInfo:     &Client{IP: clientIP},
+		ClientInfo:     &Client{IP: clientIP, Name: clientName},
 	}
 }
 
