@@ -22,7 +22,8 @@ type ServerConfig struct {
 	WebsitePort     int
 	LogLevel        logger.LogLevel
 	LoggingDisabled bool
-	UpstreamDNS     string
+	UpstreamDNS     []string
+	BestUpstreamDNS string
 	BlacklistPath   string
 	CountersFile    string
 	RequestLogFile  string
@@ -164,10 +165,24 @@ func (s *DNSServer) IsBlacklisted(domain string) bool {
 }
 
 func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string) {
-	domain = strings.TrimSuffix(domain, ".")
+	domain = strings.TrimSpace(domain)
 	log.Info("Blocked: %s", domain)
-	msg.Rcode = dns.RcodeNameError // NXDOMAIN = blacklisted domain
-	w.WriteMsg(msg)
+
+	msg.Rcode = dns.RcodeSuccess
+	rr := &dns.A{
+		Hdr: dns.RR_Header{
+			Name:   domain,
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+			Ttl:    uint32(s.Config.CacheTTL),
+		},
+		A: net.ParseIP("0.0.0.0"),
+	}
+
+	msg.Answer = append(msg.Answer, rr)
+	if err := w.WriteMsg(msg); err != nil {
+		log.Error("Error sending DNS response: %v", err)
+	}
 
 	s.Counters.BlockedRequests++
 }
@@ -197,7 +212,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
 		m.RecursionDesired = true
 
 		c := new(dns.Client)
-		in, _, err := c.Exchange(m, s.Config.UpstreamDNS)
+		in, _, err := c.Exchange(m, s.Config.BestUpstreamDNS)
 		if err != nil {
 			log.Error("Resolution error: %v", err)
 		} else {
