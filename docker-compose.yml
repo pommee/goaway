@@ -23,6 +23,8 @@ services:
         ipv4_address: 172.0.0.2
     volumes:
       - ./blacklist.json:/app/blacklist.json
+      - ./requests.json:/app/requests.json
+      - ./counters.json:/app/counters.json
 
 networks:
   dns_network:
