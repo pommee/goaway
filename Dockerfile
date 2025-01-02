@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /goaway
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /goaway
 
 FROM alpine:3.18
 
