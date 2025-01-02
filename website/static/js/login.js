@@ -19,8 +19,6 @@ document.getElementById("login-form").addEventListener("submit", function (e) {
     body: JSON.stringify({ username: username, password: password }),
   })
     .then((response) => {
-      console.log(response.body);
-      console.log(response.status);
       if (response.ok) {
         window.location.href = "/index.html";
       } else {

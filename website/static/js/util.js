@@ -19,7 +19,7 @@ function GetRequest(url) {
       credentials: "include",
     })
       .then((response) => {
-        if (!response.ok) {
+        if (response.status >= 400) {
           if (response.status === 401) {
             showPersistentNotification(
               "Info",

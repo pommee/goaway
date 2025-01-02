@@ -53,10 +53,12 @@ type CounterDetails struct {
 }
 
 type RequestLogEntry struct {
-	Timestamp  time.Time `json:"timestamp"`
-	Domain     string    `json:"domain"`
-	Blocked    bool      `json:"blocked"`
-	ClientInfo *Client   `json:"client"`
+	Timestamp      time.Time     `json:"timestamp"`
+	Domain         string        `json:"domain"`
+	Blocked        bool          `json:"blocked"`
+	Cached         bool          `json:"cached"`
+	ResponseTimeNS time.Duration `json:"responseTimeNS"`
+	ClientInfo     *Client       `json:"client"`
 }
 
 type Client struct {
@@ -117,6 +119,8 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	timestamp := time.Now()
+
 	clientIP := strings.Split(w.RemoteAddr().String(), ":")[0]
 	var clientName = "None"
 
@@ -130,33 +134,86 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg.Authoritative = true
 
 	for _, question := range r.Question {
-		timestamp := time.Now()
 		domain := strings.TrimSuffix(question.Name, ".")
 
-		// Check if the domain is blacklisted
 		if s.IsBlacklisted(question.Name) {
 			s.handleBlacklisted(w, msg, question.Name)
 			s.RequestLog = append(s.RequestLog, RequestLogEntry{
-				Timestamp:  timestamp,
-				Domain:     domain,
-				Blocked:    true,
-				ClientInfo: &Client{IP: clientIP, Name: clientName},
+				Timestamp:      timestamp,
+				Domain:         domain,
+				Blocked:        true,
+				Cached:         false,
+				ResponseTimeNS: time.Since(timestamp),
+				ClientInfo:     &Client{IP: clientIP, Name: clientName},
 			})
-			go s.SaveRequestLog(s.Config.RequestLogFile)
-			return
+		} else {
+			s.handleQuery(w, msg, question, timestamp, domain, clientIP, clientName)
 		}
-
-		s.handleQuery(w, msg, question)
-		s.RequestLog = append(s.RequestLog, RequestLogEntry{
-			Timestamp:  timestamp,
-			Domain:     domain,
-			Blocked:    false,
-			ClientInfo: &Client{IP: clientIP, Name: clientName},
-		})
 		go s.SaveRequestLog(s.Config.RequestLogFile)
 	}
 
 	s.logStats()
+}
+
+func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP, clientName string) {
+	answers, cached := s.resolve(question.Name, question.Qtype)
+	msg.Answer = append(msg.Answer, answers...)
+	w.WriteMsg(msg)
+	responseTime := time.Since(timestamp)
+
+	s.Counters.AllowedRequests++
+
+	s.RequestLog = append(s.RequestLog, RequestLogEntry{
+		Timestamp:      timestamp,
+		Domain:         domain,
+		Blocked:        false,
+		Cached:         cached,
+		ResponseTimeNS: responseTime,
+		ClientInfo:     &Client{IP: clientIP, Name: clientName},
+	})
+}
+
+func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
+	if cached, found := s.cache.Load(domain); found {
+		cachedRecord := cached.(cachedRecord)
+		if time.Now().Before(cachedRecord.ExpiresAt) {
+			log.Debug("Cached response for %s", domain)
+			return cachedRecord.IPAddresses, true
+		}
+	}
+
+	var ipAddresses []dns.RR
+	done := make(chan struct{})
+	go func() {
+		m := new(dns.Msg)
+		m.SetQuestion(dns.Fqdn(domain), qtype)
+		m.RecursionDesired = true
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, s.Config.BestUpstreamDNS)
+		if err != nil {
+			log.Error("Resolution error: %v", err)
+		} else {
+			ipAddresses = in.Answer
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		log.Warning("DNS lookup for %s timed out", domain)
+		return nil, false
+	}
+
+	go func() {
+		s.cache.Store(domain, cachedRecord{
+			IPAddresses: ipAddresses,
+			ExpiresAt:   time.Now().Add(s.Config.CacheTTL),
+		})
+	}()
+
+	return ipAddresses, false
 }
 
 func (s *DNSServer) IsBlacklisted(domain string) bool {
@@ -187,56 +244,6 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	s.Counters.BlockedRequests++
 }
 
-func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question) {
-	answers := s.resolve(question.Name, question.Qtype)
-	msg.Answer = append(msg.Answer, answers...)
-	w.WriteMsg(msg)
-
-	s.Counters.AllowedRequests++
-}
-
-func (s *DNSServer) resolve(domain string, qtype uint16) []dns.RR {
-	if cached, found := s.cache.Load(domain); found {
-		cachedRecord := cached.(cachedRecord)
-		if time.Now().Before(cachedRecord.ExpiresAt) {
-			log.Debug("Cached response for %s", domain)
-			return cachedRecord.IPAddresses
-		}
-	}
-
-	var ipAddresses []dns.RR
-	done := make(chan struct{})
-	go func() {
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(domain), qtype)
-		m.RecursionDesired = true
-
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, s.Config.BestUpstreamDNS)
-		if err != nil {
-			log.Error("Resolution error: %v", err)
-		} else {
-			ipAddresses = in.Answer
-		}
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		log.Warning("DNS lookup for %s timed out", domain)
-		return nil
-	}
-
-	go func() {
-		s.cache.Store(domain, cachedRecord{
-			IPAddresses: ipAddresses,
-			ExpiresAt:   time.Now().Add(s.Config.CacheTTL),
-		})
-	}()
-
-	return ipAddresses
-}
 func (s *DNSServer) logStats() {
 	if time.Since(s.lastLogTime).Seconds() > float64(s.logIntervalSeconds) {
 		s.lastLogTime = time.Now()

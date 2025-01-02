@@ -58,7 +58,7 @@ func LoadBlacklist(filepath string) (Blacklist, error) {
 
 func (b *Blacklist) AddDomain(domain string) error {
 	if _, exists := b.Domains[domain]; exists {
-		return fmt.Errorf("domain %s is already in the blacklist", domain)
+		return fmt.Errorf("%s is already in the blacklist", domain)
 	}
 
 	if err := b.updateBlacklistJSON(func(data *OrderedBlacklist) {
@@ -68,12 +68,12 @@ func (b *Blacklist) AddDomain(domain string) error {
 	}
 
 	b.Domains[domain] = true
-	return nil
+	return fmt.Errorf("%s has been blacklisted.", domain)
 }
 
 func (b *Blacklist) RemoveDomain(domain string) error {
 	if _, exists := b.Domains[domain]; !exists {
-		return fmt.Errorf("domain %s not found in the blacklist", domain)
+		return fmt.Errorf("%s is already whitelisted", domain)
 	}
 
 	delete(b.Domains, domain)

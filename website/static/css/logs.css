@@ -1,7 +1,7 @@
 /* Table styling */
 #log-table {
     border-collapse: collapse;
-    margin-top: 20px; /* Space between the top and the table */
+    margin-top: 20px;
     background-color: #2a2a2a;
     border-radius: 8px;
     overflow: hidden;
@@ -14,8 +14,12 @@
     color: #f1f1f1;
 }
 
-#log-table td.wasBlocked {
-    color: red;
+#log-table tr td {
+    color: #00bf36;
+}
+
+#log-table tr.wasBlocked td {
+    color: #b30404;
 }
 
 #log-table th {
@@ -27,27 +31,8 @@
     font-size: 0.8rem;
 }
 
-#log-table tbody tr:nth-child(even) {
-    background-color: #333;
-}
-
-#log-table tbody tr:nth-child(odd) {
-    background-color: #292929;
-}
-
 #log-table tbody tr:hover {
-    background-color: #555;
-}
-
-/* DataTables Pagination Styling */
-.dataTables_wrapper .dataTables_paginate .paginate_button {
-    background-color: #444;
-    color: #f1f1f1;
-    border: none;
-    padding: 6px 12px;
-    margin: 0 5px;
-    cursor: pointer;
-    border-radius: 4px;
+    background-color: #111;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
@@ -86,23 +71,24 @@
     border-color: #888;
 }
 
-.toggle-block-btn {
+.toggle-button {
     background-color: #444;
     color: #f1f1f1;
+    font-weight: bold;
     border: 0;
     padding: 6px;
     border-radius: 4px;
     cursor: pointer;
 }
 
-.toggle-block-btn:hover {
-    background-color: orange;
+.toggle-button.blocked-true {
+    color: #06b839;
 }
 
-.block-btn {
-    background-color: #960012; /* Red for "Block" */
+.toggle-button.blocked-false {
+    color: red;
 }
 
-.unblock-btn {
-    background-color: #28a745; /* Green for "Un-Block" */
+.toggle-button:hover {
+    background-color: gray;
 }

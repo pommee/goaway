@@ -7,34 +7,13 @@ const cardBlockedDomains = document.querySelector(
   "#card-blocked-domains .card-text",
 );
 
-function getStatus() {
-  fetch(GetServerIP() + "/metrics")
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      return response.text();
-    })
-    .then((text) => {
-      if (!text) {
-        return;
-      }
-
-      try {
-        const data = JSON.parse(text);
-        if (data && Object.keys(data).length > 0) {
-          updateDashboardCards(data);
-        } else {
-          console.log("No data available");
-        }
-      } catch (e) {
-        throw new Error("Failed to parse JSON");
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to fetch logs:", error);
-    });
+async function getStatus() {
+  metrics = await GetRequest("/metrics");
+  if (metrics && Object.keys(metrics).length > 0) {
+    updateDashboardCards(metrics);
+  } else {
+    console.log("No data available");
+  }
 }
 
 function updateDashboardCards(status) {

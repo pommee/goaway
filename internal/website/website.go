@@ -307,7 +307,6 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	domain := c.Query("domain")
 	blocked := c.Query("blocked")
-
 	if domain == "" || blocked == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing query parameters"})
 		return
@@ -324,12 +323,16 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	}
 
 	if err := action(domain); err != nil {
-		log.Error("%s", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"domain": domain, "blocked": blocked})
+	if blocked == "true" {
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%s has been blacklisted.", domain)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%s has been whitelisted.", domain)})
 }
 
 func (websiteServer *API) getDomains(c *gin.Context) {
