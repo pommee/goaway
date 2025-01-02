@@ -1,17 +1,6 @@
-function getLogs() {
-  fetch(GetServerIP() + "/queriesData")
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then(function (data) {
-      populateLogTable(data);
-    })
-    .catch(function (error) {
-      console.error("Failed to fetch logs:", error);
-    });
+async function getLogs() {
+  data = await GetRequest("/queriesData");
+  populateLogTable(data);
 }
 
 function formatTimestamp(timestamp) {

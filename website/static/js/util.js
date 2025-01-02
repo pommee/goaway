@@ -9,18 +9,49 @@ function GetServerIP() {
   return localStorage.getItem("serverIP");
 }
 
+function GetRequest(url) {
+  return new Promise((resolve, reject) => {
+    fetch(GetServerIP() + url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          if (response.status === 401) {
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
+            window.location.href = "/login.html";
+          }
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+}
+
 function showNotification(headerMessage, type, ...message) {
   const notification = document.createElement("div");
   notification.classList.add("notification", type);
 
   const header = document.createElement("div");
   header.classList.add("notification-header");
-  header.textContent =
-    headerMessage == undefined ? "Notification" : headerMessage;
+  header.textContent = headerMessage || "Notification";
 
   const messageSection = document.createElement("div");
   messageSection.classList.add("notification-message");
-  messageSection.textContent = message;
+  messageSection.textContent = message.join(" ");
 
   notification.appendChild(header);
   notification.appendChild(messageSection);
@@ -46,4 +77,19 @@ function showErrorNotification(...message) {
 
 function showWarningNotification(...message) {
   showNotification("Warning", "warning", ...message);
+}
+
+function showPersistentNotification(headerMessage, type, ...message) {
+  const notificationData = {
+    headerMessage: headerMessage || "Notification",
+    type: type,
+    message: message.join(" "),
+  };
+
+  localStorage.setItem(
+    "persistentNotification",
+    JSON.stringify(notificationData),
+  );
+
+  showNotification(headerMessage, type, ...message);
 }

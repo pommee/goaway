@@ -1,7 +1,9 @@
 package website
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"goaway/internal/logger"
@@ -17,40 +19,216 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 )
 
 var log = logger.GetLogger()
 
+const (
+	tokenDuration = 5 * time.Minute
+	jwtSecret     = "the-secret-key"
+)
+
+type Credentials struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type API struct {
-	router    *gin.Engine
-	dnsServer *server.DNSServer
-	port      int
+	router        *gin.Engine
+	dnsServer     *server.DNSServer
+	port          int
+	adminPassword string
 }
 
-func (websiteServer *API) create() {
+func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int) {
+	api.adminPassword = generateRandomPassword(14)
+
 	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-	websiteServer.router = router
-}
+	api.router = gin.New()
+	dnsServer.WebServer = api.router
+	api.dnsServer = dnsServer
+	api.port = port
 
-func (websiteServer *API) Start(content embed.FS, dnsServer *server.DNSServer, port int) {
-	websiteServer.create()
-	websiteServer.dnsServer = dnsServer
-	websiteServer.port = port
+	api.setupRoutes()
+	api.serveEmbeddedContent(content)
+
 	var wg sync.WaitGroup
-
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
-		websiteServer.router.Run(fmt.Sprintf(":%d", port))
+		log.Info("Starting server on port %d", port)
+		log.Info("Randomly generated admin password: %s", api.adminPassword)
+		api.router.Run(fmt.Sprintf(":%d", port))
 	}()
 
-	websiteServer.serve()
-	websiteServer.serveWebsite(content)
-
 	wg.Wait()
+}
+
+func generateRandomPassword(length int) string {
+	randomBytes := make([]byte, length)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		log.Error("Error generating random bytes: %v", err)
+	}
+
+	password := base64.StdEncoding.EncodeToString(randomBytes)
+	return password
+}
+
+func (api *API) setupRoutes() {
+	api.router.POST("/login", api.handleLogin)
+	api.router.GET("/server", api.handleServer)
+
+	authorized := api.router.Group("/")
+	authorized.Use(authMiddleware())
+	{
+		authorized.GET("/metrics", api.handleMetrics)
+		authorized.GET("/queriesData", api.handleQueriesData)
+		authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
+		authorized.GET("/domains", api.getDomains)
+		authorized.GET("/settings", api.getSettings)
+		authorized.POST("/settings", api.updateSettings)
+		authorized.GET("/clients", api.getClients)
+	}
+}
+
+func (api *API) handleLogin(c *gin.Context) {
+	var creds Credentials
+	if err := c.ShouldBindJSON(&creds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if !api.validateCredentials(creds.Username, creds.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	token, err := generateToken(creds.Username)
+	if err != nil {
+		log.Error("Failed to create token: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
+		return
+	}
+
+	setAuthCookie(c.Writer, token)
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+}
+
+func generateToken(username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(tokenDuration).Unix(),
+		"iat":      time.Now().Unix(),
+	})
+	return token.SignedString([]byte(jwtSecret))
+}
+
+func setAuthCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(tokenDuration),
+	})
+}
+
+func authMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/server") {
+			c.Next()
+			return
+		}
+
+		cookie, err := c.Cookie("jwt")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization cookie required"})
+			c.Abort()
+			return
+		}
+
+		token, err := jwt.Parse(cookie, func(t *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			expirationTime := int64(claims["exp"].(float64))
+			if time.Now().Unix() > expirationTime {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+				c.Abort()
+				return
+			}
+
+			if time.Now().Unix() > expirationTime-int64(tokenDuration/2) {
+				newToken, err := generateToken(claims["username"].(string))
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
+					c.Abort()
+					return
+				}
+				setAuthCookie(c.Writer, newToken)
+			}
+
+			c.Set("username", claims["username"])
+		}
+
+		c.Next()
+	}
+}
+
+func (api *API) serveEmbeddedContent(content embed.FS) {
+	mimeTypes := map[string]string{
+		".html": "text/html",
+		".css":  "text/css",
+		".js":   "application/javascript",
+	}
+
+	ipAddress, err := getServerIP()
+	if err != nil {
+		fmt.Println("Error getting IP address:", err)
+	}
+
+	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		fileContent, err := content.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		mimeType := mimeTypes[strings.ToLower(path[strings.LastIndex(path, "."):])]
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+
+		route := strings.TrimPrefix(path, "website")
+		api.router.GET(route, func(c *gin.Context) {
+			c.Header("X-Server-IP", ipAddress)
+			c.Data(http.StatusOK, mimeType, fileContent)
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		log.Error("Error serving embedded content: %v", err)
+	}
 }
 
 func getCPUTemperature() (float64, error) {
@@ -67,19 +245,6 @@ func getCPUTemperature() (float64, error) {
 	}
 
 	return temp / 1000, nil
-}
-
-func (websiteServer *API) serve() {
-	websiteServer.router.GET("/server", websiteServer.handleServer)
-	websiteServer.router.GET("/metrics", websiteServer.handleMetrics)
-	websiteServer.router.GET("/queriesData", websiteServer.handleQueriesData)
-	websiteServer.router.GET("/updateBlockStatus", websiteServer.handleUpdateBlockStatus)
-	websiteServer.router.GET("/domains", websiteServer.getDomains)
-
-	websiteServer.router.GET("/settings", websiteServer.getSettings)
-	websiteServer.router.POST("/settings", websiteServer.updateSettings)
-
-	websiteServer.router.GET("/clients", websiteServer.getClients)
 }
 
 func (websiteServer *API) handleServer(c *gin.Context) {
@@ -126,6 +291,10 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    len(websiteServer.dnsServer.Blacklist.Domains),
 	})
+}
+
+func (websiteServer *API) validateCredentials(username, password string) bool {
+	return username == "admin" && password == websiteServer.adminPassword
 }
 
 func (websiteServer *API) handleQueriesData(c *gin.Context) {
@@ -231,49 +400,6 @@ func (websiteServer *API) getClients(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"clients": clients,
 	})
-}
-
-func (websiteServer *API) serveWebsite(content embed.FS) {
-	// Create a map to associate file extensions with their MIME types
-	mimeTypes := map[string]string{
-		".html": "text/html",
-		".css":  "text/css",
-		".js":   "application/javascript",
-	}
-
-	err := fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		fileContent, err := content.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		ext := strings.ToLower(path[strings.LastIndex(path, "."):])
-		mimeType, ok := mimeTypes[ext]
-		if !ok {
-			// Default MIME type if not found
-			mimeType = "application/octet-stream"
-		}
-
-		// Generate the route based on the file path
-		route := strings.TrimPrefix(path, "website")
-		websiteServer.router.GET(route, func(c *gin.Context) {
-			// Set the server IP address header
-			c.Data(200, mimeType, fileContent)
-		})
-
-		return nil
-	})
-	if err != nil {
-		fmt.Println("Error embedding files:", err)
-	}
 }
 
 func getServerIP() (string, error) {

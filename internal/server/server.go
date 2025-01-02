@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/miekg/dns"
 )
 
@@ -37,6 +38,7 @@ type DNSServer struct {
 	cache              sync.Map
 	cacheMutex         sync.RWMutex
 	RequestLog         []RequestLogEntry
+	WebServer          *gin.Engine
 }
 
 type cachedRecord struct {

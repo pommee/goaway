@@ -1,4 +1,3 @@
-// Store the card elements to update
 const cardQueries = document.querySelector("#card-queries .card-text");
 const cardBlocked = document.querySelector("#card-blocked .card-text");
 const cardBlockedPercentage = document.querySelector(
@@ -15,7 +14,7 @@ function getStatus() {
         throw new Error("Network response was not ok");
       }
 
-      return response.text(); // Get response as text
+      return response.text();
     })
     .then((text) => {
       if (!text) {
