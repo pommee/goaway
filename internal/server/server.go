@@ -76,13 +76,13 @@ func NewDNSServer(config *ServerConfig) (DNSServer, error) {
 	if !fileExists(config.RequestLogFile) {
 		err := os.WriteFile(config.RequestLogFile, []byte("[]"), 0644)
 		if err != nil {
-			log.Error("Error writing file %s", err)
+			log.Error("Error writing file [%s]. Error: %s", config.RequestLogFile, err)
 		}
 	}
 
 	requestLog, err := LoadRequestLog(config.RequestLogFile)
 	if err != nil {
-		return DNSServer{}, fmt.Errorf("failed to load request log: %w", err)
+		return DNSServer{}, fmt.Errorf("failed to load request log [%s]: %w", config.RequestLogFile, err)
 	}
 
 	start := time.Now()
