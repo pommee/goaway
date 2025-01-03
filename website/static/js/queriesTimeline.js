@@ -110,8 +110,7 @@ function updateTimeline(data) {
             },
             stacked: true,
             min: initialChartData[0]?.timestamp || null,
-            max:
-              initialChartData[initialChartData.length - 1]?.timestamp || null,
+            max: initialChartData[initialChartData.length - 1]?.timestamp || null,
           },
           y: {
             beginAtZero: true,

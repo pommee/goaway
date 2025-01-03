@@ -43,10 +43,8 @@ async function getServerStatus() {
 
 function updateHeader(serverStatus) {
   cpuUsageElement.innerText = "CPU: " + serverStatus.cpuUsage.toFixed(1) + "%";
-  cpuTempElement.innerText =
-    "CPU temp: " + serverStatus.cpuTemp.toFixed(1) + "°";
-  memoryUsageElement.innerText =
-    "Mem: " + serverStatus.usedMemPercentage.toFixed(1) + "%";
+  cpuTempElement.innerText = "CPU temp: " + serverStatus.cpuTemp.toFixed(1) + "°";
+  memoryUsageElement.innerText = "Mem: " + serverStatus.usedMemPercentage.toFixed(1) + "%";
 }
 
 document.addEventListener("DOMContentLoaded", async function () {

@@ -24,11 +24,7 @@ async function populateLogTable(logs) {
       const toggleBtnTxt = detail.blocked == true ? "Whitelist" : "Blacklist";
       let status;
 
-      status = detail.blocked
-        ? "Blocked"
-        : detail.cached
-          ? "OK (cached)"
-          : "OK (forwarded)";
+      status = detail.blocked ? "Blocked" : detail.cached ? "OK (cached)" : "OK (forwarded)";
       status += "<br>" + (detail.responseTimeNS / 1000000).toFixed(2) + " ms";
 
       $("#log-table tbody").append(
@@ -54,9 +50,7 @@ async function populateLogTable(logs) {
       const newBlockedStatus = !currentlyBlocked;
       $(this).data("blocked", newBlockedStatus);
 
-      blockReq = await GetRequest(
-        "/updateBlockStatus?domain=" + domain + "&blocked=" + newBlockedStatus,
-      );
+      blockReq = await GetRequest("/updateBlockStatus?domain=" + domain + "&blocked=" + newBlockedStatus);
       showInfoNotification(blockReq.message);
 
       const row = $(`#log-${domain}`);

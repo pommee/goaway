@@ -21,11 +21,7 @@ function GetRequest(url) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification(
-              "Info",
-              "info",
-              "You have been logged out. Please log in again.",
-            );
+            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -55,11 +51,7 @@ function PostRequest(url, body) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification(
-              "Info",
-              "info",
-              "You have been logged out. Please log in again.",
-            );
+            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -88,11 +80,7 @@ function DeleteRequest(url) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification(
-              "Info",
-              "info",
-              "You have been logged out. Please log in again.",
-            );
+            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -131,10 +119,7 @@ function showNotification(headerMessage, type, ...message) {
 
   document.body.appendChild(notification);
 
-  const offset = notifications.reduce(
-    (acc, el) => acc + el.offsetHeight + 10,
-    0,
-  );
+  const offset = notifications.reduce((acc, el) => acc + el.offsetHeight + 10, 0);
   notification.style.bottom = `${10 + offset}px`;
   notifications.push(notification);
 
@@ -146,9 +131,7 @@ function showNotification(headerMessage, type, ...message) {
     notification.remove();
     notifications.splice(notifications.indexOf(notification), 1);
     notifications.forEach((el, i) => {
-      const newOffset = notifications
-        .slice(0, i)
-        .reduce((acc, el) => acc + el.offsetHeight + 10, 0);
+      const newOffset = notifications.slice(0, i).reduce((acc, el) => acc + el.offsetHeight + 10, 0);
       el.style.bottom = `${10 + newOffset}px`;
     });
   }, 6000);
@@ -173,10 +156,7 @@ function showPersistentNotification(headerMessage, type, ...message) {
     message: message.join(" "),
   };
 
-  localStorage.setItem(
-    "persistentNotification",
-    JSON.stringify(notificationData),
-  );
+  localStorage.setItem("persistentNotification", JSON.stringify(notificationData));
 
   showNotification(headerMessage, type, ...message);
 }

@@ -6,8 +6,7 @@ const TABLE_CONFIG = {
     { data: null, render: (data) => data },
     {
       data: null,
-      render: (data) =>
-        `<button class="update-block-status" data-domain="${data}">unblock</button>`,
+      render: (data) => `<button class="update-block-status" data-domain="${data}">unblock</button>`,
     },
   ],
 };
@@ -23,8 +22,7 @@ const elements = {
 const API = {
   base: GetServerIP(),
   domains: "/domains",
-  updateStatus: (domain, blocked) =>
-    `/updateBlockStatus?domain=${domain}&blocked=${blocked}`,
+  updateStatus: (domain, blocked) => `/updateBlockStatus?domain=${domain}&blocked=${blocked}`,
 };
 
 // Table management
@@ -53,9 +51,7 @@ class DomainTable {
   async unblockDomain(domain, button) {
     try {
       button.prop("disabled", true);
-      const response = await fetch(
-        `${API.base}${API.updateStatus(domain, false)}`,
-      );
+      const response = await fetch(`${API.base}${API.updateStatus(domain, false)}`);
       const data = await response.json();
 
       if (data.domain) {
@@ -69,9 +65,7 @@ class DomainTable {
 
   async addDomain(domain) {
     try {
-      const response = await fetch(
-        `${API.base}${API.updateStatus(domain, true)}`,
-      );
+      const response = await fetch(`${API.base}${API.updateStatus(domain, true)}`);
       const data = await response.json();
 
       if (data.error) {
@@ -81,10 +75,7 @@ class DomainTable {
 
       if (data.domain) {
         this.table.row
-          .add([
-            data.domain,
-            `<button class="update-block-status" data-domain="${data.domain}">unblock</button>`,
-          ])
+          .add([data.domain, `<button class="update-block-status" data-domain="${data.domain}">unblock</button>`])
           .draw();
         showInfoNotification("Added domain:", data.domain);
       }
@@ -151,21 +142,17 @@ class DomainManager {
   }
 
   setupEventListeners() {
-    document
-      .getElementById("confirm-add-domain-btn")
-      .addEventListener("click", () => {
-        const domain = elements.domainInput().value;
-        if (domain) {
-          this.domainTable.addDomain(domain);
-          ModalManager.close();
-        } else {
-          showWarningNotification("Please enter a valid domain name");
-        }
-      });
+    document.getElementById("confirm-add-domain-btn").addEventListener("click", () => {
+      const domain = elements.domainInput().value;
+      if (domain) {
+        this.domainTable.addDomain(domain);
+        ModalManager.close();
+      } else {
+        showWarningNotification("Please enter a valid domain name");
+      }
+    });
 
-    document
-      .getElementById("cancel-btn")
-      .addEventListener("click", ModalManager.close);
+    document.getElementById("cancel-btn").addEventListener("click", ModalManager.close);
   }
 }
 

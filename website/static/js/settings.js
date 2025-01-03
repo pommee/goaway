@@ -73,15 +73,13 @@ async function getSettings() {
 function saveSettings() {
   const settings = {};
 
-  document
-    .querySelectorAll(".setting-item input, .setting-item select")
-    .forEach((input) => {
-      if (input.type === "checkbox") {
-        settings[input.id] = input.checked;
-      } else {
-        settings[input.id] = input.value;
-      }
-    });
+  document.querySelectorAll(".setting-item input, .setting-item select").forEach((input) => {
+    if (input.type === "checkbox") {
+      settings[input.id] = input.checked;
+    } else {
+      settings[input.id] = input.value;
+    }
+  });
 
   fetch(GetServerIP() + "/settings", {
     method: "POST",
