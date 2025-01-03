@@ -42,6 +42,73 @@ function GetRequest(url) {
   });
 }
 
+function PostRequest(url, body) {
+  return new Promise((resolve, reject) => {
+    fetch(GetServerIP() + url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: body,
+    })
+      .then((response) => {
+        if (response.status >= 400) {
+          if (response.status === 401) {
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
+            localStorage.clear();
+            window.location.href = "/login.html";
+          }
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+}
+
+function DeleteRequest(url) {
+  return new Promise((resolve, reject) => {
+    fetch(GetServerIP() + url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    })
+      .then((response) => {
+        if (response.status >= 400) {
+          if (response.status === 401) {
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
+            localStorage.clear();
+            window.location.href = "/login.html";
+          }
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+}
+
 function Logout() {
   localStorage.clear();
   window.location.href = "/login.html";

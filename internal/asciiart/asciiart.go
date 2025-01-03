@@ -34,7 +34,7 @@ func AsciiArt(config *server.ServerConfig, blockedDomains int, version string) {
 		"   __/ |                           __/ |  Admin Panel:     %s%s%s\n"+
 		"  |___/          %s          |___/   Blocked Domains: %s%d%s\n\n\n",
 		Green, config.Port, Reset,
-		Cyan, config.BestUpstreamDNS, Reset,
+		Cyan, config.PreferredUpstream, Reset,
 		Yellow, config.BlacklistPath, Reset,
 		Blue, config.CacheTTL, Reset,
 		Magenta, adminPanelURL, Reset,

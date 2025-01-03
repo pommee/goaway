@@ -18,16 +18,16 @@ import (
 var log = logger.GetLogger()
 
 type ServerConfig struct {
-	Port            int
-	WebsitePort     int
-	LogLevel        logger.LogLevel
-	LoggingDisabled bool
-	UpstreamDNS     []string
-	BestUpstreamDNS string
-	BlacklistPath   string
-	CountersFile    string
-	RequestLogFile  string
-	CacheTTL        time.Duration
+	Port              int
+	WebsitePort       int
+	LogLevel          logger.LogLevel
+	LoggingDisabled   bool
+	UpstreamDNS       []string
+	PreferredUpstream string
+	BlacklistPath     string
+	CountersFile      string
+	RequestLogFile    string
+	CacheTTL          time.Duration
 }
 
 type DNSServer struct {
@@ -206,7 +206,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 		m.RecursionDesired = true
 
 		c := new(dns.Client)
-		in, _, err := c.Exchange(m, s.Config.BestUpstreamDNS)
+		in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
 		if err != nil {
 			log.Error("Resolution error: %v", err)
 			return

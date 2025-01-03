@@ -15,16 +15,16 @@ var log = logger.GetLogger()
 
 type Config struct {
 	ServerConfig struct {
-		Port            int      `json:"Port"`
-		WebsitePort     int      `json:"WebsitePort"`
-		LogLevel        int      `json:"LogLevel"`
-		LoggingDisabled bool     `json:"LoggingDisabled"`
-		UpstreamDNS     []string `json:"UpstreamDNS"`
-		BestUpstreamDNS string   `json:"BestUpstreamDNS"`
-		BlacklistPath   string   `json:"BlacklistPath"`
-		CountersFile    string   `json:"CountersFile"`
-		RequestLogFile  string   `json:"RequestLogFile"`
-		CacheTTL        string   `json:"CacheTTL"`
+		Port              int      `json:"Port"`
+		WebsitePort       int      `json:"WebsitePort"`
+		LogLevel          int      `json:"LogLevel"`
+		LoggingDisabled   bool     `json:"LoggingDisabled"`
+		UpstreamDNS       []string `json:"UpstreamDNS"`
+		PreferredUpstream string   `json:"PreferredUpstream"`
+		BlacklistPath     string   `json:"BlacklistPath"`
+		CountersFile      string   `json:"CountersFile"`
+		RequestLogFile    string   `json:"RequestLogFile"`
+		CacheTTL          string   `json:"CacheTTL"`
 	} `json:"serverConfig"`
 }
 
@@ -51,16 +51,16 @@ func LoadSettings() (server.ServerConfig, error) {
 	}
 
 	return server.ServerConfig{
-		Port:            config.ServerConfig.Port,
-		WebsitePort:     config.ServerConfig.WebsitePort,
-		LogLevel:        logger.ToLogLevel(config.ServerConfig.LogLevel),
-		LoggingDisabled: config.ServerConfig.LoggingDisabled,
-		UpstreamDNS:     config.ServerConfig.UpstreamDNS,
-		BestUpstreamDNS: bestDNS,
-		BlacklistPath:   config.ServerConfig.BlacklistPath,
-		CountersFile:    config.ServerConfig.CountersFile,
-		RequestLogFile:  config.ServerConfig.RequestLogFile,
-		CacheTTL:        cacheTTL,
+		Port:              config.ServerConfig.Port,
+		WebsitePort:       config.ServerConfig.WebsitePort,
+		LogLevel:          logger.ToLogLevel(config.ServerConfig.LogLevel),
+		LoggingDisabled:   config.ServerConfig.LoggingDisabled,
+		UpstreamDNS:       config.ServerConfig.UpstreamDNS,
+		PreferredUpstream: bestDNS,
+		BlacklistPath:     config.ServerConfig.BlacklistPath,
+		CountersFile:      config.ServerConfig.CountersFile,
+		RequestLogFile:    config.ServerConfig.RequestLogFile,
+		CacheTTL:          cacheTTL,
 	}, nil
 }
 
@@ -99,27 +99,27 @@ func checkDNS(ip string) (time.Duration, error) {
 func SaveSettings(config *server.ServerConfig) error {
 	configData := Config{
 		ServerConfig: struct {
-			Port            int      `json:"Port"`
-			WebsitePort     int      `json:"WebsitePort"`
-			LogLevel        int      `json:"LogLevel"`
-			LoggingDisabled bool     `json:"LoggingDisabled"`
-			UpstreamDNS     []string `json:"UpstreamDNS"`
-			BestUpstreamDNS string   `json:"BestUpstreamDNS"`
-			BlacklistPath   string   `json:"BlacklistPath"`
-			CountersFile    string   `json:"CountersFile"`
-			RequestLogFile  string   `json:"RequestLogFile"`
-			CacheTTL        string   `json:"CacheTTL"`
+			Port              int      `json:"Port"`
+			WebsitePort       int      `json:"WebsitePort"`
+			LogLevel          int      `json:"LogLevel"`
+			LoggingDisabled   bool     `json:"LoggingDisabled"`
+			UpstreamDNS       []string `json:"UpstreamDNS"`
+			PreferredUpstream string   `json:"PreferredUpstream"`
+			BlacklistPath     string   `json:"BlacklistPath"`
+			CountersFile      string   `json:"CountersFile"`
+			RequestLogFile    string   `json:"RequestLogFile"`
+			CacheTTL          string   `json:"CacheTTL"`
 		}{
-			Port:            config.Port,
-			WebsitePort:     config.WebsitePort,
-			LogLevel:        logger.ToInteger(config.LogLevel),
-			LoggingDisabled: config.LoggingDisabled,
-			UpstreamDNS:     config.UpstreamDNS,
-			BestUpstreamDNS: config.BestUpstreamDNS,
-			BlacklistPath:   config.BlacklistPath,
-			CountersFile:    config.CountersFile,
-			RequestLogFile:  config.RequestLogFile,
-			CacheTTL:        config.CacheTTL.String(),
+			Port:              config.Port,
+			WebsitePort:       config.WebsitePort,
+			LogLevel:          logger.ToInteger(config.LogLevel),
+			LoggingDisabled:   config.LoggingDisabled,
+			UpstreamDNS:       config.UpstreamDNS,
+			PreferredUpstream: config.PreferredUpstream,
+			BlacklistPath:     config.BlacklistPath,
+			CountersFile:      config.CountersFile,
+			RequestLogFile:    config.RequestLogFile,
+			CacheTTL:          config.CacheTTL.String(),
 		},
 	}
 

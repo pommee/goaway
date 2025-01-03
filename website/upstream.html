@@ -44,7 +44,24 @@
 
         <!-- Main content area -->
         <div id="main">
+            <button id="newUpstreamBtn">Add upstream</button>
             <div id="client-cards-container" class="cards-container"></div>
+        </div>
+        <div id="client-modal" class="modal">
+            <div class="modal-content">
+                <span id="modal-close" class="close">&times;</span>
+                <h2>New upstream</h2>
+                <p>
+                    A new upstream can be added by providing an IP address.<br />Note that multiple upstreams can be
+                    added at once by putting them on separate lines.<br />If no port is given, then it is assumed that
+                    53 is used.<br />Allowed characters: numbers (0-9) | dot (.) | colon (:).
+                </p>
+                <textarea
+                    id="upstreamsTextArea"
+                    placeholder="0.0.0.0&#10;1.1.1.1&#10;2.2.2.2:63 (custom port)&#10;..."
+                ></textarea>
+                <button id="saveUpstreamBtn" class="save-btn">Save</button>
+            </div>
         </div>
 
         <script src="/static/js/util.js"></script>

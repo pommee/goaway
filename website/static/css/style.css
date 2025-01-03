@@ -233,6 +233,7 @@ body {
     bottom: 10px;
     right: 10px;
     opacity: 1;
+    z-index: 9999;
     transition:
         opacity 1s ease,
         bottom 0.3s ease;
@@ -255,7 +256,7 @@ body {
 
 .notification.error {
     background-color: red;
-    border-color: #f5c6cb;
+    border-color: #ba0000;
 }
 
 .notification.warning {

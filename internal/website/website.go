@@ -9,6 +9,7 @@ import (
 	"goaway/internal/logger"
 	"goaway/internal/server"
 	"goaway/internal/settings"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -107,6 +108,9 @@ func (api *API) setupRoutes() {
 	authorized.POST("/settings", api.updateSettings)
 	authorized.GET("/clients", api.getClients)
 	authorized.GET("/upstreams", api.getUpstreams)
+	authorized.POST("/upstreams", api.createUpstreams)
+	authorized.DELETE("/upstreams", api.removeUpstreams)
+	authorized.GET("/preferredUpstream", api.setPreferredUpstream)
 }
 
 func (api *API) handleLogin(c *gin.Context) {
@@ -426,12 +430,19 @@ func (websiteServer *API) getUpstreams(c *gin.Context) {
 	upstreams := websiteServer.dnsServer.Config.UpstreamDNS
 	results := make([]map[string]string, 0)
 
+	preferredUpstream := websiteServer.dnsServer.Config.PreferredUpstream
+
 	for _, upstream := range upstreams {
 		host := strings.TrimSuffix(upstream, ":53")
 		entry := make(map[string]string)
 		entry["upstream"] = upstream
 
-		// Measure DNS lookup time
+		if upstream == preferredUpstream {
+			entry["preferred"] = "true"
+		} else {
+			entry["preferred"] = "false"
+		}
+
 		start := time.Now()
 		names, addrErr := net.LookupAddr(host)
 		duration := time.Since(start)
@@ -467,8 +478,114 @@ func (websiteServer *API) getUpstreams(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"upstreams": results,
+		"upstreams":         results,
+		"preferredUpstream": preferredUpstream,
 	})
+}
+
+func (websiteServer *API) createUpstreams(c *gin.Context) {
+	type UpstreamsRequest struct {
+		Upstreams []string `json:"upstreams"`
+	}
+
+	newUpstreams, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var request UpstreamsRequest
+	if err := json.Unmarshal(newUpstreams, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	var filteredUpstreams []string
+	for _, upstream := range request.Upstreams {
+		if !strings.Contains(upstream, ":") {
+			upstream += ":53"
+		}
+
+		exists := false
+		for _, existing := range websiteServer.dnsServer.Config.UpstreamDNS {
+			if existing == upstream {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
+			return
+		}
+	}
+
+	if len(filteredUpstreams) == 0 {
+		log.Info("No new unique upstreams to add")
+		c.JSON(http.StatusOK, gin.H{"message": "No new unique upstreams to add"})
+		return
+	}
+
+	log.Info("Adding unique upstreams: %v", filteredUpstreams)
+	websiteServer.dnsServer.Config.UpstreamDNS = append(
+		websiteServer.dnsServer.Config.UpstreamDNS,
+		filteredUpstreams...,
+	)
+
+	settings.SaveSettings(&websiteServer.dnsServer.Config)
+	c.JSON(http.StatusOK, gin.H{"added_upstreams": filteredUpstreams})
+}
+
+func (websiteServer *API) removeUpstreams(c *gin.Context) {
+	upstreamToDelete := c.Query("upstream")
+
+	if upstreamToDelete == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'upstream' query parameter"})
+		return
+	}
+
+	var updatedUpstreams []string
+	for _, upstream := range websiteServer.dnsServer.Config.UpstreamDNS {
+		if upstream != upstreamToDelete {
+			updatedUpstreams = append(updatedUpstreams, upstream)
+		}
+	}
+
+	websiteServer.dnsServer.Config.UpstreamDNS = updatedUpstreams
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Upstream removed successfully",
+	})
+}
+
+func (websiteServer *API) setPreferredUpstream(c *gin.Context) {
+	upstreamToSet := c.DefaultQuery("upstream", "")
+
+	if upstreamToSet == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream is required"})
+		return
+	}
+
+	var found bool
+	for _, upstream := range websiteServer.dnsServer.Config.UpstreamDNS {
+		if upstream == upstreamToSet {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Upstream not found"})
+		return
+	}
+
+	websiteServer.dnsServer.Config.PreferredUpstream = upstreamToSet
+	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", websiteServer.dnsServer.Config.PreferredUpstream)
+	log.Info("%s", updatedMsg)
+	settings.SaveSettings(&websiteServer.dnsServer.Config)
+	c.JSON(http.StatusOK, gin.H{"message": updatedMsg})
 }
 
 func getServerIP() (string, error) {

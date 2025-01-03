@@ -116,6 +116,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webs
 	select {
 	case <-errorChannel:
 		log.Error("Exiting due to server failure")
+		log.Info("Help can be provided using the --help flag")
 		exit(1)
 	case <-waitForInterrupt():
 		log.Error("Received interrupt, shutting down.")
