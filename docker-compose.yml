@@ -21,9 +21,6 @@ services:
     networks:
       dns_network:
         ipv4_address: 172.0.0.2
-    volumes:
-      - ./database.db:/app/database.db
-      - ./settings.json:/app/settings.json
 
 networks:
   dns_network:

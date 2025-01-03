@@ -36,6 +36,4 @@ EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
 
 USER appuser
 
-COPY entrypoint.sh /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["sh", "-c", "/app/goaway --dnsport=${DNS_PORT} --webserverport=${WEBSITE_PORT}"]
