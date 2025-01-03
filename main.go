@@ -2,11 +2,11 @@ package main
 
 import (
 	"embed"
+	"goaway/internal/api"
 	"goaway/internal/asciiart"
-	"goaway/internal/logger"
+	"goaway/internal/logging"
 	"goaway/internal/server"
 	"goaway/internal/settings"
-	"goaway/internal/website"
 	"os"
 	"os/signal"
 	"sync"
@@ -22,7 +22,7 @@ var content embed.FS
 
 var (
 	version, commit, date string
-	log                   = logger.GetLogger()
+	log                   = logging.GetLogger()
 )
 
 func main() {
@@ -62,8 +62,8 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 
 	config.Port = dnsPort
 	config.WebsitePort = webserverPort
-	config.LogLevel = logger.ToLogLevel(logLevel)
-	log.SetLevel(logger.LogLevel(logLevel))
+	config.LogLevel = logging.ToLogLevel(logLevel)
+	log.SetLevel(logging.LogLevel(logLevel))
 	config.LoggingDisabled = disableLogging
 	settings.SaveSettings(&config)
 
@@ -76,7 +76,7 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 	}
 
 	blockedDomains, serverInstance := dnsServer.Init()
-	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original())
+	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
 
 	startServices(&dnsServer, serverInstance, webserverPort, disableAuth)
 }
@@ -105,8 +105,8 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		websiteInstance := website.API{DisableAuthentication: disableAuth}
-		websiteInstance.Start(content, dnsServer, webserverPort)
+		websiteInstance := api.API{DisableAuthentication: disableAuth}
+		websiteInstance.Start(content, dnsServer, webserverPort, errorChannel)
 	}()
 
 	go func() {

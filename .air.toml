@@ -6,6 +6,7 @@ tmp_dir = "tmp"
 bin = "./tmp/main"
 args_bin = [
     "--dnsport=6121",
+    "--webserverport=8080",
     "--loglevel=0",
     "--disablelogging=false",
     "--noauth=true",

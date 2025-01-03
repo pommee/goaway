@@ -1,44 +1,46 @@
 package server
 
 import (
-	"encoding/json"
+	"database/sql"
 	"fmt"
 	"goaway/internal/blacklist"
-	"goaway/internal/logger"
+	"goaway/internal/database"
+	"goaway/internal/logging"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/gin-gonic/gin"
 	"github.com/miekg/dns"
 )
 
-var log = logger.GetLogger()
+var log = logging.GetLogger()
+
+const batchSize = 100
 
 type ServerConfig struct {
 	Port              int
 	WebsitePort       int
-	LogLevel          logger.LogLevel
+	LogLevel          logging.LogLevel
 	LoggingDisabled   bool
 	UpstreamDNS       []string
 	PreferredUpstream string
-	BlacklistPath     string
-	CountersFile      string
-	RequestLogFile    string
 	CacheTTL          time.Duration
 }
 
 type DNSServer struct {
 	Config             ServerConfig
 	Blacklist          blacklist.Blacklist
+	DB                 *sql.DB
 	Counters           CounterDetails
 	lastLogTime        time.Time
 	logIntervalSeconds int
 	cache              sync.Map
 	cacheMutex         sync.RWMutex
-	RequestLog         []RequestLogEntry
 	WebServer          *gin.Engine
 }
 
@@ -67,43 +69,28 @@ type Client struct {
 }
 
 func NewDNSServer(config *ServerConfig) (DNSServer, error) {
-	if !fileExists(config.CountersFile) {
-		newCounters := &CounterDetails{}
-		saveCounters(config.CountersFile, *newCounters)
-	}
-	counters, _ := LoadCounters(config.CountersFile)
+	db, err := database.Initialize()
 
-	if !fileExists(config.RequestLogFile) {
-		err := os.WriteFile(config.RequestLogFile, []byte("[]"), 0644)
-		if err != nil {
-			log.Error("Error writing file [%s]. Error: %s", config.RequestLogFile, err)
-		}
-	}
-
-	requestLog, err := LoadRequestLog(config.RequestLogFile)
 	if err != nil {
-		return DNSServer{}, fmt.Errorf("failed to load request log [%s]: %w", config.RequestLogFile, err)
+		return DNSServer{}, fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	start := time.Now()
-	dnsBlacklist, _ := blacklist.LoadBlacklist(config.BlacklistPath)
-	log.Debug("Loading %s took %v", config.BlacklistPath, time.Since(start))
+	blacklist := blacklist.Blacklist{
+		DB:           db.Con,
+		BlocklistURL: []string{"https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts"},
+	}
+	if err := blacklist.Initialize(); err != nil {
+		return DNSServer{}, fmt.Errorf("failed to initialize blacklist: %w", err)
+	}
+
 	return DNSServer{
 		Config:             *config,
-		Blacklist:          dnsBlacklist,
-		Counters:           counters,
+		Blacklist:          blacklist,
+		DB:                 db.Con,
 		lastLogTime:        time.Now(),
 		logIntervalSeconds: 1,
 		cache:              sync.Map{},
-		RequestLog:         requestLog,
 	}, nil
-}
-
-func fileExists(filePath string) bool {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return false
-	}
-	return true
 }
 
 func (s *DNSServer) Init() (int, *dns.Server) {
@@ -115,18 +102,13 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 		ReusePort: true,
 	}
 
-	return len(s.Blacklist.Domains), server
+	domains, _ := s.Blacklist.CountDomains()
+	return domains, server
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	timestamp := time.Now()
-	var clientName string
-
-	clientIP := strings.Split(w.RemoteAddr().String(), ":")[0]
-	lookupNames, _ := net.LookupAddr(clientIP)
-	if len(lookupNames) > 0 {
-		clientName = strings.TrimSuffix(lookupNames[0], ".")
-	}
+	clientIP, clientName := s.getClientInfo(w.RemoteAddr().String())
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
@@ -140,20 +122,8 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		go func(question dns.Question) {
 			defer wg.Done()
 
-			if s.IsBlacklisted(question.Name) {
-				s.handleBlacklisted(w, msg, question.Name)
-				results <- RequestLogEntry{
-					Timestamp:      timestamp,
-					Domain:         question.Name,
-					Blocked:        true,
-					Cached:         false,
-					ResponseTimeNS: time.Since(timestamp),
-					ClientInfo:     &Client{IP: clientIP, Name: clientName},
-				}
-			} else {
-				entry := s.handleQuery(w, msg, question, timestamp, question.Name, clientIP, clientName)
-				results <- entry
-			}
+			entry := s.processQuery(w, msg, question, timestamp, clientIP, clientName)
+			results <- entry
 		}(question)
 	}
 
@@ -161,29 +131,54 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	close(results)
 
 	var requestLogMutex sync.Mutex
+	var batch []RequestLogEntry
 	for entry := range results {
 		requestLogMutex.Lock()
-		s.RequestLog = append(s.RequestLog, entry)
+		batch = append(batch, entry)
+		if len(batch) >= batchSize {
+			go s.SaveRequestLogs(batch)
+			batch = nil
+		}
 		requestLogMutex.Unlock()
 	}
 
-	go s.SaveRequestLog(s.Config.RequestLogFile)
-	go s.logStats()
+	if len(batch) > 0 {
+		s.SaveRequestLogs(batch)
+	}
 }
-func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, domain, clientIP, clientName string) RequestLogEntry {
+
+func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
+	clientIP := strings.Split(remoteAddr, ":")[0]
+	lookupNames, _ := net.LookupAddr(clientIP)
+	os.Hostname()
+	if len(lookupNames) > 0 {
+		return clientIP, strings.TrimSuffix(lookupNames[0], ".")
+	}
+	return clientIP, ""
+}
+
+func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
+	isBlacklisted, _ := s.Blacklist.IsBlacklisted(strings.TrimSuffix(question.Name, "."))
+	if isBlacklisted {
+		return s.handleBlacklisted(w, msg, question.Name, timestamp, clientIP, clientName)
+	}
+
+	return s.handleQuery(w, msg, question, timestamp, clientIP, clientName)
+}
+
+func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
 	answers, cached := s.resolve(question.Name, question.Qtype)
 	msg.Answer = append(msg.Answer, answers...)
 	_ = w.WriteMsg(msg)
 
-	responseTime := time.Since(timestamp)
 	s.Counters.AllowedRequests++
 
 	return RequestLogEntry{
 		Timestamp:      timestamp,
-		Domain:         domain,
+		Domain:         question.Name,
 		Blocked:        false,
 		Cached:         cached,
-		ResponseTimeNS: responseTime,
+		ResponseTimeNS: time.Since(timestamp),
 		ClientInfo:     &Client{IP: clientIP, Name: clientName},
 	}
 }
@@ -216,7 +211,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 
 	select {
 	case <-done:
-	case <-time.After(3 * time.Second):
+	case <-time.After(5 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
 		return nil, false
 	}
@@ -231,12 +226,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 	return ipAddresses, false
 }
 
-func (s *DNSServer) IsBlacklisted(domain string) bool {
-	return s.Blacklist.Domains[strings.TrimSuffix(domain, ".")]
-}
-
-func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string) {
-	domain = strings.TrimSpace(domain)
+func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
 	log.Info("Blocked: %s", domain)
 
 	msg.Rcode = dns.RcodeSuccess
@@ -245,82 +235,85 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 			Name:   domain,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
-			Ttl:    uint32(s.Config.CacheTTL),
+			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
 		},
 		A: net.ParseIP("0.0.0.0"),
 	}
-
 	msg.Answer = append(msg.Answer, rr)
-	if err := w.WriteMsg(msg); err != nil {
-		log.Error("Error sending DNS response: %v", err)
-	}
+	_ = w.WriteMsg(msg)
 
 	s.Counters.BlockedRequests++
-}
 
-func (s *DNSServer) logStats() {
-	if time.Since(s.lastLogTime).Seconds() > float64(s.logIntervalSeconds) {
-		s.lastLogTime = time.Now()
-
-		err := saveCounters(s.Config.CountersFile, s.Counters)
-		if err != nil {
-			log.Error("Failed to save counters: %v", err)
-		}
+	return RequestLogEntry{
+		Timestamp:      timestamp,
+		Domain:         domain,
+		Blocked:        true,
+		Cached:         false,
+		ResponseTimeNS: time.Since(timestamp),
+		ClientInfo:     &Client{IP: clientIP, Name: clientName},
 	}
 }
 
-func LoadCounters(filename string) (CounterDetails, error) {
+func (s *DNSServer) LoadCounters() (CounterDetails, error) {
+	row := s.DB.QueryRow("SELECT allowed_requests, blocked_requests FROM counters WHERE id = 1")
 	counters := CounterDetails{}
-
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return counters, nil
+	if err := row.Scan(&counters.AllowedRequests, &counters.BlockedRequests); err != nil {
+		if err == sql.ErrNoRows {
+			_, err = s.DB.Exec("INSERT INTO counters (id, allowed_requests, blocked_requests) VALUES (1, 0, 0)")
+			return CounterDetails{}, err
 		}
-		return counters, err
+		return CounterDetails{}, err
 	}
-
-	err = json.Unmarshal(data, &counters)
-	if err != nil {
-		return counters, err
-	}
-
 	return counters, nil
 }
 
-func saveCounters(filename string, counters CounterDetails) error {
-	data, err := json.Marshal(counters)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filename, data, 0644)
+func (s *DNSServer) SaveCounters(counters CounterDetails) error {
+	_, err := s.DB.Exec("UPDATE counters SET allowed_requests = ?, blocked_requests = ? WHERE id = 1",
+		counters.AllowedRequests, counters.BlockedRequests)
+	return err
 }
 
-func LoadRequestLog(filename string) ([]RequestLogEntry, error) {
-	var requestLog []RequestLogEntry
-
-	data, err := os.ReadFile(filename)
+func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
+	rows, err := s.DB.Query("SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name FROM request_log")
 	if err != nil {
-		if os.IsNotExist(err) {
-			return requestLog, nil
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []RequestLogEntry
+	for rows.Next() {
+		var entry RequestLogEntry
+		var clientIP, clientName sql.NullString
+		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName); err != nil {
+			return nil, err
 		}
-		return requestLog, err
+		entry.ClientInfo = &Client{IP: clientIP.String, Name: clientName.String}
+		logs = append(logs, entry)
 	}
-
-	err = json.Unmarshal(data, &requestLog)
-	if err != nil {
-		return requestLog, err
-	}
-
-	return requestLog, nil
+	return logs, nil
 }
 
-func (s *DNSServer) SaveRequestLog(filename string) error {
-	data, err := json.Marshal(s.RequestLog)
+func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) error {
+	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
 	}
+	defer tx.Commit()
 
-	return os.WriteFile(filename, data, 0644)
+	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, entry := range entries {
+		_, err := stmt.Exec(
+			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

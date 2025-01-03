@@ -8,9 +8,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+RUN apk add --no-cache gcc musl-dev
+
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /goaway
+RUN CGO_ENABLED=1 go build -trimpath -ldflags="-w -s" -o /goaway
 
 FROM alpine:3.18
 
@@ -21,10 +23,11 @@ RUN adduser -D appuser && \
     apk add --no-cache libcap
 
 WORKDIR /app
+
 COPY --from=builder /goaway .
 
-RUN [ -f requests.json ] && cp requests.json /app/ || echo "requests.json not found"
-RUN [ -f counters.json ] && cp counters.json /app/ || echo "counters.json not found"
+RUN [ -f database.db ] && cp database.db /app/ || echo "No database found." \
+    && [ -f settings.json ] && cp settings.json /app/ || echo "No settings found."
 
 RUN chown -R appuser:appuser /app && \
     setcap 'cap_net_bind_service=+ep' /app/goaway

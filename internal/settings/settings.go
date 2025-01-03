@@ -3,7 +3,7 @@ package settings
 import (
 	"encoding/json"
 	"fmt"
-	"goaway/internal/logger"
+	"goaway/internal/logging"
 	"goaway/internal/server"
 	"net"
 	"os"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var log = logger.GetLogger()
+var log = logging.GetLogger()
 
 type Config struct {
 	ServerConfig struct {
@@ -21,9 +21,6 @@ type Config struct {
 		LoggingDisabled   bool     `json:"LoggingDisabled"`
 		UpstreamDNS       []string `json:"UpstreamDNS"`
 		PreferredUpstream string   `json:"PreferredUpstream"`
-		BlacklistPath     string   `json:"BlacklistPath"`
-		CountersFile      string   `json:"CountersFile"`
-		RequestLogFile    string   `json:"RequestLogFile"`
 		CacheTTL          string   `json:"CacheTTL"`
 	} `json:"serverConfig"`
 }
@@ -53,13 +50,10 @@ func LoadSettings() (server.ServerConfig, error) {
 	return server.ServerConfig{
 		Port:              config.ServerConfig.Port,
 		WebsitePort:       config.ServerConfig.WebsitePort,
-		LogLevel:          logger.ToLogLevel(config.ServerConfig.LogLevel),
+		LogLevel:          logging.ToLogLevel(config.ServerConfig.LogLevel),
 		LoggingDisabled:   config.ServerConfig.LoggingDisabled,
 		UpstreamDNS:       config.ServerConfig.UpstreamDNS,
 		PreferredUpstream: bestDNS,
-		BlacklistPath:     config.ServerConfig.BlacklistPath,
-		CountersFile:      config.ServerConfig.CountersFile,
-		RequestLogFile:    config.ServerConfig.RequestLogFile,
 		CacheTTL:          cacheTTL,
 	}, nil
 }
@@ -105,20 +99,14 @@ func SaveSettings(config *server.ServerConfig) error {
 			LoggingDisabled   bool     `json:"LoggingDisabled"`
 			UpstreamDNS       []string `json:"UpstreamDNS"`
 			PreferredUpstream string   `json:"PreferredUpstream"`
-			BlacklistPath     string   `json:"BlacklistPath"`
-			CountersFile      string   `json:"CountersFile"`
-			RequestLogFile    string   `json:"RequestLogFile"`
 			CacheTTL          string   `json:"CacheTTL"`
 		}{
 			Port:              config.Port,
 			WebsitePort:       config.WebsitePort,
-			LogLevel:          logger.ToInteger(config.LogLevel),
+			LogLevel:          logging.ToInteger(config.LogLevel),
 			LoggingDisabled:   config.LoggingDisabled,
 			UpstreamDNS:       config.UpstreamDNS,
 			PreferredUpstream: config.PreferredUpstream,
-			BlacklistPath:     config.BlacklistPath,
-			CountersFile:      config.CountersFile,
-			RequestLogFile:    config.RequestLogFile,
 			CacheTTL:          config.CacheTTL.String(),
 		},
 	}
@@ -132,7 +120,6 @@ func SaveSettings(config *server.ServerConfig) error {
 }
 
 func UpdateSettings(dnsServer *server.DNSServer, updatedSettings map[string]interface{}) {
-
 	if disableLogging, ok := updatedSettings["disableLogging"].(bool); ok {
 		log.ToggleLogging(disableLogging)
 		dnsServer.Config.LoggingDisabled = disableLogging
@@ -145,7 +132,7 @@ func UpdateSettings(dnsServer *server.DNSServer, updatedSettings map[string]inte
 	}
 
 	if logLevel, ok := updatedSettings["logLevel"].(string); ok {
-		dnsServer.Config.LogLevel = logger.FromString(strings.ToUpper(logLevel))
+		dnsServer.Config.LogLevel = logging.FromString(strings.ToUpper(logLevel))
 		log.SetLevel(dnsServer.Config.LogLevel)
 	}
 
