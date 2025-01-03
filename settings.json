@@ -5,9 +5,10 @@
     "LogLevel": 1,
     "LoggingDisabled": false,
     "UpstreamDNS": [
-      "8.8.8.8:53"
+      "8.8.8.8:53",
+      "1.1.1.1:53"
     ],
-    "BestUpstreamDNS": "8.8.8.8:53",
+    "PreferredUpstream": "1.1.1.1:53",
     "BlacklistPath": "./blacklist.json",
     "CountersFile": "./counters.json",
     "RequestLogFile": "./requests.json",
