@@ -1,3 +1,5 @@
+const notifications = [];
+
 if (!GetServerIP()) {
   var serverIP = document.location.origin;
   localStorage.setItem("serverIP", serverIP);
@@ -62,12 +64,26 @@ function showNotification(headerMessage, type, ...message) {
 
   document.body.appendChild(notification);
 
+  const offset = notifications.reduce(
+    (acc, el) => acc + el.offsetHeight + 10,
+    0,
+  );
+  notification.style.bottom = `${10 + offset}px`;
+  notifications.push(notification);
+
   setTimeout(() => {
     notification.style.opacity = "0";
   }, 5000);
 
   setTimeout(() => {
     notification.remove();
+    notifications.splice(notifications.indexOf(notification), 1);
+    notifications.forEach((el, i) => {
+      const newOffset = notifications
+        .slice(0, i)
+        .reduce((acc, el) => acc + el.offsetHeight + 10, 0);
+      el.style.bottom = `${10 + newOffset}px`;
+    });
   }, 6000);
 }
 
