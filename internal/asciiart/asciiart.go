@@ -3,9 +3,6 @@ package asciiart
 import (
 	"fmt"
 	"goaway/internal/server"
-	"log"
-	"net"
-	"strings"
 )
 
 const (
@@ -19,35 +16,28 @@ const (
 )
 
 func AsciiArt(config *server.ServerConfig, blockedDomains int, version string, disableAuth bool) {
-
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	const versionSpace = 7
 
 	if version == "0.0.0" {
 		version = "[DEV]"
 	}
+	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
 
-	adminPanelURL := fmt.Sprintf("http://%s:%d/index.html", localAddr.IP, config.WebsitePort)
+	adminPanelURL := fmt.Sprintf("http://localhost:%d/index.html", config.WebsitePort)
+	portFormatted := fmt.Sprintf("%s%d%s", Green, config.Port, Reset)
+	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
+	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
+	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL, Reset)
+	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
+	adminPanelFormatted := fmt.Sprintf("%s%s%s", Red, adminPanelURL, Reset)
 
-	const versionSpace = 7
-	leftPadding := (versionSpace - len(version)) / 2
-	rightPadding := versionSpace - len(version) - leftPadding
-	versionPrinted := fmt.Sprintf("%s%s%s%s%s", strings.Repeat(" ", leftPadding), Cyan, version, Reset, strings.Repeat(" ", rightPadding))
-	fmt.Printf("\n\n   __ _  ___   __ ___      ____ _ _   _   DNS port         %s%d%s\n"+
-		"  / _` |/ _ \\ / _` \\ \\ /\\ / / _` | | | |  Upstream         %s%s%s\n"+
-		" | (_| | (_) | (_| |\\ V  V / (_| | |_| |  Authentication   %s%v%s\n"+
-		"  \\__, |\\___/ \\__,_| \\_/\\_/ \\__,_|\\__, |  Cache TTL:       %s%s%s\n"+
-		"   __/ |                           __/ |  Blocked Domains: %s%d%s\n"+
-		"  |___/          %s          |___/   Admin Panel:     %s%s%s\n\n\n",
-		Green, config.Port, Reset,
-		Cyan, config.PreferredUpstream, Reset,
-		Yellow, disableAuth, Reset,
-		Blue, config.CacheTTL, Reset,
-		Magenta, blockedDomains, Reset,
-		versionPrinted, Red, adminPanelURL, Reset)
+	fmt.Printf(`
+   __ _  ___   __ ___      ____ _ _   _   DNS port         %s
+  / _' |/ _ \ / _' \ \ /\ / / _' | | | |  Upstream         %s
+ | (_| | (_) | (_| |\ V  V / (_| | |_| |  Authentication   %s
+  \__, |\___/ \__,_| \_/\_/ \__,_|\__, |  Cache TTL:       %s
+   __/ |                           __/ |  Blocked Domains: %s
+  |___/          %s          |___/   Admin Panel:     %s
+
+`, portFormatted, upstreamFormatted, authFormatted, cacheTTLFormatted, blockedDomainsFormatted, versionFormatted, adminPanelFormatted)
 }
