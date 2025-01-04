@@ -11,7 +11,6 @@ RUN go mod download
 RUN apk add --no-cache gcc musl-dev
 
 COPY . .
-
 RUN CGO_ENABLED=1 go build -trimpath -ldflags="-w -s" -o /goaway
 
 FROM alpine:3.18
@@ -25,9 +24,7 @@ RUN adduser -D appuser && \
 WORKDIR /app
 
 COPY --from=builder /goaway .
-
-RUN [ -f database.db ] && cp database.db /app/ || echo "No database found." \
-    && [ -f settings.json ] && cp settings.json /app/ || echo "No settings found."
+COPY settings.json /app
 
 RUN chown -R appuser:appuser /app && \
     setcap 'cap_net_bind_service=+ep' /app/goaway

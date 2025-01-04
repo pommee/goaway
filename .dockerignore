@@ -1,18 +1,18 @@
-.git
+.git/
 .gitignore
-.env
-.DS_Store
-.air.toml
 
-*.test
-*.md
-*.log
-*.tmp
+.DS_Store
 *.swp
 
-README.md
+*.log
+*.tmp
+*.test
+*.md
+
+.air.toml
 Makefile
 docker-compose.yml
 dig-domains.sh
 
 resources/
+database.db

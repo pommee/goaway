@@ -102,6 +102,10 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 		ReusePort: true,
 	}
 
+	if err := s.LoadCounters(); err != nil {
+		log.Error("Failed to load counters from database: %w", err)
+	}
+
 	domains, _ := s.Blacklist.CountDomains()
 	return domains, server
 }
@@ -254,17 +258,19 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	}
 }
 
-func (s *DNSServer) LoadCounters() (CounterDetails, error) {
+func (s *DNSServer) LoadCounters() error {
 	row := s.DB.QueryRow("SELECT allowed_requests, blocked_requests FROM counters WHERE id = 1")
 	counters := CounterDetails{}
 	if err := row.Scan(&counters.AllowedRequests, &counters.BlockedRequests); err != nil {
 		if err == sql.ErrNoRows {
 			_, err = s.DB.Exec("INSERT INTO counters (id, allowed_requests, blocked_requests) VALUES (1, 0, 0)")
-			return CounterDetails{}, err
+			return err
 		}
-		return CounterDetails{}, err
+		return err
 	}
-	return counters, nil
+
+	s.Counters = counters
+	return nil
 }
 
 func (s *DNSServer) SaveCounters(counters CounterDetails) error {
@@ -298,7 +304,11 @@ func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Commit()
+	defer func() {
+		if err := tx.Commit(); err != nil {
+			log.Warning("DB commit error %s", err)
+		}
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -307,13 +317,48 @@ func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) error {
 	defer stmt.Close()
 
 	for _, entry := range entries {
-		_, err := stmt.Exec(
+		if _, err := stmt.Exec(
 			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
-		)
+		); err != nil {
+			return err
+		}
+	}
+
+	return s.saveCounters(tx)
+}
+
+func (s *DNSServer) saveCounters(tx *sql.Tx) error {
+	stmt, err := tx.Prepare(`
+        UPDATE counters
+        SET allowed_requests = ?, blocked_requests = ?
+    `)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, err := res.RowsAffected(); err != nil {
+		return err
+	} else if rowsAffected == 0 {
+		stmt, err = tx.Prepare(`
+            INSERT INTO counters (allowed_requests, blocked_requests)
+            VALUES (?, ?)
+        `)
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
 		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return err
 }

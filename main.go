@@ -30,7 +30,6 @@ func main() {
 	var disableLogging, disableAuth bool
 
 	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &disableLogging, &disableAuth)
-
 	if err := rootCmd.Execute(); err != nil {
 		log.Error("Command execution failed: %s", err)
 	}
