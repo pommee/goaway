@@ -90,7 +90,7 @@ func checkDNS(ip string) (time.Duration, error) {
 	return time.Since(start), nil
 }
 
-func SaveSettings(config *server.ServerConfig) error {
+func SaveSettings(config *server.ServerConfig) {
 	configData := Config{
 		ServerConfig: struct {
 			Port              int      `json:"Port"`
@@ -113,10 +113,13 @@ func SaveSettings(config *server.ServerConfig) error {
 
 	data, err := json.MarshalIndent(configData, "", "  ")
 	if err != nil {
-		return err
+		log.Error("Could not parse settings %v", err)
 	}
 
-	return os.WriteFile("./settings.json", data, 0644)
+	err = os.WriteFile("./settings.json", data, 0644)
+	if err != nil {
+		log.Error("Could not save settings %v", err)
+	}
 }
 
 func UpdateSettings(dnsServer *server.DNSServer, updatedSettings map[string]interface{}) {

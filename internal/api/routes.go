@@ -141,10 +141,10 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 
 func (websiteServer *API) handleQueriesData(c *gin.Context) {
 	rows, err := websiteServer.dnsServer.DB.Query(`SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name FROM request_log`)
-	defer rows.Close()
 	if err != nil {
 		log.Error("%v", err)
 	}
+	defer rows.Close()
 
 	queries := []server.RequestLogEntry{}
 	for rows.Next() {

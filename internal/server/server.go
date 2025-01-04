@@ -7,7 +7,6 @@ import (
 	"goaway/internal/database"
 	"goaway/internal/logging"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +39,6 @@ type DNSServer struct {
 	lastLogTime        time.Time
 	logIntervalSeconds int
 	cache              sync.Map
-	cacheMutex         sync.RWMutex
 	WebServer          *gin.Engine
 }
 
@@ -103,7 +101,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 	}
 
 	if err := s.LoadCounters(); err != nil {
-		log.Error("Failed to load counters from database: %w", err)
+		log.Error("Failed to load counters from database: %v", err)
 	}
 
 	domains, _ := s.Blacklist.CountDomains()
@@ -154,7 +152,6 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
 	clientIP := strings.Split(remoteAddr, ":")[0]
 	lookupNames, _ := net.LookupAddr(clientIP)
-	os.Hostname()
 	if len(lookupNames) > 0 {
 		return clientIP, strings.TrimSuffix(lookupNames[0], ".")
 	}
@@ -299,20 +296,20 @@ func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	return logs, nil
 }
 
-func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) error {
+func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) {
 	tx, err := s.DB.Begin()
 	if err != nil {
-		return err
+		log.Error("Could not start database transaction %v", err)
 	}
 	defer func() {
 		if err := tx.Commit(); err != nil {
-			log.Warning("DB commit error %s", err)
+			log.Warning("DB commit error %v", err)
 		}
 	}()
 
 	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
-		return err
+		log.Error("Could not create a prepared statement for request logs %v", err)
 	}
 	defer stmt.Close()
 
@@ -320,45 +317,43 @@ func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) error {
 		if _, err := stmt.Exec(
 			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
 		); err != nil {
-			return err
+			log.Error("Could not save request log %v", err)
 		}
 	}
 
-	return s.saveCounters(tx)
+	s.saveCounters(tx)
 }
 
-func (s *DNSServer) saveCounters(tx *sql.Tx) error {
+func (s *DNSServer) saveCounters(tx *sql.Tx) {
 	stmt, err := tx.Prepare(`
         UPDATE counters
         SET allowed_requests = ?, blocked_requests = ?
     `)
 	if err != nil {
-		return err
+		log.Error("Could not create a prepared statement when saving counters %v", err)
 	}
 	defer stmt.Close()
 
 	res, err := stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
 	if err != nil {
-		return err
+		log.Error("Could not create a prepared statement when saving counters %v", err)
 	}
 
 	if rowsAffected, err := res.RowsAffected(); err != nil {
-		return err
+		log.Warning("Could not create counters %v", err)
 	} else if rowsAffected == 0 {
 		stmt, err = tx.Prepare(`
             INSERT INTO counters (allowed_requests, blocked_requests)
             VALUES (?, ?)
         `)
 		if err != nil {
-			return err
+			log.Warning("Could not create a prepared statement for counters %v", err)
 		}
 		defer stmt.Close()
 
 		_, err = stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
 		if err != nil {
-			return err
+			log.Warning("Could not update counters %v", err)
 		}
 	}
-
-	return err
 }

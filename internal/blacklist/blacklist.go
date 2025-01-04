@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 )
 
 var log = logging.GetLogger()
@@ -16,11 +15,6 @@ var log = logging.GetLogger()
 type Blacklist struct {
 	DB           *sql.DB
 	BlocklistURL []string
-}
-
-type DNSResolver struct {
-	hostsMap map[string]string
-	mu       sync.RWMutex
 }
 
 func (b *Blacklist) Initialize() error {
@@ -103,7 +97,7 @@ func (b *Blacklist) AddDomain(domain string) error {
 
 	affected, _ := result.RowsAffected()
 	if affected == 0 {
-		return fmt.Errorf("%s is already blacklisted.", domain)
+		return fmt.Errorf("%s is already blacklisted", domain)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to add domain to blacklist: %w", err)
@@ -124,7 +118,7 @@ func (b *Blacklist) AddDomains(domains []string) error {
 
 	for _, domain := range domains {
 		if _, err := stmt.Exec(domain); err != nil {
-			tx.Rollback()
+			err = tx.Rollback()
 			return fmt.Errorf("failed to add domain '%s': %w", domain, err)
 		}
 	}
@@ -166,7 +160,7 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 
 	affected, _ := result.RowsAffected()
 	if affected == 0 {
-		return fmt.Errorf("%s is already whitelisted.", domain)
+		return fmt.Errorf("%s is already whitelisted", domain)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to remove domain from blacklist: %w", err)

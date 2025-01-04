@@ -14,5 +14,8 @@ start: build
 	WEBSITE_PORT=${WEBSITE_PORT} \
 	docker compose up goaway -d
 
+lint:
+	golangci-lint run
+
 example-queries:
-	@./dig-domains.sh
+	@./testing/dig-domains.sh
