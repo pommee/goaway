@@ -140,9 +140,26 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 }
 
 func (websiteServer *API) handleQueriesData(c *gin.Context) {
-	rows, err := websiteServer.dnsServer.DB.Query(`SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name FROM request_log`)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	search := c.DefaultQuery("search", "")
+	sortColumn := c.DefaultQuery("sortColumn", "timestamp")
+	sortDirection := c.DefaultQuery("sortDirection", "desc")
+
+	offset := (page - 1) * pageSize
+
+	query := `
+		SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name
+		FROM request_log
+		WHERE domain LIKE ?
+		ORDER BY ` + sortColumn + ` ` + sortDirection + `
+		LIMIT ? OFFSET ?`
+
+	rows, err := websiteServer.dnsServer.DB.Query(query, "%"+search+"%", pageSize, offset)
 	if err != nil {
 		log.Error("%v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 	defer rows.Close()
 
@@ -152,19 +169,25 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 		if query.ClientInfo == nil {
 			query.ClientInfo = &server.Client{}
 		}
-
 		if err := rows.Scan(&query.Timestamp, &query.Domain, &query.Blocked, &query.Cached, &query.ResponseTimeNS, &query.ClientInfo.IP, &query.ClientInfo.Name); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		queries = append(queries, query)
 	}
 
+	var totalRecords int
+	err = websiteServer.dnsServer.DB.QueryRow(`SELECT COUNT(*) FROM request_log WHERE domain LIKE ?`, "%"+search+"%").Scan(&totalRecords)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"details": queries,
+		"draw":            c.DefaultQuery("draw", "1"),
+		"recordsTotal":    totalRecords,
+		"recordsFiltered": totalRecords,
+		"details":         queries,
 	})
 }
 
