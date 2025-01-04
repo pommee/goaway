@@ -38,7 +38,7 @@ func main() {
 func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging, disableAuth *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "goaway",
-		Short: "GoAway is a DNS filtering tool with a web interface",
+		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
 			runServer(*dnsPort, *webserverPort, *logLevel, *disableLogging, *disableAuth)
 		},

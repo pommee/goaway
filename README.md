@@ -1,8 +1,10 @@
-# goaway - DNS request blocker
+# goaway - DNS sinkhole
 
-![goaway Preview](./resources/preview.png)
+![goaway Preview](./resources/dashboard.png)
 
-## 🙏 Acknowledgments
+**[More preview images](./resources/)**
+
+## Acknowledgments
 
 Heavily inspired by [pi-hole](https://github.com/pi-hole/pi-hole).
 
@@ -43,23 +45,26 @@ $ goaway
 
 ![started](./resources/started.png)
 
+```console
+$ goaway --help
+
+Flags:
+      --disablelogging      If true, then no logs will appear in the container
+      --dnsport int         Port for the DNS server (default 53)
+  -h, --help                help for goaway
+      --loglevel int        0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
+      --noauth              If true, then no authentication is required for the admin dashboard
+      --webserverport int   Port for the web server (default 8080)
+```
+
+This readme might not always be up to date on the available commands.  
+Use `--help` to see what is available.
+
 ### Development
 
 Environment variables are used for configuration.
-| Variable | Default | Info |
+| Variable        | Default    | Info                                                         |
 | --------------- | ---------- | ------------------------------------------------------------ |
-| GOAWAY_PORT | 53 | Port used for the DNS server. |
-| WEBSITE_PORT | 8080 | Port used for the API server. Also serves the website pages. |
-| GOAWAY_PASSWORD | No default | Password used for authenticating at the admin dashboard. |
-
-### TODO
-
-| Title          | Description                                                                                                                                                                     | Done          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| Login page     | Upon first visit, a login page should be presented. Requiring a login name and password in order to proceed.                                                                    | ✅            |
-| Authentication | Provide some form of token for future authentication after login process is complete.                                                                                           | ✅            |
-| Logs page      | An overview of all domain lookups that occurs with detailed information. Also add the ability to clear logs.                                                                    | ❌ (progress) |
-| Clients page   | Used to see all clients which makes use of the DNS server. Also add settings specific to a certain user, such as...<br>_ Ignore blocked domains.<br>_ Blacklist user.<br>\* ... | ❌ (progress) |
-| Settings page  | Add toggles for settings for the server and it's behaviour.                                                                                                                     | ❌ (progress) |
-| Server page    | More verbose statistics of the DNS server and web server.                                                                                                                       | ❌            |
-| Upstream page  | Ability to add, remove upstreams. And set one as the preferred one to use.                                                                                                      | ❌ (progress) |
+| GOAWAY_PORT     | 53         | Port used for the DNS server.                                |
+| WEBSITE_PORT    | 8080       | Port used for the API server. Also serves the website pages. |
+| GOAWAY_PASSWORD | No default | Password used for authenticating at the admin dashboard.     |
