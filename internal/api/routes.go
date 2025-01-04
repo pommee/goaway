@@ -225,11 +225,43 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 func (websiteServer *API) getDomains(c *gin.Context) {
 	allDomains, _ := websiteServer.dnsServer.Blacklist.LoadBlacklist()
 	domainsLen := len(allDomains)
-	domains := make([]string, 0, domainsLen)
-	for domain := range allDomains {
-		domains = append(domains, domain)
+
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("pageSize", "10")
+	search := c.DefaultQuery("search", "")
+
+	pageInt, err := strconv.Atoi(page)
+	if err != nil || pageInt < 1 {
+		pageInt = 1
 	}
-	c.JSON(http.StatusOK, gin.H{"domains": domains})
+
+	pageSizeInt, err := strconv.Atoi(pageSize)
+	if err != nil || pageSizeInt < 1 {
+		pageSizeInt = 10
+	}
+
+	var filteredDomains []string
+	for domain := range allDomains {
+		if strings.Contains(domain, search) {
+			filteredDomains = append(filteredDomains, domain)
+		}
+	}
+
+	domainsLen = len(filteredDomains)
+	start := (pageInt - 1) * pageSizeInt
+	end := start + pageSizeInt
+	if end > domainsLen {
+		end = domainsLen
+	}
+
+	domains := filteredDomains[start:end]
+
+	c.JSON(http.StatusOK, gin.H{
+		"domains":  domains,
+		"total":    domainsLen,
+		"page":     pageInt,
+		"pageSize": pageSizeInt,
+	})
 }
 
 func (websiteServer *API) getSettings(c *gin.Context) {
