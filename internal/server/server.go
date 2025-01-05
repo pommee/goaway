@@ -6,6 +6,7 @@ import (
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
 	"goaway/internal/logging"
+	"math"
 	"net"
 	"strings"
 	"sync"
@@ -40,6 +41,7 @@ type DNSServer struct {
 	logIntervalSeconds int
 	cache              sync.Map
 	WebServer          *gin.Engine
+	logEntryChannel    chan RequestLogEntry
 }
 
 type cachedRecord struct {
@@ -66,11 +68,10 @@ type Client struct {
 	Name string
 }
 
-func NewDNSServer(config *ServerConfig) (DNSServer, error) {
+func NewDNSServer(config *ServerConfig) (*DNSServer, error) {
 	db, err := database.Initialize()
-
 	if err != nil {
-		return DNSServer{}, fmt.Errorf("failed to create tables: %w", err)
+		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
 	blacklist := blacklist.Blacklist{
@@ -78,17 +79,22 @@ func NewDNSServer(config *ServerConfig) (DNSServer, error) {
 		BlocklistURL: []string{"https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts"},
 	}
 	if err := blacklist.Initialize(); err != nil {
-		return DNSServer{}, fmt.Errorf("failed to initialize blacklist: %w", err)
+		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
-	return DNSServer{
+	server := &DNSServer{
 		Config:             *config,
 		Blacklist:          blacklist,
 		DB:                 db.Con,
 		lastLogTime:        time.Now(),
 		logIntervalSeconds: 1,
 		cache:              sync.Map{},
-	}, nil
+		logEntryChannel:    make(chan RequestLogEntry, 1000),
+	}
+
+	go server.processLogEntries()
+
+	return server, nil
 }
 
 func (s *DNSServer) Init() (int, *dns.Server) {
@@ -123,7 +129,6 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		wg.Add(1)
 		go func(question dns.Question) {
 			defer wg.Done()
-
 			entry := s.processQuery(w, msg, question, timestamp, clientIP, clientName)
 			results <- entry
 		}(question)
@@ -132,20 +137,8 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	wg.Wait()
 	close(results)
 
-	var requestLogMutex sync.Mutex
-	var batch []RequestLogEntry
 	for entry := range results {
-		requestLogMutex.Lock()
-		batch = append(batch, entry)
-		if len(batch) >= batchSize {
-			go s.SaveRequestLogs(batch)
-			batch = nil
-		}
-		requestLogMutex.Unlock()
-	}
-
-	if len(batch) > 0 {
-		s.SaveRequestLogs(batch)
+		s.logEntryChannel <- entry
 	}
 }
 
@@ -163,7 +156,6 @@ func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dn
 	if isBlacklisted {
 		return s.handleBlacklisted(w, msg, question.Name, timestamp, clientIP, clientName)
 	}
-
 	return s.handleQuery(w, msg, question, timestamp, clientIP, clientName)
 }
 
@@ -296,10 +288,33 @@ func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	return logs, nil
 }
 
-func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) {
+func (s *DNSServer) processLogEntries() {
+	var batch []RequestLogEntry
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case entry := <-s.logEntryChannel:
+			batch = append(batch, entry)
+			if len(batch) >= batchSize {
+				s.saveBatch(batch)
+				batch = nil
+			}
+		case <-ticker.C:
+			if len(batch) > 0 {
+				s.saveBatch(batch)
+				batch = nil
+			}
+		}
+	}
+}
+
+func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 	tx, err := s.DB.Begin()
 	if err != nil {
 		log.Error("Could not start database transaction %v", err)
+		return
 	}
 	defer func() {
 		if err := tx.Commit(); err != nil {
@@ -310,6 +325,7 @@ func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) {
 	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs %v", err)
+		return
 	}
 	defer stmt.Close()
 
@@ -318,29 +334,56 @@ func (s *DNSServer) SaveRequestLogs(entries []RequestLogEntry) {
 			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
 		); err != nil {
 			log.Error("Could not save request log %v", err)
+			return
 		}
 	}
 
-	s.saveCounters(tx)
+	s.saveCountersWithRetry(tx)
 }
 
-func (s *DNSServer) saveCounters(tx *sql.Tx) {
+func (s *DNSServer) saveCountersWithRetry(tx *sql.Tx) {
+	const maxRetries = 5
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		err = s.saveCounters(tx)
+		if err == nil {
+			return
+		}
+
+		if err.Error() == "database is locked" {
+			backoff := time.Duration(math.Pow(2, float64(i))) * time.Millisecond
+			time.Sleep(backoff)
+			continue
+		}
+
+		log.Error("Could not save counters %v", err)
+		return
+	}
+
+	log.Error("Failed to save counters after %d retries: %v", maxRetries, err)
+}
+
+func (s *DNSServer) saveCounters(tx *sql.Tx) error {
 	stmt, err := tx.Prepare(`
         UPDATE counters
         SET allowed_requests = ?, blocked_requests = ?
     `)
 	if err != nil {
 		log.Error("Could not create a prepared statement when saving counters %v", err)
+		return err
 	}
 	defer stmt.Close()
 
 	res, err := stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
 	if err != nil {
-		log.Error("Could not create a prepared statement when saving counters %v", err)
+		log.Error("Could not execute counter update %v", err)
+		return err
 	}
 
 	if rowsAffected, err := res.RowsAffected(); err != nil {
-		log.Warning("Could not create counters %v", err)
+		log.Warning("Could not get rows affected %v", err)
+		return err
 	} else if rowsAffected == 0 {
 		stmt, err = tx.Prepare(`
             INSERT INTO counters (allowed_requests, blocked_requests)
@@ -348,12 +391,16 @@ func (s *DNSServer) saveCounters(tx *sql.Tx) {
         `)
 		if err != nil {
 			log.Warning("Could not create a prepared statement for counters %v", err)
+			return err
 		}
 		defer stmt.Close()
 
 		_, err = stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
 		if err != nil {
-			log.Warning("Could not update counters %v", err)
+			log.Warning("Could not insert counters %v", err)
+			return err
 		}
 	}
+
+	return nil
 }

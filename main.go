@@ -77,7 +77,7 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
 
-	startServices(&dnsServer, serverInstance, webserverPort, disableAuth)
+	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
 }
 
 func getVersionOrDefault() *semver.Version {
