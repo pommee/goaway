@@ -1,7 +1,7 @@
 let chart = null;
 
 function getQueries() {
-  fetch(GetServerIP() + "/queriesData")
+  fetch(GetServerIP() + "/queryTimestamps")
     .then(function (response) {
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -56,11 +56,11 @@ function aggregateData(data, hours = null) {
 }
 
 function updateTimeline(data) {
-  const allData = aggregateData(data.details);
+  const allData = aggregateData(data.queries);
   const allChartData = Object.values(allData);
 
   if (!chart) {
-    const initialData = aggregateData(data.details, 60);
+    const initialData = aggregateData(data.queries, 60);
     const initialChartData = Object.values(initialData);
 
     const ctx = document.getElementById("requestChart").getContext("2d");

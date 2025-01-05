@@ -83,6 +83,7 @@ func (api *API) setupRoutes() {
 
 	authorized.GET("/metrics", api.handleMetrics)
 	authorized.GET("/queriesData", api.handleQueriesData)
+	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
 	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
 	authorized.GET("/domains", api.getDomains)
 	authorized.GET("/settings", api.getSettings)

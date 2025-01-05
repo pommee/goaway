@@ -139,6 +139,35 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 	})
 }
 
+func (websiteServer *API) getQueryTimestamps(c *gin.Context) {
+	type QueryEntry struct {
+		Timestamp time.Time `json:"timestamp"`
+		Blocked   bool      `json:"blocked"`
+	}
+
+	rows, err := websiteServer.dnsServer.DB.Query("SELECT timestamp, blocked FROM request_log")
+	if err != nil {
+		log.Error("%v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	queries := []QueryEntry{}
+	for rows.Next() {
+		var query QueryEntry
+		if err := rows.Scan(&query.Timestamp, &query.Blocked); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		queries = append(queries, query)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"queries": queries,
+	})
+}
+
 func (websiteServer *API) handleQueriesData(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
