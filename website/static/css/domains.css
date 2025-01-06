@@ -75,7 +75,8 @@
     border-color: #888;
 }
 
-.domains-table_length select {
+select,
+option {
     background-color: #313131;
     color: white;
     border: 1px solid #ccc;
