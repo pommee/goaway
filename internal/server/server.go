@@ -141,11 +141,10 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
 	clientIP := strings.Split(remoteAddr, ":")[0]
-	lookupNames, _ := net.LookupAddr(clientIP)
-	if len(lookupNames) > 0 {
-		return clientIP, strings.TrimSuffix(lookupNames[0], ".")
-	}
-	return clientIP, ""
+
+	// TODO: Implement reverse DNS lookup
+	clientName := "unknown"
+	return clientIP, clientName
 }
 
 func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
