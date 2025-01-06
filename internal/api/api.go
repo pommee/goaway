@@ -35,15 +35,6 @@ type API struct {
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int, errorChannel chan struct{}) {
-	password, exists := os.LookupEnv("GOAWAY_PASSWORD")
-	if !exists {
-		api.adminPassword = generateRandomPassword(14)
-		log.Info("Randomly generated admin password: %s", api.adminPassword)
-	} else {
-		api.adminPassword = password
-		log.Info("Using custom password: [hidden]")
-	}
-
 	gin.SetMode(gin.ReleaseMode)
 	api.Router = gin.New()
 	dnsServer.WebServer = api.Router
@@ -76,6 +67,14 @@ func (api *API) setupRoutes() {
 
 	authorized := api.Router.Group("/")
 	if !api.DisableAuthentication {
+		password, exists := os.LookupEnv("GOAWAY_PASSWORD")
+		if !exists {
+			api.adminPassword = generateRandomPassword(14)
+			log.Info("Randomly generated admin password: %s", api.adminPassword)
+		} else {
+			api.adminPassword = password
+			log.Info("Using custom password: [hidden]")
+		}
 		authorized.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
