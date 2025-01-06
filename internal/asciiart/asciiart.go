@@ -23,12 +23,12 @@ func AsciiArt(config *server.ServerConfig, blockedDomains int, version string, d
 	}
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
 
-	adminPanelURL := fmt.Sprintf("http://localhost:%d/index.html", config.WebsitePort)
 	portFormatted := fmt.Sprintf("%s%d%s", Green, config.Port, Reset)
 	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
 	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
+	adminPanelURL := fmt.Sprintf("http://localhost:%d", config.WebsitePort)
 	adminPanelFormatted := fmt.Sprintf("%s%s%s", Red, adminPanelURL, Reset)
 
 	fmt.Printf(`

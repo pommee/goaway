@@ -1,209 +1,109 @@
-const TABLE_CONFIG = {
-  paging: true,
-  pageLength: 10,
-  serverSide: true,
-  processing: true,
-  columns: [
-    { data: null, render: (data) => data },
-    {
-      data: null,
-      render: (data) => `<button class="update-block-status" data-domain="${data}">unblock</button>`,
-    },
-  ],
-  ajax: function (data, callback, settings) {
-    const page = Math.floor(settings.start / settings.length) + 1;
-    const pageSize = settings.length;
-    const search = $("#domains-table_filter input").val();
+function prepareRequestData(d) {
+  const page = Math.floor(d.start / d.length) + 1;
+  return {
+    draw: d.draw,
+    page: page,
+    pageSize: d.length,
+    search: d.search.value,
+  };
+}
 
-    $.get(`${API.base}${API.domains}?page=${page}&pageSize=${pageSize}&search=${search}`, function (response) {
-      callback({
-        draw: settings.draw,
-        recordsTotal: response.total,
-        recordsFiltered: response.total,
-        data: response.domains,
-      });
-    });
-  },
-};
+function renderStatusAndResponseTime(data) {
+  const status = data.blocked ? "Blocked" : data.cached ? "OK (cached)" : "OK (forwarded)";
+  const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
+  return `${status}<br>${responseTime} ms`;
+}
 
-// DOM Elements
-const elements = {
-  tableContainer: () => document.getElementById("domains-table-container"),
-  modal: () => document.getElementById("add-domain-modal"),
-  domainInput: () => document.getElementById("domain-name"),
-  searchInput: () => document.getElementById("domain-search"),
-  addDomainBtn: () => document.getElementById("add-domain-btn"),
-  confirmAddDomainBtn: () => document.getElementById("confirm-add-domain-btn"),
-};
+function renderToggleButton(data) {
+  return `<button class="toggle-button blocked-true" data-blocked="true" data-domain="${data.domain}">Whitelist</button>`;
+}
 
-// API endpoints
-const API = {
-  base: GetServerIP(),
-  domains: "/domains",
-  updateStatus: (domain, blocked) => `/updateBlockStatus?domain=${domain}&blocked=${blocked}`,
-};
+async function handleToggleClick(event) {
+  const domain = $(event.target).data("domain");
+  const currentlyBlocked = $(event.target).data("blocked");
+  const newBlockedStatus = !currentlyBlocked;
+  $(event.target).data("blocked", newBlockedStatus);
 
-// Table management
-class DomainTable {
-  constructor() {
-    this.table = null;
-    this.isLoading = false;
+  try {
+    const blockReq = await $.get(`/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
+    showInfoNotification(blockReq.message);
+
+    $(event.target).text(newBlockedStatus ? "Whitelist" : "Blacklist");
+    const buttonClass = newBlockedStatus ? "blocked-true" : "blocked-false";
+    $(event.target).removeClass("blocked-true blocked-false").addClass(buttonClass);
+
+    const row = $(`#domains-table tr:contains(${domain})`);
+    newBlockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+  } catch (error) {
+    console.error("Error updating block status:", error);
+    showErrorNotification("Failed to update block status. Please try again.");
   }
+}
 
-  init() {
-    if (this.table) {
-      this.table.destroy();
-    }
-    this.table = $("#domains-table").DataTable(TABLE_CONFIG);
-    this.attachEventHandlers();
-  }
-
-  attachEventHandlers() {
-    $("#domains-table").on("click", ".update-block-status", async (e) => {
-      const button = $(e.target);
-      const domain = button.data("domain");
-      await this.unblockDomain(domain, button);
-    });
-
-    $("#domains-table_filter input").on("input", () => {
-      this.table.ajax.reload();
-    });
-  }
-
-  async unblockDomain(domain, button) {
-    try {
-      button.prop("disabled", true);
-      const response = await fetch(`${API.base}${API.updateStatus(domain, false)}`);
-      const data = await response.json();
-
-      if (data.domain) {
-        this.table.row(button.closest("tr")).remove().draw();
-      }
-    } catch (error) {
-      showWarningNotification("Failed to unblock domain");
-      button.prop("disabled", false);
-    }
-  }
-
-  async addDomain(domain) {
-    try {
-      const response = await fetch(`${API.base}${API.updateStatus(domain, true)}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+async function initializeLogTable() {
+  $(document).ready(function () {
+    $("#domains-table").DataTable({
+      processing: true,
+      serverSide: true,
+      ajax: {
+        url: "/domains",
+        type: "GET",
+        data: function (d) {
+          return prepareRequestData(d);
         },
-      });
+        dataSrc: function (json) {
+          const domains = json.domains || [];
+          return domains.map((domain) => ({ domain }));
+        },
+      },
+      columns: [{ data: "domain" }, { data: null, render: renderToggleButton }],
+      order: [[0, "desc"]],
+      drawCallback: function () {
+        $("#domains-table tbody tr").each(function () {
+          const row = $(this);
+          const blockedStatus = row.find("td").eq(3).text().includes("Blocked");
+          blockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+        });
 
-      const data = await response.json();
-
-      if (data.error) {
-        showInfoNotification(data.error);
-        return;
-      }
-
-      if (data.domain) {
-        this.table.row
-          .add([data.domain, `<button class="update-block-status" data-domain="${data.domain}">unblock</button>`])
-          .draw();
-        showInfoNotification("Added domain:", data.domain);
-      }
-    } catch (error) {
-      showErrorNotification("Failed to add domain");
-    }
-  }
+        $(".toggle-button").each(function () {
+          const button = $(this);
+          const blocked = button.data("blocked");
+          const buttonClass = blocked ? "blocked-true" : "blocked-false";
+          button.removeClass("blocked-true blocked-false").addClass(buttonClass);
+        });
+      },
+    });
+  });
 }
 
-class LoadingManager {
-  static show() {
-    elements.tableContainer().innerHTML = `
-      <div class="loading-spinner-container">
-        <div class="loading-spinner"></div>
-      </div>
-    `;
-  }
-
-  static hide() {
-    elements.tableContainer().innerHTML = `
-      <table id="domains-table" class="display">
-        <thead>
-          <tr>
-            <th>Domains</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    `;
-  }
+function openAddDomainModal() {
+  $(".modal").show();
 }
 
-class ModalManager {
-  constructor(domainManager) {
-    this.domainManager = domainManager;
-  }
-
-  open() {
-    elements.modal().style.display = "block";
-  }
-
-  close() {
-    elements.modal().style.display = "none";
-    elements.domainInput().value = "";
-  }
-
-  onAddDomainClick() {
-    const domain = elements.domainInput().value;
-    if (domain) {
-      this.domainManager.domainTable.addDomain(domain);
-      this.close();
-    } else {
-      showWarningNotification("Please enter a valid domain.");
-    }
-  }
+function closeAddDomainModal() {
+  $(".modal").hide();
 }
 
-class DomainManager {
-  constructor() {
-    this.domainTable = new DomainTable();
-    this.modalManager = new ModalManager(this);
-  }
-
-  async initialize() {
+async function handleAddDomain() {
+  const domain = $("#domain-name").val();
+  if (domain) {
     try {
-      LoadingManager.show();
-      const response = await fetch(`${API.base}${API.domains}`);
-      if (!response.ok) throw new Error("Network response failed");
-
-      const data = await response.json();
-      LoadingManager.hide();
-      this.domainTable.init();
-      this.domainTable.table.rows.add(data.domains).draw();
+      const blockReq = await $.get(`http://localhost:8080/updateBlockStatus?domain=${domain}&blocked=true`);
+      showInfoNotification(blockReq.message);
+      closeAddDomainModal();
     } catch (error) {
-      LoadingManager.hide();
-      showErrorNotification("Failed to fetch domains");
+      console.error("Error adding domain:", error);
+      showErrorNotification("Failed to add domain. Please try again.");
     }
-  }
-
-  setupEventListeners() {
-    elements.addDomainBtn().addEventListener("click", () => {
-      this.modalManager.open();
-    });
-
-    elements.confirmAddDomainBtn().addEventListener("click", () => {
-      this.modalManager.onAddDomainClick();
-    });
+  } else {
+    showErrorNotification("Please enter a domain.");
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const styleSheet = document.createElement("style");
-  document.head.appendChild(styleSheet);
-
-  const app = new DomainManager();
-  app.initialize();
-  app.setupEventListeners();
-
-  // Expose for global access
-  window.openAddDomainModal = app.modalManager.open.bind(app.modalManager);
-  window.closeAddDomainModal = app.modalManager.close.bind(app.modalManager);
+document.addEventListener("DOMContentLoaded", async () => {
+  await initializeLogTable();
+  $(document).on("click", ".toggle-button", handleToggleClick);
+  $("#add-domain-btn").on("click", openAddDomainModal);
+  $("#cancel-btn").on("click", closeAddDomainModal);
+  $("#confirm-add-domain-btn").on("click", handleAddDomain);
 });

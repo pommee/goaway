@@ -73,6 +73,7 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 		log.Error("Server initialization failed: %s", err)
 		exit(1)
 	}
+	go dnsServer.ProcessLogEntries()
 
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)

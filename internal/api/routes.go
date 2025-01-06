@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -30,12 +31,13 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 
 	ipAddress, err := getServerIP()
 	if err != nil {
-		fmt.Println("Error getting IP address:", err)
+		log.Error("Error getting IP address: %v", err)
+		return
 	}
 
 	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("error walking through path %s: %w", path, err)
 		}
 		if d.IsDir() {
 			return nil
@@ -43,16 +45,24 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 
 		fileContent, err := content.ReadFile(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading file %s: %w", path, err)
 		}
 
-		mimeType := mimeTypes[strings.ToLower(path[strings.LastIndex(path, "."):])]
+		ext := strings.ToLower(filepath.Ext(path))
+		mimeType := mimeTypes[ext]
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
 
-		route := strings.TrimPrefix(path, "website")
-		api.Router.GET(route, func(c *gin.Context) {
+		route := strings.TrimPrefix(path, "website/")
+		if route == "index.html" {
+			api.Router.GET("/", func(c *gin.Context) {
+				c.Header("X-Server-IP", ipAddress)
+				c.Data(http.StatusOK, mimeType, fileContent)
+			})
+		}
+
+		api.Router.GET("/"+route, func(c *gin.Context) {
 			c.Header("X-Server-IP", ipAddress)
 			c.Data(http.StatusOK, mimeType, fileContent)
 		})
@@ -252,12 +262,10 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 }
 
 func (websiteServer *API) getDomains(c *gin.Context) {
-	allDomains, _ := websiteServer.dnsServer.Blacklist.LoadBlacklist()
-	domainsLen := len(allDomains)
-
 	page := c.DefaultQuery("page", "1")
 	pageSize := c.DefaultQuery("pageSize", "10")
 	search := c.DefaultQuery("search", "")
+	draw := c.DefaultQuery("draw", "1")
 
 	pageInt, err := strconv.Atoi(page)
 	if err != nil || pageInt < 1 {
@@ -269,27 +277,17 @@ func (websiteServer *API) getDomains(c *gin.Context) {
 		pageSizeInt = 10
 	}
 
-	var filteredDomains []string
-	for domain := range allDomains {
-		if strings.Contains(domain, search) {
-			filteredDomains = append(filteredDomains, domain)
-		}
+	domains, total, err := websiteServer.dnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	domainsLen = len(filteredDomains)
-	start := (pageInt - 1) * pageSizeInt
-	end := start + pageSizeInt
-	if end > domainsLen {
-		end = domainsLen
-	}
-
-	domains := filteredDomains[start:end]
 
 	c.JSON(http.StatusOK, gin.H{
-		"domains":  domains,
-		"total":    domainsLen,
-		"page":     pageInt,
-		"pageSize": pageSizeInt,
+		"draw":            draw,
+		"domains":         domains,
+		"recordsTotal":    total,
+		"recordsFiltered": total,
 	})
 }
 

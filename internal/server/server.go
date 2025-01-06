@@ -6,7 +6,6 @@ import (
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
 	"goaway/internal/logging"
-	"math"
 	"net"
 	"strings"
 	"sync"
@@ -91,8 +90,6 @@ func NewDNSServer(config *ServerConfig) (*DNSServer, error) {
 		cache:              sync.Map{},
 		logEntryChannel:    make(chan RequestLogEntry, 1000),
 	}
-
-	go server.processLogEntries()
 
 	return server, nil
 }
@@ -288,7 +285,7 @@ func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	return logs, nil
 }
 
-func (s *DNSServer) processLogEntries() {
+func (s *DNSServer) ProcessLogEntries() {
 	var batch []RequestLogEntry
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -338,30 +335,9 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		}
 	}
 
-	s.saveCountersWithRetry(tx)
-}
-
-func (s *DNSServer) saveCountersWithRetry(tx *sql.Tx) {
-	const maxRetries = 5
-	var err error
-
-	for i := 0; i < maxRetries; i++ {
-		err = s.saveCounters(tx)
-		if err == nil {
-			return
-		}
-
-		if err.Error() == "database is locked" {
-			backoff := time.Duration(math.Pow(2, float64(i))) * time.Millisecond
-			time.Sleep(backoff)
-			continue
-		}
-
+	if err := s.saveCounters(tx); err != nil {
 		log.Error("Could not save counters %v", err)
-		return
 	}
-
-	log.Error("Failed to save counters after %d retries: %v", maxRetries, err)
 }
 
 func (s *DNSServer) saveCounters(tx *sql.Tx) error {

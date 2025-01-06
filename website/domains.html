@@ -1,64 +1,76 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>goaway</title>
-        <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="/static/css/style.css" />
-        <link rel="stylesheet" href="/static/css/domains.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-        <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
-        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    </head>
 
-    <body>
-        <!-- Top bar with centered text -->
-        <div id="top-bar">
-            <p id="cpu-usage"></p>
-            <p id="cpu-temp"></p>
-            <p id="mem-usage"></p>
-        </div>
+<head>
+    <title>goaway</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/domains.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+</head>
 
-        <div id="sidenav" class="sidenav">
-            <div class="top-section">
-                <img id="logo" src="/static/logo.png" />
-                <div>
-                    <p class="top-section-header">goaway</p>
-                    <p class="top-section-text">Be gone!</p>
-                </div>
+<body>
+    <!-- Top bar with centered text -->
+    <div id="top-bar">
+        <p id="cpu-usage"></p>
+        <p id="cpu-temp"></p>
+        <p id="mem-usage"></p>
+    </div>
+
+    <div id="sidenav" class="sidenav">
+        <div class="top-section">
+            <img id="logo" src="/static/logo.png" />
+            <div>
+                <p class="top-section-header">goaway</p>
+                <p class="top-section-text">Be gone!</p>
             </div>
-            <hr class="rounded" />
-            <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
-            <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-            <a class="selected" href="#"><i class="icon fa-solid fa-server"></i>Domains</a>
-            <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
-            <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
-            <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-            <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
-            <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-                <i class="icon fa-brands fa-github"></i> GitHub
-            </a>
         </div>
+        <hr class="rounded" />
+        <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
+        <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
+        <a class="selected" href="#"><i class="icon fa-solid fa-server"></i>Domains</a>
+        <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
+        <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
+        <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
+        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
+        <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
+            <i class="icon fa-brands fa-github"></i> GitHub
+        </a>
+    </div>
 
-        <!-- Main content area -->
-        <div id="main">
-            <div id="domains-table-container"></div>
-            <div id="add-domain-modal" class="modal">
-                <div class="modal-content">
-                    <h2>Add Domain to Block List</h2>
-                    <input type="text" id="domain-name" placeholder="Enter domain to block" />
-                    <button id="confirm-add-domain-btn">Add Domain</button>
-                    <button id="cancel-btn">Cancel</button>
-                </div>
+    <!-- Main content area -->
+    <div id="main">
+        <div id="domains-table-container">
+            <table id="domains-table" class="display">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Toggle</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="modal">
+            <div class="modal-content">
+                <h2>Add Domain to Block List</h2>
+                <input type="text" id="domain-name" placeholder="Enter domain to block" />
+                <button id="confirm-add-domain-btn">Add Domain</button>
+                <button id="cancel-btn">Cancel</button>
             </div>
-            <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
         </div>
+        <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
+    </div>
 
-        <script src="/static/js/util.js"></script>
-        <script src="/static/js/serverStatus.js"></script>
-        <script src="/static/js/domains.js"></script>
-    </body>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/serverStatus.js"></script>
+    <script src="/static/js/domains.js"></script>
+</body>
+
 </html>

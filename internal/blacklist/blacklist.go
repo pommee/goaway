@@ -179,3 +179,39 @@ func (b *Blacklist) IsBlacklisted(domain string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([]string, int, error) {
+	query := `
+		SELECT domain
+		FROM blacklist
+		WHERE domain LIKE ?
+		ORDER BY domain DESC
+		LIMIT ? OFFSET ?
+	`
+	searchPattern := "%" + search + "%"
+	offset := (page - 1) * pageSize
+
+	rows, err := b.DB.Query(query, searchPattern, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query blacklist: %w", err)
+	}
+	defer rows.Close()
+
+	var domains []string
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan row: %w", err)
+		}
+		domains = append(domains, domain)
+	}
+
+	countQuery := `SELECT COUNT(*) FROM blacklist WHERE domain LIKE ?`
+	var total int
+	err = b.DB.QueryRow(countQuery, searchPattern).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count domains: %w", err)
+	}
+
+	return domains, total, rows.Err()
+}
