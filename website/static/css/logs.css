@@ -92,3 +92,18 @@
 .toggle-button:hover {
     background-color: gray;
 }
+
+#clear-logs-button {
+    background-color: #444;
+    color: #f1f1f1;
+    font-weight: bold;
+    border: 0;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+#clear-logs-button:hover {
+    background-color: gray;
+}

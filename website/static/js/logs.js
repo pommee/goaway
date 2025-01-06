@@ -55,6 +55,23 @@ async function handleToggleClick(event) {
   }
 }
 
+async function handleClearLogsClick() {
+  try {
+    await $.ajax({
+      url: '/logs',
+      type: 'DELETE'
+    });
+
+    const table = $('#log-table').DataTable();
+    table.destroy();
+    await initializeLogTable();
+    showInfoNotification('Logs cleared successfully.');
+  } catch (error) {
+    console.error('Error clearing logs:', error);
+    showErrorNotification('Failed to clear logs. Please try again.');
+  }
+}
+
 async function initializeLogTable() {
   $(document).ready(function () {
     $("#log-table").DataTable({
@@ -97,4 +114,5 @@ async function initializeLogTable() {
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeLogTable();
   $(document).on("click", ".toggle-button", handleToggleClick);
+  $(document).on("click", "#clear-logs-button", handleClearLogsClick);
 });

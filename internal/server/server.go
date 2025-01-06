@@ -21,6 +21,8 @@ var log = logging.GetLogger()
 
 const batchSize = 100
 
+var dbMutex sync.Mutex
+
 type ServerConfig struct {
 	Port              int
 	WebsitePort       int
@@ -307,6 +309,9 @@ func (s *DNSServer) ProcessLogEntries() {
 }
 
 func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
 	tx, err := s.DB.Begin()
 	if err != nil {
 		log.Error("Could not start database transaction %v", err)
@@ -329,7 +334,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		if _, err := stmt.Exec(
 			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
 		); err != nil {
-			log.Error("Could not save request log %v", err)
+			log.Error("Could not save request log. Reason: %v", err)
 			return
 		}
 	}

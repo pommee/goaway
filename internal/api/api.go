@@ -86,12 +86,15 @@ func (api *API) setupRoutes() {
 	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
 	authorized.GET("/domains", api.getDomains)
 	authorized.GET("/settings", api.getSettings)
-	authorized.POST("/settings", api.updateSettings)
 	authorized.GET("/clients", api.getClients)
 	authorized.GET("/upstreams", api.getUpstreams)
-	authorized.POST("/upstreams", api.createUpstreams)
-	authorized.DELETE("/upstreams", api.removeUpstreams)
 	authorized.GET("/preferredUpstream", api.setPreferredUpstream)
+
+	authorized.POST("/upstreams", api.createUpstreams)
+	authorized.POST("/settings", api.updateSettings)
+
+	authorized.DELETE("/upstreams", api.removeUpstreams)
+	authorized.DELETE("/logs", api.clearLogs)
 }
 
 func generateRandomPassword(length int) string {

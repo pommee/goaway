@@ -503,6 +503,19 @@ func (websiteServer *API) removeUpstreams(c *gin.Context) {
 	})
 }
 
+func (websiteServer *API) clearLogs(c *gin.Context) {
+	result, err := websiteServer.dnsServer.DB.Exec("DELETE FROM request_log")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
+		return
+	}
+	rowsAffected, _ := result.RowsAffected()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
+	})
+}
+
 func (websiteServer *API) setPreferredUpstream(c *gin.Context) {
 	upstreamToSet := c.DefaultQuery("upstream", "")
 
