@@ -511,6 +511,8 @@ func (websiteServer *API) clearLogs(c *gin.Context) {
 	}
 	rowsAffected, _ := result.RowsAffected()
 
+	websiteServer.dnsServer.Counters = server.CounterDetails{}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
 	})
