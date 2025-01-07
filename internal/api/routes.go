@@ -187,6 +187,12 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
+	sortColumn = map[string]string{
+		"timestamp": "timestamp",
+		"domain":    "domain",
+		"client":    "client_ip",
+	}[sortColumn]
+
 	query := `
 		SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name
 		FROM request_log
@@ -205,9 +211,7 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 	queries := []server.RequestLogEntry{}
 	for rows.Next() {
 		var query server.RequestLogEntry
-		if query.ClientInfo == nil {
-			query.ClientInfo = &server.Client{}
-		}
+		query.ClientInfo = &server.Client{}
 		if err := rows.Scan(&query.Timestamp, &query.Domain, &query.Blocked, &query.Cached, &query.ResponseTimeNS, &query.ClientInfo.IP, &query.ClientInfo.Name); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
