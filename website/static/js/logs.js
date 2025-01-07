@@ -56,20 +56,45 @@ async function handleToggleClick(event) {
 }
 
 async function handleClearLogsClick() {
-  try {
-    await $.ajax({
-      url: '/logs',
-      type: 'DELETE'
-    });
+  const modal = document.getElementById("clear-logs-modal");
+  const closeModal = document.getElementsByClassName("close")[0];
+  const confirmButton = document.getElementById("confirm-clear-logs-button");
+  const cancelButton = document.getElementById("cancel-clear-logs-button");
 
-    const table = $('#log-table').DataTable();
-    table.destroy();
-    await initializeLogTable();
-    showInfoNotification('Logs cleared successfully.');
-  } catch (error) {
-    console.error('Error clearing logs:', error);
-    showErrorNotification('Failed to clear logs. Please try again.');
-  }
+  modal.style.display = "block";
+
+  closeModal.onclick = function () {
+    modal.style.display = "none";
+  };
+
+  cancelButton.onclick = function () {
+    modal.style.display = "none";
+  };
+
+  confirmButton.onclick = async function () {
+    try {
+      await $.ajax({
+        url: '/logs',
+        type: 'DELETE'
+      });
+
+      const table = $('#log-table').DataTable();
+      table.destroy();
+      await initializeLogTable();
+      showInfoNotification('Logs cleared successfully.');
+    } catch (error) {
+      console.error('Error clearing logs:', error);
+      showErrorNotification('Failed to clear logs. Please try again.');
+    } finally {
+      modal.style.display = "none";
+    }
+  };
+
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  };
 }
 
 async function initializeLogTable() {
