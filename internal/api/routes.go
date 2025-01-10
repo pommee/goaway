@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -395,59 +396,72 @@ func (apiServer *API) getClients(c *gin.Context) {
 
 func (apiServer *API) getUpstreams(c *gin.Context) {
 	upstreams := apiServer.DnsServer.Config.UpstreamDNS
-	results := make([]map[string]string, 0)
+	results := make([]map[string]string, len(upstreams))
 
 	preferredUpstream := apiServer.DnsServer.Config.PreferredUpstream
 
-	for _, upstream := range upstreams {
-		host := strings.TrimSuffix(upstream, ":53")
-		entry := make(map[string]string)
-		entry["upstream"] = upstream
+	var wg sync.WaitGroup
+	wg.Add(len(upstreams))
 
-		if upstream == preferredUpstream {
-			entry["preferred"] = "true"
-		} else {
-			entry["preferred"] = "false"
-		}
-
-		start := time.Now()
-		names, addrErr := net.LookupAddr(host)
-		duration := time.Since(start)
-
-		if addrErr != nil {
-			entry["name"] = "Error: " + addrErr.Error()
-			entry["dnsPing"] = "Error: " + addrErr.Error()
-		} else if len(names) > 0 {
-			entry["name"] = strings.TrimSuffix(names[0], ".")
-			entry["dnsPing"] = duration.String()
-		} else {
-			entry["name"] = "No name found"
-			entry["dnsPing"] = duration.String()
-		}
-
-		pinger, err := ping.NewPinger(host)
-		if err != nil {
-			entry["icmpPing"] = "Error: " + err.Error()
-		} else {
-			pinger.Count = 1
-			pinger.Timeout = 2 * time.Second
-			pinger.OnRecv = func(pkt *ping.Packet) {
-				entry["icmpPing"] = pkt.Rtt.String()
-			}
-
-			err := pinger.Run()
-			if err != nil {
-				entry["icmpPing"] = "Error: " + err.Error()
-			}
-		}
-
-		results = append(results, entry)
+	for i, upstream := range upstreams {
+		go func(i int, upstream string) {
+			defer wg.Done()
+			results[i] = getUpstreamDetails(upstream, preferredUpstream)
+		}(i, upstream)
 	}
+
+	wg.Wait()
 
 	c.JSON(http.StatusOK, gin.H{
 		"upstreams":         results,
 		"preferredUpstream": preferredUpstream,
 	})
+}
+
+func getUpstreamDetails(upstream, preferredUpstream string) map[string]string {
+	host := strings.TrimSuffix(upstream, ":53")
+	entry := map[string]string{
+		"upstream":  upstream,
+		"preferred": strconv.FormatBool(upstream == preferredUpstream),
+	}
+
+	entry["name"], entry["dnsPing"] = getDNSDetails(host)
+	entry["icmpPing"] = getICMPPing(host)
+
+	return entry
+}
+
+func getDNSDetails(host string) (string, string) {
+	start := time.Now()
+	names, err := net.LookupAddr(host)
+	duration := time.Since(start)
+
+	if err != nil {
+		return "Error: " + err.Error(), "Error: " + err.Error()
+	}
+	if len(names) > 0 {
+		return strings.TrimSuffix(names[0], "."), duration.String()
+	}
+	return "No name found", duration.String()
+}
+
+func getICMPPing(host string) string {
+	pinger, err := ping.NewPinger(host)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	pinger.Count = 1
+	pinger.Timeout = 2 * time.Second
+
+	var icmpPing string
+	pinger.OnRecv = func(pkt *ping.Packet) {
+		icmpPing = pkt.Rtt.String()
+	}
+
+	if err := pinger.Run(); err != nil {
+		return "Error: " + err.Error()
+	}
+	return icmpPing
 }
 
 func (apiServer *API) createUpstreams(c *gin.Context) {
