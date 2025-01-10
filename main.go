@@ -48,7 +48,7 @@ func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging, di
 	cmd.Flags().IntVar(webserverPort, "webserverport", 8080, "Port for the web server")
 	cmd.Flags().IntVar(logLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
 	cmd.Flags().BoolVar(disableLogging, "disablelogging", false, "If true, then no logs will appear in the container")
-	cmd.Flags().BoolVar(disableAuth, "noauth", false, "If true, then no authentication is required for the admin dashboard")
+	cmd.Flags().BoolVar(disableAuth, "auth", true, "If false, then no authentication is required for the admin dashboard")
 
 	return cmd
 }
@@ -59,16 +59,12 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 		log.Error("Failed to load config: %s", err)
 	}
 
-	config.Port = dnsPort
-	config.WebsitePort = webserverPort
-	config.LogLevel = logging.ToLogLevel(logLevel)
-	log.SetLevel(logging.LogLevel(logLevel))
-	config.LoggingDisabled = disableLogging
-	settings.SaveSettings(&config)
+	updateConfig(&config, dnsPort, webserverPort, logLevel, disableLogging, disableAuth)
+	config.Save()
 
 	currentVersion := getVersionOrDefault()
 
-	dnsServer, err := server.NewDNSServer(&config)
+	dnsServer, err := server.NewDNSServer(config.DNSServer)
 	if err != nil {
 		log.Error("Server initialization failed: %s", err)
 		exit(1)
@@ -79,6 +75,15 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
 
 	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
+}
+
+func updateConfig(config *settings.Config, dnsPort, webserverPort, logLevel int, disableLogging, disableAuth bool) {
+	config.DNSServer.Port = dnsPort
+	config.DNSServer.LoggingDisabled = disableLogging
+	config.APIServer.Port = webserverPort
+	config.APIServer.Authentication = disableAuth
+	config.LogLevel = logging.LogLevel(logLevel)
+	log.SetLevel(logging.LogLevel(logLevel))
 }
 
 func getVersionOrDefault() *semver.Version {
@@ -105,8 +110,8 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		websiteInstance := api.API{DisableAuthentication: disableAuth}
-		websiteInstance.Start(content, dnsServer, webserverPort, errorChannel)
+		websiteInstance := api.API{Config: &settings.APIServerConfig{Port: webserverPort, Authentication: disableAuth}}
+		websiteInstance.Start(content, dnsServer, errorChannel)
 	}()
 
 	go func() {

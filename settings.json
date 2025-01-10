@@ -1,14 +1,17 @@
 {
-  "serverConfig": {
+  "dnsServer": {
+    "CacheTTL": "1m0s",
     "Port": 53,
-    "WebsitePort": 8080,
-    "LogLevel": 1,
     "LoggingDisabled": false,
     "UpstreamDNS": [
       "8.8.8.8:53",
       "1.1.1.1:53"
     ],
-    "PreferredUpstream": "8.8.8.8:53",
-    "CacheTTL": "1m0s"
-  }
+    "PreferredUpstream": "8.8.8.8:53"
+  },
+  "apiServer": {
+    "Port": 8080,
+    "Authentication": true
+  },
+  "LogLevel": 1
 }

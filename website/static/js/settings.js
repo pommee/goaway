@@ -45,10 +45,10 @@ async function initializeSettings() {
     return;
   }
 
-  const cacheTTLInSeconds = settings.CacheTTL / 1000000000;
+  const cacheTTLInSeconds = settings.dns.CacheTTL;
   document.getElementById("cacheTTL").value = cacheTTLInSeconds;
-  document.getElementById("logLevel").selectedIndex = settings.LogLevel;
-  document.getElementById("disableLogging").checked = settings.LoggingDisabled;
+  document.getElementById("logLevel").selectedIndex = settings.dns.LogLevel;
+  document.getElementById("disableLogging").checked = settings.dns.LoggingDisabled;
 }
 
 async function getSettings() {
@@ -63,7 +63,7 @@ async function getSettings() {
     }
 
     const data = await response.json();
-    return data.settings;
+    return data;
   } catch (error) {
     console.error("Error fetching settings:", error);
     throw error;

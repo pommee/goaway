@@ -2,7 +2,7 @@ package asciiart
 
 import (
 	"fmt"
-	"goaway/internal/server"
+	"goaway/internal/settings"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config *server.ServerConfig, blockedDomains int, version string, disableAuth bool) {
+func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool) {
 	const versionSpace = 7
 
 	if version == "0.0.0" {
@@ -23,12 +23,12 @@ func AsciiArt(config *server.ServerConfig, blockedDomains int, version string, d
 	}
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
 
-	portFormatted := fmt.Sprintf("%s%d%s", Green, config.Port, Reset)
-	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
+	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSServer.Port, Reset)
+	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNSServer.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
-	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL, Reset)
+	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.DNSServer.CacheTTL, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
-	adminPanelURL := fmt.Sprintf("http://localhost:%d", config.WebsitePort)
+	adminPanelURL := fmt.Sprintf("http://localhost:%d", config.APIServer.Port)
 	adminPanelFormatted := fmt.Sprintf("%s%s%s", Red, adminPanelURL, Reset)
 
 	fmt.Printf(`

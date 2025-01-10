@@ -2,7 +2,7 @@ window.onload = async function () {
   const notificationData = localStorage.getItem("persistentNotification");
 
   authenticationRequired = await GetRequest("/authentication");
-  if (authenticationRequired.disabled) {
+  if (!authenticationRequired.enabled) {
     window.location.href = "/index.html";
   }
 

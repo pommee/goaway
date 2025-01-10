@@ -6,6 +6,7 @@ import (
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
 	"goaway/internal/logging"
+	"goaway/internal/settings"
 	"net"
 	"strings"
 	"sync"
@@ -23,18 +24,8 @@ const batchSize = 100
 
 var dbMutex sync.Mutex
 
-type ServerConfig struct {
-	Port              int
-	WebsitePort       int
-	LogLevel          logging.LogLevel
-	LoggingDisabled   bool
-	UpstreamDNS       []string
-	PreferredUpstream string
-	CacheTTL          time.Duration
-}
-
 type DNSServer struct {
-	Config             ServerConfig
+	Config             settings.DNSServerConfig
 	Blacklist          blacklist.Blacklist
 	DB                 *sql.DB
 	Counters           CounterDetails
@@ -69,7 +60,7 @@ type Client struct {
 	Name string
 }
 
-func NewDNSServer(config *ServerConfig) (*DNSServer, error) {
+func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 	db, err := database.Initialize()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tables: %w", err)

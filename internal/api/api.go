@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"goaway/internal/logging"
 	"goaway/internal/server"
+	"goaway/internal/settings"
 	"os"
 	"sync"
 	"time"
@@ -27,19 +28,17 @@ type Credentials struct {
 }
 
 type API struct {
-	Router                *gin.Engine
-	dnsServer             *server.DNSServer
-	port                  int
-	DisableAuthentication bool
-	adminPassword         string
+	router        *gin.Engine
+	DnsServer     *server.DNSServer
+	Config        *settings.APIServerConfig
+	adminPassword string
 }
 
-func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int, errorChannel chan struct{}) {
+func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	gin.SetMode(gin.ReleaseMode)
-	api.Router = gin.New()
-	dnsServer.WebServer = api.Router
-	api.dnsServer = dnsServer
-	api.port = port
+	api.router = gin.New()
+	api.DnsServer = dnsServer
+	api.DnsServer.WebServer = api.router
 
 	api.setupRoutes()
 	api.ServeEmbeddedContent(content)
@@ -49,8 +48,8 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int, e
 
 	go func() {
 		defer wg.Done()
-		log.Info("Starting server on port %d", port)
-		err := api.Router.Run(fmt.Sprintf(":%d", port))
+		log.Info("Starting server on port %d", api.Config.Port)
+		err := api.router.Run(fmt.Sprintf(":%d", api.Config.Port))
 		if err != nil {
 			log.Error("%v", err)
 			errorChannel <- struct{}{}
@@ -60,21 +59,25 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, port int, e
 	wg.Wait()
 }
 
-func (api *API) setupRoutes() {
-	api.Router.POST("/login", api.handleLogin)
-	api.Router.GET("/server", api.handleServer)
-	api.Router.GET("/authentication", api.getAuthentication)
+func (api *API) SetupAuth() {
+	password, exists := os.LookupEnv("GOAWAY_PASSWORD")
+	if !exists {
+		api.adminPassword = generateRandomPassword()
+		log.Info("Randomly generated admin password: %s", api.adminPassword)
+	} else {
+		api.adminPassword = password
+		log.Info("Using custom password: [hidden]")
+	}
+}
 
-	authorized := api.Router.Group("/")
-	if !api.DisableAuthentication {
-		password, exists := os.LookupEnv("GOAWAY_PASSWORD")
-		if !exists {
-			api.adminPassword = generateRandomPassword(14)
-			log.Info("Randomly generated admin password: %s", api.adminPassword)
-		} else {
-			api.adminPassword = password
-			log.Info("Using custom password: [hidden]")
-		}
+func (api *API) setupRoutes() {
+	api.router.POST("/login", api.handleLogin)
+	api.router.GET("/server", api.handleServer)
+	api.router.GET("/authentication", api.getAuthentication)
+
+	authorized := api.router.Group("/")
+	if api.Config.Authentication {
+		api.SetupAuth()
 		authorized.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
@@ -97,8 +100,8 @@ func (api *API) setupRoutes() {
 	authorized.DELETE("/logs", api.clearLogs)
 }
 
-func generateRandomPassword(length int) string {
-	randomBytes := make([]byte, length)
+func generateRandomPassword() string {
+	randomBytes := make([]byte, 14)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		log.Error("Error generating random bytes: %v", err)

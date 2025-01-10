@@ -56,13 +56,13 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 
 		route := strings.TrimPrefix(path, "website/")
 		if route == "index.html" {
-			api.Router.GET("/", func(c *gin.Context) {
+			api.router.GET("/", func(c *gin.Context) {
 				c.Header("X-Server-IP", ipAddress)
 				c.Data(http.StatusOK, mimeType, fileContent)
 			})
 		}
 
-		api.Router.GET("/"+route, func(c *gin.Context) {
+		api.router.GET("/"+route, func(c *gin.Context) {
 			c.Header("X-Server-IP", ipAddress)
 			c.Data(http.StatusOK, mimeType, fileContent)
 		})
@@ -98,7 +98,7 @@ func (api *API) handleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
-func (websiteServer *API) handleServer(c *gin.Context) {
+func (apiServer *API) handleServer(c *gin.Context) {
 	cpuUsage, err := cpu.Percent(0, false)
 	if err != nil {
 		log.Error("%s", err)
@@ -115,8 +115,8 @@ func (websiteServer *API) handleServer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"portDNS":           websiteServer.port,
-		"portWebsite":       websiteServer.dnsServer.Config.Port,
+		"portDNS":           apiServer.Config.Port,
+		"portWebsite":       apiServer.DnsServer.Config.Port,
 		"totalMem":          float64(vMem.Total) / 1024 / 1024 / 1024,
 		"usedMem":           float64(vMem.Used) / 1024 / 1024 / 1024,
 		"usedMemPercentage": float64(vMem.Free) / 1024 / 1024 / 1024,
@@ -125,13 +125,13 @@ func (websiteServer *API) handleServer(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) getAuthentication(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"disabled": websiteServer.DisableAuthentication})
+func (apiServer *API) getAuthentication(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"enabled": apiServer.Config.Authentication})
 }
 
-func (websiteServer *API) handleMetrics(c *gin.Context) {
-	allowedQueries := websiteServer.dnsServer.Counters.AllowedRequests
-	blockedQueries := websiteServer.dnsServer.Counters.BlockedRequests
+func (apiServer *API) handleMetrics(c *gin.Context) {
+	allowedQueries := apiServer.DnsServer.Counters.AllowedRequests
+	blockedQueries := apiServer.DnsServer.Counters.BlockedRequests
 	totalQueries := allowedQueries + blockedQueries
 
 	var percentageBlocked float64
@@ -139,7 +139,7 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 		percentageBlocked = (float64(blockedQueries) / float64(totalQueries)) * 100
 	}
 
-	domainsLength, _ := websiteServer.dnsServer.Blacklist.CountDomains()
+	domainsLength, _ := apiServer.DnsServer.Blacklist.CountDomains()
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowedQueries,
 		"blocked":           blockedQueries,
@@ -149,13 +149,13 @@ func (websiteServer *API) handleMetrics(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) getQueryTimestamps(c *gin.Context) {
+func (apiServer *API) getQueryTimestamps(c *gin.Context) {
 	type QueryEntry struct {
 		Timestamp time.Time `json:"timestamp"`
 		Blocked   bool      `json:"blocked"`
 	}
 
-	rows, err := websiteServer.dnsServer.DB.Query("SELECT timestamp, blocked FROM request_log")
+	rows, err := apiServer.DnsServer.DB.Query("SELECT timestamp, blocked FROM request_log")
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -178,7 +178,7 @@ func (websiteServer *API) getQueryTimestamps(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) handleQueriesData(c *gin.Context) {
+func (apiServer *API) handleQueriesData(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	search := c.DefaultQuery("search", "")
@@ -200,7 +200,7 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 		ORDER BY ` + sortColumn + ` ` + sortDirection + `
 		LIMIT ? OFFSET ?`
 
-	rows, err := websiteServer.dnsServer.DB.Query(query, "%"+search+"%", pageSize, offset)
+	rows, err := apiServer.DnsServer.DB.Query(query, "%"+search+"%", pageSize, offset)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -220,7 +220,7 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 	}
 
 	var totalRecords int
-	err = websiteServer.dnsServer.DB.QueryRow(`SELECT COUNT(*) FROM request_log WHERE domain LIKE ?`, "%"+search+"%").Scan(&totalRecords)
+	err = apiServer.DnsServer.DB.QueryRow(`SELECT COUNT(*) FROM request_log WHERE domain LIKE ?`, "%"+search+"%").Scan(&totalRecords)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -234,7 +234,7 @@ func (websiteServer *API) handleQueriesData(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
+func (apiServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	domain := c.Query("domain")
 	blocked := c.Query("blocked")
 	if domain == "" || blocked == "" {
@@ -243,8 +243,8 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	}
 
 	action := map[string]func(string) error{
-		"true":  websiteServer.dnsServer.Blacklist.AddDomain,
-		"false": websiteServer.dnsServer.Blacklist.RemoveDomain,
+		"true":  apiServer.DnsServer.Blacklist.AddDomain,
+		"false": apiServer.DnsServer.Blacklist.RemoveDomain,
 	}[blocked]
 
 	if action == nil {
@@ -265,7 +265,7 @@ func (websiteServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%s has been whitelisted.", domain)})
 }
 
-func (websiteServer *API) getDomains(c *gin.Context) {
+func (apiServer *API) getDomains(c *gin.Context) {
 	page := c.DefaultQuery("page", "1")
 	pageSize := c.DefaultQuery("pageSize", "10")
 	search := c.DefaultQuery("search", "")
@@ -281,7 +281,7 @@ func (websiteServer *API) getDomains(c *gin.Context) {
 		pageSizeInt = 10
 	}
 
-	domains, total, err := websiteServer.dnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
+	domains, total, err := apiServer.DnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -295,13 +295,28 @@ func (websiteServer *API) getDomains(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) getSettings(c *gin.Context) {
+func (apiServer *API) getSettings(c *gin.Context) {
+	dnsSettings := struct {
+		Port              int      `json:"Port"`
+		LoggingDisabled   bool     `json:"LoggingDisabled"`
+		UpstreamDNS       []string `json:"UpstreamDNS"`
+		PreferredUpstream string   `json:"PreferredUpstream"`
+		CacheTTL          int      `json:"CacheTTL"`
+	}{
+		Port:              apiServer.DnsServer.Config.Port,
+		LoggingDisabled:   apiServer.DnsServer.Config.LoggingDisabled,
+		UpstreamDNS:       apiServer.DnsServer.Config.UpstreamDNS,
+		PreferredUpstream: apiServer.DnsServer.Config.PreferredUpstream,
+		CacheTTL:          int(apiServer.DnsServer.Config.CacheTTL.Seconds()),
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"settings": websiteServer.dnsServer.Config,
+		"api": apiServer.Config,
+		"dns": dnsSettings,
 	})
 }
 
-func (websiteServer *API) updateSettings(c *gin.Context) {
+func (apiServer *API) updateSettings(c *gin.Context) {
 	var updatedSettings map[string]interface{}
 	if err := c.BindJSON(&updatedSettings); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -310,23 +325,28 @@ func (websiteServer *API) updateSettings(c *gin.Context) {
 		return
 	}
 
-	settings.UpdateSettings(websiteServer.dnsServer, updatedSettings)
+	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config.UpdateDNSSettings(updatedSettings)
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Info("Updated settings!")
 	log.Debug("%s", string(settingsJson))
 
+	apiServer.DnsServer.Config = *config.DNSServer
+	apiServer.Config = config.APIServer
+
 	c.JSON(http.StatusOK, gin.H{
-		"settings": websiteServer.dnsServer.Config,
+		"api": apiServer.Config,
+		"dns": apiServer.DnsServer.Config,
 	})
 }
 
-func (websiteServer *API) getClients(c *gin.Context) {
+func (apiServer *API) getClients(c *gin.Context) {
 	uniqueClients := make(map[string]struct {
 		Name     string
 		LastSeen time.Time
 	})
 
-	rows, err := websiteServer.dnsServer.DB.Query("SELECT client_ip, client_name, timestamp FROM request_log")
+	rows, err := apiServer.DnsServer.DB.Query("SELECT client_ip, client_name, timestamp FROM request_log")
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -373,11 +393,11 @@ func (websiteServer *API) getClients(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) getUpstreams(c *gin.Context) {
-	upstreams := websiteServer.dnsServer.Config.UpstreamDNS
+func (apiServer *API) getUpstreams(c *gin.Context) {
+	upstreams := apiServer.DnsServer.Config.UpstreamDNS
 	results := make([]map[string]string, 0)
 
-	preferredUpstream := websiteServer.dnsServer.Config.PreferredUpstream
+	preferredUpstream := apiServer.DnsServer.Config.PreferredUpstream
 
 	for _, upstream := range upstreams {
 		host := strings.TrimSuffix(upstream, ":53")
@@ -430,7 +450,7 @@ func (websiteServer *API) getUpstreams(c *gin.Context) {
 	})
 }
 
-func (websiteServer *API) createUpstreams(c *gin.Context) {
+func (apiServer *API) createUpstreams(c *gin.Context) {
 	type UpstreamsRequest struct {
 		Upstreams []string `json:"upstreams"`
 	}
@@ -456,7 +476,7 @@ func (websiteServer *API) createUpstreams(c *gin.Context) {
 		}
 
 		exists := false
-		for _, existing := range websiteServer.dnsServer.Config.UpstreamDNS {
+		for _, existing := range apiServer.DnsServer.Config.UpstreamDNS {
 			if existing == upstream {
 				exists = true
 				break
@@ -476,16 +496,17 @@ func (websiteServer *API) createUpstreams(c *gin.Context) {
 	}
 
 	log.Info("Adding unique upstreams: %v", filteredUpstreams)
-	websiteServer.dnsServer.Config.UpstreamDNS = append(
-		websiteServer.dnsServer.Config.UpstreamDNS,
+	apiServer.DnsServer.Config.UpstreamDNS = append(
+		apiServer.DnsServer.Config.UpstreamDNS,
 		filteredUpstreams...,
 	)
 
-	settings.SaveSettings(&websiteServer.dnsServer.Config)
+	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config.Save()
 	c.JSON(http.StatusOK, gin.H{"added_upstreams": filteredUpstreams})
 }
 
-func (websiteServer *API) removeUpstreams(c *gin.Context) {
+func (apiServer *API) removeUpstreams(c *gin.Context) {
 	upstreamToDelete := c.Query("upstream")
 
 	if upstreamToDelete == "" {
@@ -494,35 +515,35 @@ func (websiteServer *API) removeUpstreams(c *gin.Context) {
 	}
 
 	var updatedUpstreams []string
-	for _, upstream := range websiteServer.dnsServer.Config.UpstreamDNS {
+	for _, upstream := range apiServer.DnsServer.Config.UpstreamDNS {
 		if upstream != upstreamToDelete {
 			updatedUpstreams = append(updatedUpstreams, upstream)
 		}
 	}
 
-	websiteServer.dnsServer.Config.UpstreamDNS = updatedUpstreams
+	apiServer.DnsServer.Config.UpstreamDNS = updatedUpstreams
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Upstream removed successfully",
 	})
 }
 
-func (websiteServer *API) clearLogs(c *gin.Context) {
-	result, err := websiteServer.dnsServer.DB.Exec("DELETE FROM request_log")
+func (apiServer *API) clearLogs(c *gin.Context) {
+	result, err := apiServer.DnsServer.DB.Exec("DELETE FROM request_log")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
 		return
 	}
 	rowsAffected, _ := result.RowsAffected()
 
-	websiteServer.dnsServer.Counters = server.CounterDetails{}
+	apiServer.DnsServer.Counters = server.CounterDetails{}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
 	})
 }
 
-func (websiteServer *API) setPreferredUpstream(c *gin.Context) {
+func (apiServer *API) setPreferredUpstream(c *gin.Context) {
 	upstreamToSet := c.DefaultQuery("upstream", "")
 
 	if upstreamToSet == "" {
@@ -531,7 +552,7 @@ func (websiteServer *API) setPreferredUpstream(c *gin.Context) {
 	}
 
 	var found bool
-	for _, upstream := range websiteServer.dnsServer.Config.UpstreamDNS {
+	for _, upstream := range apiServer.DnsServer.Config.UpstreamDNS {
 		if upstream == upstreamToSet {
 			found = true
 			break
@@ -543,10 +564,12 @@ func (websiteServer *API) setPreferredUpstream(c *gin.Context) {
 		return
 	}
 
-	websiteServer.dnsServer.Config.PreferredUpstream = upstreamToSet
-	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", websiteServer.dnsServer.Config.PreferredUpstream)
+	apiServer.DnsServer.Config.PreferredUpstream = upstreamToSet
+	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", apiServer.DnsServer.Config.PreferredUpstream)
 	log.Info("%s", updatedMsg)
-	settings.SaveSettings(&websiteServer.dnsServer.Config)
+
+	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config.Save()
 	c.JSON(http.StatusOK, gin.H{"message": updatedMsg})
 }
 
