@@ -16,18 +16,6 @@ func Initialize() (*Session, error) {
 	}
 
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS counters (
-            id INTEGER PRIMARY KEY,
-            allowed_requests INTEGER DEFAULT 0,
-            blocked_requests INTEGER DEFAULT 0
-        );
-
-		CREATE TABLE IF NOT EXISTS counters (
-            id INTEGER PRIMARY KEY,
-            allowed_requests INTEGER DEFAULT 0,
-            blocked_requests INTEGER DEFAULT 0
-        );
-
 		CREATE TABLE IF NOT EXISTS request_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME NOT NULL,

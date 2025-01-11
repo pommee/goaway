@@ -7,7 +7,8 @@
       "8.8.8.8:53",
       "1.1.1.1:53"
     ],
-    "PreferredUpstream": "8.8.8.8:53"
+    "PreferredUpstream": "8.8.8.8:53",
+    "StatisticsRetention": 1
   },
   "apiServer": {
     "Port": 8080,

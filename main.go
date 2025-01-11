@@ -26,40 +26,41 @@ var (
 )
 
 func main() {
-	var dnsPort, webserverPort, logLevel int
+	var dnsPort, webserverPort, logLevel, statisticsRetention int
 	var disableLogging, disableAuth bool
 
-	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &disableLogging, &disableAuth)
+	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &statisticsRetention, &disableLogging, &disableAuth)
 	if err := rootCmd.Execute(); err != nil {
 		log.Error("Command execution failed: %s", err)
 	}
 }
 
-func createRootCommand(dnsPort, webserverPort, logLevel *int, disableLogging, disableAuth *bool) *cobra.Command {
+func createRootCommand(dnsPort, webserverPort, logLevel, statisticsRetention *int, disableLogging, disableAuth *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			runServer(*dnsPort, *webserverPort, *logLevel, *disableLogging, *disableAuth)
+			runServer(*dnsPort, *webserverPort, *logLevel, *statisticsRetention, *disableLogging, *disableAuth)
 		},
 	}
 
 	cmd.Flags().IntVar(dnsPort, "dnsport", 53, "Port for the DNS server")
 	cmd.Flags().IntVar(webserverPort, "webserverport", 8080, "Port for the web server")
 	cmd.Flags().IntVar(logLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
+	cmd.Flags().IntVar(statisticsRetention, "statisticsRetention", 1, "Number is amount of days to keep statistics")
 	cmd.Flags().BoolVar(disableLogging, "disablelogging", false, "If true, then no logs will appear in the container")
 	cmd.Flags().BoolVar(disableAuth, "auth", true, "If false, then no authentication is required for the admin dashboard")
 
 	return cmd
 }
 
-func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth bool) {
+func runServer(dnsPort, webserverPort, logLevel, statisticsRetention int, disableLogging, disableAuth bool) {
 	config, err := settings.LoadSettings()
 	if err != nil {
 		log.Error("Failed to load config: %s", err)
 	}
 
-	updateConfig(&config, dnsPort, webserverPort, logLevel, disableLogging, disableAuth)
+	updateConfig(&config, dnsPort, webserverPort, logLevel, statisticsRetention, disableLogging, disableAuth)
 	config.Save()
 
 	currentVersion := getVersionOrDefault()
@@ -74,12 +75,14 @@ func runServer(dnsPort, webserverPort, logLevel int, disableLogging, disableAuth
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
 
+	go dnsServer.ClearOldEntries()
 	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
 }
 
-func updateConfig(config *settings.Config, dnsPort, webserverPort, logLevel int, disableLogging, disableAuth bool) {
+func updateConfig(config *settings.Config, dnsPort, webserverPort, logLevel, statisticsRetention int, disableLogging, disableAuth bool) {
 	config.DNSServer.Port = dnsPort
 	config.DNSServer.LoggingDisabled = disableLogging
+	config.DNSServer.StatisticsRetention = statisticsRetention
 	config.APIServer.Port = webserverPort
 	config.APIServer.Authentication = disableAuth
 	config.LogLevel = logging.LogLevel(logLevel)

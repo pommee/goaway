@@ -52,7 +52,7 @@
 }
 
 .setting-item select {
-    width: 100px;
+    width: 120px;
     padding: 10px;
     font-size: 1.2rem;
     color: white;
@@ -109,11 +109,11 @@
         background-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .slider {
+input[type="checkbox"]:checked+.slider {
     background-color: #007acc;
 }
 
-input[type="checkbox"]:checked + .slider::before {
+input[type="checkbox"]:checked+.slider::before {
     transform: translateX(26px);
 }
 
@@ -121,7 +121,7 @@ input[type="checkbox"]:checked + .slider::before {
     background-color: #555;
 }
 
-input[type="checkbox"]:checked + .slider:hover {
+input[type="checkbox"]:checked+.slider:hover {
     background-color: #005f99;
 }
 

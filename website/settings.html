@@ -52,11 +52,11 @@
 
         <!-- Main content area -->
         <div id="main">
-            <h2>Admin panel - WIP</h2>
+            <h2>Admin panel</h2>
             <div class="settings-list">
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-1">Enable Dark Mode</label>
+                        <label for="setting-1">Enable Dark Mode [WIP]</label>
                         <label class="toggle">
                             <input type="checkbox" id="darkMode" />
                             <span class="slider"></span>
@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <h2>Server - WIP</h2>
+            <h2>Logging | Statistics</h2>
             <div class="settings-list">
                 <div class="setting-item">
                     <div class="label-container">
@@ -81,7 +81,7 @@
                         Default is false.</p>
                 </div>
 
-                <div class="setting-item modern">
+                <div class="setting-item">
                     <div class="label-container">
                         <label for="logLevel" class="setting-label">Log
                             Level</label>
@@ -105,7 +105,29 @@
 
                 <div class="setting-item">
                     <div class="label-container">
-                        <label for="setting-ttl">Cache TTL (in seconds)</label>
+                        <label for="logLevel" class="setting-label">Statistics
+                            Retention [WIP]</label>
+                        <select id="statisticsRetention">
+                            <option value="debug">24 hours</option>
+                            <option value="info">7 days</option>
+                            <option value="warn">30 days</option>
+                            <option value="error">90 days</option>
+                        </select>
+                    </div>
+                    <p class="setting-explanation">
+                        Period of time to keep statistics, i.e logs, recorded
+                        requests, clients and more. Default is <strong>30
+                            days</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <h2>DNS Server</h2>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <div class="label-container">
+                        <label for="setting-ttl">Cache TTL (in seconds)
+                        </label>
                         <input type="number" id="cacheTTL" value="60" min="0"
                             max="86400" />
                     </div>
@@ -118,7 +140,7 @@
                 <div class="setting-item">
                     <div class="label-container">
                         <label for="setting-max-cache-size">Max Cache
-                            Size</label>
+                            Size [WIP]</label>
                         <input type="number" id="maxCacheSize" value="1000"
                             min="100" max="10000" />
                     </div>
@@ -131,7 +153,7 @@
                 <div class="setting-item">
                     <div class="label-container">
                         <label for="setting-upstream-dns">Upstream DNS
-                            Server</label>
+                            Server [WIP]</label>
                         <input type="text" id="upstreamDNS" value="8.8.8.8" />
                     </div>
                     <p class="setting-explanation">
@@ -143,7 +165,7 @@
                 <div class="setting-item">
                     <div class="label-container">
                         <label for="setting-timeout">DNS Request Timeout (in
-                            seconds)</label>
+                            seconds) [WIP]</label>
                         <input type="number" id="domainResolveTimeout"
                             value="60" min="1" max="3600" />
                     </div>

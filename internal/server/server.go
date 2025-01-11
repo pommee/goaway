@@ -25,15 +25,16 @@ const batchSize = 100
 var dbMutex sync.Mutex
 
 type DNSServer struct {
-	Config             settings.DNSServerConfig
-	Blacklist          blacklist.Blacklist
-	DB                 *sql.DB
-	Counters           CounterDetails
-	lastLogTime        time.Time
-	logIntervalSeconds int
-	cache              sync.Map
-	WebServer          *gin.Engine
-	logEntryChannel    chan RequestLogEntry
+	Config              settings.DNSServerConfig
+	Blacklist           blacklist.Blacklist
+	DB                  *sql.DB
+	Counters            CounterDetails
+	StatisticsRetention int
+	lastLogTime         time.Time
+	logIntervalSeconds  int
+	cache               sync.Map
+	WebServer           *gin.Engine
+	logEntryChannel     chan RequestLogEntry
 }
 
 type cachedRecord struct {
@@ -96,7 +97,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 		ReusePort: true,
 	}
 
-	if err := s.LoadCounters(); err != nil {
+	if err := s.UpdateCounters(); err != nil {
 		log.Error("Failed to load counters from database: %v", err)
 	}
 
@@ -236,27 +237,6 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	}
 }
 
-func (s *DNSServer) LoadCounters() error {
-	row := s.DB.QueryRow("SELECT allowed_requests, blocked_requests FROM counters WHERE id = 1")
-	counters := CounterDetails{}
-	if err := row.Scan(&counters.AllowedRequests, &counters.BlockedRequests); err != nil {
-		if err == sql.ErrNoRows {
-			_, err = s.DB.Exec("INSERT INTO counters (id, allowed_requests, blocked_requests) VALUES (1, 0, 0)")
-			return err
-		}
-		return err
-	}
-
-	s.Counters = counters
-	return nil
-}
-
-func (s *DNSServer) SaveCounters(counters CounterDetails) error {
-	_, err := s.DB.Exec("UPDATE counters SET allowed_requests = ?, blocked_requests = ? WHERE id = 1",
-		counters.AllowedRequests, counters.BlockedRequests)
-	return err
-}
-
 func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	rows, err := s.DB.Query("SELECT timestamp, domain, blocked, cached, response_time_ns, client_ip, client_name FROM request_log")
 	if err != nil {
@@ -323,55 +303,74 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 
 	for _, entry := range entries {
 		if _, err := stmt.Exec(
-			entry.Timestamp, entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
+			entry.Timestamp.Unix(), entry.Domain, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
 		); err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return
 		}
 	}
+}
 
-	if err := s.saveCounters(tx); err != nil {
-		log.Error("Could not save counters %v", err)
+func (s *DNSServer) ClearOldEntries() {
+	const (
+		maxRetries      = 10
+		retryDelay      = 150 * time.Millisecond
+		cleanupInterval = 1 * time.Minute
+	)
+
+	for {
+		requestThreshold := ((60 * 60 * 60) * 24) * s.StatisticsRetention
+		log.Debug("Running next cleanup in %s", time.Now().Add(cleanupInterval).Format("15:04:05"))
+		time.Sleep(cleanupInterval)
+
+		for retryCount := 0; retryCount < maxRetries; retryCount++ {
+			result, err := s.DB.Exec(fmt.Sprintf("DELETE FROM request_log WHERE strftime('%%s', 'now') - timestamp > %d", requestThreshold))
+			if err != nil {
+				if err.Error() == "database is locked" {
+					log.Debug("Database is locked; retrying (%d/%d)", retryCount+1, maxRetries)
+					time.Sleep(retryDelay)
+					continue
+				}
+				log.Error("Failed to clear old entries: %s", err)
+				break
+			}
+
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				log.Debug("Cleared %d old entries", affected)
+			}
+			s.UpdateCounters()
+			break
+		}
 	}
 }
 
-func (s *DNSServer) saveCounters(tx *sql.Tx) error {
-	stmt, err := tx.Prepare(`
-        UPDATE counters
-        SET allowed_requests = ?, blocked_requests = ?
-    `)
+func (s *DNSServer) GetCounters() (int, int, error) {
+	var blockedCount, allowedCount int
+
+	err := s.DB.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 1").Scan(&blockedCount)
 	if err != nil {
-		log.Error("Could not create a prepared statement when saving counters %v", err)
-		return err
+		log.Error("Failed to get blocked requests count: %s", err)
+		return 0, 0, err
 	}
-	defer stmt.Close()
 
-	res, err := stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
+	err = s.DB.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 0").Scan(&allowedCount)
 	if err != nil {
-		log.Error("Could not execute counter update %v", err)
-		return err
+		log.Error("Failed to get allowed requests count: %s", err)
+		return 0, 0, err
 	}
 
-	if rowsAffected, err := res.RowsAffected(); err != nil {
-		log.Warning("Could not get rows affected %v", err)
-		return err
-	} else if rowsAffected == 0 {
-		stmt, err = tx.Prepare(`
-            INSERT INTO counters (allowed_requests, blocked_requests)
-            VALUES (?, ?)
-        `)
-		if err != nil {
-			log.Warning("Could not create a prepared statement for counters %v", err)
-			return err
-		}
-		defer stmt.Close()
+	return blockedCount, allowedCount, nil
+}
 
-		_, err = stmt.Exec(s.Counters.AllowedRequests, s.Counters.BlockedRequests)
-		if err != nil {
-			log.Warning("Could not insert counters %v", err)
-			return err
-		}
+func (s *DNSServer) UpdateCounters() error {
+	blockedCount, allowedCount, err := s.GetCounters()
+
+	if err != nil {
+		return fmt.Errorf("failed to get counters: %w", err)
 	}
+
+	s.Counters.BlockedRequests = blockedCount
+	s.Counters.AllowedRequests = allowedCount
 
 	return nil
 }

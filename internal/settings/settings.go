@@ -13,11 +13,12 @@ import (
 var log = logging.GetLogger()
 
 type DNSServerConfig struct {
-	Port              int           `json:"Port"`
-	LoggingDisabled   bool          `json:"LoggingDisabled"`
-	UpstreamDNS       []string      `json:"UpstreamDNS"`
-	PreferredUpstream string        `json:"PreferredUpstream"`
-	CacheTTL          time.Duration `json:"CacheTTL"`
+	Port                int           `json:"Port"`
+	LoggingDisabled     bool          `json:"LoggingDisabled"`
+	UpstreamDNS         []string      `json:"UpstreamDNS"`
+	PreferredUpstream   string        `json:"PreferredUpstream"`
+	CacheTTL            time.Duration `json:"CacheTTL"`
+	StatisticsRetention int           `json:"StatisticsRetention"`
 }
 
 type APIServerConfig struct {
