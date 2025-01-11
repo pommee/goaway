@@ -76,13 +76,14 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 	}
 
 	server := &DNSServer{
-		Config:             *config,
-		Blacklist:          blacklist,
-		DB:                 db.Con,
-		lastLogTime:        time.Now(),
-		logIntervalSeconds: 1,
-		cache:              sync.Map{},
-		logEntryChannel:    make(chan RequestLogEntry, 1000),
+		Config:              *config,
+		Blacklist:           blacklist,
+		DB:                  db.Con,
+		StatisticsRetention: config.StatisticsRetention,
+		lastLogTime:         time.Now(),
+		logIntervalSeconds:  1,
+		cache:               sync.Map{},
+		logEntryChannel:     make(chan RequestLogEntry, 1000),
 	}
 
 	return server, nil
@@ -319,7 +320,7 @@ func (s *DNSServer) ClearOldEntries() {
 	)
 
 	for {
-		requestThreshold := ((60 * 60 * 60) * 24) * s.StatisticsRetention
+		requestThreshold := ((60 * 60) * 24) * s.StatisticsRetention
 		log.Debug("Running next cleanup in %s", time.Now().Add(cleanupInterval).Format("15:04:05"))
 		time.Sleep(cleanupInterval)
 
