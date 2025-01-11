@@ -1,72 +1,72 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>goaway</title>
-        <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-        <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
 
-        <link rel="stylesheet" href="/static/css/style.css" />
-        <link rel="stylesheet" href="/static/css/upstream.css" />
-    </head>
+<head>
+    <title>goaway</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
 
-    <body>
-        <!-- Top bar with centered text -->
-        <div id="top-bar">
-            <p id="cpu-usage"></p>
-            <p id="cpu-temp"></p>
-            <p id="mem-usage"></p>
-        </div>
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/upstream.css" />
+</head>
 
-        <div id="sidenav" class="sidenav">
-            <div class="top-section">
-                <img id="logo" src="/static/logo.png" />
-                <div>
-                    <p class="top-section-header">goaway</p>
-                    <p class="top-section-text">Be gone!</p>
-                </div>
-            </div>
-            <hr class="rounded" />
-            <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
-            <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-            <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
-            <a class="selected" href="./upstream.html"
-                ><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a
-            >
-            <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
-            <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-            <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
-            <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-                <i class="icon fa-brands fa-github"></i> GitHub
-            </a>
-        </div>
+<body>
+    <!-- Top bar with centered text -->
+    <div id="top-bar">
+        <p id="cpu-usage"></p>
+        <p id="cpu-temp"></p>
+        <p id="mem-usage"></p>
+    </div>
 
-        <!-- Main content area -->
-        <div id="main">
-            <button id="newUpstreamBtn">Add upstream</button>
-            <div id="client-cards-container" class="cards-container"></div>
-        </div>
-        <div id="client-modal" class="modal">
-            <div class="modal-content">
-                <span id="modal-close" class="close">&times;</span>
-                <h2>New upstream</h2>
-                <p>
-                    A new upstream can be added by providing an IP address.<br />Note that multiple upstreams can be
-                    added at once by putting them on separate lines.<br />If no port is given, then it is assumed that
-                    53 is used.<br />Allowed characters: numbers (0-9) | dot (.) | colon (:).
-                </p>
-                <textarea
-                    id="upstreamsTextArea"
-                    placeholder="0.0.0.0&#10;1.1.1.1&#10;2.2.2.2:63 (custom port)&#10;..."
-                ></textarea>
-                <button id="saveUpstreamBtn" class="save-btn">Save</button>
+    <div id="sidenav" class="sidenav">
+        <div class="top-section">
+            <img id="logo" src="/static/logo.png" />
+            <div>
+                <p class="top-section-header">goaway</p>
+                <p class="top-section-text">Be gone!</p>
             </div>
         </div>
+        <hr class="rounded" />
+        <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
+        <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
+        <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
+        <a href="./lists.html"><i class="icon fa-solid fa-seedling"></i>Lists</a>
+        <a class="selected" href="./upstream.html"><i
+                class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
+        <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
+        <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
+        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
+        <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
+            <i class="icon fa-brands fa-github"></i> GitHub
+        </a>
+    </div>
 
-        <script src="/static/js/util.js"></script>
-        <script src="/static/js/serverStatus.js"></script>
-        <script src="/static/js/upstream.js"></script>
-    </body>
+    <!-- Main content area -->
+    <div id="main">
+        <button id="newUpstreamBtn">Add upstream</button>
+        <div id="client-cards-container" class="cards-container"></div>
+    </div>
+    <div id="client-modal" class="modal">
+        <div class="modal-content">
+            <span id="modal-close" class="close">&times;</span>
+            <h2>New upstream</h2>
+            <p>
+                A new upstream can be added by providing an IP address.<br />Note that multiple upstreams can be
+                added at once by putting them on separate lines.<br />If no port is given, then it is assumed that
+                53 is used.<br />Allowed characters: numbers (0-9) | dot (.) | colon (:).
+            </p>
+            <textarea id="upstreamsTextArea"
+                placeholder="0.0.0.0&#10;1.1.1.1&#10;2.2.2.2:63 (custom port)&#10;..."></textarea>
+            <button id="saveUpstreamBtn" class="save-btn">Save</button>
+        </div>
+    </div>
+
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/serverStatus.js"></script>
+    <script src="/static/js/upstream.js"></script>
+</body>
+
 </html>

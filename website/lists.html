@@ -7,12 +7,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/static/css/style.css" />
-    <link rel="stylesheet" href="/static/css/logs.css" />
+    <link rel="stylesheet" href="/static/css/lists.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 </head>
 
 <body>
@@ -33,13 +30,14 @@
         </div>
         <hr class="rounded" />
         <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
-        <a class="selected" href="#"><i class="icon fa-solid fa-list"></i>Logs</a>
+        <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
         <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
-        <a href="./lists.html"><i class="icon fa-solid fa-seedling"></i>Lists</a>
+        <a class="selected" href="#"><i class="icon fa-solid fa-seedling"></i>Lists</a>
         <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
         <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
         <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
+        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i>
+            Logout </a>
         <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
             <i class="icon fa-brands fa-github"></i> GitHub
         </a>
@@ -47,41 +45,11 @@
 
     <!-- Main content area -->
     <div id="main">
-        <div id="log-table-container">
-            <button id="clear-logs-button">Clear Logs</button>
-            <table id="log-table" class="display">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Domain</th>
-                        <th>Client</th>
-                        <th>Status</th>
-                        <th>Toggle</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="clear-logs-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Confirm Clear Logs</h2>
-            <p>
-                Are you sure you want to clear all logs?<br />This action cannot be undone and will also clear
-                counters.
-            </p>
-            <div class="modal-buttons">
-                <button id="confirm-clear-logs-button">Yes, Clear Logs</button>
-                <button id="cancel-clear-logs-button">Cancel</button>
-            </div>
-        </div>
+        <h1>WIP</h1>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
-    <script src="/static/js/logs.js"></script>
 </body>
 
 </html>

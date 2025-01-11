@@ -1,77 +1,81 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>goaway</title>
-        <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-        <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-        <link rel="stylesheet" href="/static/css/style.css" />
-    </head>
 
-    <body>
-        <!-- Top bar with centered text -->
-        <div id="top-bar">
-            <p id="cpu-usage"></p>
-            <p id="cpu-temp"></p>
-            <p id="mem-usage"></p>
-        </div>
+<head>
+    <title>goaway</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css" />
+</head>
 
-        <div id="sidenav" class="sidenav">
-            <div class="top-section">
-                <img id="logo" src="/static/logo.png" />
-                <div>
-                    <p class="top-section-header">goaway</p>
-                    <p class="top-section-text">Be gone!</p>
-                </div>
-            </div>
-            <hr class="rounded" />
-            <a class="selected" href="#"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
-            <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-            <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
-            <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
-            <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
-            <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-            <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
-            <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-                <i class="icon fa-brands fa-github"></i> GitHub
-            </a>
-        </div>
+<body>
+    <!-- Top bar with centered text -->
+    <div id="top-bar">
+        <p id="cpu-usage"></p>
+        <p id="cpu-temp"></p>
+        <p id="mem-usage"></p>
+    </div>
 
-        <!-- Main content area -->
-        <div id="main">
-            <div class="card-container">
-                <div class="card" id="card-queries">
-                    <p>Total queries</p>
-                    <p class="card-text"></p>
-                </div>
-                <div class="card" id="card-blocked">
-                    <p>Queries blocked</p>
-                    <p class="card-text"></p>
-                </div>
-                <div class="card" id="card-blocked-percentage">
-                    <p>Percentage blocked</p>
-                    <p class="card-text"></p>
-                </div>
-                <div class="card" id="card-blocked-domains">
-                    <p>Blocked domains</p>
-                    <p class="card-text"></p>
-                </div>
-            </div>
-            <div class="chart-container">
-                <p>Requests last 24h</p>
-                <canvas id="requestChart"></canvas>
+    <div id="sidenav" class="sidenav">
+        <div class="top-section">
+            <img id="logo" src="/static/logo.png" />
+            <div>
+                <p class="top-section-header">goaway</p>
+                <p class="top-section-text">Be gone!</p>
             </div>
         </div>
+        <hr class="rounded" />
+        <a class="selected" href="#"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
+        <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
+        <a href="./domains.html"><i class="icon fa-solid fa-server"></i>Domains</a>
+        <a href="./lists.html"><i class="icon fa-solid fa-seedling"></i>Lists</a>
+        <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
+        <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
+        <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
+        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
+        <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
+            <i class="icon fa-brands fa-github"></i> GitHub
+        </a>
+    </div>
 
-        <script src="/static/js/util.js"></script>
-        <script src="/static/js/serverStatus.js"></script>
-        <script src="/static/js/metricsCards.js"></script>
-        <script src="/static/js/queriesTimeline.js"></script>
-    </body>
+    <!-- Main content area -->
+    <div id="main">
+        <div class="card-container">
+            <div class="card" id="card-queries">
+                <p>Total queries</p>
+                <p class="card-text"></p>
+            </div>
+            <div class="card" id="card-blocked">
+                <p>Queries blocked</p>
+                <p class="card-text"></p>
+            </div>
+            <div class="card" id="card-blocked-percentage">
+                <p>Percentage blocked</p>
+                <p class="card-text"></p>
+            </div>
+            <div class="card" id="card-blocked-domains">
+                <p>Blocked domains</p>
+                <p class="card-text"></p>
+            </div>
+        </div>
+        <div class="chart-container">
+            <p>Requests last 24h</p>
+            <canvas id="requestChart"></canvas>
+        </div>
+    </div>
+
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/serverStatus.js"></script>
+    <script src="/static/js/metricsCards.js"></script>
+    <script src="/static/js/queriesTimeline.js"></script>
+</body>
+
 </html>
