@@ -1,70 +1,107 @@
-# goaway - DNS sinkhole
+# goaway - DNS Sinkhole
 
-![goaway Preview](./resources/dashboard.png)
+A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
-**[More preview images](./resources/)**
+![goaway Dashboard Preview](./resources/dashboard.png)
 
-## Acknowledgments
+**[View more screenshots](./resources/)**
 
-Heavily inspired by [pi-hole](https://github.com/pi-hole/pi-hole).
+## 🌟 Features
+
+- DNS-level domain blocking
+- Web-based admin dashboard
+- Cross-platform support
+- Docker support
+- Customizable blocking rules
+- Real-time statistics
+- Low resource footprint
+
+## 📋 Requirements
+
+- For binary installation: Linux, macOS, or Windows
+- For Docker installation: Docker and Docker Compose
+- Supported architectures: amd64, arm64, and 386
 
 ## 📦 Installation
 
-**goaway** supports the following platforms:
+### Option 1: Quick Install (Recommended)
 
-- **Operating Systems**: Linux, macOS, and Windows
-- **Architectures**: amd64, arm64, and 386
+Install the latest version with the installation script:
 
-> [!NOTE]
-> Testing has primarily been conducted on **Linux (amd64)**.
-> Functionality on macOS and Windows may vary and is not guaranteed.
-
-### Install the Latest Version
-
-To install the latest version of goaway, run the following command:
-
-```shell
+```bash
 curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin
 ```
 
-This will install the binary specific to your platform.
-The binary is placed in `~/.local/bin`.
-If the [installer.sh](https://github.com/pommee/goaway/blob/main/installer.sh) script fails, then binaries can be manually downloaded from [releases](https://github.com/pommee/goaway/releases).
+The installer will:
+1. Detect your operating system and architecture
+2. Download the appropriate binary
+3. Install it to `~/.local/bin`
+4. Set up necessary permissions
 
-## 🛠 Usage
+If the installer fails, you can manually download binaries from the [releases page](https://github.com/pommee/goaway/releases).
 
-### Starting the Application
+### Option 2: Docker Installation
 
-To start the servers (dns & web), simply run the following command in your terminal:
+Run goaway in a containerized environment. This requires a clone of this repository and running the following in project root:
 
-```console
-$ goaway
+```bash
+make start
 ```
 
-> Will display some information once the server is started.
+## 🚀 Getting Started
 
-![started](./resources/started.png)
+### Basic Usage
 
-```console
-$ goaway --help
+Start the DNS and web servers with default settings:
 
-Flags:
-      --disablelogging      If true, then no logs will appear in the container
-      --dnsport int         Port for the DNS server (default 53)
-  -h, --help                help for goaway
-      --loglevel int        0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
-      --noauth              If true, then no authentication is required for the admin dashboard
-      --webserverport int   Port for the web server (default 8080)
+```bash
+goaway
 ```
 
-This readme might not always be up to date on the available commands.  
-Use `--help` to see what is available.
+You'll see a startup message confirming the services are running:
 
-### Development
+![Startup Screen](./resources/started.png)
 
-Environment variables are used for configuration.
-| Variable        | Default    | Info                                                         |
-| --------------- | ---------- | ------------------------------------------------------------ |
-| GOAWAY_PORT     | 53         | Port used for the DNS server.                                |
-| WEBSITE_PORT    | 8080       | Port used for the API server. Also serves the website pages. |
-| GOAWAY_PASSWORD | No default | Password used for authenticating at the admin dashboard.     |
+### Configuration Options
+
+```bash
+goaway --help
+
+Available flags:
+      --disablelogging      Disable all logging output
+      --dnsport int         DNS server port (default: 53)
+  -h, --help               Show help message
+      --loglevel int       Set logging level:
+                            0 = DEBUG
+                            1 = INFO (default)
+                            2 = WARNING
+                            3 = ERROR
+      --noauth             Disable dashboard authentication
+      --webserverport int  Web server port (default: 8080)
+```
+
+### Custom Configuration
+
+The default settings are defined in `settings.json`. You can customize it by odifying the values as needed.
+
+## ⚠️ Platform Support
+
+| Platform | Architecture | Support Level |
+| -------- | ------------ | ------------- |
+| Linux    | amd64        | Full          |
+| Linux    | arm64        | Full          |
+| Linux    | 386          | Full          |
+| macOS    | amd64        | Beta          |
+| macOS    | arm64        | Beta          |
+| Windows  | amd64        | Beta          |
+| Windows  | 386          | Beta          |
+
+> **Note**: Primary testing is conducted on Linux (amd64). While the aim is to support all listed platforms, functionality on macOS and Windows may vary.
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+This project is heavily inspired by [Pi-hole](https://github.com/pi-hole/pi-hole). Thanks to all people involved for their work.
