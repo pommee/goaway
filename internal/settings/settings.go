@@ -6,6 +6,7 @@ import (
 	"goaway/internal/logging"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -153,6 +154,13 @@ func (config *Config) UpdateDNSSettings(updatedSettings map[string]interface{}) 
 		if logLevel, ok := value.(string); ok {
 			config.LogLevel = logging.FromString(strings.ToUpper(logLevel))
 			log.SetLevel(config.LogLevel)
+		}
+	})
+
+	updateField("statisticsRetention", func(value interface{}) {
+		if statisticsRetention, ok := value.(string); ok {
+			days, _ := strconv.Atoi(statisticsRetention)
+			config.DNSServer.StatisticsRetention = days
 		}
 	})
 

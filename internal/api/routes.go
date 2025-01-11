@@ -298,17 +298,19 @@ func (apiServer *API) getDomains(c *gin.Context) {
 
 func (apiServer *API) getSettings(c *gin.Context) {
 	dnsSettings := struct {
-		Port              int      `json:"Port"`
-		LoggingDisabled   bool     `json:"LoggingDisabled"`
-		UpstreamDNS       []string `json:"UpstreamDNS"`
-		PreferredUpstream string   `json:"PreferredUpstream"`
-		CacheTTL          int      `json:"CacheTTL"`
+		Port                int      `json:"Port"`
+		LoggingDisabled     bool     `json:"LoggingDisabled"`
+		UpstreamDNS         []string `json:"UpstreamDNS"`
+		PreferredUpstream   string   `json:"PreferredUpstream"`
+		CacheTTL            int      `json:"CacheTTL"`
+		StatisticsRetention int      `json:"StatisticsRetention"`
 	}{
-		Port:              apiServer.DnsServer.Config.Port,
-		LoggingDisabled:   apiServer.DnsServer.Config.LoggingDisabled,
-		UpstreamDNS:       apiServer.DnsServer.Config.UpstreamDNS,
-		PreferredUpstream: apiServer.DnsServer.Config.PreferredUpstream,
-		CacheTTL:          int(apiServer.DnsServer.Config.CacheTTL.Seconds()),
+		Port:                apiServer.DnsServer.Config.Port,
+		LoggingDisabled:     apiServer.DnsServer.Config.LoggingDisabled,
+		UpstreamDNS:         apiServer.DnsServer.Config.UpstreamDNS,
+		PreferredUpstream:   apiServer.DnsServer.Config.PreferredUpstream,
+		CacheTTL:            int(apiServer.DnsServer.Config.CacheTTL.Seconds()),
+		StatisticsRetention: apiServer.DnsServer.Config.StatisticsRetention,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

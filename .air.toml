@@ -9,6 +9,7 @@ args_bin = [
     "--loglevel=0",
     "--disablelogging=false",
     "--auth=false",
+    "--statisticsRetention=7",
 ]
 cmd = "go build -o ./tmp/main ."
 exclude_dir = ["assets", "tmp", "vendor"]

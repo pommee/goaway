@@ -49,6 +49,7 @@ async function initializeSettings() {
   document.getElementById("cacheTTL").value = cacheTTLInSeconds;
   document.getElementById("logLevel").selectedIndex = settings.dns.LogLevel;
   document.getElementById("disableLogging").checked = settings.dns.LoggingDisabled;
+  document.getElementById("statisticsRetention").value = settings.dns.StatisticsRetention;
 }
 
 async function getSettings() {
