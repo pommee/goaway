@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"goaway/internal/logging"
+	"io"
 	"net"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -67,13 +70,28 @@ func (c DNSServerConfig) MarshalJSON() ([]byte, error) {
 
 func LoadSettings() (Config, error) {
 	var config Config
-	data, err := os.ReadFile("./settings.json")
+
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("could not determine home directory: %w", err)
+	}
+
+	configPath := filepath.Join(homeDir, ".config", "goaway", "settings.json")
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Println("Settings file not found. Fetching from remote source...")
+		if err := fetchAndSaveSettings(configPath); err != nil {
+			return Config{}, fmt.Errorf("failed to fetch settings: %w", err)
+		}
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return Config{}, fmt.Errorf("could not read settings file: %w", err)
 	}
 
 	if err := json.Unmarshal(data, &config); err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("invalid settings format: %w", err)
 	}
 
 	config.DNSServer.PreferredUpstream, err = findBestDNS(config.DNSServer.UpstreamDNS)
@@ -82,6 +100,37 @@ func LoadSettings() (Config, error) {
 	}
 
 	return config, nil
+}
+
+func fetchAndSaveSettings(filePath string) error {
+	url := "https://raw.githubusercontent.com/pommee/goaway/refs/heads/main/settings.json"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to fetch settings.json: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch settings.json: HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create settings file: %w", err)
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		return fmt.Errorf("failed to save settings file: %w", err)
+	}
+
+	return nil
 }
 
 func (config *Config) Save() {
