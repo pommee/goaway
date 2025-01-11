@@ -67,22 +67,22 @@ You'll see a startup message confirming the services are running:
 ```bash
 goaway --help
 
-Available flags:
-      --disablelogging      Disable all logging output
-      --dnsport int         DNS server port (default: 53)
-  -h, --help               Show help message
-      --loglevel int       Set logging level:
-                            0 = DEBUG
-                            1 = INFO (default)
-                            2 = WARNING
-                            3 = ERROR
-      --noauth             Disable dashboard authentication
-      --webserverport int  Web server port (default: 8080)
+Usage:
+  goaway [flags]
+
+Flags:
+      --auth                      If false, then no authentication is required for the admin dashboard (default true)
+      --disablelogging            If true, then no logs will appear in the container
+      --dnsport int               Port for the DNS server (default 53)
+  -h, --help                      help for goaway
+      --loglevel int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
+      --statisticsRetention int   Number is amount of days to keep statistics (default 1)
+      --webserverport int         Port for the web server (default 8080)
 ```
 
 ### Custom Configuration
 
-The default settings are defined in `settings.json`. You can customize it by odifying the values as needed.
+The default settings are defined in `settings.json`. You can customize it by modifying the values as needed.
 
 ## ⚠️ Platform Support
 
