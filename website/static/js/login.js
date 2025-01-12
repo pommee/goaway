@@ -1,3 +1,6 @@
+const username = document.getElementById("username").value;
+const password = document.getElementById("password").value;
+
 window.onload = async function () {
   const notificationData = localStorage.getItem("persistentNotification");
 
@@ -16,8 +19,7 @@ window.onload = async function () {
 
 document.getElementById("login-form").addEventListener("submit", function (e) {
   e.preventDefault();
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
+
 
   fetch(GetServerIP() + "/login", {
     method: "POST",
