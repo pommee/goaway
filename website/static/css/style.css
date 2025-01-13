@@ -216,9 +216,9 @@ body {
 /* Chart container */
 .chart-container {
     background: #212121;
-    padding: 1px 10px 50px 10px;
+    padding: 1px 10px 0 10px;
     border-radius: 12px;
-    height: 300px;
+    height: 350px;
     margin-top: 20px;
 }
 
