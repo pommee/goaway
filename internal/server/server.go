@@ -187,7 +187,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
 		if err != nil {
-			log.Error("Resolution error: %v", err)
+			log.Error("Resolution error for domain (%s): %v", domain, err)
 			return
 		}
 		ipAddresses = in.Answer
