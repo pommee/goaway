@@ -117,7 +117,52 @@ function getQueries() {
 document.addEventListener('DOMContentLoaded', function() {
   initializeCharts();
   getQueries();
+  fetchTopBlockedDomains();
   setInterval(getQueries, 1000);
+  setInterval(fetchTopBlockedDomains, 1000); 
 });
 
 document.getElementById("logout").addEventListener("click", () => Logout());
+
+function updateTopBlockedDomains(data) {
+  const tbody = document.getElementById('blocked-domains-body');
+  tbody.innerHTML = '';
+
+  data.domains.forEach(domain => {
+      const row = document.createElement('tr');
+      const domainCell = document.createElement('td');
+      const hitsCell = document.createElement('td');
+      const frequencyCell = document.createElement('td');
+      const frequencyBarContainer = document.createElement('div');
+      const frequencyBar = document.createElement('div');
+
+      domainCell.textContent = domain.name;
+      hitsCell.textContent = domain.hits;
+
+      frequencyBarContainer.classList.add('frequency-bar-container');
+      frequencyBar.classList.add('frequency-bar');
+      frequencyBar.style.width = `${domain.frequency}%`;
+      frequencyBarContainer.appendChild(frequencyBar);
+      frequencyCell.appendChild(frequencyBarContainer);
+
+      row.appendChild(domainCell);
+      row.appendChild(hitsCell);
+      row.appendChild(frequencyCell);
+
+      tbody.appendChild(row);
+  });
+}
+
+function fetchTopBlockedDomains() {
+  fetch(GetServerIP() + "/topBlockedDomains")
+      .then(response => {
+          if (!response.ok) throw new Error("Network response was not ok");
+          return response.json();
+      })
+      .then(data => {
+          updateTopBlockedDomains(data);
+      })
+      .catch(error => {
+          console.error("Failed to fetch blocked domains:", error);
+      });
+}

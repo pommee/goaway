@@ -589,6 +589,40 @@ func (apiServer *API) setPreferredUpstream(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": updatedMsg})
 }
 
+func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
+	rows, err := apiServer.DnsServer.DB.Query(`
+		SELECT domain, COUNT(*) as hits
+		FROM request_log
+		WHERE blocked = 1
+		GROUP BY domain
+		ORDER BY hits DESC
+		LIMIT 5
+	`)
+	if err != nil {
+		log.Error("%v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var domains []map[string]interface{}
+	for rows.Next() {
+		var domain string
+		var hits int
+		if err := rows.Scan(&domain, &hits); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		domains = append(domains, map[string]interface{}{
+			"name":      domain,
+			"hits":      hits,
+			"frequency": (hits * 100) / apiServer.DnsServer.Counters.BlockedRequests,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"domains": domains})
+}
+
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
 	data, err := os.ReadFile(tempFile)

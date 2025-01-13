@@ -322,3 +322,38 @@ hr.rounded {
     margin-right: 10px;
     border-radius: 10px;
 }
+
+#card-top-blocked-domains {
+    margin-top: 10px;
+    padding: 10px;
+    width: 50%;
+    border-radius: 10px;
+    background: #212121;
+}
+
+.blocked-domains-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.blocked-domains-table th {
+    font-weight: bold;
+}
+
+.frequency-bar-container {
+    background: #444;
+    height: 10px;
+    border-radius: 5px;
+    width: 100%;
+    position: relative;
+}
+
+.frequency-bar {
+    background: #3498db;
+    height: 100%;
+    border-radius: 5px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
