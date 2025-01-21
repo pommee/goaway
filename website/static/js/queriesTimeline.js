@@ -128,6 +128,16 @@ function updateTopBlockedDomains(data) {
   const tbody = document.getElementById('blocked-domains-body');
   tbody.innerHTML = '';
 
+  if (!data.domains) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.style.padding = '10px';
+    cell.textContent = 'No blocked domains';
+    row.appendChild(cell);
+    tbody.appendChild(row);
+    return;
+  }
+
   data.domains.forEach(domain => {
       const row = document.createElement('tr');
       const domainCell = document.createElement('td');
