@@ -24,20 +24,19 @@ func AsciiArt(config *settings.Config, blockedDomains int, version string, disab
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
 
 	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSServer.Port, Reset)
+	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIServer.Port, Reset)
 	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNSServer.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
 	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.DNSServer.CacheTTL, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
-	adminPanelURL := fmt.Sprintf("http://localhost:%d", config.APIServer.Port)
-	adminPanelFormatted := fmt.Sprintf("%s%s%s", Red, adminPanelURL, Reset)
 
 	fmt.Printf(`
    __ _  ___   __ ___      ____ _ _   _   DNS port         %s
-  / _' |/ _ \ / _' \ \ /\ / / _' | | | |  Upstream         %s
- | (_| | (_) | (_| |\ V  V / (_| | |_| |  Authentication   %s
-  \__, |\___/ \__,_| \_/\_/ \__,_|\__, |  Cache TTL:       %s
-   __/ |                           __/ |  Blocked Domains: %s
-  |___/          %s          |___/   Admin Panel:     %s
+  / _' |/ _ \ / _' \ \ /\ / / _' | | | |  Web port         %s
+ | (_| | (_) | (_| |\ V  V / (_| | |_| |  Upstream         %s
+  \__, |\___/ \__,_| \_/\_/ \__,_|\__, |  Authentication   %s
+   __/ |                           __/ |  Cache TTL:       %s
+  |___/          %s          |___/   Blocked Domains: %s
 
-`, portFormatted, upstreamFormatted, authFormatted, cacheTTLFormatted, blockedDomainsFormatted, versionFormatted, adminPanelFormatted)
+`, portFormatted, adminPanelFormatted, upstreamFormatted, authFormatted, cacheTTLFormatted, versionFormatted, blockedDomainsFormatted)
 }
