@@ -8,6 +8,7 @@ import (
 	"goaway/internal/logging"
 	"goaway/internal/settings"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -135,11 +136,27 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Error("%v", err)
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	clientIP := strings.Split(remoteAddr, ":")[0]
 
-	// TODO: Implement reverse DNS lookup
-	clientName := "unknown"
-	return clientIP, clientName
+	if clientIP == "127.0.0.1" || clientIP == "::1" || clientIP == localAddr.IP.String() {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return remoteAddr, "localhost"
+		}
+		return remoteAddr, hostname
+	}
+
+	hostnames, err := net.LookupAddr(clientIP)
+	if err != nil || len(hostnames) == 0 {
+		return clientIP, "unknown"
+	}
+	return clientIP, strings.TrimRight(hostnames[0], ".")
 }
 
 func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
