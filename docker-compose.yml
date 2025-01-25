@@ -1,6 +1,6 @@
 services:
   goaway:
-    image: goaway
+    image: pommee/goaway:latest
     build: .
     volumes:
       - goaway_data:/app
