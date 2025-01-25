@@ -55,7 +55,13 @@ func createRootCommand(dnsPort, webserverPort, logLevel, statisticsRetention *in
 }
 
 func runServer(dnsPort, webserverPort, logLevel, statisticsRetention int, disableLogging, disableAuth bool) {
-	config, _ := settings.LoadSettings()
+	config, err := settings.LoadSettings()
+
+	if err != nil {
+		log.Error("Failed to load settings: %s", err)
+		exit(1)
+	}
+
 	updateConfig(&config, dnsPort, webserverPort, logLevel, statisticsRetention, disableLogging, disableAuth)
 	config.Save()
 

@@ -71,21 +71,20 @@ func (c DNSServerConfig) MarshalJSON() ([]byte, error) {
 func LoadSettings() (Config, error) {
 	var config Config
 
-	homeDir, err := os.UserHomeDir()
+	path, err := os.Getwd()
 	if err != nil {
-		return Config{}, fmt.Errorf("could not determine home directory: %w", err)
+		return Config{}, fmt.Errorf("could not determine current directory: %w", err)
 	}
+	path = filepath.Join(path, "settings.json")
 
-	configPath := filepath.Join(homeDir, ".config", "goaway", "settings.json")
-
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		fmt.Println("Settings file not found. Fetching from remote source...")
-		if err := fetchAndSaveSettings(configPath); err != nil {
+		if err := fetchAndSaveSettings(path); err != nil {
 			return Config{}, fmt.Errorf("failed to fetch settings: %w", err)
 		}
 	}
 
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("could not read settings file: %w", err)
 	}
