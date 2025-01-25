@@ -74,6 +74,7 @@ func (api *API) setupRoutes() {
 	api.router.POST("/login", api.handleLogin)
 	api.router.GET("/server", api.handleServer)
 	api.router.GET("/authentication", api.getAuthentication)
+	api.router.GET("/metrics", api.handleMetrics)
 
 	authorized := api.router.Group("/")
 	if api.Config.Authentication {
@@ -83,7 +84,6 @@ func (api *API) setupRoutes() {
 		log.Info("Authentication is disabled.")
 	}
 
-	authorized.GET("/metrics", api.handleMetrics)
 	authorized.GET("/queriesData", api.handleQueriesData)
 	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
 	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
