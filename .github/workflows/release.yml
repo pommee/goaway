@@ -31,10 +31,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build project
-        if: success()
-        run: make build
-
       - name: Log in to DockerHub
         if: success()
         uses: docker/login-action@v2
@@ -45,5 +41,4 @@ jobs:
       - name: Build and push Docker image
         if: success()
         run: |
-          VERSION=${{ steps.release.outputs.newRelease.version }}
-          make publish VERSION=${VERSION}
+          make publish VERSION=latest
