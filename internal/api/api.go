@@ -41,6 +41,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	api.DnsServer.WebServer = api.router
 
 	api.setupRoutes()
+	api.setupAuthorizedRoutes()
 	api.ServeEmbeddedContent(content)
 
 	var wg sync.WaitGroup
@@ -49,8 +50,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	go func() {
 		defer wg.Done()
 		log.Info("Starting server on port %d", api.Config.Port)
-		err := api.router.Run(fmt.Sprintf(":%d", api.Config.Port))
-		if err != nil {
+		if err := api.router.Run(fmt.Sprintf(":%d", api.Config.Port)); err != nil {
 			log.Error("%v", err)
 			errorChannel <- struct{}{}
 		}
@@ -60,13 +60,12 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 }
 
 func (api *API) SetupAuth() {
-	password, exists := os.LookupEnv("GOAWAY_PASSWORD")
-	if !exists {
-		api.adminPassword = generateRandomPassword()
-		log.Info("Randomly generated admin password: %s", api.adminPassword)
-	} else {
+	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
 		api.adminPassword = password
 		log.Info("Using custom password: [hidden]")
+	} else {
+		api.adminPassword = generateRandomPassword()
+		log.Info("Randomly generated admin password: %s", api.adminPassword)
 	}
 }
 
@@ -75,7 +74,9 @@ func (api *API) setupRoutes() {
 	api.router.GET("/server", api.handleServer)
 	api.router.GET("/authentication", api.getAuthentication)
 	api.router.GET("/metrics", api.handleMetrics)
+}
 
+func (api *API) setupAuthorizedRoutes() {
 	authorized := api.router.Group("/")
 	if api.Config.Authentication {
 		api.SetupAuth()
@@ -83,6 +84,10 @@ func (api *API) setupRoutes() {
 	} else {
 		log.Info("Authentication is disabled.")
 	}
+
+	authorized.POST("/upstreams", api.createUpstreams)
+	authorized.POST("/settings", api.updateSettings)
+	authorized.POST("/lists", api.updateLists)
 
 	authorized.GET("/queriesData", api.handleQueriesData)
 	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
@@ -96,21 +101,15 @@ func (api *API) setupRoutes() {
 	authorized.GET("/lists", api.getLists)
 	authorized.GET("/getDomainsForList", api.getDomainsForList)
 
-	authorized.POST("/upstreams", api.createUpstreams)
-	authorized.POST("/settings", api.updateSettings)
-	authorized.POST("/lists", api.updateLists)
-
 	authorized.DELETE("/upstreams", api.removeUpstreams)
 	authorized.DELETE("/logs", api.clearLogs)
 }
 
 func generateRandomPassword() string {
 	randomBytes := make([]byte, 14)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
+	if _, err := rand.Read(randomBytes); err != nil {
 		log.Error("Error generating random bytes: %v", err)
 	}
 
-	password := base64.StdEncoding.EncodeToString(randomBytes)
-	return password
+	return base64.RawStdEncoding.EncodeToString(randomBytes)
 }
