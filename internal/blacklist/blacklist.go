@@ -14,7 +14,7 @@ var log = logging.GetLogger()
 
 type Blacklist struct {
 	DB           *sql.DB
-	BlocklistURL []string
+	BlocklistURL map[string]string
 }
 
 func (b *Blacklist) Initialize() error {
@@ -34,23 +34,33 @@ func (b *Blacklist) Initialize() error {
 
 func (b *Blacklist) createBlacklistTable() error {
 	_, err := b.DB.Exec(`
+        CREATE TABLE IF NOT EXISTS sources (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE
+        );
         CREATE TABLE IF NOT EXISTS blacklist (
-            domain TEXT PRIMARY KEY
+            domain TEXT,
+            source_id INTEGER,
+            PRIMARY KEY (domain, source_id),
+            FOREIGN KEY (source_id) REFERENCES sources(id)
         )
     `)
 	return err
 }
 
 func (b *Blacklist) initializeBlockedDomains() error {
-	for _, url := range b.BlocklistURL {
-		if err := b.fetchAndLoadHosts(url); err != nil {
+	for source, url := range b.BlocklistURL {
+		if source == "Custom" {
+			continue
+		}
+		if err := b.fetchAndLoadHosts(url, source); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (b *Blacklist) fetchAndLoadHosts(url string) error {
+func (b *Blacklist) fetchAndLoadHosts(url, source string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
@@ -62,7 +72,7 @@ func (b *Blacklist) fetchAndLoadHosts(url string) error {
 		return fmt.Errorf("failed to extract domains from %s: %w", url, err)
 	}
 
-	if err := b.AddDomains(domains); err != nil {
+	if err := b.AddDomains(domains, source); err != nil {
 		return fmt.Errorf("failed to add domains to database: %w", err)
 	}
 
@@ -80,6 +90,16 @@ func (b *Blacklist) extractDomains(body io.Reader) ([]string, error) {
 			continue
 		}
 		parts := strings.Fields(line)
+
+		switch parts[0] {
+		case "127.0.0.1", "255.255.255.255", "::1":
+			continue
+		}
+		switch parts[1] {
+		case "localhost", "localhost.localdomain", "broadcasthost", "local":
+			continue
+		}
+
 		if len(parts) >= 2 {
 			domains = append(domains, parts[1:2]...)
 		}
@@ -105,19 +125,26 @@ func (b *Blacklist) AddDomain(domain string) error {
 	return nil
 }
 
-func (b *Blacklist) AddDomains(domains []string) error {
+func (b *Blacklist) AddDomains(domains []string, source string) error {
 	tx, err := b.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`)
+
+	var sourceID int
+	err = tx.QueryRow(`INSERT OR IGNORE INTO sources (name) VALUES (?) RETURNING id`, source).Scan(&sourceID)
+	if err != nil {
+		return fmt.Errorf("failed to insert source: %w", err)
+	}
+
+	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO blacklist (domain, source_id) VALUES (?, ?)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, domain := range domains {
-		if _, err := stmt.Exec(domain); err != nil {
+		if _, err := stmt.Exec(domain, sourceID); err != nil {
 			err = tx.Rollback()
 			return fmt.Errorf("failed to add domain '%s': %w", domain, err)
 		}
@@ -214,4 +241,87 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 	}
 
 	return domains, total, rows.Err()
+}
+
+func (b *Blacklist) InitializeCustomBlocklist() error {
+	tx, err := b.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+
+	_, err = tx.Exec(`INSERT OR IGNORE INTO sources (name) VALUES (?)`, "Custom")
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to insert custom source: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (b *Blacklist) AddCustomDomains(domains []string) error {
+	tx, err := b.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+
+	var sourceID int
+	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, "Custom").Scan(&sourceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = tx.QueryRow(`INSERT INTO sources (name) VALUES (?) RETURNING id`, "Custom").Scan(&sourceID)
+			if err != nil {
+				return fmt.Errorf("failed to insert custom source: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to get custom source ID: %w", err)
+		}
+	}
+
+	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO blacklist (domain, source_id) VALUES (?, ?)`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, domain := range domains {
+		if _, err := stmt.Exec(domain, sourceID); err != nil {
+			err = tx.Rollback()
+			return fmt.Errorf("failed to add custom domain '%s': %w", domain, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (b *Blacklist) GetSourceStatistics() (map[string]int, error) {
+	query := `
+		SELECT s.name, COUNT(b.domain) as blocked_count
+		FROM sources s
+		LEFT JOIN blacklist b ON s.id = b.source_id
+		GROUP BY s.name
+	`
+
+	rows, err := b.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query source statistics: %w", err)
+	}
+	defer rows.Close()
+
+	stats := make(map[string]int)
+	for rows.Next() {
+		var sourceName string
+		var blockedCount int
+		if err := rows.Scan(&sourceName, &blockedCount); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		stats[sourceName] = blockedCount
+	}
+
+	return stats, rows.Err()
 }

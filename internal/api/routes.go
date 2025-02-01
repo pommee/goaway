@@ -623,6 +623,45 @@ func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
+func (apiServer *API) getLists(c *gin.Context) {
+	lists, err := apiServer.DnsServer.Blacklist.GetSourceStatistics()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"lists": lists})
+}
+
+func (apiServer *API) updateLists(c *gin.Context) {
+	type UpdateListRequest struct {
+		List    string   `json:"list"`
+		Domains []string `json:"domains"`
+	}
+
+	updatedList, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var request UpdateListRequest
+	if err := json.Unmarshal(updatedList, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	if request.List == "Custom" {
+		apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
+	} else {
+		apiServer.DnsServer.Blacklist.AddDomains(request.Domains, request.List)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+}
+
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
 	data, err := os.ReadFile(tempFile)

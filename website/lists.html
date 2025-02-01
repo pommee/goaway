@@ -36,20 +36,37 @@
         <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
         <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
         <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i>
-            Logout </a>
+        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i>Logout </a>
         <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
             <i class="icon fa-brands fa-github"></i> GitHub
         </a>
     </div>
 
-    <!-- Main content area -->
     <div id="main">
-        <h1>WIP</h1>
+        <button id="newListBtn">Add list</button>
+        <div id="client-cards-container" class="cards-container"></div>
+    </div>
+    <div id="client-modal" class="modal">
+        <div class="modal-content">
+            <span id="modal-close" class="close">&times;</span>
+            <h2>New list</h2>
+            <p>Please add a name and the domains you want to block. Separate the domains by a newline.</p>
+            <div id="sources-container" class="sources-container"></div>
+            <input type="text" id="listName" name="name" required minlength="1" placeholder="blocklist-name"/>            
+            <textarea id="listsTextArea" placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want&#10;..."></textarea>
+            <button id="saveListBtn" class="save-btn">Save</button>
+        </div>
+    </div>
+
+    <div id="list-details-modal" class="list-details-modal">
+        <div id="list-details-content" class="list-details-content">
+            <span id="list-details-close" class="list-details-close">&times;</span>
+        </div>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
+    <script src="/static/js/lists.js"></script>
 </body>
 
 </html>
