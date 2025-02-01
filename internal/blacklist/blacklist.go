@@ -325,3 +325,28 @@ func (b *Blacklist) GetSourceStatistics() (map[string]int, error) {
 
 	return stats, rows.Err()
 }
+
+func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
+	query := `
+		SELECT domain
+		FROM blacklist
+		JOIN sources ON blacklist.source_id = sources.id
+		WHERE sources.name = ?
+	`
+	rows, err := b.DB.Query(query, list)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query domains for list: %w", err)
+	}
+	defer rows.Close()
+
+	var domains []string
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		domains = append(domains, domain)
+	}
+
+	return domains, rows.Err()
+}

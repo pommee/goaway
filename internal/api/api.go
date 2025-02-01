@@ -94,6 +94,7 @@ func (api *API) setupRoutes() {
 	authorized.GET("/preferredUpstream", api.setPreferredUpstream)
 	authorized.GET("/topBlockedDomains", api.getTopBlockedDomains)
 	authorized.GET("/lists", api.getLists)
+	authorized.GET("/getDomainsForList", api.getDomainsForList)
 
 	authorized.POST("/upstreams", api.createUpstreams)
 	authorized.POST("/settings", api.updateSettings)

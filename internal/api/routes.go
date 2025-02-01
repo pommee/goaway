@@ -284,7 +284,7 @@ func (apiServer *API) getDomains(c *gin.Context) {
 
 	domains, total, err := apiServer.DnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
@@ -660,6 +660,22 @@ func (apiServer *API) updateLists(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+}
+
+func (apiServer *API) getDomainsForList(c *gin.Context) {
+	list := c.Query("list")
+	if list == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'list' query parameter"})
+		return
+	}
+
+	domains, err := apiServer.DnsServer.Blacklist.GetDomainsForList(list)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
 func getCPUTemperature() (float64, error) {

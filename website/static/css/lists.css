@@ -106,6 +106,47 @@ button {
     position: relative;
 }
 
+.list-details-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.list-details-content th,
+.list-details-content td {
+    padding: 12px 15px;
+    text-align: left;
+    color: #f1f1f1;
+}
+
+.list-details-content td.wasBlocked {
+    color: red;
+}
+
+.list-details-content th {
+    background-color: #444;
+    font-weight: bold;
+}
+
+.list-details-content tr {
+    font-size: 0.8rem;
+}
+
+.list-details-content tbody tr:nth-child(even) {
+    background-color: #333;
+}
+
+.list-details-content tbody tr:nth-child(odd) {
+    background-color: #292929;
+}
+
+.list-details-content tbody tr:hover {
+    background-color: #555;
+}
+
 .close, .list-details-close {
     position: absolute;
     right: 20px;
