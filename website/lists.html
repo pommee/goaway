@@ -58,6 +58,13 @@
         <div class="modal-content">
             <span id="modal-new-list-close" class="close">&times;</span>
             <h2>Add New List</h2>
+            <p>You can find lists from various sources online. Some popular sources include:</p>
+            <ul>
+                <li><a href="https://github.com/StevenBlack/hosts" target="_blank">StevenBlack's hosts</a></li>
+                <li><a href="https://blocklistproject.github.io/Lists/" target="_blank">The Block List Project</a></li>
+                <li><a href="https://filterlists.com/" target="_blank">FilterLists</a></li>
+                <li><a href="https://firebog.net/" target="_blank">The Firebog</a></li>
+            </ul>
             <input type="text" id="newListName" placeholder="List Name" />
             <input type="text" id="newListURL" placeholder="List URL" />
             <button id="saveNewListBtn" class="save-btn">Save</button>
@@ -66,6 +73,7 @@
     <div id="modal-update-custom" class="modal">
         <div class="modal-content">
             <span id="modal-close" class="close">&times;</span>
+            <h2>Custom list</h2>
             <p>You can maintain custom addresses using a custom list. Simply add the domain and it will be blocked.</p>
             <textarea id="listsTextArea" placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want&#10;..."></textarea>
             <button id="saveListBtn" class="save-btn">Save</button>

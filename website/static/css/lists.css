@@ -70,15 +70,70 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-radius: 8px;
-    border: 2px solid cornflowerblue;
-    background-color: #313131;
-    width: 60%;
-    max-height: 80%;
-    padding: 20px;
+    border-radius: 12px;
+    border: none;
+    background-color: #2c2c2c;
+    width: 50%;
+    max-height: 70%;
+    padding: 30px;
     text-align: center;
     overflow-y: auto;
     position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+    color: #f1f1f1;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    color: #bbb;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+.modal-content ul {
+    text-align: left;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.modal-content ul li {
+    margin-bottom: 10px;
+}
+
+.modal-content ul li a {
+    color: #1e90ff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.modal-content ul li a:hover {
+    color: #63a4ff;
+    text-decoration: underline;
+}
+
+.modal-content input {
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+    font-size: 1rem;
+}
+
+.modal-content input::placeholder {
+    color: #bbb;
+    font-style: italic;
+}
+
+.modal-content input:focus {
+    border-color: #1e90ff;
+    box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
 }
 
 .list-details-content table {
@@ -125,9 +180,15 @@ button {
 .close, .list-details-close {
     position: absolute;
     right: 20px;
-    top: 5px;
+    top: 10px;
     font-size: 2rem;
     cursor: pointer;
+    color: #f1f1f1;
+    transition: color 0.3s ease;
+}
+
+.close:hover {
+    color: #ff4c4c;
 }
 
 input, textarea {
@@ -168,7 +229,7 @@ textarea::placeholder, input::placeholder {
     padding: 12px 20px;
     margin-top: 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
