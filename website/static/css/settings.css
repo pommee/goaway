@@ -35,7 +35,8 @@
 }
 
 .setting-item input[type="text"],
-.setting-item input[type="number"] {
+.setting-item input[type="number"],
+.setting-item input[type="password"] {
     width: 120px;
     padding: 5px;
     font-size: 1.2rem;
@@ -46,7 +47,8 @@
 }
 
 .setting-item input[type="text"]:focus,
-.setting-item input[type="number"]:focus {
+.setting-item input[type="number"]:focus,
+.setting-item input[type="password"]:focus {
     outline: none;
     border-color: #007acc;
 }
@@ -169,4 +171,87 @@ input[type="checkbox"]:checked+.slider:hover {
 
 h2 {
     color: cornflowerblue;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #212121;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #444;
+    width: 80%;
+    max-width: 400px;
+    border-radius: 5px;
+}
+
+.modal-content input[type="password"] {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 1rem;
+    background-color: #222;
+    color: #e5e5e5;
+    border: 1px solid #444;
+    border-radius: 5px;
+}
+
+.modal-content input[type="password"]:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+#password-error {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.modal-buttons button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#save-password-btn {
+    background-color: #007acc;
+    color: white;
+}
+
+#cancel-password-btn {
+    background-color: #444;
+    color: white;
+}
+
+#change-password-btn {
+    padding: 10px 15px;
+    background-color: #007acc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#change-password-btn:hover {
+    background-color: #005f99;
 }

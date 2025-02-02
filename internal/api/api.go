@@ -101,6 +101,8 @@ func (api *API) setupAuthorizedRoutes() {
 	authorized.GET("/lists", api.getLists)
 	authorized.GET("/getDomainsForList", api.getDomainsForList)
 
+	authorized.PUT("/password", api.updatePassword)
+
 	authorized.DELETE("/upstreams", api.removeUpstreams)
 	authorized.DELETE("/logs", api.clearLogs)
 }

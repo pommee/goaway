@@ -678,6 +678,37 @@ func (apiServer *API) getDomainsForList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
+func (apiServer *API) updatePassword(c *gin.Context) {
+	type PasswordChange struct {
+		CurrentPassword string `json:"currentPassword"`
+		NewPassword     string `json:"newPassword"`
+	}
+
+	updatedList, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var request PasswordChange
+	if err := json.Unmarshal(updatedList, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	if !apiServer.validateCredentials("admin", request.CurrentPassword) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid current password"})
+		return
+	}
+
+	apiServer.adminPassword = request.NewPassword
+	log.Info("Password has been changed!")
+
+	c.JSON(http.StatusOK, nil)
+}
+
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
 	data, err := os.ReadFile(tempFile)

@@ -1,7 +1,16 @@
-const inputs = document.querySelectorAll("#main input, #main select");
+const inputs = document.querySelectorAll("#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select");
 const savePopup = document.getElementById("save-popup");
 const saveButton = document.getElementById("save-btn");
 const dismissButton = document.getElementById("dismiss-btn");
+const passwordInput = document.getElementById("password");
+const confirmPasswordInput = document.getElementById("confirmPassword");
+const changePasswordButton = document.getElementById("change-password-btn");
+const passwordModal = document.getElementById("password-modal");
+const currentPasswordInput = document.getElementById("currentPassword");
+const newPasswordInput = document.getElementById("newPassword");
+const savePasswordButton = document.getElementById("save-password-btn");
+const cancelPasswordButton = document.getElementById("cancel-password-btn");
+const passwordError = document.getElementById("password-error");
 
 document.addEventListener("DOMContentLoaded", () => {
   initializeSettings();
@@ -13,6 +22,30 @@ document.addEventListener("DOMContentLoaded", () => {
       showPopup();
     });
   });
+
+  passwordInput.addEventListener("input", validatePasswords);
+  confirmPasswordInput.addEventListener("input", validatePasswords);
+
+  changePasswordButton.addEventListener("click", () => {
+    passwordModal.style.display = "block";
+  });
+
+  savePasswordButton.addEventListener("click", () => {
+    if (validatePasswords()) {
+      savePassword();
+      passwordModal.style.display = "none";
+      passwordError.textContent = "";
+    } else {
+      passwordError.textContent = "Passwords do not match.";
+    }
+  });
+
+  cancelPasswordButton.addEventListener("click", () => {
+    passwordModal.style.display = "none";
+  });
+
+  newPasswordInput.addEventListener("input", validatePasswords);
+  confirmPasswordInput.addEventListener("input", validatePasswords);
 
   function showPopup() {
     if (isModified) {
@@ -82,6 +115,10 @@ function saveSettings() {
     }
   });
 
+  if (passwordInput.value) {
+    settings["password"] = passwordInput.value;
+  }
+
   fetch(GetServerIP() + "/settings", {
     method: "POST",
     headers: {
@@ -95,6 +132,44 @@ function saveSettings() {
       } else {
         console.error("Failed to update settings.");
       }
+    })
+    .catch((error) => console.error("Error:", error));
+}
+
+function validatePasswords() {
+  const password = newPasswordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
+  if (password !== confirmPassword) {
+    confirmPasswordInput.setCustomValidity("Passwords do not match");
+    return false;
+  } else {
+    confirmPasswordInput.setCustomValidity("");
+    return true;
+  }
+}
+
+function savePassword() {
+  const settings = {
+    currentPassword: currentPasswordInput.value,
+    newPassword: newPasswordInput.value,
+  };
+
+  fetch(GetServerIP() + "/password", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(settings),
+  })
+    .then((response) => {
+      if (response.ok) {
+        showInfoNotification("Password changed successfully.");
+      } else {
+        showInfoNotification("Failed to change password.");
+      }
+      currentPasswordInput.value = "";
+      newPasswordInput.value = "";
+      confirmPasswordInput.value = "";
     })
     .catch((error) => console.error("Error:", error));
 }

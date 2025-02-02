@@ -59,6 +59,24 @@
                 <p class="setting-explanation">Enables or disables dark mode
                     for the application.</p>
             </div>
+
+            <div class="setting-item">
+                <button id="change-password-btn">Change Password</button>
+            </div>
+        </div>
+
+        <div id="password-modal" class="modal">
+            <div class="modal-content">
+                <h2>Change Password</h2>
+                <input type="password" id="currentPassword" placeholder="Current Password" />
+                <input type="password" id="newPassword" placeholder="New Password" />
+                <input type="password" id="confirmPassword" placeholder="Confirm New Password" />
+                <div id="password-error"></div>
+                <div class="modal-buttons">
+                    <button id="save-password-btn">Save</button>
+                    <button id="cancel-password-btn">Cancel</button>
+                </div>
+            </div>
         </div>
 
         <h2>Logging | Statistics</h2>
@@ -165,6 +183,24 @@
                     Amount of time the server shall spend on trying to
                     resolve a domain. Default is 60 seconds.
                 </p>
+            </div>
+        </div>
+
+        <h2>Account Settings</h2>
+        <div class="settings-list">
+            <div class="setting-item">
+                <div class="label-container">
+                    <label for="password">New Password</label>
+                    <input type="password" id="password" />
+                </div>
+                <p class="setting-explanation">Enter your new password.</p>
+            </div>
+            <div class="setting-item">
+                <div class="label-container">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" />
+                </div>
+                <p class="setting-explanation">Re-enter your new password to confirm.</p>
             </div>
         </div>
     </div>
