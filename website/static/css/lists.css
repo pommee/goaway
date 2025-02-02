@@ -2,25 +2,27 @@
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    justify-content: space-around;
+    justify-content: center;
+    padding: 20px;
 }
 
 .list-card {
-    flex: 1 1 calc(25% - 50px);
-    max-width: calc(25% - 50px);
+    flex: 1 1 calc(25% - 40px);
+    max-width: calc(25% - 40px);
     position: relative;
-    border: 1px solid cornflowerblue;
-    border-radius: 8px;
+    border: none;
+    border-radius: 12px;
     text-align: center;
     padding: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: #2c2c2c;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
 }
 
 .list-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .list-card-header {
@@ -29,11 +31,13 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #f1f1f1;
+    font-size: 1.2rem;
 }
 
 .list-card-subheader {
     color: #888;
-    font-size: 0.9rem;
+    font-size: 1rem;
     margin-bottom: 10px;
     white-space: nowrap;
     overflow: hidden;
@@ -45,11 +49,20 @@ button {
     color: #f1f1f1;
     font-size: 1rem;
     border: none;
-    padding: 6px 12px;
-    margin: 0 5px;
-    margin-bottom: 20px;
+    padding: 10px 20px;
+    margin: 10px 5px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+button:focus {
+    outline: none;
+    box-shadow: 0 0 8px rgba(68, 68, 68, 0.6);
 }
 
 .modal, .list-details-modal {
