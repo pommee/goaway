@@ -11,7 +11,7 @@ build:
 		.
 
 publish: build
-	docker tag pommee/goaway:${VERSION} pommee/goaway:latest
+	docker tag pommee/goaway:${VERSION} pommee/goaway:${VERSION}
 	docker push pommee/goaway:${VERSION}
 	docker push pommee/goaway:latest
 

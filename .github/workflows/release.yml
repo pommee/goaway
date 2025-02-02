@@ -41,4 +41,4 @@ jobs:
       - name: Build and push Docker image
         if: success()
         run: |
-          make publish VERSION=latest
+          make publish VERSION=${nextRelease.version}
