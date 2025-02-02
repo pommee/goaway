@@ -12,22 +12,8 @@ services:
       - "${DNS_PORT}:${DNS_PORT}/udp"
       - "${DNS_PORT}:${DNS_PORT}/tcp"
       - "${WEBSITE_PORT}:${WEBSITE_PORT}/tcp"
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
     cap_add:
       - NET_BIND_SERVICE
-    networks:
-      dns_network:
-        ipv4_address: 172.0.0.2
-
-networks:
-  dns_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.0.0.0/16
 
 volumes:
   goaway_data:

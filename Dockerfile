@@ -15,8 +15,8 @@ RUN CGO_ENABLED=1 go build -trimpath -ldflags="-w -s" -o /goaway
 
 FROM alpine:3.18
 
-ENV DNS_PORT=53
-ENV WEBSITE_PORT=8080
+ARG DNS_PORT=53
+ARG WEBSITE_PORT=8080
 
 RUN adduser -D appuser && \
     apk add --no-cache libcap
