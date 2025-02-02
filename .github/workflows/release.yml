@@ -42,3 +42,4 @@ jobs:
         if: success()
         run: |
           make publish VERSION=${nextRelease.version}
+          echo "New image version: $VERSION"
