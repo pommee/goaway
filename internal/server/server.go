@@ -206,6 +206,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 	}
 
 	var ipAddresses []dns.RR
+	var ttl uint32
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -220,6 +221,9 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 			return
 		}
 		ipAddresses = in.Answer
+		if len(in.Answer) > 0 {
+			ttl = in.Answer[0].Header().Ttl
+		}
 	}()
 
 	select {
@@ -230,9 +234,13 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 	}
 
 	if len(ipAddresses) > 0 {
+		cacheTTL := s.Config.CacheTTL
+		if ttl > 0 {
+			cacheTTL = time.Duration(ttl) * time.Second
+		}
 		s.cache.Store(domain, cachedRecord{
 			IPAddresses: ipAddresses,
-			ExpiresAt:   time.Now().Add(s.Config.CacheTTL),
+			ExpiresAt:   time.Now().Add(cacheTTL),
 		})
 	}
 
