@@ -11,9 +11,8 @@ build:
 		.
 
 publish: build
-	docker tag pommee/goaway:${VERSION} pommee/goaway:${VERSION}
+	docker tag pommee/goaway:${VERSION} pommee/goaway:latest
 	docker push pommee/goaway:${VERSION}
-	docker push pommee/goaway:latest
 
 start: build
 	DNS_PORT=${DNS_PORT} \
