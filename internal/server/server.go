@@ -74,12 +74,18 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
 		},
 	}
+
 	if err := blacklist.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
 	if err := blacklist.InitializeCustomBlocklist(); err != nil {
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
+	}
+
+	blacklist.BlocklistURL, err = blacklist.GetBlocklistUrls()
+	if err != nil {
+		log.Error("Failed to get blocklist URLs: %v", err)
 	}
 
 	server := &DNSServer{

@@ -1,15 +1,62 @@
 const container = document.getElementById("client-cards-container");
-const modal = document.getElementById("client-modal");
+const modalUpdateCustom = document.getElementById("modal-update-custom");
 const modalClose = document.getElementById("modal-close");
 const newListBtn = document.getElementById("newListBtn");
+const updateCustomBtn = document.getElementById("updateCustomBtn");
 const saveListBtn = document.getElementById("saveListBtn");
-const listName = document.getElementById("listName");
 const listsTextArea = document.getElementById("listsTextArea");
+
+const modalNewList = document.getElementById("modal-new-list");
+const modalNewListClose = document.getElementById("modal-new-list-close");
+const saveNewListBtn = document.getElementById("saveNewListBtn");
+const newListName = document.getElementById("newListName");
+const newListURL = document.getElementById("newListURL");
+
+newListBtn.addEventListener("click", () => {
+  modalNewList.style.display = "flex";
+});
+
+modalNewListClose.onclick = () => {
+  modalNewList.style.display = "none";
+};
+
+window.onclick = (event) => {
+  if (event.target === modalNewList) {
+    modalNewList.style.display = "none";
+  }
+};
+
+saveNewListBtn.addEventListener("click", async () => {
+  const name = newListName.value.trim();
+  const url = newListURL.value.trim();
+
+  if (name && url) {
+    try {
+      const response = await fetch(`/addList?name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`, {
+        method: "GET",
+      });
+
+      if (response.ok) {
+        showInfoNotification("New list added successfully!");
+        newListName.textContent = "";
+        newListURL.textContent = "";
+        modalNewList.style.display = "none";
+        getLists();
+      } else {
+        const errorData = await response.json();
+        showErrorNotification(errorData.error);
+      }
+    } catch (error) {
+      showErrorNotification("Error adding new list.");
+    }
+  } else {
+    showErrorNotification("Please provide both name and URL.");
+  }
+});
 
 async function getLists() {
   const lists = await GetRequest("/lists");
   populateLists(lists);
-  createSourceButtons(lists);
 }
 
 function populateLists(listsData) {
@@ -17,7 +64,10 @@ function populateLists(listsData) {
   const lists = listsData.lists;
 
   for (const key in lists) {
-    console.log(`${key}: ${lists[key]}`);
+    const list = lists[key];
+    const blockedCount = list.blocked_count;
+    const lastUpdated = new Date(list.lastUpdated * 1000).toLocaleString();
+
     const card = document.createElement("div");
     card.className = "list-card";
 
@@ -27,10 +77,15 @@ function populateLists(listsData) {
 
     const subheader = document.createElement("p");
     subheader.className = "list-card-subheader";
-    subheader.textContent = "Blocked: " + lists[key];
+    subheader.textContent = `Blocked: ${blockedCount}`;
+
+    const updated = document.createElement("p");
+    updated.className = "list-card-subheader";
+    updated.textContent = `Last Updated: ${lastUpdated}`;
 
     card.appendChild(header);
     card.appendChild(subheader);
+    card.appendChild(updated);
     card.addEventListener("click", () => showListDetails(key));
     container.appendChild(card);
   }
@@ -39,7 +94,11 @@ function populateLists(listsData) {
 function showListDetails(listName) {
   const listDetailsModal = document.getElementById("list-details-modal");
   const listDetailsContent = document.getElementById("list-details-content");
-  listDetailsContent.innerHTML = `<span id="list-details-close" class="list-details-close">&times;</span><h2>${listName}</h2>`;
+  listDetailsContent.innerHTML = `
+    <span id="list-details-close" class="list-details-close">&times;</span>
+    <h2>${listName}</h2>
+    <button id="removeListBtn" class="remove-btn">Remove List</button>
+  `;
 
   fetch(`/getDomainsForList?list=${listName}`)
     .then(response => response.json())
@@ -69,6 +128,25 @@ function showListDetails(listName) {
       listDetailsContent.appendChild(table);
     });
 
+  document.getElementById("removeListBtn").addEventListener("click", async () => {
+    try {
+      const response = await fetch(`/list?name=${listName}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        showInfoNotification("List removed successfully!");
+        listDetailsModal.style.display = "none";
+        getLists();
+      } else {
+        const errorData = await response.json();
+        showErrorNotification(errorData.error);
+      }
+    } catch (error) {
+      showErrorNotification("Error removing list.");
+    }
+  });
+
   listDetailsModal.style.display = "flex";
 }
 
@@ -82,43 +160,27 @@ window.onclick = (event) => {
   }
 };
 
-function createSourceButtons(listsData) {
-  const sourcesContainer = document.getElementById("sources-container");
-  sourcesContainer.innerHTML = "";
-  const lists = listsData.lists;
 
-  for (const key in lists) {
-    const button = document.createElement("button");
-    button.className = "source-btn";
-    button.textContent = key;
-    button.addEventListener("click", () => {
-      listName.value = key;
-      modal.style.display = "flex";
-    });
-    sourcesContainer.appendChild(button);
-  }
-}
+updateCustomBtn.addEventListener("click", () => updateCustomList());
 
-newListBtn.addEventListener("click", () => addNewList());
-
-function addNewList() {
-  saveListBtn.addEventListener("click", () => saveList());
-  modal.style.display = "flex";
+function updateCustomList() {
+  saveListBtn.addEventListener("click", () => saveCustom());
+  modalUpdateCustom.style.display = "flex";
 }
 
 function closeModal() {
-  modal.style.display = "none";
+  modalUpdateCustom.style.display = "none";
 }
 
 modalClose.onclick = closeModal;
 
 window.onclick = (event) => {
-  if (event.target === modal) {
+  if (event.target === modalUpdateCustom) {
     closeModal();
   }
 };
 
-async function saveList() {
+async function saveCustom() {
   const validListPattern = /^[a-z0-9.:]+$/; // Only allow numbers, dots, and colons
   let containsInvalidList = false;
 
@@ -136,9 +198,9 @@ async function saveList() {
     });
 
   if (!containsInvalidList) {
-    response = await PostRequest("/lists", JSON.stringify({ list: listName.value, domains: newLists }));
+    response = await PostRequest("/custom", JSON.stringify({ domains: newLists }));
     closeModal();
-    showInfoNotification("Added ", newLists + " as new lists!");
+    showInfoNotification("Updated custom list!");
   }
 }
 

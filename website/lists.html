@@ -44,23 +44,31 @@
 
     <div id="main">
         <button id="newListBtn">Add list</button>
+        <button id="updateCustomBtn">Update custom</button>
         <div id="client-cards-container" class="cards-container"></div>
-    </div>
-    <div id="client-modal" class="modal">
-        <div class="modal-content">
-            <span id="modal-close" class="close">&times;</span>
-            <h2>New list</h2>
-            <p>Please add a name and the domains you want to block. Separate the domains by a newline.</p>
-            <div id="sources-container" class="sources-container"></div>
-            <input type="text" id="listName" name="name" required minlength="1" placeholder="blocklist-name"/>            
-            <textarea id="listsTextArea" placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want&#10;..."></textarea>
-            <button id="saveListBtn" class="save-btn">Save</button>
-        </div>
     </div>
 
     <div id="list-details-modal" class="list-details-modal">
         <div id="list-details-content" class="list-details-content">
             <span id="list-details-close" class="list-details-close">&times;</span>
+        </div>
+    </div>
+
+    <div id="modal-new-list" class="modal">
+        <div class="modal-content">
+            <span id="modal-new-list-close" class="close">&times;</span>
+            <h2>Add New List</h2>
+            <input type="text" id="newListName" placeholder="List Name" />
+            <input type="text" id="newListURL" placeholder="List URL" />
+            <button id="saveNewListBtn" class="save-btn">Save</button>
+        </div>
+    </div>
+    <div id="modal-update-custom" class="modal">
+        <div class="modal-content">
+            <span id="modal-close" class="close">&times;</span>
+            <p>You can maintain custom addresses using a custom list. Simply add the domain and it will be blocked.</p>
+            <textarea id="listsTextArea" placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want&#10;..."></textarea>
+            <button id="saveListBtn" class="save-btn">Save</button>
         </div>
     </div>
 

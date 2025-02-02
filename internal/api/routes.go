@@ -633,9 +633,8 @@ func (apiServer *API) getLists(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"lists": lists})
 }
 
-func (apiServer *API) updateLists(c *gin.Context) {
+func (apiServer *API) updateCustom(c *gin.Context) {
 	type UpdateListRequest struct {
-		List    string   `json:"list"`
 		Domains []string `json:"domains"`
 	}
 
@@ -653,13 +652,44 @@ func (apiServer *API) updateLists(c *gin.Context) {
 		return
 	}
 
-	if request.List == "Custom" {
-		apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
-	} else {
-		apiServer.DnsServer.Blacklist.AddDomains(request.Domains, request.List)
+	apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
+	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+}
+
+func (apiServer *API) addList(c *gin.Context) {
+	name := c.Query("name")
+	url := c.Query("url")
+
+	if apiServer.DnsServer.Blacklist.BlocklistURL[name] != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List already exists"})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+	err := apiServer.DnsServer.Blacklist.FetchAndLoadHosts(url, name)
+	if err != nil {
+		log.Error("%v", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	apiServer.DnsServer.Blacklist.BlocklistURL[name] = url
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (apiServer *API) removeList(c *gin.Context) {
+	name := c.Query("name")
+
+	if apiServer.DnsServer.Blacklist.BlocklistURL[name] == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
+		return
+	}
+
+	err := apiServer.DnsServer.Blacklist.RemoveSourceAndDomains(name)
+	if err != nil {
+		log.Error("%v", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	delete(apiServer.DnsServer.Blacklist.BlocklistURL, name)
+	c.JSON(http.StatusOK, nil)
 }
 
 func (apiServer *API) getDomainsForList(c *gin.Context) {

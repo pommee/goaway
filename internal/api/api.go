@@ -87,7 +87,7 @@ func (api *API) setupAuthorizedRoutes() {
 
 	authorized.POST("/upstreams", api.createUpstreams)
 	authorized.POST("/settings", api.updateSettings)
-	authorized.POST("/lists", api.updateLists)
+	authorized.POST("/custom", api.updateCustom)
 
 	authorized.GET("/queriesData", api.handleQueriesData)
 	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
@@ -99,12 +99,14 @@ func (api *API) setupAuthorizedRoutes() {
 	authorized.GET("/preferredUpstream", api.setPreferredUpstream)
 	authorized.GET("/topBlockedDomains", api.getTopBlockedDomains)
 	authorized.GET("/lists", api.getLists)
+	authorized.GET("/addList", api.addList)
 	authorized.GET("/getDomainsForList", api.getDomainsForList)
 
 	authorized.PUT("/password", api.updatePassword)
 
 	authorized.DELETE("/upstreams", api.removeUpstreams)
 	authorized.DELETE("/logs", api.clearLogs)
+	authorized.DELETE("/list", api.removeList)
 }
 
 func generateRandomPassword() string {

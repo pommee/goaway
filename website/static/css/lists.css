@@ -52,31 +52,6 @@ button {
     border-radius: 4px;
 }
 
-.sources-container {
-    margin-top: 10px;
-    width: 80%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.source-btn {
-    color: white;
-    font-size: 1rem;
-    border: none;
-    padding: 10px 20px;
-    margin: 5px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.source-btn:hover {
-    background-color: #0056b3;
-}
-
 .modal, .list-details-modal {
     display: none;
     position: fixed;
@@ -205,4 +180,25 @@ textarea::placeholder, input::placeholder {
 .save-btn:focus {
     outline: none;
     box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.remove-btn {
+    background-color: #ff4c4c;
+    color: white;
+    font-size: 1rem;
+    padding: 12px 20px;
+    margin-top: 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.remove-btn:hover {
+    background-color: #ff1a1a;
+}
+
+.remove-btn:focus {
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 76, 76, 0.6);
 }
