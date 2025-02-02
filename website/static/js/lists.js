@@ -38,8 +38,8 @@ saveNewListBtn.addEventListener("click", async () => {
 
       if (response.ok) {
         showInfoNotification("New list added successfully!");
-        newListName.textContent = "";
-        newListURL.textContent = "";
+        newListName.value = "";
+        newListURL.value = "";
         modalNewList.style.display = "none";
         getLists();
       } else {
