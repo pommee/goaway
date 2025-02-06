@@ -113,6 +113,7 @@ async function initializeLogTable() {
       columns: [
         { data: "timestamp", render: formatTimestamp },
         { data: "domain" },
+        { data: "ip" },
         { data: "client", render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}` },
         { data: null, render: renderStatusAndResponseTime },
         { data: null, render: renderToggleButton },
@@ -121,7 +122,8 @@ async function initializeLogTable() {
       drawCallback: function () {
         $("#log-table tbody tr").each(function () {
           const row = $(this);
-          const blockedStatus = row.find("td").eq(3).text().includes("Blocked");
+          const blockedStatus = row.find("td").eq(4).text().includes("Blocked");
+          console.log(blockedStatus)
           blockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
         });
 

@@ -20,6 +20,7 @@ func Initialize() (*Session, error) {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME NOT NULL,
             domain TEXT NOT NULL,
+			ip TEXT NOT NULL,
             blocked BOOLEAN NOT NULL,
             cached BOOLEAN NOT NULL,
             response_time_ns INTEGER NOT NULL,
