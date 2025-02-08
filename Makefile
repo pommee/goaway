@@ -1,4 +1,4 @@
-.PHONY: build start example-queries logs
+.PHONY: build publish start lint example-queries dev
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
@@ -24,3 +24,6 @@ lint:
 
 example-queries:
 	@./testing/dig-domains.sh
+
+dev:
+	@air
