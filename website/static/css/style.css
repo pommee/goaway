@@ -12,7 +12,7 @@
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --metric-bg: rgba(109, 40, 217, 0.1);
+    --metric-bg: #6d28d91a;
 }
 
 body {
@@ -151,7 +151,7 @@ body {
 }
 
 #main {
-    margin: 30px 10px 0 260px;
+    margin: 20px 10px 0 260px;
 }
 
 .page-top {
@@ -290,12 +290,12 @@ body {
 .blocked-domains-table th {
     color: var(--text-secondary);
     font-weight: bold;
-    padding: 12px 8px;
+    padding: 10px 8px;
     border-bottom: 1px solid var(--border-color);
 }
 
 .blocked-domains-table td {
-    padding: 12px 8px;
+    padding: 10px 8px;
     border-bottom: 1px solid var(--border-color);
 }
 
