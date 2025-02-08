@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <title>goaway</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
@@ -11,25 +10,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 
 <body>
-    <!-- Top bar with centered text -->
-    <div id="top-bar">
-        <p id="cpu-usage"></p>
-        <p id="cpu-temp"></p>
-        <p id="mem-usage"></p>
-    </div>
-
     <div id="sidenav" class="sidenav">
         <div class="top-section">
             <img id="logo" src="/static/logo.png" />
             <div>
                 <p class="top-section-header">goaway</p>
                 <p class="top-section-text">Be gone!</p>
+            </div>
+        </div>
+        <div class="system-metrics">
+            <div class="metric">
+                <i class="fa-solid fa-microchip"></i>
+                <span id="cpu-usage"></span>
+            </div>
+            <div class="metric">
+                <i class="fa-solid fa-temperature-half"></i>
+                <span id="cpu-temp"></span>
+            </div>
+            <div class="metric">
+                <i class="fa-solid fa-memory"></i>
+                <span id="mem-usage"></span>
             </div>
         </div>
         <hr class="rounded" />
@@ -40,13 +45,12 @@
         <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
         <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
         <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
+        <a href="#" id="logout"><i class="icon fa-solid fa-user-xmark"></i>Logout</a>
         <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-            <i class="icon fa-brands fa-github"></i> GitHub
+            <i class="icon fa-brands fa-github"></i>GitHub
         </a>
     </div>
 
-    <!-- Main content area -->
     <div id="main">
         <div class="card-container">
             <div class="card" id="card-queries">
@@ -79,11 +83,9 @@
                         <th>Frequency</th>
                     </tr>
                 </thead>
-                <tbody id="blocked-domains-body">
-                </tbody>
+                <tbody id="blocked-domains-body"></tbody>
             </table>
         </div>
-        
     </div>
 
     <script src="/static/js/util.js"></script>
@@ -91,5 +93,4 @@
     <script src="/static/js/metricsCards.js"></script>
     <script src="/static/js/queriesTimeline.js"></script>
 </body>
-
 </html>

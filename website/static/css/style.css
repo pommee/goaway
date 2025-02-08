@@ -2,7 +2,7 @@ body {
     font-family: "JetBrains Mono", monospace;
     background-color: #313131;
     color: white;
-    margin-top: 60px;
+    margin-top: 20px;
 }
 
 /* Sidenav */
@@ -87,27 +87,24 @@ body {
     margin-top: 0;
 }
 
-#top-bar {
-    background-color: #111;
-    padding: 10px 0;
-    text-align: center;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+.system-metrics {
+    padding: 5px 20px;
+    background-color: #212121;
+    margin: 15px 10px;
+    border-radius: 10px;
 }
 
-#top-bar p {
-    margin: 0;
-    width: 180px;
-    text-align: center;
-    font-size: 18px;
-    color: white;
+.system-metrics .metric {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f1f1f1;
+    margin: 10px 0;
+}
+
+.system-metrics .metric i {
+    width: 20px;
+    color: cornflowerblue;
 }
 
 #main {
@@ -317,7 +314,7 @@ body {
 
 hr.rounded {
     border: 1px solid #313131;
-    margin: 20px 10px 30px 10px;
+    margin: 10px;
 }
 
 #github-link {
