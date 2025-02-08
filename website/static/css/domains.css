@@ -1,10 +1,9 @@
 /* Table styling */
 #domains-table {
-    width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    /* Space between the top and the table */
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -13,7 +12,6 @@
 #domains-table td {
     padding: 12px 15px;
     text-align: left;
-    color: #f1f1f1;
 }
 
 #domains-table td.wasBlocked {
@@ -21,7 +19,7 @@
 }
 
 #domains-table th {
-    background-color: #444;
+    background-color: var(--bg-primary);
     font-weight: bold;
 }
 
@@ -29,16 +27,8 @@
     font-size: 0.8rem;
 }
 
-#domains-table tbody tr:nth-child(even) {
-    background-color: #333;
-}
-
-#domains-table tbody tr:nth-child(odd) {
-    background-color: #292929;
-}
-
 #domains-table tbody tr:hover {
-    background-color: #555;
+    background-color: var(--bg-secondary);
 }
 
 /* DataTables Pagination Styling */
@@ -131,6 +121,11 @@ option {
 #add-domain-btn:hover,
 #cancel-btn:hover {
     background-color: #555;
+}
+
+#add-domain-btn {
+    margin-bottom: 20px;
+    background-color: var(--bg-tertiary);
 }
 
 .loading-spinner-container {

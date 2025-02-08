@@ -1,8 +1,8 @@
-/* Table styling */
 #log-table {
     border-collapse: collapse;
     margin-top: 20px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -11,7 +11,11 @@
 #log-table td {
     padding: 12px 15px;
     text-align: left;
-    color: #f1f1f1;
+}
+
+#log-table th {
+    background-color: var(--bg-primary);
+    font-weight: bold;
 }
 
 #log-table tr td {
@@ -22,25 +26,12 @@
     color: #b30404;
 }
 
-#log-table th {
-    background-color: #444;
-    font-weight: bold;
-}
-
 #log-table tr {
     font-size: 0.8rem;
 }
 
 #log-table tbody tr:hover {
-    background-color: #111;
-}
-
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-    background-color: #555;
-}
-
-.dataTables_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #515151;
+    background-color: var(--bg-secondary);
 }
 
 /* DataTables Search Box */
@@ -51,11 +42,6 @@
     border: 1px solid #666;
     padding: 8px;
     border-radius: 4px;
-}
-
-.dataTables_filter input:focus {
-    outline: none;
-    border-color: #888;
 }
 
 /* DataTables Length Selection */

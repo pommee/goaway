@@ -274,7 +274,7 @@ body {
 
 #card-top-blocked-domains {
     margin-top: 20px;
-    padding: 20px;
+    padding: 10px;
     width: 50%;
     border-radius: 12px;
     background-color: var(--bg-tertiary);

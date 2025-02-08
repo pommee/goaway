@@ -162,3 +162,9 @@ textarea::placeholder {
     outline: none;
     box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
 }
+
+#newUpstreamBtn,
+.set-preferred-btn {
+    margin-top: 10px;
+    background-color: var(--bg-tertiary);
+}
