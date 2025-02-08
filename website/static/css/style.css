@@ -1,130 +1,173 @@
+:root {
+    --bg-primary: #0f0f13;
+    --bg-secondary: #1a1b1e;
+    --bg-tertiary: #25262b;
+    --accent-primary: #6495ed;
+    --accent-secondary: #3879f0;
+    --text-primary: #ececec;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --border-color: #2d2d33;
+    --hover-bg: #2a2b2f;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --metric-bg: rgba(109, 40, 217, 0.1);
+}
+
 body {
     font-family: "JetBrains Mono", monospace;
-    background-color: #313131;
-    color: white;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     margin-top: 20px;
 }
 
-/* Sidenav */
 .sidenav {
     display: flex;
     flex-direction: column;
     height: 100%;
-    width: 240px;
+    width: 250px;
     position: fixed;
     z-index: 1;
     top: 0;
     left: 0;
-    background-color: #111;
-    padding-top: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+    background-color: var(--bg-secondary);
+    padding: 20px 0;
+    border-right: 1px solid var(--border-color);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
-.sidenav .top-section {
+.sidenav-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.top-section {
     display: flex;
     align-items: center;
-    margin-left: 10px;
+    padding: 0 24px 20px;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.top-section .top-section-header {
-    font-size: 1.8rem;
+.top-section #logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+}
+
+.top-section-header {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.top-section-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
     margin: 0;
 }
 
-.top-section .top-section-text {
-    color: white;
-    font-size: 0.8rem;
-}
-
-/* Hover effects for the sidenav links */
-.sidenav a {
-    padding: 12px 20px;
-    margin-top: 10px;
-    text-decoration: none;
-    font-size: 20px;
-    color: #818181;
-    display: flex;
-    align-items: center;
-    transition: 0.3s;
-}
-
-.sidenav a:hover {
-    color: #f1f1f1;
-    background-color: #575757;
-    margin-left: 10px;
-    margin-right: 10px;
-    border-radius: 10px;
-}
-
-.sidenav .icon {
-    margin-right: 20px;
-    max-width: 15px;
-    font-size: 18px;
-}
-
-.sidenav a.selected {
-    color: #f1f1f1;
-    background-color: #444;
-    margin-left: 10px;
-    margin-right: 10px;
-    border-radius: 10px;
-}
-
-.sidenav p,
-.sidenav #logo {
-    color: cornflowerblue;
-}
-
-.sidenav #logo {
-    margin-right: 10px;
-    width: 25%;
-}
-
-.sidenav p {
-    color: cornflowerblue;
-    font-weight: bold;
-    font-size: 1.2rem;
-    margin-top: 0;
-}
-
 .system-metrics {
-    padding: 5px 20px;
-    background-color: #212121;
-    margin: 15px 10px;
-    border-radius: 10px;
+    background-color: var(--bg-tertiary);
+    margin: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
 }
 
-.system-metrics .metric {
+.metric {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #f1f1f1;
-    margin: 10px 0;
+    gap: 12px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 8px;
+    background-color: var(--metric-bg);
 }
 
-.system-metrics .metric i {
+.metric i {
+    color: var(--accent-primary);
+    width: 16px;
+    font-size: 0.9rem;
+}
+
+.metric span {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.nav-links {
+    flex-grow: 1;
+    padding: 16px 12px;
+}
+
+.nav-links a, .bottom-links a {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin: 4px 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.nav-links a:hover, .bottom-links a:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+    transform: translateX(4px);
+}
+
+.nav-links a.selected {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+.nav-links a.selected:hover {
+    background-color: var(--accent-secondary);
+    transform: none;
+}
+
+.icon {
     width: 20px;
-    color: cornflowerblue;
+    margin-right: 12px;
+    font-size: 1rem;
+}
+
+.bottom-links {
+    padding: 16px 12px;
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+}
+
+.bottom-links a {
+    color: var(--text-muted);
+}
+
+#logout {
+    margin-bottom: 8px;
 }
 
 #main {
-    margin: 30px 30px 0 260px;
+    margin: 30px 10px 0 260px;
 }
 
 .page-top {
     margin-bottom: 40px;
-    
-    .page-title {
-        font-weight: 100;
-        margin-bottom: 5px;
-        padding: 0;
-    }
-    
-    .page-description {
-        margin: 0;
-        padding: 0;
-        color: gray;
-    }
+}
+
+.page-top .page-title {
+    font-weight: 100;
+    margin-bottom: 5px;
+    padding: 0;
+}
+
+.page-top .page-description {
+    margin: 0;
+    padding: 0;
+    color: var(--text-secondary);
 }
 
 .card-container {
@@ -135,17 +178,19 @@ body {
 
 .card {
     position: relative;
-    background-color: #444;
-    color: white;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
     width: 30%;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
     overflow: hidden;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .card:hover {
-    transform: scale(1.05);
+    transform: translateY(-4px);
+    border-color: var(--accent-primary);
 }
 
 .card::before {
@@ -164,7 +209,7 @@ body {
 
 .card p {
     margin-top: 0;
-    color: #f1f1f1;
+    color: var(--text-primary);
     position: relative;
     z-index: 1;
 }
@@ -177,19 +222,19 @@ body {
 }
 
 #card-queries {
-    background: green;
+    background: linear-gradient(45deg, var(--bg-tertiary), var(--success-color) 400%);
 }
 
 #card-blocked {
-    background: cornflowerblue;
+    background: linear-gradient(45deg, var(--bg-tertiary), var(--accent-primary) 400%);
 }
 
 #card-blocked-percentage {
-    background: #c28c27;
+    background: linear-gradient(45deg, var(--bg-tertiary), var(--warning-color) 400%);
 }
 
 #card-blocked-domains {
-    background: #960012;
+    background: linear-gradient(45deg, var(--bg-tertiary), var(--danger-color) 400%);
 }
 
 #card-queries::before {
@@ -213,43 +258,76 @@ body {
 }
 
 @keyframes bounce {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.02);
-    }
-
-    100% {
-        transform: scale(1);
-    }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
-/* Chart container */
 .chart-container {
-    background: #212121;
-    padding: 1px 10px 0 10px;
+    background-color: var(--bg-tertiary);
+    padding: 20px;
     border-radius: 12px;
     height: 350px;
     margin-top: 20px;
+    border: 1px solid var(--border-color);
 }
 
-/* Notification styles */
+#card-top-blocked-domains {
+    margin-top: 20px;
+    padding: 20px;
+    width: 50%;
+    border-radius: 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+.blocked-domains-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.blocked-domains-table th {
+    color: var(--text-secondary);
+    font-weight: bold;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.blocked-domains-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.frequency-bar-container {
+    background-color: var(--bg-primary);
+    height: 8px;
+    border-radius: 4px;
+    width: 100%;
+    position: relative;
+}
+
+.frequency-bar {
+    background: var(--accent-primary);
+    height: 100%;
+    border-radius: 4px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .notification {
-    background-color: #f8f9fa;
-    border: 1px solid #d6d8db;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     padding: 16px;
     margin: 0;
-    border-radius: 5px;
+    border-radius: 8px;
     position: fixed;
-    bottom: 10px;
-    right: 10px;
+    bottom: 16px;
+    right: 16px;
     opacity: 1;
     z-index: 9999;
-    transition:
-        opacity 1s ease,
-        bottom 0.3s ease;
+    transition: opacity 1s ease, bottom 0.3s ease;
 }
 
 .notification-header {
@@ -263,31 +341,34 @@ body {
 }
 
 .notification.info {
-    background-color: cornflowerblue;
-    border-color: #c3e6cb;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-secondary);
 }
 
 .notification.error {
-    background-color: red;
+    background-color: var(--danger-color);
     border-color: #ba0000;
 }
 
 .notification.warning {
-    background-color: #9cb50e;
+    background-color: var(--warning-color);
     border-color: #ffeeba;
+}
+
+hr.rounded {
+    border: none;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 20px 10px;
 }
 
 @media screen and (max-width: 1024px) {
     .sidenav {
-        width: 180px;
+        width: 220px;
     }
-
-    .sidenav a {
-        font-size: 18px;
-    }
-
+    
     #main {
-        margin-left: 200px;
+        margin-left: 220px;
     }
 }
 
@@ -297,76 +378,22 @@ body {
         padding-top: 20px;
         transition: width 0.3s ease-in-out;
     }
-
+    
     .sidenav a {
         font-size: 16px;
         padding: 10px 15px;
     }
-
+    
     #main {
         margin-left: 0;
     }
-
-    #top-bar p {
-        font-size: 14px;
+    
+    .nav-links a span, 
+    .bottom-links a span {
+        display: none;
     }
-}
-
-hr.rounded {
-    border: 1px solid #313131;
-    margin: 10px;
-}
-
-#github-link {
-    margin-top: auto; /* Pushes the GitHub link to the bottom */
-    margin-bottom: 30px;
-    color: #818181;
-    text-decoration: none;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    padding: 12px 20px;
-}
-
-#github-link:hover {
-    color: #f1f1f1;
-    background-color: #575757;
-    margin-left: 10px;
-    margin-right: 10px;
-    border-radius: 10px;
-}
-
-#card-top-blocked-domains {
-    margin-top: 10px;
-    padding: 10px;
-    width: 50%;
-    border-radius: 10px;
-    background: #212121;
-}
-
-.blocked-domains-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.blocked-domains-table th {
-    font-weight: bold;
-}
-
-.frequency-bar-container {
-    background: #444;
-    height: 10px;
-    border-radius: 5px;
-    width: 100%;
-    position: relative;
-}
-
-.frequency-bar {
-    background: #3498db;
-    height: 100%;
-    border-radius: 5px;
-    position: absolute;
-    top: 0;
-    left: 0;
+    
+    .icon {
+        margin-right: 0;
+    }
 }

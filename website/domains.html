@@ -17,39 +17,72 @@
 
 <body>
     <div id="sidenav" class="sidenav">
-        <div class="top-section">
-            <img id="logo" src="/static/logo.png" />
-            <div>
-                <p class="top-section-header">goaway</p>
-                <p class="top-section-text">Be gone!</p>
+        <div class="sidenav-content">
+            <div class="top-section">
+                <img id="logo" src="/static/logo.png" />
+                <div>
+                    <p class="top-section-header">goaway</p>
+                    <p class="top-section-text">Be gone!</p>
+                </div>
+            </div>
+
+            <div class="system-metrics">
+                <div class="metric">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span id="cpu-usage"></span>
+                </div>
+                <div class="metric">
+                    <i class="fa-solid fa-temperature-half"></i>
+                    <span id="cpu-temp"></span>
+                </div>
+                <div class="metric">
+                    <i class="fa-solid fa-memory"></i>
+                    <span id="mem-usage"></span>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <a href="./index.html">
+                    <i class="icon fa-solid fa-house-user"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="./logs.html">
+                    <i class="icon fa-solid fa-list"></i>
+                    <span>Logs</span>
+                </a>
+                <a class="selected" href="#">
+                    <i class="icon fa-solid fa-server"></i>
+                    <span>Domains</span>
+                </a>
+                <a href="./lists.html">
+                    <i class="icon fa-solid fa-seedling"></i>
+                    <span>Lists</span>
+                </a>
+                <a href="./upstream.html">
+                    <i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>
+                    <span>Upstream</span>
+                </a>
+                <a href="./clients.html">
+                    <i class="icon fa-solid fa-users"></i>
+                    <span>Clients</span>
+                </a>
+                <a href="./settings.html">
+                    <i class="icon fa-solid fa-gears"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="bottom-links">
+                <a href="#" id="logout">
+                    <i class="icon fa-solid fa-user-xmark"></i>
+                    <span>Logout</span>
+                </a>
+                <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
+                    <i class="icon fa-brands fa-github"></i>
+                    <span>GitHub</span>
+                </a>
             </div>
         </div>
-        <div class="system-metrics">
-            <div class="metric">
-                <i class="fa-solid fa-microchip"></i>
-                <span id="cpu-usage"></span>
-            </div>
-            <div class="metric">
-                <i class="fa-solid fa-temperature-half"></i>
-                <span id="cpu-temp"></span>
-            </div>
-            <div class="metric">
-                <i class="fa-solid fa-memory"></i>
-                <span id="mem-usage"></span>
-            </div>
-        </div>
-        <hr class="rounded" />
-        <a href="./index.html"><i class="icon fa-solid fa-house-user"></i>Dashboard</a>
-        <a href="./logs.html"><i class="icon fa-solid fa-list"></i>Logs</a>
-        <a class="selected" href="#"><i class="icon fa-solid fa-server"></i>Domains</a>
-        <a href="./lists.html"><i class="icon fa-solid fa-seedling"></i>Lists</a>
-        <a href="./upstream.html"><i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>Upstream</a>
-        <a href="./clients.html"><i class="icon fa-solid fa-users"></i>Clients</a>
-        <a href="./settings.html"><i class="icon fa-solid fa-gears"></i>Settings</a>
-        <a href="#" id="logout"> <i class="icon fa-solid fa-user-xmark"></i> Logout </a>
-        <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-            <i class="icon fa-brands fa-github"></i> GitHub
-        </a>
     </div>
 
     <!-- Main content area -->
