@@ -18,11 +18,7 @@ const (
 func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool) {
 	const versionSpace = 7
 
-	if version == "0.0.0" {
-		version = "[DEV]"
-	}
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
-
 	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSServer.Port, Reset)
 	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIServer.Port, Reset)
 	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNSServer.PreferredUpstream, Reset)
