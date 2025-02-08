@@ -66,15 +66,15 @@
 }
 
 button {
-    background-color: #444;
+    background-color: #414141;
     color: #f1f1f1;
-    font-size: 1rem;
+    font-size: 1.1rem;
     border: none;
-    padding: 6px 12px;
+    padding: 8px 12px;
     margin: 0 5px;
     margin-bottom: 20px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 .modal {

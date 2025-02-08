@@ -114,6 +114,22 @@ body {
     margin: 30px 30px 0 260px;
 }
 
+.page-top {
+    margin-bottom: 40px;
+    
+    .page-title {
+        font-weight: 100;
+        margin-bottom: 5px;
+        padding: 0;
+    }
+    
+    .page-description {
+        margin: 0;
+        padding: 0;
+        color: gray;
+    }
+}
+
 .card-container {
     display: flex;
     gap: 35px;

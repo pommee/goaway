@@ -47,6 +47,11 @@
 
     <!-- Main content area -->
     <div id="main">
+        <div class="page-top">
+            <h1 class="page-title"><i class="icon fa-solid fa-server"></i> Domains</h1>
+            <p class="page-description">Blocked domains are viewed here.</p>
+        </div>
+        <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
         <div id="domains-table-container">
             <table id="domains-table" class="display">
                 <thead>
@@ -66,7 +71,6 @@
                 <button id="cancel-btn">Cancel</button>
             </div>
         </div>
-        <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
     </div>
 
     <script src="/static/js/util.js"></script>
