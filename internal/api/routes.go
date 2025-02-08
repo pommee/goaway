@@ -607,16 +607,22 @@ func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
 
 	var domains []map[string]interface{}
 	for rows.Next() {
-		var domain string
-		var hits int
+		var (
+			domain string
+			hits   int
+			freq   int
+		)
 		if err := rows.Scan(&domain, &hits); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if apiServer.DnsServer.Counters.BlockedRequests > 0 {
+			freq = (hits * 100) / apiServer.DnsServer.Counters.BlockedRequests
+		}
 		domains = append(domains, map[string]interface{}{
 			"name":      domain,
 			"hits":      hits,
-			"frequency": (hits * 100) / apiServer.DnsServer.Counters.BlockedRequests,
+			"frequency": freq,
 		})
 	}
 
