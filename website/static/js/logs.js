@@ -74,7 +74,7 @@ async function handleClearLogsClick() {
   confirmButton.onclick = async function () {
     try {
       await $.ajax({
-        url: '/logs',
+        url: '/queries',
         type: 'DELETE'
       });
 
@@ -103,7 +103,7 @@ async function initializeLogTable() {
       processing: true,
       serverSide: true,
       ajax: {
-        url: "/queriesData",
+        url: "/queries",
         type: "GET",
         data: function (d) {
           return prepareRequestData(d);

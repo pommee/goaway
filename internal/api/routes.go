@@ -179,31 +179,39 @@ func (apiServer *API) getQueryTimestamps(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) handleQueriesData(c *gin.Context) {
+func (apiServer *API) getQueries(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	search := c.DefaultQuery("search", "")
 	sortColumn := c.DefaultQuery("sortColumn", "timestamp")
 	sortDirection := c.DefaultQuery("sortDirection", "desc")
-
 	offset := (page - 1) * pageSize
 
-	sortColumn = map[string]string{
+	validSortColumns := map[string]string{
 		"timestamp": "timestamp",
 		"domain":    "domain",
 		"client":    "client_ip",
-	}[sortColumn]
+		"ip":        "ip",
+	}
+	column, ok := validSortColumns[sortColumn]
+	if !ok {
+		column = "timestamp"
+	}
 
-	query := `
+	if sortDirection != "asc" && sortDirection != "desc" {
+		sortDirection = "desc"
+	}
+
+	query := fmt.Sprintf(`
 		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name
 		FROM request_log
 		WHERE domain LIKE ?
-		ORDER BY ` + sortColumn + ` ` + sortDirection + `
-		LIMIT ? OFFSET ?`
+		ORDER BY %s %s
+		LIMIT ? OFFSET ?`, column, sortDirection)
 
 	rows, err := apiServer.DnsServer.DB.Query(query, "%"+search+"%", pageSize, offset)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("Database query error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -544,7 +552,7 @@ func (apiServer *API) removeUpstreams(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) clearLogs(c *gin.Context) {
+func (apiServer *API) clearQueries(c *gin.Context) {
 	result, err := apiServer.DnsServer.DB.Exec("DELETE FROM request_log")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})

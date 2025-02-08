@@ -89,7 +89,7 @@ func (api *API) setupAuthorizedRoutes() {
 	authorized.POST("/settings", api.updateSettings)
 	authorized.POST("/custom", api.updateCustom)
 
-	authorized.GET("/queriesData", api.handleQueriesData)
+	authorized.GET("/queries", api.getQueries)
 	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
 	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
 	authorized.GET("/domains", api.getDomains)
@@ -105,7 +105,7 @@ func (api *API) setupAuthorizedRoutes() {
 	authorized.PUT("/password", api.updatePassword)
 
 	authorized.DELETE("/upstreams", api.removeUpstreams)
-	authorized.DELETE("/logs", api.clearLogs)
+	authorized.DELETE("/queries", api.clearQueries)
 	authorized.DELETE("/list", api.removeList)
 }
 
