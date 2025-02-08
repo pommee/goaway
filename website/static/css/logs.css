@@ -108,7 +108,7 @@
 }
 
 .modal-content {
-    background-color: #444;
+    backdrop-filter: blur(4px);
     margin: auto;
     padding: 20px;
     border: 1px solid cornflowerblue;

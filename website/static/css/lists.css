@@ -10,7 +10,7 @@
     flex: 1 1 calc(25% - 40px);
     max-width: calc(25% - 40px);
     position: relative;
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     text-align: center;
     padding: 20px;
@@ -84,25 +84,24 @@ button:focus {
     flex-direction: column;
     align-items: center;
     border-radius: 12px;
-    border: none;
-    background-color: #2c2c2c;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(4px);
     width: 50%;
     max-height: 70%;
     padding: 30px;
     text-align: center;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .modal-content h2 {
-    color: #f1f1f1;
+    color: var(--text-primary);
     margin-bottom: 20px;
     font-size: 1.5rem;
 }
 
 .modal-content p {
-    color: #bbb;
+    color: var(--text-secondary);
     margin-bottom: 20px;
     font-size: 1rem;
 }
@@ -132,9 +131,9 @@ button:focus {
     width: 100%;
     margin-bottom: 15px;
     padding: 10px;
-    border: 1px solid #444;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: #3a3a3a;
+    background-color: var(--bg-tertiary);
     color: #f1f1f1;
     font-size: 1rem;
 }

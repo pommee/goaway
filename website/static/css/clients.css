@@ -6,7 +6,7 @@
 }
 
 .client-card {
-    border: 1px solid cornflowerblue;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     width: 300px;
     text-align: center;
@@ -42,8 +42,8 @@
 
 .modal-content {
     border-radius: 8px;
-    border: 2px solid cornflowerblue;
-    background-color: #313131;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(4px);
     width: 60%;
     height: 60%;
     padding: 20px;

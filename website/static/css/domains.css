@@ -88,7 +88,7 @@ option {
 
 /* Modal content */
 .modal-content {
-    background-color: #2a2a2a;
+    backdrop-filter: blur(4px);
     margin: 5% auto;
     padding: 20px;
     border: 1px solid #888;

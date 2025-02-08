@@ -1,8 +1,8 @@
 .settings-list {
     overflow-y: auto;
     padding: 15px;
-    background-color: #212121;
-    border: 1px solid #444;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 5px;
 }
 
@@ -30,7 +30,7 @@
 
 .setting-item .setting-explanation {
     font-size: 14px;
-    color: #888;
+    color: var(--text-muted);
     margin-top: 5px;
 }
 
@@ -186,10 +186,10 @@ h2 {
 }
 
 .modal-content {
-    background-color: #212121;
+    backdrop-filter: blur(4px);
     margin: 15% auto;
     padding: 20px;
-    border: 1px solid #444;
+    border: 1px solid var(--border-color);
     width: 80%;
     max-width: 400px;
     border-radius: 5px;
