@@ -76,6 +76,7 @@ func runServer(dnsPort, webserverPort, logLevel, statisticsRetention int, disabl
 
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
+	dnsServer.UpdateCounters()
 
 	go dnsServer.ClearOldEntries()
 	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
