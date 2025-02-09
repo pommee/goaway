@@ -4,7 +4,7 @@ A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
 ![goaway Dashboard Preview](./resources/dashboard.png)
 
-**[View more screenshots](./resources/)**
+**[View more screenshots](./resources/PREVIEW.md)**
 
 ## 🌟 Features
 
