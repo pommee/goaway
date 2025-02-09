@@ -28,9 +28,7 @@ function renderStatusAndResponseTime(data) {
 }
 
 function renderIP(data) {
-  console.log(data);
   const ipList = data.join('\n');
-  console.log(ipList)
   return `
   <div class="ip-container">
     <span class="ip" data-tooltip="${ipList}">${data[0]}</span>

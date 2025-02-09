@@ -121,7 +121,6 @@ async function saveUpstream() {
 
 async function removeUpstream(upstream) {
   response = await DeleteRequest("/upstreams?upstream=" + upstream);
-  console.log(response);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

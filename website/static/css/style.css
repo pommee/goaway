@@ -104,6 +104,7 @@ body {
     margin: 4px 0;
     border-radius: 8px;
     background-color: var(--metric-bg);
+    cursor: pointer;
 }
 
 .metric i {

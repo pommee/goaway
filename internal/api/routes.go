@@ -115,6 +115,11 @@ func (apiServer *API) handleServer(c *gin.Context) {
 		log.Error("%s", err)
 	}
 
+	dbSize, err := getDBSize()
+	if err != nil {
+		log.Error("%s", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"portDNS":           apiServer.Config.Port,
 		"portWebsite":       apiServer.DnsServer.Config.Port,
@@ -123,6 +128,7 @@ func (apiServer *API) handleServer(c *gin.Context) {
 		"usedMemPercentage": float64(vMem.Free) / 1024 / 1024 / 1024,
 		"cpuUsage":          cpuUsage[0],
 		"cpuTemp":           temp,
+		"dbSize":            dbSize,
 	})
 }
 
@@ -775,6 +781,18 @@ func getCPUTemperature() (float64, error) {
 	}
 
 	return temp / 1000, nil
+}
+
+func getDBSize() (float64, error) {
+	file, err := os.Stat("database.db")
+	if err != nil {
+		return 0, err
+	}
+
+	sizeInBytes := file.Size()
+	sizeInMB := float64(sizeInBytes) / (1024 * 1024)
+
+	return sizeInMB, nil
 }
 
 func getServerIP() (string, error) {

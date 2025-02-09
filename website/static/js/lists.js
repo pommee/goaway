@@ -206,7 +206,6 @@ async function saveCustom() {
 
 async function removeList(list) {
   response = await DeleteRequest("/lists?list=" + list);
-  console.log(response);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -97,14 +97,22 @@ function DeleteRequest(url) {
   });
 }
 
-document.querySelector('.nav-toggle').addEventListener('click', function() {
-  document.querySelector('.sidenav').classList.toggle('active');
-});
+try {
+  document.querySelector('.nav-toggle').addEventListener('click', function() {
+    document.querySelector('.sidenav').classList.toggle('active');
+  });
+} catch(e) {
+  // ignored
+}
 
-document.getElementById("logout").addEventListener("click", async () => {
-  localStorage.clear();
-  window.location.href = "/login.html";
-})
+try {
+  document.getElementById("logout").addEventListener("click", async () => {
+    localStorage.clear();
+    window.location.href = "/login.html";
+  })
+  } catch(e) {
+  // ignored
+}
 
 function showNotification(headerMessage, type, ...message) {
   const notification = document.createElement("div");

@@ -1,6 +1,7 @@
 const cpuUsageElement = document.getElementById("cpu-usage");
 const cpuTempElement = document.getElementById("cpu-temp");
 const memoryUsageElement = document.getElementById("mem-usage");
+const dbUsageElement = document.getElementById("db-usage");
 const quoteElement = document.getElementsByClassName("top-section-text")[0];
 
 const quotes = [
@@ -38,13 +39,17 @@ const quotes = [
 
 async function getServerStatus() {
   const serverStatus = await GetRequest("/server");
-  updateHeader(serverStatus);
+
+  if (window.location.pathname !== "/login.html") {
+    updateHeader(serverStatus);
+  }
 }
 
 function updateHeader(serverStatus) {
   cpuUsageElement.innerText = "CPU: " + serverStatus.cpuUsage.toFixed(1) + "%";
   cpuTempElement.innerText = "CPU temp: " + serverStatus.cpuTemp.toFixed(1) + "°";
   memoryUsageElement.innerText = "Mem: " + serverStatus.usedMemPercentage.toFixed(1) + "%";
+  dbUsageElement.innerText = "Size: " + serverStatus.dbSize.toFixed(1) + "MB";
 }
 
 document.addEventListener("DOMContentLoaded", async function () {
