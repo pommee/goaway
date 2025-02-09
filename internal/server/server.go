@@ -180,7 +180,7 @@ func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dn
 }
 
 func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	answers, cached := s.resolve(question.Name, question.Qtype)
+	answers, cached := s.resolve(question.Name)
 	msg.Answer = append(msg.Answer, answers...)
 	_ = w.WriteMsg(msg)
 
@@ -188,8 +188,11 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 
 	var resolvedIP string
 	if len(answers) > 0 {
-		if aRecord, ok := answers[0].(*dns.A); ok {
-			resolvedIP = aRecord.A.String()
+		switch rec := answers[0].(type) {
+		case *dns.A:
+			resolvedIP = rec.A.String()
+		case *dns.AAAA:
+			resolvedIP = rec.AAAA.String()
 		}
 	}
 
@@ -204,7 +207,7 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 	}
 }
 
-func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
+func (s *DNSServer) resolve(domain string) ([]dns.RR, bool) {
 	if cached, found := s.cache.Load(domain); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			log.Debug("Cached response for %s", domain)
@@ -212,7 +215,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool) {
 		}
 	}
 
-	ipAddresses, ttl := s.queryUpstream(domain, qtype)
+	ipAddresses, ttl := s.queryUpstream(domain)
 	if len(ipAddresses) > 0 {
 		s.cacheRecord(domain, ipAddresses, ttl)
 	}
@@ -239,26 +242,31 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 	})
 }
 
-func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32) {
+func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32) {
 	var ipAddresses []dns.RR
 	var ttl uint32
 	done := make(chan struct{})
 
 	go func() {
 		defer close(done)
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(domain), qtype)
-		m.RecursionDesired = true
-
 		c := new(dns.Client)
-		in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
-		if err != nil {
-			log.Error("Resolution error for domain (%s): %v", domain, err)
-			return
-		}
-		ipAddresses = in.Answer
-		if len(in.Answer) > 0 {
-			ttl = in.Answer[0].Header().Ttl
+
+		var queryTypes = []uint16{dns.TypeA, dns.TypeAAAA}
+		for _, q := range queryTypes {
+			m := new(dns.Msg)
+			m.SetQuestion(dns.Fqdn(domain), q)
+			m.RecursionDesired = true
+
+			in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
+			if err != nil {
+				log.Error("Resolution error for domain (%s): %v", domain, err)
+				continue
+			}
+
+			ipAddresses = append(ipAddresses, in.Answer...)
+			if len(in.Answer) > 0 && ttl == 0 {
+				ttl = in.Answer[0].Header().Ttl
+			}
 		}
 	}()
 
@@ -275,7 +283,8 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	log.Info("Blocked: %s", domain)
 
 	msg.Rcode = dns.RcodeSuccess
-	rr := &dns.A{
+
+	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
 			Name:   domain,
 			Rrtype: dns.TypeA,
@@ -284,7 +293,18 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 		},
 		A: net.ParseIP("0.0.0.0"),
 	}
-	msg.Answer = append(msg.Answer, rr)
+
+	rr6 := &dns.AAAA{
+		Hdr: dns.RR_Header{
+			Name:   domain,
+			Rrtype: dns.TypeAAAA,
+			Class:  dns.ClassINET,
+			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
+		},
+		AAAA: net.ParseIP("::"),
+	}
+
+	msg.Answer = append(msg.Answer, rr4, rr6)
 	_ = w.WriteMsg(msg)
 
 	s.Counters.BlockedRequests++
