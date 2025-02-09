@@ -1,23 +1,19 @@
-.PHONY: build publish start lint example-queries dev
+.PHONY: publish lint example-queries dev
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
 VERSION = $(or $(GOAWAY_VERSION),latest)
 
-build:
-	docker build -t pommee/goaway:${VERSION} \
-		--build-arg DNS_PORT=${DNS_PORT} \
-		--build-arg WEBSITE_PORT=${WEBSITE_PORT} \
-		.
+publish:
+	docker buildx create --name multiarch-builder --use
 
-publish: build
-	docker tag pommee/goaway:${VERSION} pommee/goaway:latest
-	docker push pommee/goaway:${VERSION}
+	docker buildx build \
+	--platform linux/amd64,linux/arm64,linux/386 \
+	--tag pommee/goaway:${VERSION} \
+	--push \
+	.
 
-start: build
-	DNS_PORT=${DNS_PORT} \
-	WEBSITE_PORT=${WEBSITE_PORT} \
-	docker compose up goaway -d
+	docker buildx rm multiarch-builder
 
 lint:
 	golangci-lint run

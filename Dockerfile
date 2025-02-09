@@ -1,36 +1,14 @@
-FROM golang:1.23-alpine AS builder
-
-ARG DNS_PORT
-ARG WEBSITE_PORT
-
-WORKDIR /app
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-RUN apk add --no-cache gcc musl-dev
-
-COPY . .
-RUN CGO_ENABLED=1 go build -trimpath -ldflags="-w -s" -o /goaway
-
 FROM alpine:3.18
 
 ARG DNS_PORT=53
 ARG WEBSITE_PORT=8080
 
-RUN adduser -D appuser && \
-    apk add --no-cache libcap
-
 WORKDIR /app
 
-COPY --from=builder /goaway .
-COPY settings.json /app
-
-RUN chown -R appuser:appuser /app && \
-    setcap 'cap_net_bind_service=+ep' /app/goaway
+RUN apk add curl && \
+    curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin && \
+    mv /root/.local/bin/ /app/goaway
 
 EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
-
-USER appuser
 
 CMD ["sh", "-c", "/app/goaway --dnsport=${DNS_PORT} --webserverport=${WEBSITE_PORT}"]
