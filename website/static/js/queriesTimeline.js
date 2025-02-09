@@ -100,18 +100,9 @@ function updateDashboard(data) {
   queryChart.update();
 }
 
-function getQueries() {
-  fetch(GetServerIP() + "/api/queryTimestamps")
-    .then(response => {
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.json();
-    })
-    .then(data => {
-      updateDashboard(data);
-    })
-    .catch(error => {
-      console.error("Failed to fetch logs:", error);
-    });
+async function getQueries() {
+  const data = await GetRequest("/queryTimestamps");
+  updateDashboard(data);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

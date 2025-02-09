@@ -55,6 +55,13 @@ async function initializeLogTable() {
           const domains = json.domains || [];
           return domains.map((domain) => ({ domain }));
         },
+        error: function (xhr) {
+          if (xhr.status === 401) {
+            window.location.href = "/login.html";
+          } else {
+            console.error("Failed to load data:", xhr.statusText);
+          }
+        },
       },
       columns: [{ data: "domain" }, { data: null, render: renderToggleButton }],
       order: [[0, "desc"]],

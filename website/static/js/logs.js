@@ -109,6 +109,13 @@ async function initializeLogTable() {
           return prepareRequestData(d);
         },
         dataSrc: "details",
+        error: function (xhr) {
+          if (xhr.status === 401) {
+            window.location.href = "/login.html";
+          } else {
+            console.error("Failed to load data:", xhr.statusText);
+          }
+        },
       },
       columns: [
         { data: "timestamp", render: formatTimestamp },
@@ -123,7 +130,6 @@ async function initializeLogTable() {
         $("#log-table tbody tr").each(function () {
           const row = $(this);
           const blockedStatus = row.find("td").eq(4).text().includes("Blocked");
-          console.log(blockedStatus)
           blockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
         });
 
@@ -137,6 +143,7 @@ async function initializeLogTable() {
     });
   });
 }
+
 
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeLogTable();
