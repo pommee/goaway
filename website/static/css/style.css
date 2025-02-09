@@ -422,3 +422,37 @@ hr.rounded {
 ::-webkit-scrollbar-corner {
     background: var(--bg-secondary);
 }
+
+.ip-container {
+    position: relative;
+    display: inline-block;
+}
+  
+.ip {
+    cursor: pointer;
+    color: var(--accent-primary);
+}
+  
+.ip::after {
+    content: attr(data-tooltip);
+    position: fixed;
+    padding: 8px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 8px;
+    white-space: pre-line;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    border: 1px solid var(--border-color);
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.9rem;
+    z-index: 999;
+}
+
+.ip:hover::after {
+    visibility: visible;
+    opacity: 1;
+}

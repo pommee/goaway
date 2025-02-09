@@ -27,6 +27,17 @@ function renderStatusAndResponseTime(data) {
   return `${status}<br>${responseTime} ms`;
 }
 
+function renderIP(data) {
+  console.log(data);
+  const ipList = data.join('\n');
+  console.log(ipList)
+  return `
+  <div class="ip-container">
+    <span class="ip" data-tooltip="${ipList}">${data[0]}</span>
+  </div>
+  `;
+}
+
 function renderToggleButton(data) {
   const toggleBtnTxt = data.blocked ? "Whitelist" : "Blacklist";
   const buttonClass = data.blocked ? "blocked-true" : "blocked-false";
@@ -120,7 +131,7 @@ async function initializeLogTable() {
       columns: [
         { data: "timestamp", render: formatTimestamp },
         { data: "domain" },
-        { data: "ip" },
+        { data: "ip", render: renderIP },
         { data: "client", render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}` },
         { data: null, render: renderStatusAndResponseTime },
         { data: null, render: renderToggleButton },
