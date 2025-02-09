@@ -97,6 +97,10 @@ function DeleteRequest(url) {
   });
 }
 
+document.querySelector('.nav-toggle').addEventListener('click', function() {
+  document.querySelector('.sidenav').classList.toggle('active');
+});
+
 document.getElementById("logout").addEventListener("click", async () => {
   localStorage.clear();
   window.location.href = "/login.html";
