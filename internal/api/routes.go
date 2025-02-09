@@ -220,11 +220,19 @@ func (apiServer *API) getQueries(c *gin.Context) {
 	queries := []server.RequestLogEntry{}
 	for rows.Next() {
 		var query server.RequestLogEntry
+		var ipString string
 		query.ClientInfo = &server.Client{}
-		if err := rows.Scan(&query.Timestamp, &query.Domain, &query.IP, &query.Blocked, &query.Cached, &query.ResponseTimeNS, &query.ClientInfo.IP, &query.ClientInfo.Name); err != nil {
+
+		if err := rows.Scan(
+			&query.Timestamp, &query.Domain, &ipString,
+			&query.Blocked, &query.Cached, &query.ResponseTimeNS,
+			&query.ClientInfo.IP, &query.ClientInfo.Name,
+		); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+
+		query.IP = strings.Split(ipString, ",")
 		queries = append(queries, query)
 	}
 

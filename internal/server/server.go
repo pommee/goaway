@@ -51,7 +51,7 @@ type CounterDetails struct {
 type RequestLogEntry struct {
 	Timestamp      time.Time     `json:"timestamp"`
 	Domain         string        `json:"domain"`
-	IP             string        `json:"ip"`
+	IP             []string      `json:"ip"`
 	Blocked        bool          `json:"blocked"`
 	Cached         bool          `json:"cached"`
 	ResponseTimeNS time.Duration `json:"responseTimeNS"`
@@ -186,13 +186,15 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 
 	s.Counters.AllowedRequests++
 
-	var resolvedIP string
+	var resolvedIP []string
 	if len(answers) > 0 {
-		switch rec := answers[0].(type) {
-		case *dns.A:
-			resolvedIP = rec.A.String()
-		case *dns.AAAA:
-			resolvedIP = rec.AAAA.String()
+		for _, answer := range answers {
+			switch rec := answer.(type) {
+			case *dns.A:
+				resolvedIP = append(resolvedIP, rec.A.String())
+			case *dns.AAAA:
+				resolvedIP = append(resolvedIP, rec.AAAA.String())
+			}
 		}
 	}
 
@@ -312,7 +314,7 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	return RequestLogEntry{
 		Timestamp:      timestamp,
 		Domain:         domain,
-		IP:             "",
+		IP:             []string{""},
 		Blocked:        true,
 		Cached:         false,
 		ResponseTimeNS: time.Since(timestamp),
@@ -386,7 +388,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 
 	for _, entry := range entries {
 		if _, err := stmt.Exec(
-			entry.Timestamp.Unix(), entry.Domain, entry.IP, entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
+			entry.Timestamp.Unix(), entry.Domain, strings.Join(entry.IP, ","), entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
 		); err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return
