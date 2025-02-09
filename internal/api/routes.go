@@ -451,16 +451,16 @@ func getUpstreamDetails(upstream, preferredUpstream string) map[string]string {
 
 func getDNSDetails(host string) (string, string) {
 	start := time.Now()
-	names, err := net.LookupAddr(host)
+	ips, err := net.LookupIP(host)
 	duration := time.Since(start)
 
 	if err != nil {
 		return "Error: " + err.Error(), "Error: " + err.Error()
 	}
-	if len(names) > 0 {
-		return strings.TrimSuffix(names[0], "."), duration.String()
+	if len(ips) > 0 {
+		return ips[0].String(), duration.String()
 	}
-	return "No name found", duration.String()
+	return "No IP found", duration.String()
 }
 
 func getICMPPing(host string) string {
