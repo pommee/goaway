@@ -507,7 +507,7 @@ func (apiServer *API) createUpstreams(c *gin.Context) {
 			}
 		}
 
-		if !exists {
+		if exists {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
 			return
 		}
