@@ -140,7 +140,7 @@ function savePassword() {
     newPassword: newPasswordInput.value,
   };
 
-  fetch(GetServerIP() + "/password", {
+  fetch(GetServerIP() + "/api/password", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
