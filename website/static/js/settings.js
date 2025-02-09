@@ -2,7 +2,6 @@ const inputs = document.querySelectorAll("#main input:not(#currentPassword):not(
 const savePopup = document.getElementById("save-popup");
 const saveButton = document.getElementById("save-btn");
 const dismissButton = document.getElementById("dismiss-btn");
-const passwordInput = document.getElementById("password");
 const confirmPasswordInput = document.getElementById("confirmPassword");
 const changePasswordButton = document.getElementById("change-password-btn");
 const passwordModal = document.getElementById("password-modal");
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  passwordInput.addEventListener("input", validatePasswords);
   confirmPasswordInput.addEventListener("input", validatePasswords);
 
   changePasswordButton.addEventListener("click", () => {
@@ -57,8 +55,8 @@ document.addEventListener("DOMContentLoaded", () => {
     savePopup.style.display = "none";
   }
 
-  saveButton.addEventListener("click", () => {
-    saveSettings();
+  saveButton.addEventListener("click", async () => {
+    await saveSettings();
     isModified = false;
     hidePopup();
   });
@@ -90,7 +88,7 @@ async function getSettings() {
   return settings;
 }
 
-function saveSettings() {
+async function saveSettings() {
   const settings = {};
 
   document.querySelectorAll(".setting-item input, .setting-item select").forEach((input) => {
@@ -105,21 +103,7 @@ function saveSettings() {
     settings["password"] = passwordInput.value;
   }
 
-  fetch(GetServerIP() + "/settings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(settings),
-  })
-    .then((response) => {
-      if (response.ok) {
-        console.log("Settings updated successfully.");
-      } else {
-        console.error("Failed to update settings.");
-      }
-    })
-    .catch((error) => console.error("Error:", error));
+  await PostRequest("/settings", JSON.stringify(settings))
 }
 
 function validatePasswords() {
