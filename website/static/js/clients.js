@@ -8,20 +8,9 @@ const blockClientButton = document.getElementById("block-client");
 const unblockClientButton = document.getElementById("unblock-client");
 const removeClientButton = document.getElementById("remove-client");
 
-function getClients() {
-  fetch(GetServerIP() + "/clients")
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then(function (data) {
-      populateClientsTable(data);
-    })
-    .catch(function (error) {
-      console.error("Failed to fetch clients:", error);
-    });
+async function getClients() {
+  const clients = await GetRequest("/clients");
+  populateClientsTable(clients);
 }
 
 function populateClientsTable(data) {

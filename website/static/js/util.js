@@ -11,7 +11,7 @@ function GetServerIP() {
 
 function GetRequest(url) {
   return new Promise((resolve, reject) => {
-    fetch(GetServerIP() + url, {
+    fetch(GetServerIP() + "/api" + url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -40,7 +40,7 @@ function GetRequest(url) {
 
 function PostRequest(url, body) {
   return new Promise((resolve, reject) => {
-    fetch(GetServerIP() + url, {
+    fetch(GetServerIP() + "/api" + url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -70,7 +70,7 @@ function PostRequest(url, body) {
 
 function DeleteRequest(url) {
   return new Promise((resolve, reject) => {
-    fetch(GetServerIP() + url, {
+    fetch(GetServerIP() + "/api" + url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -97,10 +97,10 @@ function DeleteRequest(url) {
   });
 }
 
-function Logout() {
+document.getElementById("logout").addEventListener("click", async () => {
   localStorage.clear();
   window.location.href = "/login.html";
-}
+})
 
 function showNotification(headerMessage, type, ...message) {
   const notification = document.createElement("div");

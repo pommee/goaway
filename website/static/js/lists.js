@@ -32,7 +32,7 @@ saveNewListBtn.addEventListener("click", async () => {
 
   if (name && url) {
     try {
-      const response = await fetch(`/addList?name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`, {
+      const response = await fetch(`/api/addList?name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`, {
         method: "GET",
       });
 
@@ -100,7 +100,7 @@ function showListDetails(listName) {
     <button id="removeListBtn" class="remove-btn">Remove List</button>
   `;
 
-  fetch(`/getDomainsForList?list=${listName}`)
+  fetch(`/api/getDomainsForList?list=${listName}`)
     .then(response => response.json())
     .then(data => {
       const domains = data.domains;
@@ -130,7 +130,7 @@ function showListDetails(listName) {
 
   document.getElementById("removeListBtn").addEventListener("click", async () => {
     try {
-      const response = await fetch(`/list?name=${listName}`, {
+      const response = await fetch(`/api/list?name=${listName}`, {
         method: "DELETE",
       });
 

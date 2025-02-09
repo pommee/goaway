@@ -101,7 +101,7 @@ function updateDashboard(data) {
 }
 
 function getQueries() {
-  fetch(GetServerIP() + "/queryTimestamps")
+  fetch(GetServerIP() + "/api/queryTimestamps")
     .then(response => {
       if (!response.ok) throw new Error("Network response was not ok");
       return response.json();
@@ -164,7 +164,7 @@ function updateTopBlockedDomains(data) {
 }
 
 function fetchTopBlockedDomains() {
-  fetch(GetServerIP() + "/topBlockedDomains")
+  fetch(GetServerIP() + "/api/topBlockedDomains")
       .then(response => {
           if (!response.ok) throw new Error("Network response was not ok");
           return response.json();

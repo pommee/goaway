@@ -86,22 +86,8 @@ async function initializeSettings() {
 }
 
 async function getSettings() {
-  try {
-    const response = await fetch(GetServerIP() + "/settings", {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      console.error("Failed to fetch settings.");
-      return null;
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching settings:", error);
-    throw error;
-  }
+  const settings = await GetRequest("/settings");
+  return settings;
 }
 
 function saveSettings() {

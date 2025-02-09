@@ -40,7 +40,7 @@ async function handleToggleClick(event) {
   $(event.target).data("blocked", newBlockedStatus);
 
   try {
-    const blockReq = await $.get(`/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
+    const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
     showInfoNotification(blockReq.message);
 
     $(event.target).text(newBlockedStatus ? "Whitelist" : "Blacklist");
@@ -74,7 +74,7 @@ async function handleClearLogsClick() {
   confirmButton.onclick = async function () {
     try {
       await $.ajax({
-        url: '/queries',
+        url: '/api/queries',
         type: 'DELETE'
       });
 
@@ -103,7 +103,7 @@ async function initializeLogTable() {
       processing: true,
       serverSide: true,
       ajax: {
-        url: "/queries",
+        url: "/api/queries",
         type: "GET",
         data: function (d) {
           return prepareRequestData(d);

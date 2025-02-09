@@ -19,7 +19,7 @@ document.getElementById("login-form").addEventListener("submit", function (e) {
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  fetch(GetServerIP() + "/login", {
+  fetch(GetServerIP() + "/api/login", {
     method: "POST",
     body: JSON.stringify({ username: username, password: password }),
   })

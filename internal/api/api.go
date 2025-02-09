@@ -29,6 +29,7 @@ type Credentials struct {
 
 type API struct {
 	router        *gin.Engine
+	routes        *gin.RouterGroup
 	DnsServer     *server.DNSServer
 	Config        *settings.APIServerConfig
 	adminPassword string
@@ -37,6 +38,7 @@ type API struct {
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
+	api.routes = api.router.Group("/api")
 	api.DnsServer = dnsServer
 	api.DnsServer.WebServer = api.router
 
@@ -70,43 +72,42 @@ func (api *API) SetupAuth() {
 }
 
 func (api *API) setupRoutes() {
-	api.router.POST("/login", api.handleLogin)
-	api.router.GET("/server", api.handleServer)
-	api.router.GET("/authentication", api.getAuthentication)
-	api.router.GET("/metrics", api.handleMetrics)
+	api.router.POST("/api/login", api.handleLogin)
+	api.router.GET("/api/server", api.handleServer)
+	api.router.GET("/api/authentication", api.getAuthentication)
+	api.router.GET("/api/metrics", api.handleMetrics)
 }
 
 func (api *API) setupAuthorizedRoutes() {
-	authorized := api.router.Group("/")
 	if api.Config.Authentication {
 		api.SetupAuth()
-		authorized.Use(authMiddleware())
+		api.routes.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
 	}
 
-	authorized.POST("/upstreams", api.createUpstreams)
-	authorized.POST("/settings", api.updateSettings)
-	authorized.POST("/custom", api.updateCustom)
+	api.routes.POST("/upstreams", api.createUpstreams)
+	api.routes.POST("/settings", api.updateSettings)
+	api.routes.POST("/custom", api.updateCustom)
 
-	authorized.GET("/queries", api.getQueries)
-	authorized.GET("/queryTimestamps", api.getQueryTimestamps)
-	authorized.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
-	authorized.GET("/domains", api.getDomains)
-	authorized.GET("/settings", api.getSettings)
-	authorized.GET("/clients", api.getClients)
-	authorized.GET("/upstreams", api.getUpstreams)
-	authorized.GET("/preferredUpstream", api.setPreferredUpstream)
-	authorized.GET("/topBlockedDomains", api.getTopBlockedDomains)
-	authorized.GET("/lists", api.getLists)
-	authorized.GET("/addList", api.addList)
-	authorized.GET("/getDomainsForList", api.getDomainsForList)
+	api.routes.GET("/queries", api.getQueries)
+	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
+	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
+	api.routes.GET("/domains", api.getDomains)
+	api.routes.GET("/settings", api.getSettings)
+	api.routes.GET("/clients", api.getClients)
+	api.routes.GET("/upstreams", api.getUpstreams)
+	api.routes.GET("/preferredUpstream", api.setPreferredUpstream)
+	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)
+	api.routes.GET("/lists", api.getLists)
+	api.routes.GET("/addList", api.addList)
+	api.routes.GET("/getDomainsForList", api.getDomainsForList)
 
-	authorized.PUT("/password", api.updatePassword)
+	api.routes.PUT("/password", api.updatePassword)
 
-	authorized.DELETE("/upstreams", api.removeUpstreams)
-	authorized.DELETE("/queries", api.clearQueries)
-	authorized.DELETE("/list", api.removeList)
+	api.routes.DELETE("/upstreams", api.removeUpstreams)
+	api.routes.DELETE("/queries", api.clearQueries)
+	api.routes.DELETE("/list", api.removeList)
 }
 
 func generateRandomPassword() string {

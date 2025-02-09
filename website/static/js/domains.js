@@ -25,7 +25,7 @@ async function handleToggleClick(event) {
   $(event.target).data("blocked", newBlockedStatus);
 
   try {
-    const blockReq = await $.get(`/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
+    const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
     showInfoNotification(blockReq.message);
 
     $(event.target).text(newBlockedStatus ? "Whitelist" : "Blacklist");
@@ -46,7 +46,7 @@ async function initializeLogTable() {
       processing: true,
       serverSide: true,
       ajax: {
-        url: "/domains",
+        url: "/api/domains",
         type: "GET",
         data: function (d) {
           return prepareRequestData(d);
@@ -88,7 +88,7 @@ async function handleAddDomain() {
   const domain = $("#domain-name").val();
   if (domain) {
     try {
-      const blockReq = await $.get(`http://localhost:8080/updateBlockStatus?domain=${domain}&blocked=true`);
+      const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=true`);
       showInfoNotification(blockReq.message);
       closeAddDomainModal();
     } catch (error) {
