@@ -15,6 +15,9 @@ publish:
 
 	docker buildx rm multiarch-builder
 
+start:
+	docker compose up -d
+
 lint:
 	golangci-lint run
 

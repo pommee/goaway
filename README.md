@@ -42,10 +42,18 @@ If the installer fails, you can manually download binaries from the [releases pa
 
 ### Option 2: Docker Installation
 
-Run goaway in a containerized environment. This requires a clone of this repository and running the following in project root:
+Run goaway in a containerized environment. There are two options:
 
-```bash
+First one requires a clone of this repository and running the following in project root:
+
+```shell
 make start
+```
+
+Second alternative is using the published docker image. 
+
+```shell
+docker run --name goaway -p 8080:8080 -p 53:53 pommee/goaway:latest
 ```
 
 ## 🚀 Getting Started
