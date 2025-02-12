@@ -1,3 +1,4 @@
+const cardQueriesClients = document.querySelector("#card-queries p");
 const cardQueries = document.querySelector("#card-queries .card-text");
 const cardBlocked = document.querySelector("#card-blocked .card-text");
 const cardBlockedPercentage = document.querySelector("#card-blocked-percentage .card-text");
@@ -16,6 +17,7 @@ function updateDashboardCards(status) {
   if (cardQueries.innerText !== status.total.toLocaleString()) {
     applyAnimation(cardQueries);
     cardQueries.innerText = status.total.toLocaleString();
+    cardQueriesClients.innerText = `Total queries (${status.clients} clients)`
   }
 
   if (cardBlocked.innerText !== status.blocked.toLocaleString()) {

@@ -147,6 +147,12 @@ func (apiServer *API) handleMetrics(c *gin.Context) {
 		percentageBlocked = (float64(blockedQueries) / float64(totalQueries)) * 100
 	}
 
+	var clientCount int
+	err := apiServer.DnsServer.DB.QueryRow(`SELECT COUNT(DISTINCT client_ip) FROM request_log`).Scan(&clientCount)
+	if err != nil {
+		clientCount = 0
+	}
+
 	domainsLength, _ := apiServer.DnsServer.Blacklist.CountDomains()
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowedQueries,
@@ -154,6 +160,7 @@ func (apiServer *API) handleMetrics(c *gin.Context) {
 		"total":             totalQueries,
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    domainsLength,
+		"clients":           clientCount,
 	})
 }
 
