@@ -242,7 +242,7 @@ func (s *DNSServer) resolve(domain string) ([]dns.RR, bool, string) {
 	if cached, found := s.cache.Load(domain); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			log.Debug("Cached response for %s", domain)
-			return ipAddresses, true, "UNKNOWN"
+			return ipAddresses, true, "NoError"
 		}
 	}
 
