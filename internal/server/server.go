@@ -322,7 +322,7 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 	log.Info("Blocked: %s", domain)
 
 	msg.Rcode = dns.RcodeSuccess
-	var status = "NONE"
+	var status = "Blacklisted"
 
 	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
