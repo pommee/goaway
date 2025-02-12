@@ -20,6 +20,27 @@ import (
 )
 
 var log = logging.GetLogger()
+var rcodes = map[int]string{
+	dns.RcodeSuccess:        "NoError",
+	dns.RcodeFormatError:    "FormErr",
+	dns.RcodeServerFailure:  "ServFail",
+	dns.RcodeNameError:      "NXDomain",
+	dns.RcodeNotImplemented: "NotImp",
+	dns.RcodeRefused:        "Refused",
+	dns.RcodeYXDomain:       "YXDomain",
+	dns.RcodeYXRrset:        "YXRRSet",
+	dns.RcodeNXRrset:        "NXRRSet",
+	dns.RcodeNotAuth:        "NotAuth",
+	dns.RcodeNotZone:        "NotZone",
+	dns.RcodeBadSig:         "BADSIG",
+	dns.RcodeBadKey:         "BADKEY",
+	dns.RcodeBadTime:        "BADTIME",
+	dns.RcodeBadMode:        "BADMODE",
+	dns.RcodeBadName:        "BADNAME",
+	dns.RcodeBadAlg:         "BADALG",
+	dns.RcodeBadTrunc:       "BADTRUNC",
+	dns.RcodeBadCookie:      "BADCOOKIE",
+}
 
 const batchSize = 100
 
@@ -36,6 +57,12 @@ type DNSServer struct {
 	cache               sync.Map
 	WebServer           *gin.Engine
 	logEntryChannel     chan RequestLogEntry
+}
+
+type QueryResponse struct {
+	IPAddresses []dns.RR
+	Ttl         uint32
+	Status      int
 }
 
 type cachedRecord struct {
@@ -56,6 +83,7 @@ type RequestLogEntry struct {
 	Cached         bool          `json:"cached"`
 	ResponseTimeNS time.Duration `json:"responseTimeNS"`
 	ClientInfo     *Client       `json:"client"`
+	Status         string        `json:"status"`
 }
 
 type Client struct {
@@ -180,7 +208,7 @@ func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dn
 }
 
 func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	answers, cached := s.resolve(question.Name)
+	answers, cached, status := s.resolve(question.Name)
 	msg.Answer = append(msg.Answer, answers...)
 	_ = w.WriteMsg(msg)
 
@@ -206,23 +234,24 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 		Cached:         cached,
 		ResponseTimeNS: time.Since(timestamp),
 		ClientInfo:     &Client{IP: clientIP, Name: clientName},
+		Status:         status,
 	}
 }
 
-func (s *DNSServer) resolve(domain string) ([]dns.RR, bool) {
+func (s *DNSServer) resolve(domain string) ([]dns.RR, bool, string) {
 	if cached, found := s.cache.Load(domain); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			log.Debug("Cached response for %s", domain)
-			return ipAddresses, true
+			return ipAddresses, true, "UNKNOWN"
 		}
 	}
 
-	ipAddresses, ttl := s.queryUpstream(domain)
+	ipAddresses, ttl, status := s.queryUpstream(domain)
 	if len(ipAddresses) > 0 {
 		s.cacheRecord(domain, ipAddresses, ttl)
 	}
 
-	return ipAddresses, false
+	return ipAddresses, false, status
 }
 
 func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
@@ -244,9 +273,12 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 	})
 }
 
-func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32) {
-	var ipAddresses []dns.RR
-	var ttl uint32
+func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32, string) {
+	var (
+		ipAddresses []dns.RR
+		ttl         uint32
+		status      = "SERVFAIL"
+	)
 	done := make(chan struct{})
 
 	go func() {
@@ -265,6 +297,10 @@ func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32) {
 				continue
 			}
 
+			if statusStr, ok := rcodes[in.Rcode]; ok {
+				status = statusStr
+			}
+
 			ipAddresses = append(ipAddresses, in.Answer...)
 			if len(in.Answer) > 0 && ttl == 0 {
 				ttl = in.Answer[0].Header().Ttl
@@ -276,15 +312,17 @@ func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
+		status = "SERVFAIL"
 	}
 
-	return ipAddresses, ttl
+	return ipAddresses, ttl, status
 }
 
 func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
 	log.Info("Blocked: %s", domain)
 
 	msg.Rcode = dns.RcodeSuccess
+	var status = "NONE"
 
 	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
@@ -319,11 +357,12 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 		Cached:         false,
 		ResponseTimeNS: time.Since(timestamp),
 		ClientInfo:     &Client{IP: clientIP, Name: clientName},
+		Status:         status,
 	}
 }
 
 func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
-	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name FROM request_log")
+	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status FROM request_log")
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +418,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		}
 	}()
 
-	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs %v", err)
 		return
@@ -388,7 +427,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 
 	for _, entry := range entries {
 		if _, err := stmt.Exec(
-			entry.Timestamp.Unix(), entry.Domain, strings.Join(entry.IP, ","), entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name,
+			entry.Timestamp.Unix(), entry.Domain, strings.Join(entry.IP, ","), entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name, entry.Status,
 		); err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return

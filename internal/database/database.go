@@ -25,7 +25,8 @@ func Initialize() (*Session, error) {
             cached BOOLEAN NOT NULL,
             response_time_ns INTEGER NOT NULL,
             client_ip TEXT,
-            client_name TEXT
+            client_name TEXT,
+			status TEXT
         );
     `)
 	if err != nil {

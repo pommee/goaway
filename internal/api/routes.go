@@ -217,7 +217,7 @@ func (apiServer *API) getQueries(c *gin.Context) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name
+		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status
 		FROM request_log
 		WHERE domain LIKE ?
 		ORDER BY %s %s
@@ -240,7 +240,7 @@ func (apiServer *API) getQueries(c *gin.Context) {
 		if err := rows.Scan(
 			&query.Timestamp, &query.Domain, &ipString,
 			&query.Blocked, &query.Cached, &query.ResponseTimeNS,
-			&query.ClientInfo.IP, &query.ClientInfo.Name,
+			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status,
 		); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

@@ -22,7 +22,8 @@ function prepareRequestData(d) {
 }
 
 function renderStatusAndResponseTime(data) {
-  const status = data.blocked ? "Blocked" : data.cached ? "OK (cached)" : "OK (forwarded)";
+  var status = data.blocked ? "Blocked" : data.cached ? "OK (cached)" : "OK (forwarded)";
+  status = `${status} ${data.status}`
   const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
   return `${status}<br>${responseTime} ms`;
 }
