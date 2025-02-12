@@ -78,7 +78,7 @@ func LoadSettings() (Config, error) {
 	path = filepath.Join(path, "settings.json")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Println("Settings file not found. Fetching from remote source...")
+		log.Info("Settings file not found. Fetching from remote source...")
 		if err := fetchAndSaveSettings(path); err != nil {
 			return Config{}, fmt.Errorf("failed to fetch settings: %w", err)
 		}
