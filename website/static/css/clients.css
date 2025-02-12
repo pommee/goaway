@@ -2,7 +2,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    justify-content: start;
+    justify-content: flex-start;
 }
 
 .client-card {
@@ -10,20 +10,29 @@
     border-radius: 8px;
     width: 300px;
     text-align: center;
+    padding: 12px;
+    transition: transform 0.2s ease-in-out;
 }
 
-.client-card .client-card-header {
+.client-card:hover {
+    transform: scale(1.02);
+    cursor: pointer;
+}
+
+.client-card-header {
     margin-bottom: 8px;
+    font-weight: bold;
 }
 
-.client-card .client-card-subheader {
+.client-card-subheader {
     color: gray;
+    font-size: 0.9rem;
 }
 
-.client-card .client-card-footer {
+.client-card-footer {
     margin-top: 12px;
-    font-size: 0.9rem;
-    color: #888;
+    font-size: 0.85rem;
+    color: #666;
 }
 
 .modal {
@@ -45,7 +54,7 @@
     border: 1px solid var(--border-color);
     backdrop-filter: blur(4px);
     width: 60%;
-    height: 60%;
+    max-width: 600px;
     padding: 20px;
     text-align: center;
     position: relative;
@@ -53,10 +62,16 @@
 
 .close {
     position: absolute;
-    right: 20px;
-    top: 5px;
-    font-size: 2rem;
+    right: 15px;
+    top: 10px;
+    font-size: 1.8rem;
     cursor: pointer;
+    color: var(--accent-primary);
+    transition: color 0.2s ease-in-out;
+}
+
+.close:hover {
+    color: var(--accent-secondary);
 }
 
 .action-button {
@@ -69,6 +84,37 @@
     cursor: pointer;
 }
 
-.action-button:hover {
-    background: darkblue;
+.action-button:hover,
+.action-button:focus {
+    color: var(--accent-secondary);
+    outline: none;
+}
+
+.client-stats {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.client-stats td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.modal-domains-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 4px;
+    border-radius: 5px;
+    text-align: left;
+}
+
+.domain-item {
+    font-size: 0.9rem;
+}
+
+.domain-item:last-child {
+    border-bottom: none;
 }

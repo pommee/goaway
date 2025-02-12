@@ -101,13 +101,45 @@
             <h2 id="modal-client-name"></h2>
             <p id="modal-client-ip"></p>
             <p id="modal-client-last-seen"></p>
+    
+            <table class="client-stats">
+                <tr>
+                    <td>Total Requests:</td>
+                    <td id="modal-total-requests"></td>
+                </tr>
+                <tr>
+                    <td>Unique Domains:</td>
+                    <td id="modal-unique-domains"></td>
+                </tr>
+                <tr>
+                    <td>Blocked Requests:</td>
+                    <td id="modal-blocked-requests"></td>
+                </tr>
+                <tr>
+                    <td>Cached Requests:</td>
+                    <td id="modal-cached-requests"></td>
+                </tr>
+                <tr>
+                    <td>Avg Response Time:</td>
+                    <td id="modal-avg-response-time"></td>
+                </tr>
+                <tr>
+                    <td>Most Queried Domain:</td>
+                    <td id="modal-most-queried"></td>
+                </tr>
+            </table>
+    
+            <h3>All Queried Domains</h3>
+            <div id="modal-all-domains" class="modal-domains-list"></div>
+    
             <div class="modal-actions">
-                <button id="block-client" class="action-button">TODO</button>
-                <button id="unblock-client" class="action-button">TODO</button>
-                <button id="remove-client" class="action-button">TODO</button>
+                <button id="block-client" class="action-button">WIP</button>
+                <button id="unblock-client" class="action-button">WIP</button>
+                <button id="remove-client" class="action-button">WIP</button>
             </div>
         </div>
     </div>
+    
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>

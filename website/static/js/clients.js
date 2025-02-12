@@ -10,10 +10,10 @@ const removeClientButton = document.getElementById("remove-client");
 
 async function getClients() {
   const clients = await GetRequest("/clients");
-  populateClientsTable(clients);
+  await populateClientsTable(clients);
 }
 
-function populateClientsTable(data) {
+async function populateClientsTable(data) {
   container.innerHTML = "";
 
   data.clients.forEach((client) => {
@@ -36,7 +36,7 @@ function populateClientsTable(data) {
     card.appendChild(subheader);
     card.appendChild(footer);
 
-    card.addEventListener("click", () => openModal(client));
+    card.addEventListener("click", async () => await openModal(client));
 
     container.appendChild(card);
   });
@@ -46,24 +46,38 @@ document.addEventListener("DOMContentLoaded", () => {
   getClients();
 });
 
-function openModal(client) {
+async function openModal(client) {
+  const clientDetailsReq = await GetRequest(`/clientDetails?clientIP=${client.IP}`);
+  const clientDetails = clientDetailsReq.details
+
   modal.style.display = "flex";
+
   modalClientName.textContent = `Name: ${client.Name}`;
   modalClientIP.textContent = `IP: ${client.IP}`;
   modalClientLastSeen.textContent = `Last Seen: ${formatTimestamp(client.lastSeen)}`;
+  
+  document.getElementById("modal-total-requests").textContent = clientDetails.TotalRequests;
+  document.getElementById("modal-unique-domains").textContent = clientDetails.UniqueDomains;
+  document.getElementById("modal-blocked-requests").textContent = clientDetails.BlockedRequests;
+  document.getElementById("modal-cached-requests").textContent = clientDetails.CachedRequests;
+  document.getElementById("modal-avg-response-time").textContent = `${clientDetails.AvgResponseTimeMs.toFixed(2)} ms`;
+  document.getElementById("modal-most-queried").textContent = clientDetails.MostQueriedDomain || "N/A";
 
-  blockClientButton.onclick = () => {
-    alert(`Blocking client: ${client.Name}`);
-  };
+  const domainListContainer = document.getElementById("modal-all-domains");
+  domainListContainer.innerHTML = "";
 
-  unblockClientButton.onclick = () => {
-    alert(`Unblocking client: ${client.Name}`);
-  };
-
-  removeClientButton.onclick = () => {
-    alert(`Removing client: ${client.Name}`);
-  };
+  if (clientDetails.AllDomains.length > 0) {
+      clientDetails.AllDomains.forEach((domain) => {
+          const domainItem = document.createElement("p");
+          domainItem.textContent = domain;
+          domainItem.className = "domain-item";
+          domainListContainer.appendChild(domainItem);
+      });
+  } else {
+      domainListContainer.innerHTML = "<p>No domains queried.</p>";
+  }
 }
+
 
 function closeModal() {
   modal.style.display = "none";

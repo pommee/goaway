@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -416,6 +417,82 @@ func (apiServer *API) getClients(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"clients": clients,
 	})
+}
+
+func (apiServer *API) getClientDetails(c *gin.Context) {
+	client_ip := c.DefaultQuery("clientIP", "")
+
+	var stats struct {
+		TotalRequests     int
+		UniqueDomains     int
+		BlockedRequests   int
+		CachedRequests    int
+		AvgResponseTimeMs float64
+		MostQueriedDomain string
+		LastSeen          string
+	}
+
+	err := apiServer.DnsServer.DB.QueryRow(`
+		SELECT 
+			COUNT(*),
+			COUNT(DISTINCT domain),
+			SUM(CASE WHEN blocked THEN 1 ELSE 0 END),
+			SUM(CASE WHEN cached THEN 1 ELSE 0 END),
+			AVG(response_time_ns) / 1e6,
+			MAX(timestamp)
+		FROM request_log 
+		WHERE client_ip LIKE ?`, "%"+client_ip+"%").Scan(
+		&stats.TotalRequests, &stats.UniqueDomains, &stats.BlockedRequests,
+		&stats.CachedRequests, &stats.AvgResponseTimeMs, &stats.LastSeen)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = apiServer.DnsServer.DB.QueryRow(`
+		SELECT domain FROM request_log 
+		WHERE client_ip LIKE ?
+		GROUP BY domain 
+		ORDER BY COUNT(*) DESC 
+		LIMIT 1`, "%"+client_ip+"%").Scan(&stats.MostQueriedDomain)
+
+	if err != nil && err != sql.ErrNoRows {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	rows, err := apiServer.DnsServer.DB.Query(`
+		SELECT DISTINCT domain FROM request_log WHERE client_ip LIKE ?`, "%"+client_ip+"%")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var allDomains []string
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		allDomains = append(allDomains, domain)
+	}
+
+	client := map[string]interface{}{
+		"IP":                client_ip,
+		"TotalRequests":     stats.TotalRequests,
+		"UniqueDomains":     stats.UniqueDomains,
+		"BlockedRequests":   stats.BlockedRequests,
+		"CachedRequests":    stats.CachedRequests,
+		"AvgResponseTimeMs": stats.AvgResponseTimeMs,
+		"MostQueriedDomain": stats.MostQueriedDomain,
+		"LastSeen":          stats.LastSeen,
+		"AllDomains":        allDomains,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": client})
 }
 
 func (apiServer *API) getUpstreams(c *gin.Context) {
