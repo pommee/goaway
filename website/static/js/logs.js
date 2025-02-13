@@ -28,6 +28,14 @@ function renderStatusAndResponseTime(data) {
   return `${status}<br>${responseTime} ms`;
 }
 
+function renderDomain(domain) {
+  return `
+  <div class="domain">
+    <span class="domain-ip" data-tooltip="${domain}">${domain}</span>
+  </div>
+  `;
+}
+
 function renderIP(data) {
   const ipList = data.join('\n');
   return `
@@ -129,7 +137,7 @@ async function initializeLogTable() {
       },
       columns: [
         { data: "timestamp", render: formatTimestamp },
-        { data: "domain" },
+        { data: "domain", render: renderDomain},
         { data: "ip", render: renderIP },
         { data: "client", render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}` },
         { data: null, render: renderStatusAndResponseTime },

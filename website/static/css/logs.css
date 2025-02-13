@@ -11,9 +11,11 @@
 #log-table td {
     padding: 12px 15px;
     text-align: left;
+    white-space: nowrap;
 }
 
 #log-table th {
+    max-width: 200px;
     background-color: var(--bg-primary);
     font-weight: bold;
 }
@@ -55,6 +57,14 @@
 .dataTables_length select:focus {
     outline: none;
     border-color: #888;
+}
+
+.domain-ip {
+    display: block;
+    max-width: 450px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .toggle-button {
