@@ -8,10 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -113,18 +110,33 @@
         <div class="chart-container">
             <canvas id="requestChart"></canvas>
         </div>
-        <div id="card-top-blocked-domains">
-            <p>Top Blocked Domains</p>
-            <table class="blocked-domains-table">
-                <thead>
-                    <tr>
-                        <th>Domain</th>
-                        <th>Hits</th>
-                        <th>Frequency</th>
-                    </tr>
-                </thead>
-                <tbody id="blocked-domains-body"></tbody>
-            </table>
+        <div class="card-pair-container">
+            <div id="card-top-blocked-domains">
+                <p>Top Blocked Domains</p>
+                <table class="blocked-domains-table">
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th>Hits</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blocked-domains-body"></tbody>
+                </table>
+            </div>
+            <div id="card-top-clients">
+                <p>Top Clients</p>
+                <table class="top-clients">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Requests</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-clients-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 

@@ -3,9 +3,9 @@ let queryChart = null;
 function initializeCharts() {
   const queryCtx = document.getElementById('requestChart').getContext('2d');
   
-  const labels = Array.from({length: 96}, (_, i) => {
-    const hour = Math.floor(i / 4).toString().padStart(2, '0');
-    const minute = (i % 4 * 15).toString().padStart(2, '0');
+  const labels = Array.from({length: 144}, (_, i) => {
+    const hour = Math.floor(i / 6).toString().padStart(2, '0');
+    const minute = (i % 6 * 10).toString().padStart(2, '0');
     return `${hour}:${minute}`;
   });
 
@@ -17,13 +17,13 @@ function initializeCharts() {
         {
           label: 'Blocked',
           backgroundColor: 'rgba(173, 0, 0, 0.8)',
-          data: Array(96).fill(0),
+          data: Array(144).fill(0),
           stack: 'stack0',
         },
         {
           label: 'Allowed',
           backgroundColor: 'rgba(40, 141, 0, 0.8)',
-          data: Array(96).fill(0),
+          data: Array(144).fill(0),
           stack: 'stack0',
         }
       ]
@@ -34,7 +34,7 @@ function initializeCharts() {
       plugins: {
         title: {
           display: true,
-          text: 'Requests last 24h'
+          text: 'Requests (Last 24 Hours)'
         },
       },
       scales: {
@@ -47,7 +47,10 @@ function initializeCharts() {
           ticks: {
             maxRotation: 45,
             callback: function(val) {
-              return this.getLabelForValue(val);
+              if (val % 6 === 0) {
+                return this.getLabelForValue(val);
+              }
+              return '';
             }
           }
         },
@@ -66,9 +69,9 @@ function initializeCharts() {
 
 function updateDashboard(data) {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
   
-  const intervalData = Array(96).fill().map(() => ({
+  const intervalData = Array(144).fill().map(() => ({
     blocked: 0,
     allowed: 0,
     total: 0
@@ -79,22 +82,34 @@ function updateDashboard(data) {
 
   data.queries.forEach(query => {
     const queryDate = new Date(query.timestamp);
-    if (queryDate >= startOfDay && queryDate <= now) {
-      const hour = queryDate.getHours();
-      const minute = queryDate.getMinutes();
-      const intervalIndex = (hour * 4) + Math.floor(minute / 15);
+    if (queryDate >= twentyFourHoursAgo && queryDate <= now) {
+      const minutesAgo = (now - queryDate) / (1000 * 60);
+      const intervalsAgo = Math.floor(minutesAgo / 10);
       
-      if (query.blocked) {
-        intervalData[intervalIndex].blocked++;
-        blockedQueries++;
-      } else {
-        intervalData[intervalIndex].allowed++;
+      let intervalIndex = 143 - intervalsAgo;
+      
+      if (intervalIndex >= 0 && intervalIndex < 144) {
+        if (query.blocked) {
+          intervalData[intervalIndex].blocked++;
+          blockedQueries++;
+        } else {
+          intervalData[intervalIndex].allowed++;
+        }
+        intervalData[intervalIndex].total++;
+        totalQueries++;
       }
-      intervalData[intervalIndex].total++;
-      totalQueries++;
     }
   });
 
+  const newLabels = Array.from({length: 144}, (_, i) => {
+    const minutesAgo = (143 - i) * 10;
+    const labelTime = new Date(now - minutesAgo * 60 * 1000);
+    const hour = labelTime.getHours().toString().padStart(2, '0');
+    const minute = labelTime.getMinutes().toString().padStart(2, '0');
+    return `${hour}:${minute}`;
+  });
+
+  queryChart.data.labels = newLabels;
   queryChart.data.datasets[0].data = intervalData.map(h => h.blocked);
   queryChart.data.datasets[1].data = intervalData.map(h => h.allowed);
   queryChart.update();
@@ -109,61 +124,72 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeCharts();
   getQueries();
   fetchTopBlockedDomains();
+  fetchTopClients();
+  
   setInterval(getQueries, 1000);
-  setInterval(fetchTopBlockedDomains, 1000); 
+  setInterval(fetchTopBlockedDomains, 1000);
+  setInterval(fetchTopClients, 1000);
 });
 
 document.getElementById("logout").addEventListener("click", () => Logout());
 
-function updateTopBlockedDomains(data) {
-  const tbody = document.getElementById('blocked-domains-body');
+function updateTable(data, tableId, dataKey, nameKey, countKey) {
+  const tbody = document.getElementById(tableId);
   tbody.innerHTML = '';
 
-  if (!data.domains) {
+  if (!data[dataKey]) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.style.padding = '10px';
-    cell.textContent = 'No blocked domains';
+    cell.textContent = `No ${dataKey}`;
     row.appendChild(cell);
     tbody.appendChild(row);
     return;
   }
 
-  data.domains.forEach(domain => {
-      const row = document.createElement('tr');
-      const domainCell = document.createElement('td');
-      const hitsCell = document.createElement('td');
-      const frequencyCell = document.createElement('td');
-      const frequencyBarContainer = document.createElement('div');
-      const frequencyBar = document.createElement('div');
+  data[dataKey].forEach(item => {
+    const row = document.createElement('tr');
+    const nameCell = document.createElement('td');
+    const countCell = document.createElement('td');
+    const frequencyCell = document.createElement('td');
+    const frequencyBarContainer = document.createElement('div');
+    const frequencyBar = document.createElement('div');
 
-      domainCell.textContent = domain.name;
-      hitsCell.textContent = domain.hits;
+    nameCell.textContent = item[nameKey];
+    countCell.textContent = item[countKey];
 
-      frequencyBarContainer.classList.add('frequency-bar-container');
-      frequencyBar.classList.add('frequency-bar');
-      frequencyBar.style.width = `${domain.frequency}%`;
-      frequencyBarContainer.appendChild(frequencyBar);
-      frequencyCell.appendChild(frequencyBarContainer);
+    frequencyBarContainer.classList.add('frequency-bar-container');
+    frequencyBar.classList.add('frequency-bar');
+    frequencyBar.style.width = `${item.frequency}%`;
+    frequencyBarContainer.appendChild(frequencyBar);
+    frequencyCell.appendChild(frequencyBarContainer);
 
-      row.appendChild(domainCell);
-      row.appendChild(hitsCell);
-      row.appendChild(frequencyCell);
+    row.appendChild(nameCell);
+    row.appendChild(countCell);
+    row.appendChild(frequencyCell);
 
-      tbody.appendChild(row);
+    tbody.appendChild(row);
   });
 }
 
+function fetchData(url, tableId, dataKey, nameKey, countKey) {
+  fetch(GetServerIP() + url)
+    .then(response => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    })
+    .then(data => {
+      updateTable(data, tableId, dataKey, nameKey, countKey);
+    })
+    .catch(error => {
+      console.error(`Failed to fetch data from ${url}:`, error);
+    });
+}
+
 function fetchTopBlockedDomains() {
-  fetch(GetServerIP() + "/api/topBlockedDomains")
-      .then(response => {
-          if (!response.ok) throw new Error("Network response was not ok");
-          return response.json();
-      })
-      .then(data => {
-          updateTopBlockedDomains(data);
-      })
-      .catch(error => {
-          console.error("Failed to fetch blocked domains:", error);
-      });
+  fetchData("/api/topBlockedDomains", "blocked-domains-body", "domains", "name", "hits");
+}
+
+function fetchTopClients() {
+  fetchData("/api/topClients", "top-clients-body", "clients", "client", "requestCount");
 }

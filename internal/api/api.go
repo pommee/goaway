@@ -100,6 +100,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.GET("/upstreams", api.getUpstreams)
 	api.routes.GET("/preferredUpstream", api.setPreferredUpstream)
 	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)
+	api.routes.GET("/topClients", api.getTopClients)
 	api.routes.GET("/lists", api.getLists)
 	api.routes.GET("/addList", api.addList)
 	api.routes.GET("/getDomainsForList", api.getDomainsForList)

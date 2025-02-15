@@ -735,6 +735,43 @@ func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
+func (apiServer *API) getTopClients(c *gin.Context) {
+	rows, err := apiServer.DnsServer.DB.Query(`
+		SELECT client_ip, COUNT(*) AS request_count,
+		(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM request_log)) AS frequency
+		FROM request_log
+		GROUP BY client_ip
+		ORDER BY request_count DESC
+		LIMIT 5;
+	`)
+	if err != nil {
+		log.Error("%v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var clients []map[string]interface{}
+	for rows.Next() {
+		var (
+			client_ip     string
+			request_count int
+			frequency     float32
+		)
+		if err := rows.Scan(&client_ip, &request_count, &frequency); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		clients = append(clients, map[string]interface{}{
+			"client":       client_ip,
+			"requestCount": request_count,
+			"frequency":    frequency,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"clients": clients})
+}
+
 func (apiServer *API) getLists(c *gin.Context) {
 	lists, err := apiServer.DnsServer.Blacklist.GetSourceStatistics()
 	if err != nil {
