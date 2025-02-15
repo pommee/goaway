@@ -151,6 +151,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 	msg.Authoritative = true
+	msg.RecursionAvailable = true
 
 	var wg sync.WaitGroup
 	results := make(chan RequestLogEntry, len(r.Question))
@@ -208,8 +209,14 @@ func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dn
 }
 
 func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	answers, cached, status := s.resolve(question.Name)
+	answers, cached, status := s.resolve(question.Name, question.Qtype)
 	msg.Answer = append(msg.Answer, answers...)
+
+	if len(answers) == 0 && question.Qtype == dns.TypePTR {
+		authority := s.createSOARecord(question.Name)
+		msg.Ns = append(msg.Ns, authority)
+	}
+
 	_ = w.WriteMsg(msg)
 
 	s.Counters.AllowedRequests++
@@ -222,6 +229,8 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 				resolvedIP = append(resolvedIP, rec.A.String())
 			case *dns.AAAA:
 				resolvedIP = append(resolvedIP, rec.AAAA.String())
+			case *dns.PTR:
+				resolvedIP = append(resolvedIP, rec.Ptr)
 			}
 		}
 	}
@@ -238,17 +247,36 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 	}
 }
 
-func (s *DNSServer) resolve(domain string) ([]dns.RR, bool, string) {
-	if cached, found := s.cache.Load(domain); found {
+func (s *DNSServer) createSOARecord(name string) dns.RR {
+	return &dns.SOA{
+		Hdr: dns.RR_Header{
+			Name:   name,
+			Rrtype: dns.TypeSOA,
+			Class:  dns.ClassINET,
+			Ttl:    1800,
+		},
+		Ns:      "ns1.goaway.",
+		Mbox:    "admin.goaway.",
+		Serial:  2024021500,
+		Refresh: 10000,
+		Retry:   2400,
+		Expire:  604800,
+		Minttl:  1800,
+	}
+}
+
+func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string) {
+	cacheKey := fmt.Sprintf("%s-%d", domain, qtype)
+	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			log.Debug("Cached response for %s", domain)
 			return ipAddresses, true, "NoError"
 		}
 	}
 
-	ipAddresses, ttl, status := s.queryUpstream(domain)
+	ipAddresses, ttl, status := s.queryUpstream(domain, qtype)
 	if len(ipAddresses) > 0 {
-		s.cacheRecord(domain, ipAddresses, ttl)
+		s.cacheRecord(cacheKey, ipAddresses, ttl)
 	}
 
 	return ipAddresses, false, status
@@ -273,7 +301,7 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 	})
 }
 
-func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32, string) {
+func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32, string) {
 	var (
 		ipAddresses []dns.RR
 		ttl         uint32
@@ -285,27 +313,26 @@ func (s *DNSServer) queryUpstream(domain string) ([]dns.RR, uint32, string) {
 		defer close(done)
 		c := new(dns.Client)
 
-		var queryTypes = []uint16{dns.TypeA, dns.TypeAAAA}
-		for _, q := range queryTypes {
-			m := new(dns.Msg)
-			m.SetQuestion(dns.Fqdn(domain), q)
-			m.RecursionDesired = true
+		m := new(dns.Msg)
+		m.SetQuestion(dns.Fqdn(domain), qtype)
+		m.RecursionDesired = true
 
-			in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
-			if err != nil {
-				log.Error("Resolution error for domain (%s): %v", domain, err)
-				continue
-			}
-
-			if statusStr, ok := rcodes[in.Rcode]; ok {
-				status = statusStr
-			}
-
-			ipAddresses = append(ipAddresses, in.Answer...)
-			if len(in.Answer) > 0 && ttl == 0 {
-				ttl = in.Answer[0].Header().Ttl
-			}
+		in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
+		if err != nil {
+			log.Error("Resolution error for domain (%s): %v", domain, err)
+			return
 		}
+
+		if statusStr, ok := rcodes[in.Rcode]; ok {
+			status = statusStr
+		}
+
+		ipAddresses = append(ipAddresses, in.Answer...)
+		if len(in.Answer) > 0 && ttl == 0 {
+			ttl = in.Answer[0].Header().Ttl
+		}
+
+		ipAddresses = append(ipAddresses, in.Ns...)
 	}()
 
 	select {
