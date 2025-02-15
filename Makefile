@@ -15,8 +15,12 @@ publish:
 
 	docker buildx rm multiarch-builder
 
-start:
-	docker compose up -d
+start-dev:
+	docker build --target dev-build -t goaway-dev .
+	docker run --rm --name goaway-dev -p 8080:8080 -p 6121:6121 -v ./:/app goaway-dev
+
+start-prod:
+	docker build --target prod -t goaway .
 
 lint:
 	golangci-lint run

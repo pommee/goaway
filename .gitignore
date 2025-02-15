@@ -1,5 +1,6 @@
 tmp
 requests.json
 counters.json
+goaway
 main
 *.db**
