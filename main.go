@@ -79,6 +79,7 @@ func runServer(dnsPort, webserverPort, logLevel, statisticsRetention int, disabl
 	dnsServer.UpdateCounters()
 
 	go dnsServer.ClearOldEntries()
+	//go update.PollUpdates(version)
 	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
 }
 
