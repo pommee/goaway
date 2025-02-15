@@ -84,6 +84,7 @@ type RequestLogEntry struct {
 	ResponseTimeNS time.Duration `json:"responseTimeNS"`
 	ClientInfo     *Client       `json:"client"`
 	Status         string        `json:"status"`
+	QueryType      string        `json:"queryType"`
 }
 
 type Client struct {
@@ -218,19 +219,20 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 	}
 
 	_ = w.WriteMsg(msg)
-
 	s.Counters.AllowedRequests++
 
-	var resolvedIP []string
+	var resolvedAddresses []string
 	if len(answers) > 0 {
 		for _, answer := range answers {
 			switch rec := answer.(type) {
 			case *dns.A:
-				resolvedIP = append(resolvedIP, rec.A.String())
+				resolvedAddresses = append(resolvedAddresses, rec.A.String())
 			case *dns.AAAA:
-				resolvedIP = append(resolvedIP, rec.AAAA.String())
+				resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
 			case *dns.PTR:
-				resolvedIP = append(resolvedIP, rec.Ptr)
+				resolvedAddresses = append(resolvedAddresses, rec.Ptr)
+			case *dns.CNAME:
+				resolvedAddresses = append(resolvedAddresses, rec.Target)
 			}
 		}
 	}
@@ -238,12 +240,13 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 	return RequestLogEntry{
 		Timestamp:      timestamp,
 		Domain:         question.Name,
-		IP:             resolvedIP,
+		IP:             resolvedAddresses,
 		Blocked:        false,
 		Cached:         cached,
 		ResponseTimeNS: time.Since(timestamp),
 		ClientInfo:     &Client{IP: clientIP, Name: clientName},
 		Status:         status,
+		QueryType:      dns.TypeToString[question.Qtype],
 	}
 }
 
@@ -269,17 +272,44 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 	cacheKey := fmt.Sprintf("%s-%d", domain, qtype)
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
-			log.Debug("Cached response for %s", domain)
 			return ipAddresses, true, "NoError"
 		}
 	}
 
-	ipAddresses, ttl, status := s.queryUpstream(domain, qtype)
-	if len(ipAddresses) > 0 {
-		s.cacheRecord(cacheKey, ipAddresses, ttl)
+	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
+	if len(answers) > 0 {
+		s.cacheRecord(cacheKey, answers, ttl)
 	}
 
-	return ipAddresses, false, status
+	return answers, false, status
+}
+
+func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[string]bool) ([]dns.RR, uint32, string) {
+	if visited[domain] {
+		return nil, 0, "SERVFAIL"
+	}
+	visited[domain] = true
+
+	answers, ttl, status := s.queryUpstream(domain, qtype)
+	if len(answers) == 0 {
+		cnameAnswers, cnameTTL, cnameStatus := s.queryUpstream(domain, dns.TypeCNAME)
+		if len(cnameAnswers) > 0 {
+			for _, answer := range cnameAnswers {
+				if cname, ok := answer.(*dns.CNAME); ok {
+					targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
+					if len(targetAnswers) > 0 {
+						minTTL := cnameTTL
+						if targetTTL < minTTL {
+							minTTL = targetTTL
+						}
+						return append(cnameAnswers, targetAnswers...), minTTL, targetStatus
+					}
+					return cnameAnswers, cnameTTL, cnameStatus
+				}
+			}
+		}
+	}
+	return answers, ttl, status
 }
 
 func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
@@ -445,7 +475,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		}
 	}()
 
-	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs %v", err)
 		return
@@ -454,7 +484,16 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 
 	for _, entry := range entries {
 		if _, err := stmt.Exec(
-			entry.Timestamp.Unix(), entry.Domain, strings.Join(entry.IP, ","), entry.Blocked, entry.Cached, entry.ResponseTimeNS, entry.ClientInfo.IP, entry.ClientInfo.Name, entry.Status,
+			entry.Timestamp.Unix(),
+			entry.Domain,
+			strings.Join(entry.IP, ","),
+			entry.Blocked,
+			entry.Cached,
+			entry.ResponseTimeNS,
+			entry.ClientInfo.IP,
+			entry.ClientInfo.Name,
+			entry.Status,
+			entry.QueryType,
 		); err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return

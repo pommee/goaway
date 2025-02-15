@@ -26,7 +26,8 @@ func Initialize() (*Session, error) {
             response_time_ns INTEGER NOT NULL,
             client_ip TEXT,
             client_name TEXT,
-			status TEXT
+			status TEXT,
+			query_type TEXT
         );
     `)
 	if err != nil {

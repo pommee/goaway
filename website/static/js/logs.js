@@ -141,7 +141,8 @@ async function initializeLogTable() {
         { data: "ip", render: renderIP },
         { data: "client", render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}` },
         { data: null, render: renderStatusAndResponseTime },
-        { data: null, render: renderToggleButton },
+        { data: "queryType" },
+        { data: null, render: renderToggleButton }
       ],
       order: [[0, "desc"]],
       drawCallback: function () {
