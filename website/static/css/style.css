@@ -15,7 +15,7 @@
     --text-secondary: light-dark(#52525b, #a1a1aa);
     --text-muted: light-dark(#71717a, #71717a);
     --border-color: light-dark(#e4e4e7, #2d2d33);
-    --hover-bg: light-dark(#f4f4f5, #2a2b2f);
+    --hover-bg: light-dark(#e2e2e2, #2a2b2f);
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
@@ -28,7 +28,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    margin: 16px;
+    margin: 10px 15px 0px 15px;
     padding: 8px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
