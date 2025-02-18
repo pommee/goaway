@@ -66,8 +66,8 @@
 }
 
 button {
-    background-color: #414141;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 1.1rem;
     border: none;
     padding: 8px 12px;
@@ -97,7 +97,7 @@ button {
     align-items: center;
     border-radius: 8px;
     border: 2px solid cornflowerblue;
-    background-color: #313131;
+    background-color: var(--bg-secondary);
     width: 60%;
     height: 60%;
     padding: 20px;
@@ -115,8 +115,8 @@ button {
 
 textarea {
     border-radius: 8px;
-    background-color: #515151;
-    color: #f1f1f1;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
     font-family: "JetBrains Mono", monospace;
     font-size: 1rem;
     width: 80%;
@@ -138,13 +138,13 @@ textarea:focus {
 }
 
 textarea::placeholder {
-    color: #bbb;
+    color: var(--text-muted);
     font-style: italic;
 }
 
 .save-btn {
     background-color: #4caf50;
-    color: white;
+    color: var(--text-primary);
     font-size: 1rem;
     padding: 12px 20px;
     margin-top: 20px;

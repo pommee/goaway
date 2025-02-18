@@ -31,7 +31,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #f1f1f1;
+    color: var(--text-primary);
     font-size: 1.2rem;
 }
 
@@ -45,8 +45,8 @@
 }
 
 button {
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 1rem;
     border: none;
     padding: 10px 20px;
@@ -65,7 +65,8 @@ button:focus {
     box-shadow: 0 0 8px rgba(68, 68, 68, 0.6);
 }
 
-.modal, .list-details-modal {
+.modal,
+.list-details-modal {
     display: none;
     position: fixed;
     z-index: 1000;
@@ -79,7 +80,8 @@ button:focus {
     align-items: center;
 }
 
-.modal-content, .list-details-content {
+.modal-content,
+.list-details-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -189,7 +191,8 @@ button:focus {
     background-color: #555;
 }
 
-.close, .list-details-close {
+.close,
+.list-details-close {
     position: absolute;
     right: 20px;
     top: 10px;
@@ -203,7 +206,8 @@ button:focus {
     color: #ff4c4c;
 }
 
-input, textarea {
+input,
+textarea {
     border-radius: 8px;
     background-color: #515151;
     color: #f1f1f1;
@@ -224,12 +228,14 @@ textarea {
     resize: none;
 }
 
-textarea:focus, input:focus {
+textarea:focus,
+input:focus {
     border-color: #1e90ff;
     box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
 }
 
-textarea::placeholder, input::placeholder {
+textarea::placeholder,
+input::placeholder {
     color: #bbb;
     font-style: italic;
 }

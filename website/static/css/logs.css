@@ -39,8 +39,8 @@
 /* DataTables Search Box */
 .dataTables_filter input {
     margin-bottom: 10px;
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     border: 1px solid #666;
     padding: 8px;
     border-radius: 4px;
@@ -48,8 +48,8 @@
 
 /* DataTables Length Selection */
 .dataTables_length select {
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 8px;
     border-radius: 4px;
 }
@@ -68,8 +68,8 @@
 }
 
 .toggle-button {
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     font-weight: bold;
     border: 0;
     padding: 6px;
@@ -90,8 +90,8 @@
 }
 
 #clear-logs-button {
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     font-weight: bold;
     border: 0;
     padding: 10px;

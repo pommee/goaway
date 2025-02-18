@@ -53,8 +53,8 @@
 /* DataTables Search Box */
 .dataTables_filter input {
     margin-bottom: 10px;
-    background-color: #444;
-    color: #f1f1f1;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     border: 1px solid #666;
     padding: 8px;
     border-radius: 4px;
@@ -67,8 +67,8 @@
 
 select,
 option {
-    background-color: #313131;
-    color: white;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     border: 1px solid #ccc;
 }
 
@@ -112,7 +112,7 @@ option {
 #cancel-btn {
     padding: 10px 15px;
     background-color: #444;
-    color: #f1f1f1;
+    color: var(--text-primary);
     border: none;
     cursor: pointer;
     border-radius: 4px;

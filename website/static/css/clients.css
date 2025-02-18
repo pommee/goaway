@@ -25,14 +25,14 @@
 }
 
 .client-card-subheader {
-    color: gray;
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .client-card-footer {
     margin-top: 12px;
     font-size: 0.85rem;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .modal {

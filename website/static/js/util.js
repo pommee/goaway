@@ -1,5 +1,28 @@
 const notifications = [];
 
+document.addEventListener('DOMContentLoaded', function () {
+  const themeToggle = document.querySelector('.theme-toggle');
+  const themeIcon = themeToggle.querySelector('i');
+
+  themeToggle.addEventListener('click', function () {
+    if (document.documentElement.style.colorScheme === 'light') {
+      document.documentElement.style.colorScheme = 'dark';
+      themeIcon.classList.replace('fa-moon', 'fa-sun');
+    } else {
+      document.documentElement.style.colorScheme = 'light';
+      themeIcon.classList.replace('fa-sun', 'fa-moon');
+    }
+
+    localStorage.setItem('theme', document.documentElement.style.colorScheme);
+  });
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    document.documentElement.style.colorScheme = savedTheme;
+    themeIcon.classList.replace('fa-sun', 'fa-moon');
+  }
+});
+
 if (!GetServerIP()) {
   var serverIP = document.location.origin;
   localStorage.setItem("serverIP", serverIP);
@@ -98,10 +121,10 @@ function DeleteRequest(url) {
 }
 
 try {
-  document.querySelector('.nav-toggle').addEventListener('click', function() {
+  document.querySelector('.nav-toggle').addEventListener('click', function () {
     document.querySelector('.sidenav').classList.toggle('active');
   });
-} catch(e) {
+} catch (e) {
   // ignored
 }
 
@@ -110,7 +133,7 @@ try {
     localStorage.clear();
     window.location.href = "/login.html";
   })
-  } catch(e) {
+} catch (e) {
   // ignored
 }
 

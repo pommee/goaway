@@ -24,6 +24,10 @@
                 </div>
             </div>
 
+            <button class="theme-toggle" title="Toggle theme">
+                <i class="fas fa-sun"></i>
+            </button>
+
             <div class="system-metrics">
                 <div class="metric" title="Total system CPU usage">
                     <i class="fa-solid fa-microchip"></i>
@@ -101,7 +105,7 @@
             <h2 id="modal-client-name"></h2>
             <p id="modal-client-ip"></p>
             <p id="modal-client-last-seen"></p>
-    
+
             <table class="client-stats">
                 <tr>
                     <td>Total Requests:</td>
@@ -128,10 +132,10 @@
                     <td id="modal-most-queried"></td>
                 </tr>
             </table>
-    
+
             <h3>All Queried Domains</h3>
             <div id="modal-all-domains" class="modal-domains-list"></div>
-    
+
             <div class="modal-actions">
                 <button id="block-client" class="action-button">WIP</button>
                 <button id="unblock-client" class="action-button">WIP</button>
@@ -139,7 +143,7 @@
             </div>
         </div>
     </div>
-    
+
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
