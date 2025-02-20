@@ -1,257 +1,257 @@
 .settings-list {
-    overflow-y: auto;
-    padding: 15px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
+  overflow-y: auto;
+  padding: 15px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
 }
 
 .setting-item {
-    display: flex;
-    flex-direction: column;
-    padding: 5px;
-    border-bottom: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border-bottom: 1px solid #444;
 }
 
 .setting-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .setting-item .label-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .setting-item label {
-    font-size: 18px;
-    cursor: pointer;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 .setting-item .setting-explanation {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-top: 5px;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 5px;
 }
 
 .setting-item input[type="text"],
 .setting-item input[type="number"],
 .setting-item input[type="password"] {
-    width: 120px;
-    padding: 5px;
-    font-size: 1.2rem;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid #444;
-    border-radius: 5px;
+  width: 120px;
+  padding: 5px;
+  font-size: 1.2rem;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid #444;
+  border-radius: 5px;
 }
 
 .setting-item input[type="text"]:focus,
 .setting-item input[type="number"]:focus,
 .setting-item input[type="password"]:focus {
-    outline: none;
-    border-color: #007acc;
+  outline: none;
+  border-color: #007acc;
 }
 
 .setting-item select {
-    width: 120px;
-    padding: 10px;
-    font-size: 1.2rem;
-    color: var(--text-primary);
-    background-color: transparent;
-    border: 1px solid #444;
-    border-radius: 8px;
-    outline: none;
+  width: 120px;
+  padding: 10px;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  background-color: transparent;
+  border: 1px solid #444;
+  border-radius: 8px;
+  outline: none;
 }
 
 .setting-item select:hover {
-    background-color: #3a3a3a;
-    border-color: #555;
+  background-color: #3a3a3a;
+  border-color: #555;
 }
 
 .setting-item select:focus {
-    background-color: #2e2e2e;
-    border-color: #007acc;
+  background-color: #2e2e2e;
+  border-color: #007acc;
 }
 
 .toggle {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
 }
 
 .toggle input[type="checkbox"] {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    cursor: pointer;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
 }
 
 .slider {
-    position: absolute;
-    inset: 0;
-    background-color: #444;
-    border-radius: 24px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+  position: absolute;
+  inset: 0;
+  background-color: #444;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .slider::before {
-    content: "";
-    position: absolute;
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition:
-        transform 0.3s,
-        background-color 0.3s;
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition:
+    transform 0.3s,
+    background-color 0.3s;
 }
 
-input[type="checkbox"]:checked+.slider {
-    background-color: #007acc;
+input[type="checkbox"]:checked + .slider {
+  background-color: #007acc;
 }
 
-input[type="checkbox"]:checked+.slider::before {
-    transform: translateX(26px);
+input[type="checkbox"]:checked + .slider::before {
+  transform: translateX(26px);
 }
 
 .slider:hover {
-    background-color: #555;
+  background-color: #555;
 }
 
-input[type="checkbox"]:checked+.slider:hover {
-    background-color: #005f99;
+input[type="checkbox"]:checked + .slider:hover {
+  background-color: #005f99;
 }
 
 .popup {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 300px;
-    padding: 15px;
-    background-color: #212121;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    color: white;
-    display: none;
-    z-index: 1000;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  padding: 15px;
+  background-color: #212121;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  color: white;
+  display: none;
+  z-index: 1000;
 }
 
 .popup p {
-    margin: 0 0 10px;
-    font-size: 1rem;
+  margin: 0 0 10px;
+  font-size: 1rem;
 }
 
 .popup-buttons {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 }
 
 .popup-buttons button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 #save-btn {
-    background-color: #007acc;
-    color: white;
+  background-color: #007acc;
+  color: white;
 }
 
 #dismiss-btn {
-    background-color: #444;
-    color: white;
+  background-color: #444;
+  color: white;
 }
 
 h2 {
-    color: cornflowerblue;
+  color: cornflowerblue;
 }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
-    backdrop-filter: blur(4px);
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid var(--border-color);
-    width: 80%;
-    max-width: 400px;
-    border-radius: 5px;
+  backdrop-filter: blur(4px);
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  width: 80%;
+  max-width: 400px;
+  border-radius: 5px;
 }
 
 .modal-content input[type="password"] {
-    width: 90%;
-    padding: 10px;
-    margin: 10px 0;
-    font-size: 1rem;
-    background-color: #222;
-    color: #e5e5e5;
-    border: 1px solid #444;
-    border-radius: 5px;
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 1rem;
+  background-color: #222;
+  color: #e5e5e5;
+  border: 1px solid #444;
+  border-radius: 5px;
 }
 
 .modal-content input[type="password"]:focus {
-    outline: none;
-    border-color: #007acc;
+  outline: none;
+  border-color: #007acc;
 }
 
 #password-error {
-    color: red;
-    font-size: 0.9rem;
-    margin-top: 10px;
+  color: red;
+  font-size: 0.9rem;
+  margin-top: 10px;
 }
 
 .modal-buttons {
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
 }
 
 .modal-buttons button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 #save-password-btn {
-    background-color: #007acc;
-    color: white;
+  background-color: #007acc;
+  color: white;
 }
 
 #cancel-password-btn {
-    background-color: #444;
-    color: white;
+  background-color: #444;
+  color: white;
 }
 
 #change-password-btn {
-    padding: 10px 15px;
-    background-color: #007acc;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 10px;
+  padding: 10px 15px;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 #change-password-btn:hover {
-    background-color: #005f99;
+  background-color: #005f99;
 }

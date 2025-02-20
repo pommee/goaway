@@ -1,25 +1,25 @@
 const notifications = [];
 
-document.addEventListener('DOMContentLoaded', function () {
-  const themeToggle = document.querySelector('.theme-toggle');
-  const themeIcon = themeToggle.querySelector('i');
+document.addEventListener("DOMContentLoaded", function () {
+  const themeToggle = document.querySelector(".theme-toggle");
+  const themeIcon = themeToggle.querySelector("i");
 
-  themeToggle.addEventListener('click', function () {
-    if (document.documentElement.style.colorScheme === 'light') {
-      document.documentElement.style.colorScheme = 'dark';
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
+  themeToggle.addEventListener("click", function () {
+    if (document.documentElement.style.colorScheme === "light") {
+      document.documentElement.style.colorScheme = "dark";
+      themeIcon.classList.replace("fa-moon", "fa-sun");
     } else {
-      document.documentElement.style.colorScheme = 'light';
-      themeIcon.classList.replace('fa-sun', 'fa-moon');
+      document.documentElement.style.colorScheme = "light";
+      themeIcon.classList.replace("fa-sun", "fa-moon");
     }
 
-    localStorage.setItem('theme', document.documentElement.style.colorScheme);
+    localStorage.setItem("theme", document.documentElement.style.colorScheme);
   });
 
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = localStorage.getItem("theme");
   if (savedTheme) {
     document.documentElement.style.colorScheme = savedTheme;
-    themeIcon.classList.replace('fa-sun', 'fa-moon');
+    themeIcon.classList.replace("fa-sun", "fa-moon");
   }
 });
 
@@ -44,7 +44,11 @@ function GetRequest(url) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -74,7 +78,11 @@ function PostRequest(url, body) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -103,7 +111,11 @@ function DeleteRequest(url) {
       .then((response) => {
         if (response.status >= 400) {
           if (response.status === 401) {
-            showPersistentNotification("Info", "info", "You have been logged out. Please log in again.");
+            showPersistentNotification(
+              "Info",
+              "info",
+              "You have been logged out. Please log in again.",
+            );
             localStorage.clear();
             window.location.href = "/login.html";
           }
@@ -121,8 +133,8 @@ function DeleteRequest(url) {
 }
 
 try {
-  document.querySelector('.nav-toggle').addEventListener('click', function () {
-    document.querySelector('.sidenav').classList.toggle('active');
+  document.querySelector(".nav-toggle").addEventListener("click", function () {
+    document.querySelector(".sidenav").classList.toggle("active");
   });
 } catch (e) {
   // ignored
@@ -132,7 +144,7 @@ try {
   document.getElementById("logout").addEventListener("click", async () => {
     localStorage.clear();
     window.location.href = "/login.html";
-  })
+  });
 } catch (e) {
   // ignored
 }
@@ -154,7 +166,10 @@ function showNotification(headerMessage, type, ...message) {
 
   document.body.appendChild(notification);
 
-  const offset = notifications.reduce((acc, el) => acc + el.offsetHeight + 10, 0);
+  const offset = notifications.reduce(
+    (acc, el) => acc + el.offsetHeight + 10,
+    0,
+  );
   notification.style.bottom = `${10 + offset}px`;
   notifications.push(notification);
 
@@ -166,7 +181,9 @@ function showNotification(headerMessage, type, ...message) {
     notification.remove();
     notifications.splice(notifications.indexOf(notification), 1);
     notifications.forEach((el, i) => {
-      const newOffset = notifications.slice(0, i).reduce((acc, el) => acc + el.offsetHeight + 10, 0);
+      const newOffset = notifications
+        .slice(0, i)
+        .reduce((acc, el) => acc + el.offsetHeight + 10, 0);
       el.style.bottom = `${10 + newOffset}px`;
     });
   }, 6000);
@@ -191,7 +208,10 @@ function showPersistentNotification(headerMessage, type, ...message) {
     message: message.join(" "),
   };
 
-  localStorage.setItem("persistentNotification", JSON.stringify(notificationData));
+  localStorage.setItem(
+    "persistentNotification",
+    JSON.stringify(notificationData),
+  );
 
   showNotification(headerMessage, type, ...message);
 }

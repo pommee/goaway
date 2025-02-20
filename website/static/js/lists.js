@@ -32,9 +32,14 @@ saveNewListBtn.addEventListener("click", async () => {
 
   if (name && url) {
     try {
-      const response = await fetch(`/api/addList?name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`, {
-        method: "GET",
-      });
+      const response = await fetch(
+        `/api/addList?name=${encodeURIComponent(
+          name,
+        )}&url=${encodeURIComponent(url)}`,
+        {
+          method: "GET",
+        },
+      );
 
       if (response.ok) {
         showInfoNotification("New list added successfully!");
@@ -101,8 +106,8 @@ function showListDetails(listName) {
   `;
 
   fetch(`/api/getDomainsForList?list=${listName}`)
-    .then(response => response.json())
-    .then(data => {
+    .then((response) => response.json())
+    .then((data) => {
       const domains = data.domains;
       const table = document.createElement("table");
       table.id = "domains-table";
@@ -115,7 +120,7 @@ function showListDetails(listName) {
         </tr>
       `;
       const tbody = document.createElement("tbody");
-      domains.forEach(domain => {
+      domains.forEach((domain) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${domain}</td>
@@ -128,24 +133,26 @@ function showListDetails(listName) {
       listDetailsContent.appendChild(table);
     });
 
-  document.getElementById("removeListBtn").addEventListener("click", async () => {
-    try {
-      const response = await fetch(`/api/list?name=${listName}`, {
-        method: "DELETE",
-      });
+  document
+    .getElementById("removeListBtn")
+    .addEventListener("click", async () => {
+      try {
+        const response = await fetch(`/api/list?name=${listName}`, {
+          method: "DELETE",
+        });
 
-      if (response.ok) {
-        showInfoNotification("List removed successfully!");
-        listDetailsModal.style.display = "none";
-        getLists();
-      } else {
-        const errorData = await response.json();
-        showErrorNotification(errorData.error);
+        if (response.ok) {
+          showInfoNotification("List removed successfully!");
+          listDetailsModal.style.display = "none";
+          getLists();
+        } else {
+          const errorData = await response.json();
+          showErrorNotification(errorData.error);
+        }
+      } catch (error) {
+        showErrorNotification("Error removing list.");
       }
-    } catch (error) {
-      showErrorNotification("Error removing list.");
-    }
-  });
+    });
 
   listDetailsModal.style.display = "flex";
 }
@@ -159,7 +166,6 @@ window.onclick = (event) => {
     document.getElementById("list-details-modal").style.display = "none";
   }
 };
-
 
 updateCustomBtn.addEventListener("click", () => updateCustomList());
 
@@ -190,7 +196,9 @@ async function saveCustom() {
     .filter((list) => {
       if (list === "") return false;
       if (!validListPattern.test(list)) {
-        showErrorNotification(`Invalid list: "${list}" contains invalid characters.`);
+        showErrorNotification(
+          `Invalid list: "${list}" contains invalid characters.`,
+        );
         containsInvalidList = true;
         return false;
       }
@@ -198,7 +206,10 @@ async function saveCustom() {
     });
 
   if (!containsInvalidList) {
-    response = await PostRequest("/custom", JSON.stringify({ domains: newLists }));
+    response = await PostRequest(
+      "/custom",
+      JSON.stringify({ domains: newLists }),
+    );
     closeModal();
     showInfoNotification("Updated custom list!");
   }

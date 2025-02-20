@@ -1,4 +1,4 @@
-.PHONY: publish lint example-queries dev
+.PHONY: publish lint example-queries dev format
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
@@ -20,6 +20,9 @@ start:
 
 lint:
 	golangci-lint run
+
+format:
+	npx prettier --write "website/*.{html,css,js}"
 
 example-queries:
 	@./testing/dig-domains.sh

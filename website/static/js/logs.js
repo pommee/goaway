@@ -22,8 +22,12 @@ function prepareRequestData(d) {
 }
 
 function renderStatusAndResponseTime(data) {
-  var status = data.blocked ? "Blocked" : data.cached ? "OK (cached)" : "OK (forwarded)";
-  status = `${status} ${data.status}`
+  var status = data.blocked
+    ? "Blocked"
+    : data.cached
+      ? "OK (cached)"
+      : "OK (forwarded)";
+  status = `${status} ${data.status}`;
   const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
   return `${status}<br>${responseTime} ms`;
 }
@@ -37,7 +41,7 @@ function renderDomain(domain) {
 }
 
 function renderIP(data) {
-  const ipList = data.join('\n');
+  const ipList = data.join("\n");
   return `
   <div class="ip-container">
     <span class="ip" data-tooltip="${ipList}">${data[0]}</span>
@@ -58,15 +62,21 @@ async function handleToggleClick(event) {
   $(event.target).data("blocked", newBlockedStatus);
 
   try {
-    const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
+    const blockReq = await $.get(
+      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`,
+    );
     showInfoNotification(blockReq.message);
 
     $(event.target).text(newBlockedStatus ? "Whitelist" : "Blacklist");
     const buttonClass = newBlockedStatus ? "blocked-true" : "blocked-false";
-    $(event.target).removeClass("blocked-true blocked-false").addClass(buttonClass);
+    $(event.target)
+      .removeClass("blocked-true blocked-false")
+      .addClass(buttonClass);
 
     const row = $(`#log-table tr:contains(${domain})`);
-    newBlockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+    newBlockedStatus
+      ? row.addClass("wasBlocked")
+      : row.removeClass("wasBlocked");
   } catch (error) {
     console.error("Error updating block status:", error);
     showErrorNotification("Failed to update block status. Please try again.");
@@ -92,17 +102,17 @@ async function handleClearLogsClick() {
   confirmButton.onclick = async function () {
     try {
       await $.ajax({
-        url: '/api/queries',
-        type: 'DELETE'
+        url: "/api/queries",
+        type: "DELETE",
       });
 
-      const table = $('#log-table').DataTable();
+      const table = $("#log-table").DataTable();
       table.destroy();
       await initializeLogTable();
-      showInfoNotification('Logs cleared successfully.');
+      showInfoNotification("Logs cleared successfully.");
     } catch (error) {
-      console.error('Error clearing logs:', error);
-      showErrorNotification('Failed to clear logs. Please try again.');
+      console.error("Error clearing logs:", error);
+      showErrorNotification("Failed to clear logs. Please try again.");
     } finally {
       modal.style.display = "none";
     }
@@ -137,32 +147,38 @@ async function initializeLogTable() {
       },
       columns: [
         { data: "timestamp", render: formatTimestamp },
-        { data: "domain", render: renderDomain},
+        { data: "domain", render: renderDomain },
         { data: "ip", render: renderIP },
-        { data: "client", render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}` },
+        {
+          data: "client",
+          render: (data) => `${data.Name || "Unknown"} | ${data.IP || "N/A"}`,
+        },
         { data: null, render: renderStatusAndResponseTime },
         { data: "queryType" },
-        { data: null, render: renderToggleButton }
+        { data: null, render: renderToggleButton },
       ],
       order: [[0, "desc"]],
       drawCallback: function () {
         $("#log-table tbody tr").each(function () {
           const row = $(this);
           const blockedStatus = row.find("td").eq(4).text().includes("Blocked");
-          blockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+          blockedStatus
+            ? row.addClass("wasBlocked")
+            : row.removeClass("wasBlocked");
         });
 
         $(".toggle-button").each(function () {
           const button = $(this);
           const blocked = button.data("blocked");
           const buttonClass = blocked ? "blocked-true" : "blocked-false";
-          button.removeClass("blocked-true blocked-false").addClass(buttonClass);
+          button
+            .removeClass("blocked-true blocked-false")
+            .addClass(buttonClass);
         });
       },
     });
   });
 }
-
 
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeLogTable();

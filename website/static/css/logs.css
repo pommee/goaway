@@ -1,188 +1,188 @@
 #log-table {
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 #log-table th,
 #log-table td {
-    padding: 12px 15px;
-    text-align: left;
-    white-space: nowrap;
+  padding: 12px 15px;
+  text-align: left;
+  white-space: nowrap;
 }
 
 #log-table th {
-    max-width: 200px;
-    background-color: var(--bg-primary);
-    font-weight: bold;
+  max-width: 200px;
+  background-color: var(--bg-primary);
+  font-weight: bold;
 }
 
 #log-table tr td {
-    color: #00bf36;
+  color: #00bf36;
 }
 
 #log-table tr.wasBlocked td {
-    color: #b30404;
+  color: #b30404;
 }
 
 #log-table tr {
-    font-size: 0.8rem;
+  font-size: 0.8rem;
 }
 
 #log-table tbody tr:hover {
-    background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary);
 }
 
 /* DataTables Search Box */
 .dataTables_filter input {
-    margin-bottom: 10px;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid #666;
-    padding: 8px;
-    border-radius: 4px;
+  margin-bottom: 10px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
 }
 
 /* DataTables Length Selection */
 .dataTables_length select {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    padding: 8px;
-    border-radius: 4px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px;
+  border-radius: 4px;
 }
 
 .dataTables_length select:focus {
-    outline: none;
-    border-color: #888;
+  outline: none;
+  border-color: #888;
 }
 
 .domain-ip {
-    display: block;
-    max-width: 450px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  display: block;
+  max-width: 450px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .toggle-button {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    font-weight: bold;
-    border: 0;
-    padding: 6px;
-    border-radius: 4px;
-    cursor: pointer;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: bold;
+  border: 0;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .toggle-button.blocked-true {
-    color: #06b839;
+  color: #06b839;
 }
 
 .toggle-button.blocked-false {
-    color: red;
+  color: red;
 }
 
 .toggle-button:hover {
-    background-color: gray;
+  background-color: gray;
 }
 
 #clear-logs-button {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    font-weight: bold;
-    border: 0;
-    padding: 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-bottom: 10px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: bold;
+  border: 0;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px;
 }
 
 #clear-logs-button:hover {
-    background-color: gray;
+  background-color: gray;
 }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgb(0, 0, 0);
-    background-color: rgba(0, 0, 0, 0.4);
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .modal-content {
-    backdrop-filter: blur(4px);
-    margin: auto;
-    padding: 20px;
-    border: 1px solid cornflowerblue;
-    width: 40%;
-    height: 30%;
-    color: #f1f1f1;
-    border-radius: 8px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding-top: 40px;
+  backdrop-filter: blur(4px);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid cornflowerblue;
+  width: 40%;
+  height: 30%;
+  color: #f1f1f1;
+  border-radius: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 40px;
 }
 
 .modal-buttons {
-    display: flex;
-    justify-content: space-between;
-    width: 40%;
-    margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  width: 40%;
+  margin-top: 20px;
 }
 
 .close {
-    color: #aaa;
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 35px;
-    font-weight: bold;
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 35px;
+  font-weight: bold;
 }
 
 .close:hover,
 .close:focus {
-    color: orange;
-    text-decoration: none;
-    cursor: pointer;
+  color: orange;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 #confirm-clear-logs-button {
-    background-color: green;
+  background-color: green;
 }
 
 #cancel-clear-logs-button {
-    background-color: rgb(136, 0, 0);
+  background-color: rgb(136, 0, 0);
 }
 
 #confirm-clear-logs-button,
 #cancel-clear-logs-button {
-    color: #f1f1f1;
-    font-weight: bold;
-    border: 0;
-    padding: 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin: 10px;
-    flex: 1;
-    margin: 0 10px;
+  color: #f1f1f1;
+  font-weight: bold;
+  border: 0;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 10px;
+  flex: 1;
+  margin: 0 10px;
 }
 
 #confirm-clear-logs-button:hover,
 #cancel-clear-logs-button:hover {
-    background-color: gray;
+  background-color: gray;
 }

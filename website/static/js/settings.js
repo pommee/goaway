@@ -1,4 +1,6 @@
-const inputs = document.querySelectorAll("#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select");
+const inputs = document.querySelectorAll(
+  "#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select",
+);
 const savePopup = document.getElementById("save-popup");
 const saveButton = document.getElementById("save-btn");
 const dismissButton = document.getElementById("dismiss-btn");
@@ -79,8 +81,10 @@ async function initializeSettings() {
   const cacheTTLInSeconds = settings.dns.CacheTTL;
   document.getElementById("cacheTTL").value = cacheTTLInSeconds;
   document.getElementById("logLevel").selectedIndex = settings.dns.LogLevel;
-  document.getElementById("disableLogging").checked = settings.dns.LoggingDisabled;
-  document.getElementById("statisticsRetention").value = settings.dns.StatisticsRetention;
+  document.getElementById("disableLogging").checked =
+    settings.dns.LoggingDisabled;
+  document.getElementById("statisticsRetention").value =
+    settings.dns.StatisticsRetention;
 }
 
 async function getSettings() {
@@ -91,19 +95,21 @@ async function getSettings() {
 async function saveSettings() {
   const settings = {};
 
-  document.querySelectorAll(".setting-item input, .setting-item select").forEach((input) => {
-    if (input.type === "checkbox") {
-      settings[input.id] = input.checked;
-    } else {
-      settings[input.id] = input.value;
-    }
-  });
+  document
+    .querySelectorAll(".setting-item input, .setting-item select")
+    .forEach((input) => {
+      if (input.type === "checkbox") {
+        settings[input.id] = input.checked;
+      } else {
+        settings[input.id] = input.value;
+      }
+    });
 
   if (passwordInput.value) {
     settings["password"] = passwordInput.value;
   }
 
-  await PostRequest("/settings", JSON.stringify(settings))
+  await PostRequest("/settings", JSON.stringify(settings));
 }
 
 function validatePasswords() {

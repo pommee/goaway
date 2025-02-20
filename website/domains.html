@@ -1,130 +1,152 @@
 <!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <title>goaway</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <link rel="stylesheet" href="/static/css/domains.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css"
+    />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="sidenav" class="sidenav">
-        <div class="sidenav-content">
-            <div class="top-section">
-                <img id="logo" src="/static/logo.png" />
-                <div>
-                    <p class="top-section-header">goaway</p>
-                    <p class="top-section-text">Be gone!</p>
-                </div>
-            </div>
-
-            <button class="theme-toggle" title="Toggle theme">
-                <i class="fas fa-sun"></i>
-            </button>
-
-            <div class="system-metrics">
-                <div class="metric" title="Total system CPU usage">
-                    <i class="fa-solid fa-microchip"></i>
-                    <span id="cpu-usage"></span>
-                </div>
-                <div class="metric" title="CPU temperature">
-                    <i class="fa-solid fa-temperature-half"></i>
-                    <span id="cpu-temp"></span>
-                </div>
-                <div class="metric" title="Total memory usage">
-                    <i class="fa-solid fa-memory"></i>
-                    <span id="mem-usage"></span>
-                </div>
-                <div class="metric" title="Database Size">
-                    <i class="fa-solid fa-database"></i>
-                    <span id="db-usage"></span>
-                </div>
-            </div>
-
-            <nav class="nav-links">
-                <a href="./index.html">
-                    <i class="icon fa-solid fa-house-user"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="./logs.html">
-                    <i class="icon fa-solid fa-list"></i>
-                    <span>Logs</span>
-                </a>
-                <a class="selected" href="#">
-                    <i class="icon fa-solid fa-server"></i>
-                    <span>Domains</span>
-                </a>
-                <a href="./lists.html">
-                    <i class="icon fa-solid fa-seedling"></i>
-                    <span>Lists</span>
-                </a>
-                <a href="./upstream.html">
-                    <i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>
-                    <span>Upstream</span>
-                </a>
-                <a href="./clients.html">
-                    <i class="icon fa-solid fa-users"></i>
-                    <span>Clients</span>
-                </a>
-                <a href="./settings.html">
-                    <i class="icon fa-solid fa-gears"></i>
-                    <span>Settings</span>
-                </a>
-            </nav>
-
-            <div class="bottom-links">
-                <a href="#" id="logout">
-                    <i class="icon fa-solid fa-user-xmark"></i>
-                    <span>Logout</span>
-                </a>
-                <a href="https://github.com/pommee/goaway" target="_blank" id="github-link">
-                    <i class="icon fa-brands fa-github"></i>
-                    <span>GitHub</span>
-                </a>
-            </div>
+      <div class="sidenav-content">
+        <div class="top-section">
+          <img id="logo" src="/static/logo.png" />
+          <div>
+            <p class="top-section-header">goaway</p>
+            <p class="top-section-text">Be gone!</p>
+          </div>
         </div>
+
+        <button class="theme-toggle" title="Toggle theme">
+          <i class="fas fa-sun"></i>
+        </button>
+
+        <div class="system-metrics">
+          <div class="metric" title="Total system CPU usage">
+            <i class="fa-solid fa-microchip"></i>
+            <span id="cpu-usage"></span>
+          </div>
+          <div class="metric" title="CPU temperature">
+            <i class="fa-solid fa-temperature-half"></i>
+            <span id="cpu-temp"></span>
+          </div>
+          <div class="metric" title="Total memory usage">
+            <i class="fa-solid fa-memory"></i>
+            <span id="mem-usage"></span>
+          </div>
+          <div class="metric" title="Database Size">
+            <i class="fa-solid fa-database"></i>
+            <span id="db-usage"></span>
+          </div>
+        </div>
+
+        <nav class="nav-links">
+          <a href="./index.html">
+            <i class="icon fa-solid fa-house-user"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="./logs.html">
+            <i class="icon fa-solid fa-list"></i>
+            <span>Logs</span>
+          </a>
+          <a class="selected" href="#">
+            <i class="icon fa-solid fa-server"></i>
+            <span>Domains</span>
+          </a>
+          <a href="./lists.html">
+            <i class="icon fa-solid fa-seedling"></i>
+            <span>Lists</span>
+          </a>
+          <a href="./upstream.html">
+            <i class="icon fa-solid fa-up-right-and-down-left-from-center"></i>
+            <span>Upstream</span>
+          </a>
+          <a href="./clients.html">
+            <i class="icon fa-solid fa-users"></i>
+            <span>Clients</span>
+          </a>
+          <a href="./settings.html">
+            <i class="icon fa-solid fa-gears"></i>
+            <span>Settings</span>
+          </a>
+        </nav>
+
+        <div class="bottom-links">
+          <a href="#" id="logout">
+            <i class="icon fa-solid fa-user-xmark"></i>
+            <span>Logout</span>
+          </a>
+          <a
+            href="https://github.com/pommee/goaway"
+            target="_blank"
+            id="github-link"
+          >
+            <i class="icon fa-brands fa-github"></i>
+            <span>GitHub</span>
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Main content area -->
     <div id="main">
-        <div class="page-top">
-            <h1 class="page-title">Domains</h1>
-            <p class="page-description">Blocked domains are viewed here.</p>
+      <div class="page-top">
+        <h1 class="page-title">Domains</h1>
+        <p class="page-description">Blocked domains are viewed here.</p>
+      </div>
+      <button id="add-domain-btn" onclick="openAddDomainModal()">
+        Add Domain
+      </button>
+      <div id="domains-table-container">
+        <table id="domains-table" class="display">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Toggle</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="modal">
+        <div class="modal-content">
+          <h2>Add Domain to Block List</h2>
+          <input
+            type="text"
+            id="domain-name"
+            placeholder="Enter domain to block"
+          />
+          <button id="confirm-add-domain-btn">Add Domain</button>
+          <button id="cancel-btn">Cancel</button>
         </div>
-        <button id="add-domain-btn" onclick="openAddDomainModal()">Add Domain</button>
-        <div id="domains-table-container">
-            <table id="domains-table" class="display">
-                <thead>
-                    <tr>
-                        <th>Domain</th>
-                        <th>Toggle</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="modal">
-            <div class="modal-content">
-                <h2>Add Domain to Block List</h2>
-                <input type="text" id="domain-name" placeholder="Enter domain to block" />
-                <button id="confirm-add-domain-btn">Add Domain</button>
-                <button id="cancel-btn">Cancel</button>
-            </div>
-        </div>
+      </div>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
     <script src="/static/js/domains.js"></script>
-</body>
-
+  </body>
 </html>

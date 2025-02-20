@@ -1,120 +1,120 @@
 .cards-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
 }
 
 .client-card {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    width: 300px;
-    text-align: center;
-    padding: 12px;
-    transition: transform 0.2s ease-in-out;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 300px;
+  text-align: center;
+  padding: 12px;
+  transition: transform 0.2s ease-in-out;
 }
 
 .client-card:hover {
-    transform: scale(1.02);
-    cursor: pointer;
+  transform: scale(1.02);
+  cursor: pointer;
 }
 
 .client-card-header {
-    margin-bottom: 8px;
-    font-weight: bold;
+  margin-bottom: 8px;
+  font-weight: bold;
 }
 
 .client-card-subheader {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .client-card-footer {
-    margin-top: 12px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    backdrop-filter: blur(4px);
-    width: 60%;
-    max-width: 600px;
-    padding: 20px;
-    text-align: center;
-    position: relative;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(4px);
+  width: 60%;
+  max-width: 600px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
 }
 
 .close {
-    position: absolute;
-    right: 15px;
-    top: 10px;
-    font-size: 1.8rem;
-    cursor: pointer;
-    color: var(--accent-primary);
-    transition: color 0.2s ease-in-out;
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: var(--accent-primary);
+  transition: color 0.2s ease-in-out;
 }
 
 .close:hover {
-    color: var(--accent-secondary);
+  color: var(--accent-secondary);
 }
 
 .action-button {
-    background: cornflowerblue;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 20px;
-    margin: 10px 5px;
-    cursor: pointer;
+  background: cornflowerblue;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  margin: 10px 5px;
+  cursor: pointer;
 }
 
 .action-button:hover,
 .action-button:focus {
-    color: var(--accent-secondary);
-    outline: none;
+  color: var(--accent-secondary);
+  outline: none;
 }
 
 .client-stats {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 15px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
 }
 
 .client-stats td {
-    padding: 8px;
-    border-bottom: 1px solid var(--border-color);
-    text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
 }
 
 .modal-domains-list {
-    max-height: 150px;
-    overflow-y: auto;
-    border: 1px solid var(--border-color);
-    padding: 4px;
-    border-radius: 5px;
-    text-align: left;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: 5px;
+  text-align: left;
 }
 
 .domain-item {
-    font-size: 0.9rem;
+  font-size: 0.9rem;
 }
 
 .domain-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }

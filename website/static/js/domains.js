@@ -9,7 +9,11 @@ function prepareRequestData(d) {
 }
 
 function renderStatusAndResponseTime(data) {
-  const status = data.blocked ? "Blocked" : data.cached ? "OK (cached)" : "OK (forwarded)";
+  const status = data.blocked
+    ? "Blocked"
+    : data.cached
+      ? "OK (cached)"
+      : "OK (forwarded)";
   const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
   return `${status}<br>${responseTime} ms`;
 }
@@ -25,15 +29,21 @@ async function handleToggleClick(event) {
   $(event.target).data("blocked", newBlockedStatus);
 
   try {
-    const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`);
+    const blockReq = await $.get(
+      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`,
+    );
     showInfoNotification(blockReq.message);
 
     $(event.target).text(newBlockedStatus ? "Whitelist" : "Blacklist");
     const buttonClass = newBlockedStatus ? "blocked-true" : "blocked-false";
-    $(event.target).removeClass("blocked-true blocked-false").addClass(buttonClass);
+    $(event.target)
+      .removeClass("blocked-true blocked-false")
+      .addClass(buttonClass);
 
     const row = $(`#domains-table tr:contains(${domain})`);
-    newBlockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+    newBlockedStatus
+      ? row.addClass("wasBlocked")
+      : row.removeClass("wasBlocked");
   } catch (error) {
     console.error("Error updating block status:", error);
     showErrorNotification("Failed to update block status. Please try again.");
@@ -69,14 +79,18 @@ async function initializeLogTable() {
         $("#domains-table tbody tr").each(function () {
           const row = $(this);
           const blockedStatus = row.find("td").eq(3).text().includes("Blocked");
-          blockedStatus ? row.addClass("wasBlocked") : row.removeClass("wasBlocked");
+          blockedStatus
+            ? row.addClass("wasBlocked")
+            : row.removeClass("wasBlocked");
         });
 
         $(".toggle-button").each(function () {
           const button = $(this);
           const blocked = button.data("blocked");
           const buttonClass = blocked ? "blocked-true" : "blocked-false";
-          button.removeClass("blocked-true blocked-false").addClass(buttonClass);
+          button
+            .removeClass("blocked-true blocked-false")
+            .addClass(buttonClass);
         });
       },
     });
@@ -95,7 +109,9 @@ async function handleAddDomain() {
   const domain = $("#domain-name").val();
   if (domain) {
     try {
-      const blockReq = await $.get(`/api/updateBlockStatus?domain=${domain}&blocked=true`);
+      const blockReq = await $.get(
+        `/api/updateBlockStatus?domain=${domain}&blocked=true`,
+      );
       showInfoNotification(blockReq.message);
       closeAddDomainModal();
     } catch (error) {

@@ -258,7 +258,7 @@ function fetchTopBlockedDomains() {
     "blocked-domains-body",
     "domains",
     "name",
-    "hits"
+    "hits",
   );
 }
 
@@ -268,6 +268,6 @@ function fetchTopClients() {
     "top-clients-body",
     "clients",
     "client",
-    "requestCount"
+    "requestCount",
   );
 }

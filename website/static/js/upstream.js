@@ -48,12 +48,17 @@ function populateUpstreams(upstreamsData) {
       setPreferredBtn.disabled = false;
 
       setPreferredBtn.addEventListener("click", async () => {
-        const response = await GetRequest(`/preferredUpstream?upstream=${upstream.upstream}`);
+        const response = await GetRequest(
+          `/preferredUpstream?upstream=${upstream.upstream}`,
+        );
         showInfoNotification(response.message);
 
         if (currentPreferredUpstream) {
-          const previousPreferredCard = document.querySelector(`[data-upstream="${currentPreferredUpstream}"]`);
-          const previousPreferredBtn = previousPreferredCard.querySelector(".set-preferred-btn");
+          const previousPreferredCard = document.querySelector(
+            `[data-upstream="${currentPreferredUpstream}"]`,
+          );
+          const previousPreferredBtn =
+            previousPreferredCard.querySelector(".set-preferred-btn");
           previousPreferredBtn.textContent = "Set as Preferred";
           previousPreferredBtn.disabled = false;
         }
@@ -105,7 +110,9 @@ async function saveUpstream() {
     .filter((upstream) => {
       if (upstream === "") return false;
       if (!validUpstreamPattern.test(upstream)) {
-        showErrorNotification(`Invalid upstream: "${upstream}" contains invalid characters.`);
+        showErrorNotification(
+          `Invalid upstream: "${upstream}" contains invalid characters.`,
+        );
         containsInvalidUpstream = true;
         return false;
       }
@@ -113,7 +120,10 @@ async function saveUpstream() {
     });
 
   if (!containsInvalidUpstream) {
-    response = await PostRequest("/upstreams", JSON.stringify({ upstreams: newUpstreams }));
+    response = await PostRequest(
+      "/upstreams",
+      JSON.stringify({ upstreams: newUpstreams }),
+    );
     closeModal();
     showInfoNotification("Added ", newUpstreams + " as new upstreams!");
   }

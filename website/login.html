@@ -1,55 +1,73 @@
 <!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <title>goaway - Login</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css?family=JetBrains+Mono" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/static/css/style.css" />
     <link rel="stylesheet" href="/static/css/login.css" />
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <img src="/static/logo.png" alt="GoAway Logo" />
-                <div>
-                    <h1 class="login-title">goaway</h1>
-                    <p class="top-section-text">Be gone!</p>
-                </div>
-            </div>
-
-
-            <form id="login-form">
-                <div class="input-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autocomplete="username" autofocus />
-                </div>
-
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password" />
-                </div>
-
-                <button type="submit" class="login-button">
-                    <i class="fa-solid fa-right-to-bracket"></i> Login
-                </button>
-
-                <p class="error-message" id="error-message">Invalid username or password</p>
-            </form>
-            <button class="theme-toggle" title="Toggle theme">
-                <i class="fas fa-sun"></i>
-            </button>
+      <div class="login-card">
+        <div class="login-header">
+          <img src="/static/logo.png" alt="GoAway Logo" />
+          <div>
+            <h1 class="login-title">goaway</h1>
+            <p class="top-section-text">Be gone!</p>
+          </div>
         </div>
+
+        <form id="login-form">
+          <div class="input-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              required
+              autocomplete="username"
+              autofocus
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="submit" class="login-button">
+            <i class="fa-solid fa-right-to-bracket"></i> Login
+          </button>
+
+          <p class="error-message" id="error-message">
+            Invalid username or password
+          </p>
+        </form>
+        <button class="theme-toggle" title="Toggle theme">
+          <i class="fas fa-sun"></i>
+        </button>
+      </div>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
     <script src="static/js/login.js"></script>
-</body>
-
+  </body>
 </html>
