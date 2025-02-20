@@ -112,7 +112,7 @@ function initializeCharts() {
       ],
     },
     options: {
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       layout: {
         padding: 10,
       },

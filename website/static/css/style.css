@@ -364,8 +364,8 @@ body {
 }
 
 #requestTypeChart {
-  padding: -25px 0 -25px 0;
-  margin: -25px 0 -25px 0;
+  max-width: 400px;
+  max-height: 250px;
 }
 
 .card-pair-container {
@@ -383,11 +383,11 @@ body {
   padding: 5px;
   border-radius: 12px;
   overflow-x: auto;
+}
 
-  legend {
-    padding: 0 5px 0 5px;
-    text-align: center;
-  }
+legend {
+  padding: 0 5px 0 5px;
+  text-align: center;
 }
 
 .blocked-domains-table .top-clients div {
