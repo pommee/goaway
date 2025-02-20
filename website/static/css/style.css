@@ -1,11 +1,8 @@
 :root {
   color-scheme: light dark;
 
-  transition:
-    color 0.5s ease,
-    background-color 0.5s ease,
-    border-color 0.5s ease,
-    box-shadow 0.5s ease;
+  transition: color 0.5s ease, background-color 0.5s ease,
+    border-color 0.5s ease, box-shadow 0.5s ease;
 
   --bg-primary: light-dark(#ffffff, #0f0f13);
   --bg-secondary: light-dark(#f4f4f5, #1a1b1e);
@@ -432,6 +429,10 @@ body {
   width: 100%;
 }
 
+fieldset {
+  border: 1px solid var(--border-color);
+}
+
 .frequency-bar {
   background: var(--accent-primary);
   height: 100%;
@@ -452,9 +453,7 @@ body {
   right: 16px;
   opacity: 1;
   z-index: 9999;
-  transition:
-    opacity 1s ease,
-    bottom 0.3s ease;
+  transition: opacity 1s ease, bottom 0.3s ease;
 }
 
 .notification-header {
