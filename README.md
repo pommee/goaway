@@ -50,12 +50,6 @@ First one requires a clone of this repository and running the following in proje
 make start
 ```
 
-Second alternative is using the published docker image. 
-
-```shell
-docker run --name goaway -p 8080:8080 -p 53:53 pommee/goaway:latest
-```
-
 ## 🚀 Getting Started
 
 ### Basic Usage
