@@ -5,8 +5,6 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/static/css/style.css" />
-    <link rel="stylesheet" href="/static/css/lists.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
@@ -15,6 +13,8 @@
       href="https://fonts.googleapis.com/css?family=JetBrains+Mono"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="stylesheet" href="/static/css/changelog.css" />
   </head>
 
   <body>
@@ -64,7 +64,7 @@
             <i class="icon fa-solid fa-server"></i>
             <span>Domains</span>
           </a>
-          <a class="selected" href="#">
+          <a href="./lists.html">
             <i class="icon fa-solid fa-seedling"></i>
             <span>Lists</span>
           </a>
@@ -80,7 +80,7 @@
             <i class="icon fa-solid fa-gears"></i>
             <span>Settings</span>
           </a>
-          <a href="./changelog.html">
+          <a class="selected" href="#">
             <i class="icon fa-solid fa-newspaper"></i>
             <span>Changelog</span>
           </a>
@@ -103,75 +103,15 @@
       </div>
     </div>
 
+    <!-- Main content area -->
     <div id="main">
-      <div class="page-top">
-        <h1 class="page-title">Lists</h1>
-        <p class="page-description">
-          Lists are used to specify domains you want to block.
-        </p>
-      </div>
-      <div class="button-container">
-        <button id="newListBtn">Add list</button>
-        <button id="updateCustomBtn">Update custom</button>
-      </div>
-      <div id="client-cards-container" class="cards-container"></div>
-    </div>
-
-    <div id="list-details-modal" class="list-details-modal">
-      <div id="list-details-content" class="list-details-content">
-        <span id="list-details-close" class="list-details-close">&times;</span>
-      </div>
-    </div>
-
-    <div id="modal-new-list" class="modal">
-      <div class="modal-content">
-        <span id="modal-new-list-close" class="close">&times;</span>
-        <h2>Add New List</h2>
-        <p>
-          You can find lists from various sources online. Some popular sources
-          include:
-        </p>
-        <ul>
-          <li>
-            <a href="https://github.com/StevenBlack/hosts" target="_blank"
-              >StevenBlack's hosts</a
-            >
-          </li>
-          <li>
-            <a href="https://blocklistproject.github.io/Lists/" target="_blank"
-              >The Block List Project</a
-            >
-          </li>
-          <li>
-            <a href="https://filterlists.com/" target="_blank">FilterLists</a>
-          </li>
-          <li>
-            <a href="https://firebog.net/" target="_blank">The Firebog</a>
-          </li>
-        </ul>
-        <input type="text" id="newListName" placeholder="List Name" />
-        <input type="text" id="newListURL" placeholder="List URL" />
-        <button id="saveNewListBtn" class="save-btn">Save</button>
-      </div>
-    </div>
-    <div id="modal-update-custom" class="modal">
-      <div class="modal-content">
-        <span id="modal-close" class="close">&times;</span>
-        <h2>Custom list</h2>
-        <p>
-          You can maintain custom addresses using a custom list. Simply add the
-          domain and it will be blocked.
-        </p>
-        <textarea
-          id="listsTextArea"
-          placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want&#10;..."
-        ></textarea>
-        <button id="saveListBtn" class="save-btn">Save</button>
-      </div>
+      <section id="changelog">
+        <h2>Changelog</h2>
+      </section>
     </div>
 
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
-    <script src="/static/js/lists.js"></script>
+    <script src="/static/js/changelog.js"></script>
   </body>
 </html>

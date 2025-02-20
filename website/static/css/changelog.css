@@ -1,0 +1,79 @@
+#changelog h2 {
+  font-size: 2rem;
+}
+
+.changelog-entry {
+  background-color: var(--bg-secondary);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.changelog-entry:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.changelog-entry h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.changelog-entry p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+}
+
+.changelog-entry ul {
+  list-style-type: disc;
+  margin-left: 20px;
+}
+
+.changelog-entry ul li {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+a:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+.view-release-on-github {
+  display: inline-block;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background-color: var(--bg-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-top: 20px;
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.view-release-on-github:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.view-release-on-github:active {
+  transform: translateY(0);
+}
+
+.release-date-separator {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 10px 0;
+}
