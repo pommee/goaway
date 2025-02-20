@@ -193,6 +193,35 @@ func (apiServer *API) getQueryTimestamps(c *gin.Context) {
 	})
 }
 
+func (apiServer *API) getQueryTypes(c *gin.Context) {
+	type QueryEntry struct {
+		Count     int    `json:"count"`
+		QueryType string `json:"queryType"`
+	}
+
+	rows, err := apiServer.DnsServer.DB.Query("SELECT COUNT(query_type) as count, query_type from request_log WHERE query_type NOT LIKE \"\" GROUP BY query_type ORDER BY COUNT(*) DESC")
+	if err != nil {
+		log.Error("%v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	queries := []QueryEntry{}
+	for rows.Next() {
+		var query QueryEntry
+		if err := rows.Scan(&query.Count, &query.QueryType); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		queries = append(queries, query)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"queries": queries,
+	})
+}
+
 func (apiServer *API) getQueries(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))

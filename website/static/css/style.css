@@ -240,11 +240,10 @@ body {
     position: relative;
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 20px;
+    padding: 10px;
     border-radius: 12px;
     border: 1px solid var(--border-color);
     transition: all 0.3s ease;
-    min-height: 80px;
 }
 
 .card:hover {
@@ -275,6 +274,8 @@ body {
 
 .card .card-text {
     font-size: 1.5rem;
+    padding: 0;
+    margin: 0;
     font-weight: bold;
     position: relative;
     z-index: 1;
@@ -333,11 +334,24 @@ body {
 
 .chart-container {
     background-color: var(--bg-tertiary);
-    padding: 20px;
     border-radius: 12px;
-    height: 350px;
+    height: 300px;
     margin-top: 20px;
     border: 1px solid var(--border-color);
+}
+
+.chart-types-container {
+    background-color: var(--bg-tertiary);
+    border-radius: 12px;
+    width: 20%;
+    margin: 20px 0 20px;
+    padding: 0 10px 0 10px;
+    border: 1px solid var(--border-color);
+}
+
+#requestTypeChart {
+    padding: -25px 0 -25px 0;
+    margin: -25px 0 -25px 0;
 }
 
 .card-pair-container {
@@ -350,10 +364,15 @@ body {
 #card-top-clients {
     flex: 1;
     background-color: var(--bg-tertiary);
-    padding: 20px;
+    padding: 5px;
     border-radius: 12px;
     border: 1px solid var(--border-color);
     overflow-x: auto;
+
+    p {
+        padding: 5px;
+        margin: 0;
+    }
 }
 
 .blocked-domains-table .top-clients div {
@@ -366,7 +385,7 @@ body {
 .blocked-domains-table .top-clients th {
     color: var(--text-secondary);
     font-weight: bold;
-    padding: 10px 8px;
+    padding: 5px 5px;
     border-bottom: 1px solid var(--border-color);
     white-space: nowrap;
 }
@@ -556,7 +575,6 @@ hr.rounded {
     #card-top-blocked-domains,
     #card-top-clients {
         width: 94%;
-        padding: 10px;
     }
 
     .blocked-domains-table td,

@@ -92,6 +92,7 @@ func (api *API) setupAuthorizedRoutes() {
 
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
+	api.routes.GET("/queryTypes", api.getQueryTypes)
 	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
 	api.routes.GET("/domains", api.getDomains)
 	api.routes.GET("/settings", api.getSettings)
