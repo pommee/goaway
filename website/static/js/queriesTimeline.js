@@ -79,17 +79,34 @@ function initializeCharts() {
         {
           label: "Occurrences",
           backgroundColor: [
-            "rgba(255, 99, 132, 0.5)",
-            "rgba(54, 162, 235, 0.5)",
-            "rgba(255, 206, 86, 0.5)",
-            "rgba(75, 192, 192, 0.5)",
+            "rgba(255, 99, 132, 0.8)",
+            "rgba(54, 162, 235, 0.8)",
+            "rgba(255, 206, 86, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+            "rgba(153, 102, 255, 0.8)",
+            "rgba(255, 159, 64, 0.8)",
+            "rgba(255, 99, 71, 0.8)",
+            "rgba(34, 193, 195, 0.8)",
+            "rgba(45, 135, 253, 0.8)",
+            "rgba(135, 206, 250, 0.8)",
+            "rgba(0, 128, 128, 0.8)",
+            "rgba(255, 105, 180, 0.8)",
           ],
           borderColor: [
-            "rgba(255,99,132,1)",
-            "rgba(54, 162, 235, 1)",
-            "rgba(255, 206, 86, 1)",
-            "rgba(75, 192, 192, 1)",
+            "rgba(255, 99, 132, 0.8)",
+            "rgba(54, 162, 235, 0.8)",
+            "rgba(255, 206, 86, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+            "rgba(153, 102, 255, 0.8)",
+            "rgba(255, 159, 64, 0.8)",
+            "rgba(255, 99, 71, 0.8)",
+            "rgba(34, 193, 195, 0.8)",
+            "rgba(253, 187, 45, 0.8)",
+            "rgba(135, 206, 250, 0.8)",
+            "rgba(0, 128, 128, 0.8)",
+            "rgba(255, 105, 180, 0.8)",
           ],
+
           borderWidth: 1,
         },
       ],
@@ -258,7 +275,7 @@ function fetchTopBlockedDomains() {
     "blocked-domains-body",
     "domains",
     "name",
-    "hits",
+    "hits"
   );
 }
 
@@ -268,6 +285,6 @@ function fetchTopClients() {
     "top-clients-body",
     "clients",
     "client",
-    "requestCount",
+    "requestCount"
   );
 }
