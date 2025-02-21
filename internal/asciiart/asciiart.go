@@ -15,7 +15,7 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool) {
+func AsciiArt(config settings.Config, blockedDomains int, version string, disableAuth bool) {
 	const versionSpace = 7
 
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)

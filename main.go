@@ -2,145 +2,118 @@ package main
 
 import (
 	"embed"
-	"goaway/internal/api"
-	"goaway/internal/asciiart"
-	"goaway/internal/logging"
-	"goaway/internal/server"
-	"goaway/internal/settings"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
-	"github.com/Masterminds/semver"
+	"goaway/internal/api"
+	"goaway/internal/asciiart"
+	"goaway/internal/logging"
+	"goaway/internal/server"
+	"goaway/internal/settings"
+	"goaway/internal/setup"
+
 	"github.com/miekg/dns"
 	"github.com/spf13/cobra"
 )
 
-//go:embed website/*
-var content embed.FS
-
 var (
 	version, commit, date string
 	log                   = logging.GetLogger()
+
+	//go:embed website/*
+	content embed.FS
 )
 
 func main() {
-	var dnsPort, webserverPort, logLevel, statisticsRetention int
-	var disableLogging, disableAuth bool
-
-	rootCmd := createRootCommand(&dnsPort, &webserverPort, &logLevel, &statisticsRetention, &disableLogging, &disableAuth)
-	if err := rootCmd.Execute(); err != nil {
+	if err := createRootCommand().Execute(); err != nil {
 		log.Error("Command execution failed: %s", err)
+		os.Exit(1)
 	}
 }
 
-func createRootCommand(dnsPort, webserverPort, logLevel, statisticsRetention *int, disableLogging, disableAuth *bool) *cobra.Command {
+func createRootCommand() *cobra.Command {
+	flags := setup.Flags{}
+
 	cmd := &cobra.Command{
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			runServer(*dnsPort, *webserverPort, *logLevel, *statisticsRetention, *disableLogging, *disableAuth)
+			config := setup.InitializeSettings(&flags)
+			startServer(config)
 		},
 	}
 
-	cmd.Flags().IntVar(dnsPort, "dnsport", 53, "Port for the DNS server")
-	cmd.Flags().IntVar(webserverPort, "webserverport", 8080, "Port for the web server")
-	cmd.Flags().IntVar(logLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
-	cmd.Flags().IntVar(statisticsRetention, "statisticsRetention", 1, "Number is amount of days to keep statistics")
-	cmd.Flags().BoolVar(disableLogging, "disablelogging", false, "If true, then no logs will appear in the container")
-	cmd.Flags().BoolVar(disableAuth, "auth", true, "If false, then no authentication is required for the admin dashboard")
+	cmd.Flags().IntVar(&flags.DnsPort, "dnsport", 53, "Port for the DNS server")
+	cmd.Flags().IntVar(&flags.WebserverPort, "webserverport", 8080, "Port for the web server")
+	cmd.Flags().IntVar(&flags.LogLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
+	cmd.Flags().IntVar(&flags.StatisticsRetention, "statisticsRetention", 1, "Days to keep statistics")
+	cmd.Flags().BoolVar(&flags.DisableLogging, "disablelogging", false, "Disable logging")
+	cmd.Flags().BoolVar(&flags.DisableAuth, "auth", true, "Disable authentication for admin dashboard")
 
 	return cmd
 }
 
-func runServer(dnsPort, webserverPort, logLevel, statisticsRetention int, disableLogging, disableAuth bool) {
-	config, err := settings.LoadSettings()
-
-	if err != nil {
-		log.Error("Failed to load settings: %s", err)
-		exit(1)
-	}
-
-	updateConfig(&config, dnsPort, webserverPort, logLevel, statisticsRetention, disableLogging, disableAuth)
-	config.Save()
-
-	currentVersion := getVersionOrDefault()
-
+func startServer(config settings.Config) {
+	currentVersion := setup.GetVersionOrDefault(version)
 	dnsServer, err := server.NewDNSServer(config.DNSServer)
 	if err != nil {
-		log.Error("Server initialization failed: %s", err)
-		exit(1)
+		log.Error("Failed to initialize server: %s", err)
+		os.Exit(1)
 	}
+
 	go dnsServer.ProcessLogEntries()
 
 	blockedDomains, serverInstance := dnsServer.Init()
-	asciiart.AsciiArt(&config, blockedDomains, currentVersion.Original(), disableAuth)
+	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.APIServer.Authentication)
 	dnsServer.UpdateCounters()
-
 	go dnsServer.ClearOldEntries()
-	startServices(dnsServer, serverInstance, webserverPort, disableAuth)
+
+	startServices(dnsServer, serverInstance, config)
 }
 
-func updateConfig(config *settings.Config, dnsPort, webserverPort, logLevel, statisticsRetention int, disableLogging, disableAuth bool) {
-	config.DNSServer.Port = dnsPort
-	config.DNSServer.LoggingDisabled = disableLogging
-	config.DNSServer.StatisticsRetention = statisticsRetention
-	config.APIServer.Port = webserverPort
-	config.APIServer.Authentication = disableAuth
-	config.LogLevel = logging.LogLevel(logLevel)
-	log.SetLevel(logging.LogLevel(logLevel))
-}
-
-func getVersionOrDefault() *semver.Version {
-	versionObj, err := semver.NewVersion(version)
-	if err != nil {
-		versionObj, _ = semver.NewVersion("0.0.0")
-	}
-	return versionObj
-}
-
-func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, webserverPort int, disableAuth bool) {
+func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config settings.Config) {
 	var wg sync.WaitGroup
 	errorChannel := make(chan struct{}, 1)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := serverInstance.ListenAndServe(); err != nil {
-			log.Error("DNS server failed to start: %s", err)
-			errorChannel <- struct{}{}
-		}
-	}()
+	wg.Add(2)
+	go runDNSServer(&wg, serverInstance, errorChannel)
+	go runWebServer(&wg, dnsServer, config, errorChannel)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		websiteInstance := api.API{Config: &settings.APIServerConfig{Port: webserverPort, Authentication: disableAuth}}
-		websiteInstance.Start(content, dnsServer, errorChannel)
-	}()
-
-	go func() {
-		wg.Wait()
-	}()
+	go func() { wg.Wait() }()
 
 	select {
 	case <-errorChannel:
-		log.Error("Exiting due to server failure")
-		log.Info("Help can be provided using the --help flag")
-		exit(1)
+		log.Error("Server failure detected. Exiting.")
+		os.Exit(1)
 	case <-waitForInterrupt():
-		log.Error("Received interrupt, shutting down.")
-		exit(0)
+		log.Info("Received interrupt. Shutting down.")
+		os.Exit(0)
 	}
+}
+
+func runDNSServer(wg *sync.WaitGroup, serverInstance *dns.Server, errorChannel chan struct{}) {
+	defer wg.Done()
+	if err := serverInstance.ListenAndServe(); err != nil {
+		log.Error("DNS server failed: %s", err)
+		errorChannel <- struct{}{}
+	}
+}
+
+func runWebServer(wg *sync.WaitGroup, dnsServer *server.DNSServer, config settings.Config, errorChannel chan struct{}) {
+	defer wg.Done()
+	apiServer := api.API{
+		Config: &settings.APIServerConfig{
+			Port:           config.APIServer.Port,
+			Authentication: config.APIServer.Authentication,
+		},
+	}
+	apiServer.Start(content, dnsServer, errorChannel)
 }
 
 func waitForInterrupt() chan os.Signal {
 	sigChannel := make(chan os.Signal, 1)
 	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
 	return sigChannel
-}
-
-func exit(code int) {
-	os.Exit(code)
 }
