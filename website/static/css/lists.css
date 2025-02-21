@@ -16,9 +16,7 @@
   padding: 20px;
   background-color: var(--bg-secondary);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
 }
 
@@ -177,8 +175,10 @@ button:focus {
   font-weight: bold;
 }
 
-.list-details-content tr {
+.list-details-content tr td {
   font-size: 0.8rem;
+  padding: 0 0 0 5px;
+  width: 80%;
 }
 
 .list-details-content tbody tr:nth-child(even) {
