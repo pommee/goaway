@@ -944,14 +944,13 @@ func (apiServer *API) runUpdate(c *gin.Context) {
 		flusher.Flush()
 	}
 
+	log.Info("Starting update process...")
 	err := updater.SelfUpdate()
 	if err != nil {
 		sendSSE(fmt.Sprintf("[ERROR] Update failed: %s", err.Error()))
 	} else {
 		sendSSE("[INFO] Update successful!")
 	}
-
-	sendSSE("[DONE]")
 }
 
 func getCPUTemperature() (float64, error) {
