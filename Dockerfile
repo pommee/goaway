@@ -20,4 +20,4 @@ RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh 
 
 EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
 
-CMD ["sh", "-c", "export GOAWAY_CMD='/root/goaway --dnsport=${DNS_PORT} --webserverport=${WEBSITE_PORT}' && exec ${GOAWAY_CMD}"]
+CMD /root/goaway --dnsport=${DNS_PORT} --webserverport=${WEBSITE_PORT}

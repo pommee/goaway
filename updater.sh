@@ -2,15 +2,9 @@
 
 REPO="pommee/goaway"
 BINARY_NAME="goaway"
-INSTALL_DIR="/home/$USER/dev/goaway"
+INSTALL_DIR="/home/$USER/.local/bin"
 TMP_DIR=$(mktemp -d)
-ORIGINAL_CMD="$GOAWAY_CMD"
-
-if [[ -z "$ORIGINAL_CMD" ]]; then
-    echo "Error: Could not determine the original command for $BINARY_NAME."
-    exit 1
-fi
-
+ORIGINAL_CMD=$(ps -o args= -C $BINARY_NAME | head -n 1)
 LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
 
 if ! echo "$LATEST_RELEASE" | jq empty > /dev/null 2>&1; then
