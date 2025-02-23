@@ -1,11 +1,11 @@
 #!/bin/bash
 
-REPO="pommee/goaway"
 BINARY_NAME="goaway"
-INSTALL_DIR="/home/$USER/.local/bin"
+USERNAME=$(whoami)
+INSTALL_DIR="/home/$USERNAME"
 TMP_DIR=$(mktemp -d)
 ORIGINAL_CMD=$(ps -o args= -C $BINARY_NAME | head -n 1)
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
+LATEST_RELEASE=$(curl -s "https://api.github.com/repos/pommee/goaway/releases/latest")
 LATEST_VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
 ASSET_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | endswith("linux_amd64.tar.gz")) | .browser_download_url')
 
@@ -14,24 +14,19 @@ if [[ -z "$ASSET_URL" ]]; then
     exit 1
 fi
 
-echo "Downloading $BINARY_NAME version $LATEST_VERSION..."
+echo "[INFO] Downloading $BINARY_NAME version $LATEST_VERSION..."
 curl -L -o "$TMP_DIR/$BINARY_NAME.tar.gz" "$ASSET_URL"
 
-echo "Extracting $BINARY_NAME..."
+echo "[INFO] Extracting $BINARY_NAME..."
 tar -xzf "$TMP_DIR/$BINARY_NAME.tar.gz" -C "$TMP_DIR"
 
-echo "Stopping $BINARY_NAME..."
+echo "[INFO] Stopping $BINARY_NAME..."
 pkill $BINARY_NAME
 
-echo "Moving binary $TMP_DIR/$BINARY_NAME"
-echo $ORIGINAL_CMD
-
-echo "Installing new version of $BINARY_NAME..."
+echo "[INFO] Moving binary $TMP_DIR/$BINARY_NAME"
 mv "$TMP_DIR/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
 
-echo "Restarting $BINARY_NAME..."
-
-echo "Restarting with command: $ORIGINAL_CMD"
+echo "[INFO] Starting goaway again..."
 exec $ORIGINAL_CMD
 
 rm -rf "$TMP_DIR"
