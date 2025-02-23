@@ -499,21 +499,26 @@ func (apiServer *API) getClientDetails(c *gin.Context) {
 	}
 
 	rows, err := apiServer.DnsServer.DB.Query(`
-		SELECT DISTINCT domain FROM request_log WHERE client_ip LIKE ?`, "%"+client_ip+"%")
+		SELECT domain, COUNT(*) as query_count 
+		FROM request_log 
+		WHERE client_ip LIKE ? 
+		GROUP BY domain 
+		ORDER BY query_count DESC`, "%"+client_ip+"%")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
-	var allDomains []string
+	domainQueryCounts := make(map[string]int)
 	for rows.Next() {
 		var domain string
-		if err := rows.Scan(&domain); err != nil {
+		var count int
+		if err := rows.Scan(&domain, &count); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		allDomains = append(allDomains, domain)
+		domainQueryCounts[domain] = count
 	}
 
 	client := map[string]interface{}{
@@ -525,7 +530,7 @@ func (apiServer *API) getClientDetails(c *gin.Context) {
 		"AvgResponseTimeMs": stats.AvgResponseTimeMs,
 		"MostQueriedDomain": stats.MostQueriedDomain,
 		"LastSeen":          stats.LastSeen,
-		"AllDomains":        allDomains,
+		"AllDomains":        domainQueryCounts,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"details": client})

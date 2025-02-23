@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function openModal(client) {
   const clientDetailsReq = await GetRequest(
-    `/clientDetails?clientIP=${client.IP}`,
+    `/clientDetails?clientIP=${client.IP}`
   );
   const clientDetails = clientDetailsReq.details;
 
@@ -56,7 +56,9 @@ async function openModal(client) {
 
   modalClientName.textContent = `Name: ${client.Name}`;
   modalClientIP.textContent = `IP: ${client.IP}`;
-  modalClientLastSeen.textContent = `Last Seen: ${formatTimestamp(client.lastSeen)}`;
+  modalClientLastSeen.textContent = `Last Seen: ${formatTimestamp(
+    client.lastSeen
+  )}`;
 
   document.getElementById("modal-total-requests").textContent =
     clientDetails.TotalRequests;
@@ -66,18 +68,26 @@ async function openModal(client) {
     clientDetails.BlockedRequests;
   document.getElementById("modal-cached-requests").textContent =
     clientDetails.CachedRequests;
-  document.getElementById("modal-avg-response-time").textContent =
-    `${clientDetails.AvgResponseTimeMs.toFixed(2)} ms`;
+  document.getElementById(
+    "modal-avg-response-time"
+  ).textContent = `${clientDetails.AvgResponseTimeMs.toFixed(2)} ms`;
   document.getElementById("modal-most-queried").textContent =
     clientDetails.MostQueriedDomain || "N/A";
 
   const domainListContainer = document.getElementById("modal-all-domains");
   domainListContainer.innerHTML = "";
 
-  if (clientDetails.AllDomains.length > 0) {
-    clientDetails.AllDomains.forEach((domain) => {
+  if (
+    clientDetails.AllDomains &&
+    Object.keys(clientDetails.AllDomains).length > 0
+  ) {
+    const sortedDomains = Object.entries(clientDetails.AllDomains).sort(
+      ([, countA], [, countB]) => countB - countA
+    );
+
+    sortedDomains.forEach(([domain, count]) => {
       const domainItem = document.createElement("p");
-      domainItem.textContent = domain;
+      domainItem.textContent = `${count} - ${domain}`;
       domainItem.className = "domain-item";
       domainListContainer.appendChild(domainItem);
     });
