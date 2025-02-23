@@ -18,7 +18,7 @@ COPY updater.sh /home/appuser/updater.sh
 RUN chmod +x /home/appuser/updater.sh
 
 RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin && \
-    mv /home/appuser/.local/bin/goaway /home/appuser/goaway && \
+    mv /root/.local/bin/goaway /home/appuser/goaway && \
     chmod +x /home/appuser/goaway
 
 RUN chown -R appuser:appuser /home/appuser
