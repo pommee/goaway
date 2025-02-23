@@ -63,7 +63,7 @@ function displayReleases(releases) {
   const changelogSection = document.getElementById("changelog");
   changelogSection.innerHTML = "";
 
-  releases.forEach((release) => {
+  releases.forEach((release, idx) => {
     const releaseDate = new Date(release.published_at);
     const changelogBody = release.body
       ? release.body
@@ -73,11 +73,34 @@ function displayReleases(releases) {
     const releaseElement = document.createElement("div");
     releaseElement.classList.add("changelog-entry");
 
-    releaseElement.innerHTML = `
-    <h3>${release.name}</h3>
-    <p><strong>Release Date:</strong> ${releaseDate.toLocaleDateString()}</p>
-    <hr class="release-date-separator">
-  `;
+    const headerContainer = document.createElement("div");
+    headerContainer.classList.add("release-header");
+
+    const releaseTitle = document.createElement("h3");
+    releaseTitle.textContent = release.name;
+
+    headerContainer.appendChild(releaseTitle);
+
+    if (idx === 0) {
+      const latestTag = document.createElement("div");
+      latestTag.textContent = "latest";
+      latestTag.classList.add("latest-tag");
+      headerContainer.appendChild(latestTag);
+    }
+
+    if (release.name.replace("v", "") == GetVersion()) {
+      const installedTag = document.createElement("div");
+      installedTag.textContent = "installed";
+      installedTag.classList.add("installed-tag");
+      headerContainer.appendChild(installedTag);
+    }
+
+    releaseElement.appendChild(headerContainer);
+
+    releaseElement.innerHTML += `
+      <p><strong>Release Date:</strong> ${releaseDate.toLocaleDateString()}</p>
+      <hr class="release-date-separator">
+    `;
 
     parsedChangelog.forEach((section) => {
       const sectionElement = document.createElement("div");

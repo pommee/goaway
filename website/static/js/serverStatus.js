@@ -1,3 +1,4 @@
+const serverVersion = document.getElementById("server-version");
 const cpuUsageElement = document.getElementById("cpu-usage");
 const cpuTempElement = document.getElementById("cpu-temp");
 const memoryUsageElement = document.getElementById("mem-usage");
@@ -45,13 +46,23 @@ async function getServerStatus() {
   }
 }
 
+function storeVersion(version) {
+  localStorage.setItem("version", version);
+}
+
+function GetVersion() {
+  return localStorage.getItem("version");
+}
+
 function updateHeader(serverStatus) {
-  cpuUsageElement.innerText = "CPU: " + serverStatus.cpuUsage.toFixed(1) + "%";
-  cpuTempElement.innerText =
-    "CPU temp: " + serverStatus.cpuTemp.toFixed(1) + "°";
-  memoryUsageElement.innerText =
-    "Mem: " + serverStatus.usedMemPercentage.toFixed(1) + "%";
-  dbUsageElement.innerText = "Size: " + serverStatus.dbSize.toFixed(1) + "MB";
+  storeVersion(serverStatus.version);
+  serverVersion.innerText = `v${serverStatus.version}`;
+  cpuUsageElement.innerText = `CPU: ${serverStatus.cpuUsage.toFixed(1)}%`;
+  cpuTempElement.innerText = `CPU temp: ${serverStatus.cpuTemp.toFixed(1)}°`;
+  memoryUsageElement.innerText = `Mem: ${serverStatus.usedMemPercentage.toFixed(
+    1
+  )}%`;
+  dbUsageElement.innerText = `Size: ${serverStatus.dbSize.toFixed(1)}MB`;
 }
 
 document.addEventListener("DOMContentLoaded", async function () {

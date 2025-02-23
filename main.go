@@ -108,6 +108,7 @@ func runWebServer(wg *sync.WaitGroup, dnsServer *server.DNSServer, config settin
 			Port:           config.APIServer.Port,
 			Authentication: config.APIServer.Authentication,
 		},
+		Version: version,
 	}
 	apiServer.Start(content, dnsServer, errorChannel)
 }

@@ -94,6 +94,14 @@ body {
   height: 100%;
 }
 
+#server-version {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: -5px 0 0 0;
+  padding: 0;
+}
+
 .top-section {
   display: flex;
   align-items: center;

@@ -130,6 +130,7 @@ func (apiServer *API) handleServer(c *gin.Context) {
 		"cpuUsage":          cpuUsage[0],
 		"cpuTemp":           temp,
 		"dbSize":            dbSize,
+		"version":           apiServer.Version,
 	})
 }
 

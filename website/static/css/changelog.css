@@ -77,3 +77,28 @@ a:hover {
   border-top: 1px solid var(--border-color);
   margin: 10px 0;
 }
+
+.release-header {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.latest-tag,
+.installed-tag {
+  margin-top: 10px;
+  border-radius: 6px;
+  padding: 5px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.latest-tag {
+  border: 1px solid green;
+  color: green;
+}
+
+.installed-tag {
+  border: 1px solid cornflowerblue;
+  color: cornflowerblue;
+}
