@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"goaway/internal/server"
 	"goaway/internal/settings"
+	"goaway/internal/updater"
 	"io"
 	"io/fs"
 	"net"
@@ -921,6 +922,36 @@ func (apiServer *API) updatePassword(c *gin.Context) {
 	log.Info("Password has been changed!")
 
 	c.JSON(http.StatusOK, nil)
+}
+
+func (apiServer *API) runUpdate(c *gin.Context) {
+	w := c.Writer
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming unsupported"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	sendSSE := func(message string) {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", message)
+		if err != nil {
+			return
+		}
+		flusher.Flush()
+	}
+
+	err := updater.SelfUpdate()
+	if err != nil {
+		sendSSE(fmt.Sprintf("[ERROR] Update failed: %s", err.Error()))
+	} else {
+		sendSSE("[INFO] Update successful!")
+	}
+
+	sendSSE("[DONE]")
 }
 
 func getCPUTemperature() (float64, error) {

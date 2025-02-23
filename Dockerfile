@@ -7,20 +7,17 @@ ENV DNS_PORT=${DNS_PORT}
 ENV WEBSITE_PORT=${WEBSITE_PORT}
 
 RUN apt-get update && \
-    apt-get install -y curl passwd && \
-    adduser --disabled-password --gecos "" appuser
+    apt-get install -y curl passwd jq
 
-WORKDIR /app
+WORKDIR /root
 
-RUN chown appuser:appuser /app
+COPY updater.sh /root/updater.sh
+RUN chmod +x /root/updater.sh
 
 RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin && \
-    mv /root/.local/bin/goaway /app/goaway && \
-    chmod +x /app/goaway && \
-    chown appuser:appuser /app/goaway
+    mv /root/.local/bin/goaway /root/goaway && \
+    chmod +x /root/goaway
 
 EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
 
-USER appuser
-
-CMD ["sh", "-c", "/app/goaway", "--dnsport=${DNS_PORT}", "--webserverport=${WEBSITE_PORT}"]
+CMD ["sh", "-c", "/root/goaway", "--dnsport=${DNS_PORT}", "--webserverport=${WEBSITE_PORT}"]
