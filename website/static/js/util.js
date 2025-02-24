@@ -32,6 +32,28 @@ function GetServerIP() {
   return localStorage.getItem("serverIP");
 }
 
+function ClearLocalStorage() {
+  const keysToKeep = ["lastFetchedReleases", "releasesLastFetched"];
+  const valuesToKeep = {};
+
+  keysToKeep.forEach((key) => {
+    const value = localStorage.getItem(key);
+    if (value !== null) {
+      valuesToKeep[key] = value;
+    }
+  });
+
+  Object.keys(localStorage).forEach((key) => {
+    if (!keysToKeep.includes(key)) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  Object.entries(valuesToKeep).forEach(([key, value]) => {
+    localStorage.setItem(key, value);
+  });
+}
+
 function GetRequest(url) {
   return new Promise((resolve, reject) => {
     fetch(GetServerIP() + "/api" + url, {
@@ -49,7 +71,7 @@ function GetRequest(url) {
               "info",
               "You have been logged out. Please log in again."
             );
-            localStorage.clear();
+            ClearLocalStorage();
             window.location.href = "/login.html";
           }
           throw new Error("Network response was not ok");
@@ -83,7 +105,7 @@ function PostRequest(url, body) {
               "info",
               "You have been logged out. Please log in again."
             );
-            localStorage.clear();
+            ClearLocalStorage();
             window.location.href = "/login.html";
           }
           throw new Error("Network response was not ok");
@@ -116,7 +138,7 @@ function DeleteRequest(url) {
               "info",
               "You have been logged out. Please log in again."
             );
-            localStorage.clear();
+            ClearLocalStorage();
             window.location.href = "/login.html";
           }
           throw new Error("Network response was not ok");
@@ -142,7 +164,7 @@ try {
 
 try {
   document.getElementById("logout").addEventListener("click", async () => {
-    localStorage.clear();
+    ClearLocalStorage();
     window.location.href = "/login.html";
   });
 } catch (e) {

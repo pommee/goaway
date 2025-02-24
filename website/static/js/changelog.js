@@ -1,7 +1,7 @@
 async function fetchReleases() {
   const repoUrl = "https://api.github.com/repos/pommee/goaway/releases";
 
-  const lastFetched = localStorage.getItem("lastFetched");
+  const lastFetched = localStorage.getItem("releasesLastFetched");
   const lastFetchedReleases = JSON.parse(
     localStorage.getItem("lastFetchedReleases")
   );
@@ -22,7 +22,7 @@ async function fetchReleases() {
     displayReleases(releases);
 
     localStorage.setItem("lastFetchedReleases", JSON.stringify(releases));
-    localStorage.setItem("lastFetched", now);
+    localStorage.setItem("releasesLastFetched", now);
   } catch (error) {
     console.error(error);
     document.getElementById("changelog").innerHTML =
