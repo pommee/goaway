@@ -41,21 +41,26 @@ const quotes = [
 async function getServerStatus() {
   const serverStatus = await GetRequest("/server");
 
+  saveInstalledVersion(serverStatus.version);
   if (window.location.pathname !== "/login.html") {
     updateHeader(serverStatus);
   }
 }
 
-function storeVersion(version) {
-  localStorage.setItem("version", version);
+function saveInstalledVersion(version) {
+  localStorage.setItem("installedVersion", version);
 }
 
-function GetVersion() {
-  return localStorage.getItem("version");
+function GetInstalledVersion() {
+  return localStorage.getItem("installedVersion");
+}
+
+function GetLatestVersion() {
+  return localStorage.getItem("latestVersion");
 }
 
 function updateHeader(serverStatus) {
-  storeVersion(serverStatus.version);
+  saveInstalledVersion(serverStatus.version);
   serverVersion.innerText = `v${serverStatus.version}`;
   cpuUsageElement.innerText = `CPU: ${serverStatus.cpuUsage.toFixed(1)}%`;
   cpuTempElement.innerText = `CPU temp: ${serverStatus.cpuTemp.toFixed(1)}°`;
@@ -65,7 +70,33 @@ function updateHeader(serverStatus) {
   dbUsageElement.innerText = `Size: ${serverStatus.dbSize.toFixed(1)}MB`;
 }
 
+function checkIfUpdateAvailable() {
+  function semverCompare(a, b) {
+    const pa = a.split(".").map((n) => parseInt(n, 10));
+    const pb = b.split(".").map((n) => parseInt(n, 10));
+
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const numA = pa[i] ?? 0;
+      const numB = pb[i] ?? 0;
+      if (numA > numB) return 1;
+      if (numA < numB) return -1;
+    }
+    return 0;
+  }
+  const installedVersion = GetInstalledVersion();
+  const latestVersion = GetLatestVersion();
+  const updateAvailable = semverCompare(latestVersion, installedVersion);
+
+  if (updateAvailable === 1) {
+    let indicator = document.getElementById("update-available-indicator");
+    indicator.classList.remove("hidden");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async function () {
+  try {
+    checkIfUpdateAvailable();
+  } catch {}
   await getServerStatus();
   quote();
   setInterval(async function () {

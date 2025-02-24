@@ -88,7 +88,7 @@ function displayReleases(releases) {
       headerContainer.appendChild(latestTag);
     }
 
-    if (release.name.replace("v", "") == GetVersion()) {
+    if (release.name.replace("v", "") == GetInstalledVersion()) {
       const installedTag = document.createElement("div");
       installedTag.textContent = "installed";
       installedTag.classList.add("installed-tag");

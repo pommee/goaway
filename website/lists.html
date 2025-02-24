@@ -27,6 +27,9 @@
             <p class="top-section-text">Be gone!</p>
           </div>
         </div>
+        <div class="hidden" id="update-available-indicator">
+          <button class="update-available-btn">Update available!</button>
+        </div>
 
         <button class="theme-toggle" title="Toggle theme">
           <i class="fas fa-sun"></i>
@@ -116,6 +119,23 @@
         <button id="updateCustomBtn">Update custom</button>
       </div>
       <div id="client-cards-container" class="cards-container"></div>
+      <div id="modal-update" class="modal">
+        <div class="modal-content">
+          <button id="cancelUpdate" class="cancel-button">×</button>
+          <h2 id="update-available-header">Do you want to update?</h2>
+          <p id="update-available-text"></p>
+          <a href="./changelog.html" id="changelog-link" class="changelog-link"
+            >[View changelog]</a
+          >
+          <textarea
+            id="eventLog"
+            readonly
+            unselectable="on"
+            placeholder="Update process will show information here..."
+          ></textarea>
+          <button id="confirmUpdate" class="confirm-button">Accept</button>
+        </div>
+      </div>
     </div>
 
     <div id="list-details-modal" class="list-details-modal">
@@ -174,5 +194,6 @@
     <script src="/static/js/util.js"></script>
     <script src="/static/js/serverStatus.js"></script>
     <script src="/static/js/lists.js"></script>
+    <script src="/static/js/updater.js"></script>
   </body>
 </html>

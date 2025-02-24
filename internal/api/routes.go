@@ -893,6 +893,35 @@ func (apiServer *API) getDomainsForList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
+func (apiServer *API) runUpdate(c *gin.Context) {
+	w := c.Writer
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming unsupported"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	sendSSE := func(message string) {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", message)
+		if err != nil {
+			return
+		}
+		flusher.Flush()
+	}
+
+	sendSSE("[INFO] Starting update process...")
+	err := updater.SelfUpdate(sendSSE)
+	if err != nil {
+		sendSSE(fmt.Sprintf("[ERROR] Update failed: %s", err.Error()))
+	} else {
+		sendSSE("[INFO] Update successful!")
+	}
+}
+
 func (apiServer *API) updatePassword(c *gin.Context) {
 	type PasswordChange struct {
 		CurrentPassword string `json:"currentPassword"`
@@ -922,35 +951,6 @@ func (apiServer *API) updatePassword(c *gin.Context) {
 	log.Info("Password has been changed!")
 
 	c.JSON(http.StatusOK, nil)
-}
-
-func (apiServer *API) runUpdate(c *gin.Context) {
-	w := c.Writer
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming unsupported"})
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	sendSSE := func(message string) {
-		_, err := fmt.Fprintf(w, "data: %s\n\n", message)
-		if err != nil {
-			return
-		}
-		flusher.Flush()
-	}
-
-	log.Info("Starting update process...")
-	err := updater.SelfUpdate()
-	if err != nil {
-		sendSSE(fmt.Sprintf("[ERROR] Update failed: %s", err.Error()))
-	} else {
-		sendSSE("[INFO] Update successful!")
-	}
 }
 
 func getCPUTemperature() (float64, error) {

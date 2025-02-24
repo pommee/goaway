@@ -47,7 +47,7 @@ function GetRequest(url) {
             showPersistentNotification(
               "Info",
               "info",
-              "You have been logged out. Please log in again.",
+              "You have been logged out. Please log in again."
             );
             localStorage.clear();
             window.location.href = "/login.html";
@@ -81,7 +81,7 @@ function PostRequest(url, body) {
             showPersistentNotification(
               "Info",
               "info",
-              "You have been logged out. Please log in again.",
+              "You have been logged out. Please log in again."
             );
             localStorage.clear();
             window.location.href = "/login.html";
@@ -114,7 +114,7 @@ function DeleteRequest(url) {
             showPersistentNotification(
               "Info",
               "info",
-              "You have been logged out. Please log in again.",
+              "You have been logged out. Please log in again."
             );
             localStorage.clear();
             window.location.href = "/login.html";
@@ -168,7 +168,7 @@ function showNotification(headerMessage, type, ...message) {
 
   const offset = notifications.reduce(
     (acc, el) => acc + el.offsetHeight + 10,
-    0,
+    0
   );
   notification.style.bottom = `${10 + offset}px`;
   notifications.push(notification);
@@ -210,7 +210,7 @@ function showPersistentNotification(headerMessage, type, ...message) {
 
   localStorage.setItem(
     "persistentNotification",
-    JSON.stringify(notificationData),
+    JSON.stringify(notificationData)
   );
 
   showNotification(headerMessage, type, ...message);
