@@ -408,9 +408,15 @@ func (apiServer *API) getClients(c *gin.Context) {
 	uniqueClients := make(map[string]struct {
 		Name     string
 		LastSeen time.Time
+		Mac      string
+		Vendor   string
 	})
 
-	rows, err := apiServer.DnsServer.DB.Query("SELECT client_ip, client_name, timestamp FROM request_log")
+	rows, err := apiServer.DnsServer.DB.Query(`
+		SELECT r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor
+		FROM request_log r
+		LEFT JOIN mac_addresses m ON r.client_ip = m.ip
+	`)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -423,8 +429,9 @@ func (apiServer *API) getClients(c *gin.Context) {
 	for rows.Next() {
 		var ip, name string
 		var timestamp time.Time
+		var mac, vendor sql.NullString
 
-		if err := rows.Scan(&ip, &name, &timestamp); err != nil {
+		if err := rows.Scan(&ip, &name, &timestamp, &mac, &vendor); err != nil {
 			log.Error("%v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
@@ -432,13 +439,25 @@ func (apiServer *API) getClients(c *gin.Context) {
 			return
 		}
 
+		var macStr, vendorStr string
+		if mac.Valid {
+			macStr = mac.String
+		}
+		if vendor.Valid {
+			vendorStr = vendor.String
+		}
+
 		if existing, exists := uniqueClients[ip]; !exists || timestamp.After(existing.LastSeen) {
 			uniqueClients[ip] = struct {
 				Name     string
 				LastSeen time.Time
+				Mac      string
+				Vendor   string
 			}{
 				Name:     name,
 				LastSeen: timestamp,
+				Mac:      macStr,
+				Vendor:   vendorStr,
 			}
 		}
 	}
@@ -446,9 +465,11 @@ func (apiServer *API) getClients(c *gin.Context) {
 	var clients []map[string]interface{}
 	for ip, entry := range uniqueClients {
 		clients = append(clients, map[string]interface{}{
-			"IP":       ip,
-			"Name":     entry.Name,
+			"ip":       ip,
+			"name":     entry.Name,
 			"lastSeen": entry.LastSeen,
+			"mac":      entry.Mac,
+			"vendor":   entry.Vendor,
 		})
 	}
 

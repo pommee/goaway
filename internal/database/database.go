@@ -26,7 +26,6 @@ func Initialize() (*Session, error) {
             response_time_ns INTEGER NOT NULL,
             client_ip TEXT,
             client_name TEXT,
-			mac TEXT,
 			status TEXT,
 			query_type TEXT
         );
@@ -42,6 +41,7 @@ func Initialize() (*Session, error) {
 func NewMacDatabase(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS mac_addresses (
 		mac TEXT PRIMARY KEY,
+		ip TEXT,
 		vendor TEXT
 	)`)
 	if err != nil {

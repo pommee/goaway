@@ -3,6 +3,8 @@ const modal = document.getElementById("client-modal");
 const modalClose = document.getElementById("modal-close");
 const modalClientName = document.getElementById("modal-client-name");
 const modalClientIP = document.getElementById("modal-client-ip");
+const modalClientMac = document.getElementById("modal-client-mac");
+const modalClientVendor = document.getElementById("modal-client-vendor");
 const modalClientLastSeen = document.getElementById("modal-client-last-seen");
 const blockClientButton = document.getElementById("block-client");
 const unblockClientButton = document.getElementById("unblock-client");
@@ -22,11 +24,11 @@ async function populateClientsTable(data) {
 
     const header = document.createElement("h1");
     header.className = "client-card-header";
-    header.textContent = client.Name;
+    header.textContent = client.name;
 
     const subheader = document.createElement("h4");
     subheader.className = "client-card-subheader";
-    subheader.textContent = client.IP;
+    subheader.textContent = client.ip;
 
     const footer = document.createElement("p");
     footer.className = "client-card-footer";
@@ -48,14 +50,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function openModal(client) {
   const clientDetailsReq = await GetRequest(
-    `/clientDetails?clientIP=${client.IP}`
+    `/clientDetails?clientIP=${client.ip}`
   );
   const clientDetails = clientDetailsReq.details;
 
   modal.style.display = "flex";
 
-  modalClientName.textContent = `Name: ${client.Name}`;
-  modalClientIP.textContent = `IP: ${client.IP}`;
+  modalClientName.textContent = `Name: ${client.name}`;
+  modalClientIP.textContent = `IP: ${client.ip}`;
+  modalClientMac.textContent = `Mac: ${client.mac}`;
+  modalClientVendor.textContent = `Vendor: ${client.vendor}`;
   modalClientLastSeen.textContent = `Last Seen: ${formatTimestamp(
     client.lastSeen
   )}`;

@@ -242,12 +242,12 @@ func (s *DNSServer) GetVendor(mac string) (string, error) {
 	return vendor, nil
 }
 
-func (s *DNSServer) SaveMacVendor(mac, vendor string) error {
+func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
 	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	_, err := s.DB.Exec("INSERT INTO mac_addresses (mac, vendor) VALUES (?, ?)", mac, vendor)
+	_, err := s.DB.Exec("INSERT INTO mac_addresses (ip, mac, vendor) VALUES (?, ?, ?)", clientIP, mac, vendor)
 	return err
 }
 
@@ -261,7 +261,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 			log.Debug("Lookup vendor for mac %s", macAddress)
 			vendor, err = lookupMacVendor(macAddress)
 			if err == nil {
-				s.SaveMacVendor(macAddress, vendor)
+				s.SaveMacVendor(clientIP, macAddress, vendor)
 			} else {
 				log.Warning("Error while lookup mac address vendor: %v", err)
 			}
@@ -538,7 +538,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
 }
 
 func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
-	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, mac, status FROM request_log")
+	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status FROM request_log")
 	if err != nil {
 		return nil, err
 	}
@@ -548,7 +548,7 @@ func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	for rows.Next() {
 		var entry RequestLogEntry
 		var clientIP, clientName, mac sql.NullString
-		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.IP, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName, &entry.ClientInfo.MAC); err != nil {
+		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.IP, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName); err != nil {
 			return nil, err
 		}
 		entry.ClientInfo = &Client{IP: clientIP.String, Name: clientName.String, MAC: mac.String}
@@ -594,7 +594,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		}
 	}()
 
-	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, mac, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs %v", err)
 		return
@@ -611,7 +611,6 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 			entry.ResponseTimeNS,
 			entry.ClientInfo.IP,
 			entry.ClientInfo.Name,
-			entry.ClientInfo.MAC,
 			entry.Status,
 			entry.QueryType,
 		); err != nil {

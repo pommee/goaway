@@ -35,17 +35,23 @@
   color: var(--text-muted);
 }
 
-.modal-content {
+.modal-content-client {
   border-radius: 8px;
   border: 1px solid var(--border-color);
   backdrop-filter: blur(4px);
   width: 50%;
-  height: 80vh;
-  padding: 30px;
+  height: 90vh;
+  padding: 20px;
   text-align: center;
   position: relative;
   display: flex;
   flex-direction: column;
+
+  p {
+    padding: 0;
+    margin: 2px 0 0 0;
+    color: var(--text-muted);
+  }
 }
 
 .modal-domains-list {
@@ -116,6 +122,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 15px;
+  margin-top: 20px;
 }
 
 .client-stats td {
