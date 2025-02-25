@@ -87,6 +87,14 @@ type RequestLogEntry struct {
 	QueryType      string        `json:"queryType"`
 }
 
+type Request struct {
+	w         dns.ResponseWriter
+	msg       *dns.Msg
+	question  dns.Question
+	timestamp time.Time
+	client    *Client
+}
+
 type Client struct {
 	IP   string
 	Name string
@@ -161,7 +169,8 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		wg.Add(1)
 		go func(question dns.Question) {
 			defer wg.Done()
-			entry := s.processQuery(w, msg, question, timestamp, clientIP, clientName)
+			client := &Client{IP: clientIP, Name: clientName}
+			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
 			results <- entry
 		}(question)
 	}
@@ -198,27 +207,27 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
 	return clientIP, strings.TrimRight(hostnames[0], ".")
 }
 
-func (s *DNSServer) processQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	isBlacklisted, err := s.Blacklist.IsBlacklisted(strings.TrimSuffix(question.Name, "."))
+func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
+	isBlacklisted, err := s.Blacklist.IsBlacklisted(strings.TrimSuffix(request.question.Name, "."))
 	if err != nil {
 		log.Error("%v", err)
 	}
 	if isBlacklisted {
-		return s.handleBlacklisted(w, msg, question.Name, timestamp, clientIP, clientName)
+		return s.handleBlacklisted(request)
 	}
-	return s.handleQuery(w, msg, question, timestamp, clientIP, clientName)
+	return s.handleQuery(request)
 }
 
-func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns.Question, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	answers, cached, status := s.resolve(question.Name, question.Qtype)
-	msg.Answer = append(msg.Answer, answers...)
+func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
+	answers, cached, status := s.resolve(request.question.Name, request.question.Qclass)
+	request.msg.Answer = append(request.msg.Answer, answers...)
 
-	if len(answers) == 0 && question.Qtype == dns.TypePTR {
-		authority := s.createSOARecord(question.Name)
-		msg.Ns = append(msg.Ns, authority)
+	if len(answers) == 0 && request.question.Qtype == dns.TypePTR {
+		authority := s.createSOARecord(request.question.Name)
+		request.msg.Ns = append(request.msg.Ns, authority)
 	}
 
-	_ = w.WriteMsg(msg)
+	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
 	var resolvedAddresses []string
@@ -238,15 +247,15 @@ func (s *DNSServer) handleQuery(w dns.ResponseWriter, msg *dns.Msg, question dns
 	}
 
 	return RequestLogEntry{
-		Timestamp:      timestamp,
-		Domain:         question.Name,
+		Timestamp:      request.timestamp,
+		Domain:         request.question.Name,
 		IP:             resolvedAddresses,
 		Blocked:        false,
 		Cached:         cached,
-		ResponseTimeNS: time.Since(timestamp),
-		ClientInfo:     &Client{IP: clientIP, Name: clientName},
+		ResponseTimeNS: time.Since(request.timestamp),
+		ClientInfo:     request.client,
 		Status:         status,
-		QueryType:      dns.TypeToString[question.Qtype],
+		QueryType:      dns.TypeToString[request.question.Qtype],
 	}
 }
 
@@ -375,15 +384,15 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 	return ipAddresses, ttl, status
 }
 
-func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain string, timestamp time.Time, clientIP, clientName string) RequestLogEntry {
-	log.Info("Blocked: %s", domain)
+func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
+	log.Info("Blocked: %s", request.question.Name)
 
-	msg.Rcode = dns.RcodeSuccess
+	request.msg.Rcode = dns.RcodeSuccess
 	var status = "Blacklisted"
 
 	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
-			Name:   domain,
+			Name:   request.question.Name,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
 			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
@@ -393,7 +402,7 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 
 	rr6 := &dns.AAAA{
 		Hdr: dns.RR_Header{
-			Name:   domain,
+			Name:   request.question.Name,
 			Rrtype: dns.TypeAAAA,
 			Class:  dns.ClassINET,
 			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
@@ -401,19 +410,19 @@ func (s *DNSServer) handleBlacklisted(w dns.ResponseWriter, msg *dns.Msg, domain
 		AAAA: net.ParseIP("::"),
 	}
 
-	msg.Answer = append(msg.Answer, rr4, rr6)
-	_ = w.WriteMsg(msg)
+	request.msg.Answer = append(request.msg.Answer, rr4, rr6)
+	_ = request.w.WriteMsg(request.msg)
 
 	s.Counters.BlockedRequests++
 
 	return RequestLogEntry{
-		Timestamp:      timestamp,
-		Domain:         domain,
+		Timestamp:      request.timestamp,
+		Domain:         request.question.Name,
 		IP:             []string{""},
 		Blocked:        true,
 		Cached:         false,
-		ResponseTimeNS: time.Since(timestamp),
-		ClientInfo:     &Client{IP: clientIP, Name: clientName},
+		ResponseTimeNS: time.Since(request.timestamp),
+		ClientInfo:     request.client,
 		Status:         status,
 	}
 }
