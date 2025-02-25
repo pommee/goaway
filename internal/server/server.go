@@ -2,13 +2,17 @@ package server
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
 	"goaway/internal/logging"
 	"goaway/internal/settings"
+	"io"
 	"net"
+	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -41,10 +45,16 @@ var rcodes = map[int]string{
 	dns.RcodeBadTrunc:       "BADTRUNC",
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
+var arpCache = make(map[string]string)
+var arpCacheMutex sync.Mutex
 
 const batchSize = 100
 
 var dbMutex sync.Mutex
+
+type MacVendor struct {
+	Vendor string `json:"company"`
+}
 
 type DNSServer struct {
 	Config              settings.DNSServerConfig
@@ -98,6 +108,7 @@ type Request struct {
 type Client struct {
 	IP   string
 	Name string
+	MAC  string
 }
 
 func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
@@ -155,7 +166,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	timestamp := time.Now()
-	clientIP, clientName := s.getClientInfo(w.RemoteAddr().String())
+	clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
@@ -169,7 +180,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		wg.Add(1)
 		go func(question dns.Question) {
 			defer wg.Done()
-			client := &Client{IP: clientIP, Name: clientName}
+			client := &Client{IP: clientIP, Name: clientName, MAC: macAddress}
 			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
 			results <- entry
 		}(question)
@@ -183,28 +194,127 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 }
 
-func (s *DNSServer) getClientInfo(remoteAddr string) (string, string) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+func getMacAddress(ip string) string {
+	arpCacheMutex.Lock()
+	mac, exists := arpCache[ip]
+	arpCacheMutex.Unlock()
+
+	if exists {
+		return mac
+	}
+
+	out, err := exec.Command("arp", "-a").Output()
 	if err != nil {
-		log.Error("%v", err)
+		fmt.Println("Error running ARP command:", err)
+		return "unknown"
 	}
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	clientIP := strings.Split(remoteAddr, ":")[0]
 
-	if clientIP == "127.0.0.1" || clientIP == "::1" || clientIP == localAddr.IP.String() {
-		hostname, err := os.Hostname()
-		if err != nil {
-			return clientIP, "localhost"
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.ReplaceAll(line, "(", "")
+		line = strings.ReplaceAll(line, ")", "")
+
+		fields := strings.Fields(line)
+		if len(fields) >= 3 && fields[1] == ip {
+			mac = fields[3]
+
+			arpCacheMutex.Lock()
+			arpCache[ip] = mac
+			arpCacheMutex.Unlock()
+
+			return mac
 		}
-		return clientIP, hostname
+	}
+	return "unknown"
+}
+
+func (s *DNSServer) GetVendor(mac string) (string, error) {
+	var vendor string
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	err := s.DB.QueryRow("SELECT vendor FROM mac_addresses WHERE mac = ?", mac).Scan(&vendor)
+	if err == sql.ErrNoRows {
+		return "", nil
+	} else if err != nil {
+		return "", err
 	}
 
-	hostnames, err := net.LookupAddr(clientIP)
-	if err != nil || len(hostnames) == 0 {
-		return clientIP, "unknown"
+	return vendor, nil
+}
+
+func (s *DNSServer) SaveMacVendor(mac, vendor string) error {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	log.Debug("Saving new MAC address: %s %s", mac, vendor)
+	_, err := s.DB.Exec("INSERT INTO mac_addresses (mac, vendor) VALUES (?, ?)", mac, vendor)
+	return err
+}
+
+func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
+	clientIP := strings.Split(remoteAddr, ":")[0]
+	macAddress := getMacAddress(clientIP)
+
+	vendor, err := s.GetVendor(macAddress)
+	if macAddress != "unknown" {
+		if err != nil || vendor == "" {
+			log.Debug("Lookup vendor for mac %s", macAddress)
+			vendor, err = lookupMacVendor(macAddress)
+			if err == nil {
+				s.SaveMacVendor(macAddress, vendor)
+			} else {
+				log.Warning("Error while lookup mac address vendor: %v", err)
+			}
+		}
 	}
-	return clientIP, strings.TrimRight(hostnames[0], ".")
+
+	if clientIP == "127.0.0.1" || clientIP == "::1" {
+		if h, err := os.Hostname(); err == nil {
+			return clientIP, h, macAddress
+		}
+		return clientIP, "localhost", macAddress
+	}
+
+	if hostnames, err := net.LookupAddr(clientIP); err == nil && len(hostnames) > 0 {
+		return clientIP, strings.TrimSuffix(hostnames[0], "."), macAddress
+	}
+
+	return clientIP, "unknown", macAddress
+}
+
+func lookupMacVendor(mac string) (string, error) {
+	url := fmt.Sprintf("https://api.maclookup.app/v2/macs/%s", mac)
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch MAC vendor: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result struct {
+		Success bool   `json:"success"`
+		Found   bool   `json:"found"`
+		Company string `json:"company"`
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Found {
+		return result.Company, nil
+	}
+
+	return "", fmt.Errorf("vendor not found")
 }
 
 func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
@@ -428,7 +538,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
 }
 
 func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
-	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status FROM request_log")
+	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, mac, status FROM request_log")
 	if err != nil {
 		return nil, err
 	}
@@ -437,11 +547,11 @@ func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
 	var logs []RequestLogEntry
 	for rows.Next() {
 		var entry RequestLogEntry
-		var clientIP, clientName sql.NullString
-		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.IP, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName); err != nil {
+		var clientIP, clientName, mac sql.NullString
+		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.IP, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName, &entry.ClientInfo.MAC); err != nil {
 			return nil, err
 		}
-		entry.ClientInfo = &Client{IP: clientIP.String, Name: clientName.String}
+		entry.ClientInfo = &Client{IP: clientIP.String, Name: clientName.String, MAC: mac.String}
 		logs = append(logs, entry)
 	}
 	return logs, nil
@@ -484,7 +594,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 		}
 	}()
 
-	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, mac, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs %v", err)
 		return
@@ -501,6 +611,7 @@ func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
 			entry.ResponseTimeNS,
 			entry.ClientInfo.IP,
 			entry.ClientInfo.Name,
+			entry.ClientInfo.MAC,
 			entry.Status,
 			entry.QueryType,
 		); err != nil {

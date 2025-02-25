@@ -26,6 +26,7 @@ func Initialize() (*Session, error) {
             response_time_ns INTEGER NOT NULL,
             client_ip TEXT,
             client_name TEXT,
+			mac TEXT,
 			status TEXT,
 			query_type TEXT
         );
@@ -34,5 +35,18 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
 	}
 
+	NewMacDatabase(db)
 	return &Session{Con: db}, nil
+}
+
+func NewMacDatabase(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS mac_addresses (
+		mac TEXT PRIMARY KEY,
+		vendor TEXT
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
