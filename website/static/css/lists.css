@@ -44,7 +44,8 @@
   text-overflow: ellipsis;
 }
 
-button {
+#newListBtn,
+#updateCustomBtn {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 1rem;

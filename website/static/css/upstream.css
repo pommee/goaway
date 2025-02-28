@@ -65,7 +65,8 @@
   margin: 5px 0;
 }
 
-button {
+#newUpstreamBtn,
+.set-preferred-btn {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 1.1rem;

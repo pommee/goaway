@@ -39,13 +39,13 @@
   color: var(--text-primary);
 }
 
-a {
+#changelog a {
   color: var(--accent-primary);
   text-decoration: none;
   transition: color 0.2s ease, text-decoration 0.2s ease;
 }
 
-a:hover {
+#changelog a:hover {
   color: var(--accent-secondary);
   text-decoration: underline;
 }

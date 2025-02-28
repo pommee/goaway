@@ -1,4 +1,3 @@
-/* Table styling */
 #domains-table {
   border-collapse: collapse;
   margin-top: 20px;
@@ -31,7 +30,6 @@
   background-color: var(--bg-secondary);
 }
 
-/* DataTables Pagination Styling */
 .dataTables_wrapper .dataTables_paginate .paginate_button {
   background-color: #444;
   color: #f1f1f1;
@@ -50,7 +48,6 @@
   background-color: #515151;
 }
 
-/* DataTables Search Box */
 .dataTables_filter input {
   margin-bottom: 10px;
   background-color: var(--bg-secondary);
@@ -72,8 +69,7 @@ option {
   border: 1px solid #ccc;
 }
 
-/* Modal  */
-.modal {
+.modal-add-domain {
   display: none;
   position: fixed;
   z-index: 1;
@@ -86,7 +82,6 @@ option {
   overflow: auto;
 }
 
-/* Modal content */
 .modal-content {
   backdrop-filter: blur(4px);
   margin: 5% auto;

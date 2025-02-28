@@ -98,11 +98,11 @@ async function initializeLogTable() {
 }
 
 function openAddDomainModal() {
-  $(".modal").show();
+  $(".modal-add-domain").show();
 }
 
 function closeAddDomainModal() {
-  $(".modal").hide();
+  $(".modal-add-domain").hide();
 }
 
 async function handleAddDomain() {
