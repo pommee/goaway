@@ -7,7 +7,7 @@ ENV DNS_PORT=${DNS_PORT}
 ENV WEBSITE_PORT=${WEBSITE_PORT}
 
 RUN apt-get update && \
-    apt-get install -y curl passwd jq sudo
+    apt-get install -y curl passwd jq sudo net-tools
 
 RUN useradd -m -s /bin/bash -G sudo appuser && \
     echo "appuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
