@@ -185,9 +185,11 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			client := &Client{IP: clientIP, Name: clientName, MAC: macAddress}
 			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
 			entryWSJson, _ := json.Marshal(entry)
-			wsMutex.Lock()
-			s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
-			wsMutex.Unlock()
+			if s.WS != nil {
+				wsMutex.Lock()
+				s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
+				wsMutex.Unlock()
+			}
 			results <- entry
 		}(question)
 	}
