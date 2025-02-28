@@ -21,6 +21,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-ping/ping"
+	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 )
@@ -294,6 +295,19 @@ func (apiServer *API) getQueries(c *gin.Context) {
 		"recordsFiltered": totalRecords,
 		"details":         queries,
 	})
+}
+
+func (apiServer *API) liveQueries(c *gin.Context) {
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	apiServer.DnsServer.WS = conn
 }
 
 func (apiServer *API) handleUpdateBlockStatus(c *gin.Context) {

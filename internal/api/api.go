@@ -92,6 +92,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.POST("/custom", api.updateCustom)
 
 	api.routes.GET("/queries", api.getQueries)
+	api.routes.GET("/liveQueries", api.liveQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
 	api.routes.GET("/queryTypes", api.getQueryTypes)
 	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)

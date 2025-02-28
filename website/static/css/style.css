@@ -871,6 +871,57 @@ textarea {
   text-decoration: underline;
 }
 
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle input[type="checkbox"] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background-color: #444;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s, background-color 0.3s;
+}
+
+input[type="checkbox"]:checked + .slider {
+  background-color: #007acc;
+}
+
+input[type="checkbox"]:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+.slider:hover {
+  background-color: #555;
+}
+
+input[type="checkbox"]:checked + .slider:hover {
+  background-color: #005f99;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -25,8 +25,8 @@
       type="text/css"
       href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css"
     />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
   </head>
 
   <body>
@@ -129,6 +129,12 @@
       </div>
       <div id="log-table-container">
         <button id="clear-logs-button">Clear Logs</button>
+        <label for="setting-5">Live Queries</label>
+        <label class="toggle">
+          <input type="checkbox" id="enableLiveQueries" />
+          <span class="slider"></span>
+        </label>
+
         <table id="log-table" class="display">
           <thead>
             <tr>

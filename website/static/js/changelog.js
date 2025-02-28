@@ -8,7 +8,6 @@ async function fetchReleases() {
   const now = new Date().getTime();
 
   if (lastFetched && now - lastFetched < 5 * 60 * 1000) {
-    console.log("Using cached releases from last fetch.");
     displayReleases(lastFetchedReleases);
     return;
   }

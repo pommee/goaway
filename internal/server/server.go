@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/gin-gonic/gin"
@@ -47,10 +48,10 @@ var rcodes = map[int]string{
 }
 var arpCache = make(map[string]string)
 var arpCacheMutex sync.Mutex
+var dbMutex sync.Mutex
+var wsMutex sync.Mutex
 
 const batchSize = 100
-
-var dbMutex sync.Mutex
 
 type MacVendor struct {
 	Vendor string `json:"company"`
@@ -67,6 +68,7 @@ type DNSServer struct {
 	cache               sync.Map
 	WebServer           *gin.Engine
 	logEntryChannel     chan RequestLogEntry
+	WS                  *websocket.Conn
 }
 
 type QueryResponse struct {
@@ -182,6 +184,10 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			defer wg.Done()
 			client := &Client{IP: clientIP, Name: clientName, MAC: macAddress}
 			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
+			entryWSJson, _ := json.Marshal(entry)
+			wsMutex.Lock()
+			s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
+			wsMutex.Unlock()
 			results <- entry
 		}(question)
 	}

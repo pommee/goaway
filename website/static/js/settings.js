@@ -1,5 +1,5 @@
 const inputs = document.querySelectorAll(
-  "#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select",
+  "#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select"
 );
 const savePopup = document.getElementById("save-popup");
 const saveButton = document.getElementById("save-btn");

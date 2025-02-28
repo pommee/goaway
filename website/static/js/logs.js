@@ -1,3 +1,27 @@
+const enableLiveQueries = document.getElementById("enableLiveQueries");
+
+var logTable;
+let socket;
+let liveQueriesEnabled = false;
+
+enableLiveQueries.addEventListener("change", () => {
+  liveQueriesEnabled = enableLiveQueries.checked;
+});
+
+socket = new WebSocket(
+  `ws://${GetServerIP().replace("http://", "")}/api/liveQueries`
+);
+
+socket.onmessage = function (event) {
+  if (liveQueriesEnabled) {
+    logTable.row.add(JSON.parse(event.data)).draw();
+  }
+};
+
+socket.onclose = function (event) {
+  showInfoNotification("Websocket connection was closed.");
+};
+
 function formatTimestamp(timestamp) {
   const date = new Date(timestamp);
   const year = date.getFullYear();
@@ -25,8 +49,8 @@ function renderStatusAndResponseTime(data) {
   var status = data.blocked
     ? "Blocked"
     : data.cached
-      ? "OK (cached)"
-      : "OK (forwarded)";
+    ? "OK (cached)"
+    : "OK (forwarded)";
   status = `${status} ${data.status}`;
   const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
   return `${status}<br>${responseTime} ms`;
@@ -41,10 +65,15 @@ function renderDomain(domain) {
 }
 
 function renderIP(data) {
-  const ipList = data.join("\n");
+  let ipList = "";
+  let firstIP = "";
+  if (data !== null) {
+    ipList = data.join("\n");
+    firstIP = data[0];
+  }
   return `
   <div class="ip-container">
-    <span class="ip" data-tooltip="${ipList}">${data[0]}</span>
+    <span class="ip" data-tooltip="${ipList}">${firstIP}</span>
   </div>
   `;
 }
@@ -63,7 +92,7 @@ async function handleToggleClick(event) {
 
   try {
     const blockReq = await $.get(
-      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`,
+      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`
     );
     showInfoNotification(blockReq.message);
 
@@ -106,8 +135,7 @@ async function handleClearLogsClick() {
         type: "DELETE",
       });
 
-      const table = $("#log-table").DataTable();
-      table.destroy();
+      logTable.destroy();
       await initializeLogTable();
       showInfoNotification("Logs cleared successfully.");
     } catch (error) {
@@ -127,7 +155,7 @@ async function handleClearLogsClick() {
 
 async function initializeLogTable() {
   $(document).ready(function () {
-    $("#log-table").DataTable({
+    logTable = $("#log-table").DataTable({
       processing: true,
       serverSide: true,
       ajax: {
