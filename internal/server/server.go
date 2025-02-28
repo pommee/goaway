@@ -340,11 +340,6 @@ func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qclass)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
-	if len(answers) == 0 && request.question.Qtype == dns.TypePTR {
-		authority := s.createSOARecord(request.question.Name)
-		request.msg.Ns = append(request.msg.Ns, authority)
-	}
-
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
@@ -374,24 +369,6 @@ func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
 		ClientInfo:     request.client,
 		Status:         status,
 		QueryType:      dns.TypeToString[request.question.Qtype],
-	}
-}
-
-func (s *DNSServer) createSOARecord(name string) dns.RR {
-	return &dns.SOA{
-		Hdr: dns.RR_Header{
-			Name:   name,
-			Rrtype: dns.TypeSOA,
-			Class:  dns.ClassINET,
-			Ttl:    1800,
-		},
-		Ns:      "ns1.goaway.",
-		Mbox:    "admin.goaway.",
-		Serial:  2024021500,
-		Refresh: 10000,
-		Retry:   2400,
-		Expire:  604800,
-		Minttl:  1800,
 	}
 }
 
