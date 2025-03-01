@@ -129,7 +129,7 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
-	if err := blacklist.InitializeCustomBlocklist(); err != nil {
+	if err := blacklist.InitializeBlocklist("Custom", ""); err != nil {
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
 	}
 

@@ -90,6 +90,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.POST("/upstreams", api.createUpstreams)
 	api.routes.POST("/settings", api.updateSettings)
 	api.routes.POST("/custom", api.updateCustom)
+	api.routes.POST("/toggleBlocklist", api.toggleBlocklist)
 
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/liveQueries", api.liveQueries)

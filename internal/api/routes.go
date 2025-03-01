@@ -876,6 +876,35 @@ func (apiServer *API) updateCustom(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
 }
 
+func (apiServer *API) toggleBlocklist(c *gin.Context) {
+	type ToggledBlocklistRequest struct {
+		Name string `json:"name"`
+	}
+
+	updatedBlocklistName, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
+		return
+	}
+
+	var request ToggledBlocklistRequest
+	if err := json.Unmarshal(updatedBlocklistName, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid JSON format"})
+		return
+	}
+
+	err = apiServer.DnsServer.Blacklist.ToggleBlocklistStatus(request.Name)
+	if err != nil {
+		log.Error("Failed to toggle blocklist status: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", request.Name)})
+}
+
 func (apiServer *API) addList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")

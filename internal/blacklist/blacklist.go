@@ -40,6 +40,7 @@ func (b *Blacklist) createBlacklistTable() error {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE,
             url TEXT,
+			active INTEGER,
             lastUpdated INTEGER
         );
         CREATE TABLE IF NOT EXISTS blacklist (
@@ -94,6 +95,7 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 		return fmt.Errorf("failed to extract domains from %s: %w", url, err)
 	}
 
+	b.InitializeBlocklist(name, url)
 	if err := b.AddDomains(domains, name, url); err != nil {
 		return fmt.Errorf("failed to add domains to database: %w", err)
 	}
@@ -155,7 +157,7 @@ func (b *Blacklist) AddDomains(domains []string, source, url string) error {
 
 	var sourceID int
 	currentTime := time.Now().Unix()
-	err = tx.QueryRow(`INSERT OR IGNORE INTO sources (name, url, lastUpdated) VALUES (?, ?, ?) RETURNING id`, source, url, currentTime).Scan(&sourceID)
+	err = tx.QueryRow(`UPDATE sources SET lastUpdated = (?) WHERE url IS (?) RETURNING id`, currentTime, url).Scan(&sourceID)
 	if err != nil {
 		return fmt.Errorf("failed to insert source: %w", err)
 	}
@@ -219,7 +221,8 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 }
 
 func (b *Blacklist) IsBlacklisted(domain string) (bool, error) {
-	row := b.DB.QueryRow(`SELECT 1 FROM blacklist WHERE domain = ?`, domain)
+	var query = "SELECT b.source_id FROM blacklist b JOIN sources s ON b.source_id = s.id WHERE b.domain = ? AND s.active = 1"
+	row := b.DB.QueryRow(query, domain)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
@@ -266,17 +269,16 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 	return domains, total, rows.Err()
 }
 
-func (b *Blacklist) InitializeCustomBlocklist() error {
+func (b *Blacklist) InitializeBlocklist(name, url string) error {
 	tx, err := b.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
-	currentTime := time.Now().Unix()
-	_, err = tx.Exec(`INSERT OR IGNORE INTO sources (name, lastUpdated) VALUES (?, ?)`, "Custom", currentTime)
+	_, err = tx.Exec(`INSERT OR IGNORE INTO sources (name, url, lastUpdated, active) VALUES (?, ?, ?, ?)`, name, url, time.Now().Unix(), true)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert custom source: %w", err)
+		return fmt.Errorf("failed to initialize new source: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -331,10 +333,10 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 
 func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, error) {
 	query := `
-		SELECT s.name, COUNT(b.domain) as blocked_count, s.lastUpdated
+		SELECT s.name, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
 		FROM sources s
 		LEFT JOIN blacklist b ON s.id = b.source_id
-		GROUP BY s.name
+		GROUP BY s.name, s.lastUpdated, s.active
 	`
 
 	rows, err := b.DB.Query(query)
@@ -348,12 +350,14 @@ func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, er
 		var sourceName string
 		var blockedCount int
 		var lastUpdated int64
-		if err := rows.Scan(&sourceName, &blockedCount, &lastUpdated); err != nil {
+		var active bool
+		if err := rows.Scan(&sourceName, &blockedCount, &lastUpdated, &active); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		stats[sourceName] = map[string]interface{}{
 			"blocked_count": blockedCount,
 			"lastUpdated":   lastUpdated,
+			"active":        active,
 		}
 	}
 
@@ -383,6 +387,17 @@ func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 	}
 
 	return domains, rows.Err()
+}
+
+func (b *Blacklist) ToggleBlocklistStatus(name string) error {
+	query := `UPDATE sources SET active = NOT active WHERE name = ?`
+
+	_, err := b.DB.Exec(query, name)
+	if err != nil {
+		return fmt.Errorf("failed to toggle status for %s: %w", name, err)
+	}
+
+	return nil
 }
 
 func (b *Blacklist) RemoveSourceAndDomains(source string) error {

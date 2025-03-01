@@ -18,23 +18,23 @@ const ANIMATION_BASE_DELAY = 150;
 const modalAnimDuration = 300;
 
 function initAnimations() {
-  const style = document.createElement('style');
+  const style = document.createElement("style");
   document.head.appendChild(style);
 }
 
 function addButtonAnimations() {
-  const buttons = document.querySelectorAll('button');
-  buttons.forEach(button => {
-    button.addEventListener('mousedown', () => {
-      button.style.transform = 'scale(0.95)';
+  const buttons = document.querySelectorAll("button");
+  buttons.forEach((button) => {
+    button.addEventListener("mousedown", () => {
+      button.style.transform = "scale(0.95)";
     });
-    
-    button.addEventListener('mouseup', () => {
-      button.style.transform = '';
+
+    button.addEventListener("mouseup", () => {
+      button.style.transform = "";
     });
-    
-    button.addEventListener('mouseleave', () => {
-      button.style.transform = '';
+
+    button.addEventListener("mouseleave", () => {
+      button.style.transform = "";
     });
   });
 }
@@ -53,10 +53,12 @@ modalNewListClose.onclick = () => {
 
 function closeModalWithAnimation(modal) {
   modal.style.backgroundColor = "rgba(0, 0, 0, 0)";
-  const content = modal.querySelector('.modal-content') || modal.querySelector('.list-details-content');
+  const content =
+    modal.querySelector(".modal-content") ||
+    modal.querySelector(".list-details-content");
   content.style.opacity = "0";
   content.style.transform = "scale(0.9)";
-  
+
   setTimeout(() => {
     modal.style.display = "none";
     content.style.opacity = "";
@@ -80,15 +82,15 @@ saveNewListBtn.addEventListener("click", async () => {
 
   if (name && url) {
     animateButton(saveNewListBtn);
-    
+
     try {
       const response = await fetch(
-        `/api/addList?name=${encodeURIComponent(
-          name,
-        )}&url=${encodeURIComponent(url)}`,
+        `/api/addList?name=${encodeURIComponent(name)}&url=${encodeURIComponent(
+          url
+        )}`,
         {
           method: "GET",
-        },
+        }
       );
 
       if (response.ok) {
@@ -115,11 +117,11 @@ async function getLists() {
 }
 
 function animateButton(button) {
-  button.classList.add('animating');
-  button.style.transform = 'scale(0.95)';
+  button.classList.add("animating");
+  button.style.transform = "scale(0.95)";
   setTimeout(() => {
-    button.style.transform = '';
-    button.classList.remove('animating');
+    button.style.transform = "";
+    button.classList.remove("animating");
   }, 300);
 }
 
@@ -142,7 +144,7 @@ function populateLists(listsData) {
 
     const statusIndicator = document.createElement("div");
     statusIndicator.className = "card-status";
-    if (list.status === "inactive") {
+    if (list.active === false) {
       statusIndicator.classList.add("inactive");
     }
 
@@ -164,7 +166,7 @@ function populateLists(listsData) {
 
     const cardActions = document.createElement("div");
     cardActions.className = "card-actions";
-    
+
     const viewButton = document.createElement("button");
     viewButton.className = "card-action-btn";
     viewButton.innerHTML = `<i class="fa-solid fa-eye"></i> View Details`;
@@ -172,7 +174,7 @@ function populateLists(listsData) {
       event.stopPropagation();
       showListDetails(key);
     });
-    
+
     cardActions.appendChild(viewButton);
 
     card.appendChild(statusIndicator);
@@ -182,7 +184,7 @@ function populateLists(listsData) {
     cardContent.appendChild(updated);
     card.appendChild(cardContent);
     card.appendChild(cardActions);
-    
+
     card.addEventListener("click", () => showListDetails(key));
     container.appendChild(card);
 
@@ -197,11 +199,12 @@ function populateLists(listsData) {
 function showListDetails(listName) {
   const listDetailsModal = document.getElementById("list-details-modal");
   const listDetailsContent = document.getElementById("list-details-content");
-  
+
   listDetailsContent.innerHTML = `
     <span id="list-details-close" class="list-details-close">&times;</span>
     <h2>${listName}</h2>
     <div class="modal-actions">
+      <button id="toggleListBtn" class="toggle-btn" onclick="toggleBlocklist('${listName}')"><i class="fa-solid fa-power-off"></i> Toggle</button>
       <button id="updateListBtn" class="update-btn"><i class="fa-solid fa-sync"></i> Update</button>
       <button id="removeListBtn" class="remove-btn"><i class="fa-solid fa-trash"></i> Remove List</button>
     </div>
@@ -225,16 +228,16 @@ function showListDetails(listName) {
     .then((response) => response.json())
     .then((data) => {
       const domains = data.domains;
-      
+
       const loadingEl = document.querySelector(".domains-loading");
       if (loadingEl) loadingEl.remove();
-      
+
       const table = document.createElement("table");
       table.id = "domains-table";
       table.className = "display";
       table.style.opacity = "0";
       table.style.transform = "translateY(20px)";
-      
+
       const thead = document.createElement("thead");
       thead.innerHTML = `
         <tr>
@@ -242,7 +245,7 @@ function showListDetails(listName) {
           <th>Toggle</th>
         </tr>
       `;
-      
+
       const tbody = document.createElement("tbody");
       domains.forEach((domain) => {
         const tr = document.createElement("tr");
@@ -252,11 +255,11 @@ function showListDetails(listName) {
         `;
         tbody.appendChild(tr);
       });
-      
+
       table.appendChild(thead);
       table.appendChild(tbody);
       listDetailsContent.appendChild(table);
-      
+
       setTimeout(() => {
         table.style.transition = "all 0.5s ease-out";
         table.style.opacity = "1";
@@ -264,25 +267,36 @@ function showListDetails(listName) {
       }, 50);
     });
 
-  document.getElementById("removeListBtn").addEventListener("click", async () => {
-    animateButton(document.getElementById("removeListBtn"));
-    
-    try {
-      const response = await fetch(`/api/list?name=${listName}`, {
-        method: "DELETE",
-      });
+  document
+    .getElementById("removeListBtn")
+    .addEventListener("click", async () => {
+      animateButton(document.getElementById("removeListBtn"));
 
-      if (response.ok) {
-        showInfoNotification("List removed successfully!");
-        closeModalWithAnimation(listDetailsModal);
-        getLists();
-      } else {
-        const errorData = await response.json();
-        showErrorNotification(errorData.error);
+      try {
+        const response = await fetch(`/api/list?name=${listName}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          showInfoNotification("List removed successfully!");
+          closeModalWithAnimation(listDetailsModal);
+          getLists();
+        } else {
+          const errorData = await response.json();
+          showErrorNotification(errorData.error);
+        }
+      } catch (error) {
+        showErrorNotification("Error removing list.");
       }
-    } catch (error) {
-      showErrorNotification("Error removing list.");
-    }
+    });
+}
+
+async function toggleBlocklist(blocklistName) {
+  await PostRequest(
+    "/toggleBlocklist",
+    JSON.stringify({ name: blocklistName })
+  ).then((response) => {
+    showInfoNotification(response.message);
   });
 }
 
@@ -297,7 +311,7 @@ function updateCustomList() {
   setTimeout(() => {
     modalUpdateCustom.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
   }, 10);
-  
+
   saveListBtn.addEventListener("click", () => {
     saveCustom();
     animateButton(saveListBtn);
@@ -321,7 +335,7 @@ async function saveCustom() {
       if (list === "") return false;
       if (!validListPattern.test(list)) {
         showErrorNotification(
-          `Invalid list: "${list}" contains invalid characters.`,
+          `Invalid list: "${list}" contains invalid characters.`
         );
         containsInvalidList = true;
         return false;
@@ -332,11 +346,11 @@ async function saveCustom() {
   if (!containsInvalidList) {
     response = await PostRequest(
       "/custom",
-      JSON.stringify({ domains: newLists }),
+      JSON.stringify({ domains: newLists })
     );
     closeModal();
     showInfoNotification("Updated custom list!");
-    
+
     getLists();
   }
 }
@@ -345,22 +359,22 @@ function showNotification(message, type) {
   const notification = document.createElement("div");
   notification.className = `notification ${type}`;
   notification.textContent = message;
-  
+
   notification.style.transform = "translateY(20px)";
   notification.style.opacity = "0";
-  
+
   document.body.appendChild(notification);
-  
+
   setTimeout(() => {
     notification.style.transition = "all 0.3s ease-out";
     notification.style.transform = "translateY(0)";
     notification.style.opacity = "1";
   }, 10);
-  
+
   setTimeout(() => {
     notification.style.transform = "translateY(-20px)";
     notification.style.opacity = "0";
-    
+
     setTimeout(() => {
       notification.remove();
     }, 300);
