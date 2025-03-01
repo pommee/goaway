@@ -64,6 +64,7 @@ func startServer(config settings.Config) {
 	}
 
 	go dnsServer.ProcessLogEntries()
+	go dnsServer.ProcessARPTable()
 
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.APIServer.Authentication)

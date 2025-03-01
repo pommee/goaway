@@ -46,8 +46,7 @@ var rcodes = map[int]string{
 	dns.RcodeBadTrunc:       "BADTRUNC",
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
-var arpCache = make(map[string]string)
-var arpCacheMutex sync.Mutex
+var arpTable = map[string]string{}
 var dbMutex sync.Mutex
 var wsMutex sync.Mutex
 
@@ -203,35 +202,11 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func getMacAddress(ip string) string {
-	arpCacheMutex.Lock()
-	mac, exists := arpCache[ip]
-	arpCacheMutex.Unlock()
-
+	mac, exists := arpTable[ip]
 	if exists {
 		return mac
 	}
 
-	out, err := exec.Command("arp", "-a").Output()
-	if err != nil {
-		fmt.Println("Error running ARP command:", err)
-		return "unknown"
-	}
-
-	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.ReplaceAll(line, "(", "")
-		line = strings.ReplaceAll(line, ")", "")
-
-		fields := strings.Fields(line)
-		if len(fields) >= 3 && fields[1] == ip {
-			mac = fields[3]
-
-			arpCacheMutex.Lock()
-			arpCache[ip] = mac
-			arpCacheMutex.Unlock()
-
-			return mac
-		}
-	}
 	return "unknown"
 }
 
@@ -566,6 +541,40 @@ func (s *DNSServer) ProcessLogEntries() {
 				s.saveBatch(batch)
 				batch = nil
 			}
+		}
+	}
+}
+
+func (s *DNSServer) ProcessARPTable() {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	// Update first time server is started
+	updateARPTable()
+
+	for {
+		select {
+		case <-ticker.C:
+			updateARPTable()
+		}
+	}
+}
+
+func updateARPTable() {
+	out, err := exec.Command("arp", "-a").Output()
+	if err != nil {
+		fmt.Println("Error running ARP command:", err)
+		return
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.ReplaceAll(line, "(", "")
+		line = strings.ReplaceAll(line, ")", "")
+
+		fields := strings.Fields(line)
+		if len(fields) >= 3 {
+			ip := fields[1]
+			mac := fields[3]
+			arpTable[ip] = mac
 		}
 	}
 }
