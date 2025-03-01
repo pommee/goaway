@@ -340,8 +340,11 @@ func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qclass)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
-	_ = request.w.WriteMsg(request.msg)
-	s.Counters.AllowedRequests++
+	if status == "NXDomain" {
+		request.msg.Rcode = dns.RcodeNameError
+	} else if status == "ServFail" {
+		request.msg.Rcode = dns.RcodeServerFailure
+	}
 
 	var resolvedAddresses []string
 	if len(answers) > 0 {
@@ -358,6 +361,9 @@ func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
 			}
 		}
 	}
+
+	_ = request.w.WriteMsg(request.msg)
+	s.Counters.AllowedRequests++
 
 	return RequestLogEntry{
 		Timestamp:      request.timestamp,
