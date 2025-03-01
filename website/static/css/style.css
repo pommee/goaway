@@ -1,25 +1,44 @@
 :root {
   color-scheme: light dark;
-
-  transition: color 0.5s ease, background-color 0.5s ease,
-    border-color 0.5s ease, box-shadow 0.5s ease;
+  transition: 0.5s ease;
+  transition-property: color, background-color, border-color, box-shadow;
 
   --bg-primary: light-dark(#ffffff, #0f0f13);
   --bg-secondary: light-dark(#f4f4f5, #1a1b1e);
   --bg-tertiary: light-dark(#e4e4e7, #25262b);
-  --accent-primary: #6495ed;
-  --accent-secondary: #3879f0;
+  --hover-bg: light-dark(#e2e2e2, #2a2b2f);
+  --metric-bg: light-dark(#6d28d90d, #6d28d91a);
+
   --text-primary: light-dark(#18181b, #ececec);
   --text-secondary: light-dark(#52525b, #a1a1aa);
   --text-muted: light-dark(#71717a, #71717a);
-  --border-color: light-dark(#e4e4e7, #2d2d33);
-  --hover-bg: light-dark(#e2e2e2, #2a2b2f);
+
+  --accent-primary: #6495ed;
+  --accent-secondary: #3879f0;
+
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
-  --metric-bg: light-dark(#6d28d90d, #6d28d91a);
+  --border-color: light-dark(#e4e4e7, #2d2d33);
+
   --sidenav-width: 250px;
   --sidenav-mobile-width: 220px;
+
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 .theme-toggle {
@@ -248,7 +267,7 @@ body {
 
 .nav-links {
   flex-grow: 1;
-  padding: 16px 12px;
+  padding: 5px 10px;
 }
 
 .nav-links a,
@@ -407,7 +426,6 @@ body {
   );
 }
 
-/* Card Icons */
 #card-queries::before {
   background-image: url("https://cdn-icons-png.flaticon.com/512/7234/7234056.png");
 }
@@ -833,6 +851,11 @@ hr.rounded {
   cursor: pointer;
   transition: opacity 0.2s ease;
   margin-top: 16px;
+}
+
+.confirm-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 #update-available-header {
