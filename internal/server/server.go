@@ -301,6 +301,10 @@ func lookupMacVendor(mac string) (string, error) {
 }
 
 func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
+	if request.question.Qtype == dns.TypePTR && strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
+		return s.handlePTRQuery(request)
+	}
+
 	isBlacklisted, err := s.Blacklist.IsBlacklisted(strings.TrimSuffix(request.question.Name, "."))
 	if err != nil {
 		log.Error("%v", err)
@@ -308,6 +312,91 @@ func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
 	if isBlacklisted {
 		return s.handleBlacklisted(request)
 	}
+	return s.handleQuery(request)
+}
+
+func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
+	ptrName := request.question.Name
+	ipParts := strings.TrimSuffix(ptrName, ".in-addr.arpa.")
+	parts := strings.Split(ipParts, ".")
+
+	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+		parts[i], parts[j] = parts[j], parts[i]
+	}
+
+	ipStr := strings.Join(parts, ".")
+
+	if ipStr == "127.0.0.1" {
+		ptr := &dns.PTR{
+			Hdr: dns.RR_Header{
+				Name:   request.question.Name,
+				Rrtype: dns.TypePTR,
+				Class:  dns.ClassINET,
+				Ttl:    3600,
+			},
+			Ptr: "localhost.lan.",
+		}
+
+		request.msg.Answer = append(request.msg.Answer, ptr)
+		_ = request.w.WriteMsg(request.msg)
+
+		return RequestLogEntry{
+			Timestamp:      request.timestamp,
+			Domain:         request.question.Name,
+			IP:             []string{"localhost.lan"},
+			Blocked:        false,
+			Cached:         false,
+			ResponseTimeNS: time.Since(request.timestamp),
+			ClientInfo:     request.client,
+			Status:         "NoError",
+			QueryType:      "PTR",
+		}
+	}
+
+	hostname := "unknown"
+
+	rows, err := s.DB.Query("SELECT client_name FROM request_log WHERE client_ip = ? AND client_name != 'unknown' LIMIT 1", ipStr)
+	if err == nil {
+		defer rows.Close()
+		if rows.Next() {
+			rows.Scan(&hostname)
+			hostname = strings.TrimSuffix(hostname, ".")
+		}
+	}
+
+	if hostname == "unknown" {
+		if names, err := net.LookupAddr(ipStr); err == nil && len(names) > 0 {
+			hostname = strings.TrimSuffix(names[0], ".")
+		}
+	}
+
+	if hostname != "unknown" {
+		ptr := &dns.PTR{
+			Hdr: dns.RR_Header{
+				Name:   request.question.Name,
+				Rrtype: dns.TypePTR,
+				Class:  dns.ClassINET,
+				Ttl:    3600,
+			},
+			Ptr: hostname + ".",
+		}
+
+		request.msg.Answer = append(request.msg.Answer, ptr)
+		_ = request.w.WriteMsg(request.msg)
+
+		return RequestLogEntry{
+			Timestamp:      request.timestamp,
+			Domain:         request.question.Name,
+			IP:             []string{hostname},
+			Blocked:        false,
+			Cached:         false,
+			ResponseTimeNS: time.Since(request.timestamp),
+			ClientInfo:     request.client,
+			Status:         "NoError",
+			QueryType:      "PTR",
+		}
+	}
+
 	return s.handleQuery(request)
 }
 
