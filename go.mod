@@ -1,6 +1,6 @@
 module goaway
 
-go 1.23.2
+go 1.24
 
 require (
 	github.com/Masterminds/semver v1.5.0
