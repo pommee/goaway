@@ -1,27 +1,28 @@
 async function fetchReleases() {
   const repoUrl = "https://api.github.com/repos/pommee/goaway/releases";
+  const cacheTime = 5 * 60 * 1000;
 
   const lastFetched = localStorage.getItem("releasesLastFetched");
-  const lastFetchedReleases = JSON.parse(
+  const cachedReleases = JSON.parse(
     localStorage.getItem("lastFetchedReleases")
   );
   const now = new Date().getTime();
 
-  if (lastFetched && now - lastFetched < 5 * 60 * 1000) {
-    displayReleases(lastFetchedReleases);
+  if (lastFetched && now - lastFetched < cacheTime) {
+    displayReleases(cachedReleases);
     return;
   }
 
   try {
     const response = await fetch(repoUrl);
-    if (!response.ok) {
+    if (!response.ok)
       throw new Error(`Failed to fetch releases: ${response.statusText}`);
-    }
+
     const releases = await response.json();
     displayReleases(releases);
 
     localStorage.setItem("lastFetchedReleases", JSON.stringify(releases));
-    localStorage.setItem("releasesLastFetched", now);
+    localStorage.setItem("releasesLastFetched", now.toString());
   } catch (error) {
     console.error(error);
     document.getElementById("changelog").innerHTML =
@@ -30,91 +31,104 @@ async function fetchReleases() {
 }
 
 function parseChangelogBody(body) {
-  const changelogSections = [];
-  const regex = /####\s*(.*?)\s*\n([\s\S]*?)(?=\n####|\n$)/g;
+  if (!body) return [];
+
+  const sections = [];
+  const sectionRegex = /####\s*(.*?)\s*\n([\s\S]*?)(?=\n####|\n$)/g;
   let match;
 
-  while ((match = regex.exec(body)) !== null) {
-    const sectionHeader = match[1];
-    const sectionCommits = match[2]
+  while ((match = sectionRegex.exec(body)) !== null) {
+    const header = match[1];
+    const commits = match[2]
       .trim()
       .split("\n")
       .map((commit) => commit.trim())
-      .filter((commit) => commit.length > 0);
+      .filter((commit) => commit.length > 0)
+      .map((commit) => {
+        const hashMatch = commit.match(/\(([a-f0-9]{7,40})\)$/);
 
-    const processedCommits = sectionCommits.map((commit) => {
-      return commit.replace(/\(([a-f0-9]{7,40})\)/g, (match, hash) => {
-        const commitUrl = `https://github.com/pommee/goaway/commit/${hash}`;
-        return `<a href="${commitUrl}" target="_blank">${match}</a>`;
+        if (hashMatch) {
+          const hash = hashMatch[1];
+          const message = commit
+            .substring(0, commit.lastIndexOf(`(${hash})`))
+            .trim();
+
+          const commitUrl = `https://github.com/pommee/goaway/commit/${hash}`;
+          return `<a href="${commitUrl}" target="_blank">[${hash}]</a> ${message.replace(
+            /^\*\s*/,
+            ""
+          )}`;
+        }
+
+        return commit;
       });
-    });
 
-    changelogSections.push({
-      header: sectionHeader,
-      commits: processedCommits,
-    });
+    sections.push({ header, commits });
   }
 
-  return changelogSections;
+  return sections;
 }
 
 function displayReleases(releases) {
-  const changelogSection = document.getElementById("changelog");
-  changelogSection.innerHTML = "";
+  const changelogEl = document.getElementById("changelog");
+  changelogEl.innerHTML = "";
 
   releases.forEach((release, idx) => {
-    const releaseDate = new Date(release.published_at);
-    const changelogBody = release.body
-      ? release.body
-      : "No release notes available.";
-    const parsedChangelog = parseChangelogBody(changelogBody);
+    const date = new Date(release.published_at);
+    const sections = parseChangelogBody(
+      release.body || "No release notes available."
+    );
 
-    const releaseElement = document.createElement("div");
-    releaseElement.classList.add("changelog-entry");
+    const releaseEl = document.createElement("div");
+    releaseEl.className = "changelog-entry";
 
-    const headerContainer = document.createElement("div");
-    headerContainer.classList.add("release-header");
+    const headerEl = document.createElement("div");
+    headerEl.className = "release-header";
 
-    const releaseTitle = document.createElement("h3");
-    releaseTitle.textContent = release.name;
-
-    headerContainer.appendChild(releaseTitle);
+    const titleEl = document.createElement("h3");
+    titleEl.textContent = release.name;
+    headerEl.appendChild(titleEl);
 
     if (idx === 0) {
       const latestTag = document.createElement("div");
       latestTag.textContent = "latest";
-      latestTag.classList.add("latest-tag");
-      headerContainer.appendChild(latestTag);
+      latestTag.className = "latest-tag";
+      headerEl.appendChild(latestTag);
     }
 
-    if (release.name.replace("v", "") == GetInstalledVersion()) {
+    if (release.name.replace("v", "") === GetInstalledVersion()) {
       const installedTag = document.createElement("div");
       installedTag.textContent = "installed";
-      installedTag.classList.add("installed-tag");
-      headerContainer.appendChild(installedTag);
+      installedTag.className = "installed-tag";
+      headerEl.appendChild(installedTag);
     }
 
-    releaseElement.appendChild(headerContainer);
+    releaseEl.appendChild(headerEl);
 
-    releaseElement.innerHTML += `
-      <p><strong>Release Date:</strong> ${releaseDate.toLocaleDateString()}</p>
+    const dateString = `${date.toLocaleDateString()} ${date.toLocaleTimeString(
+      [],
+      { hour: "2-digit", minute: "2-digit", hour12: false }
+    )}`;
+    releaseEl.innerHTML += `
+      <p><strong>Release Date:</strong> ${dateString}</p>
       <hr class="release-date-separator">
     `;
 
-    parsedChangelog.forEach((section) => {
-      const sectionElement = document.createElement("div");
-      sectionElement.innerHTML = `<h4>${section.header}</h4><ul>`;
+    sections.forEach((section) => {
+      const sectionEl = document.createElement("div");
+      sectionEl.innerHTML = `<h4>${section.header}</h4><ul>`;
+
       section.commits.forEach((commit) => {
-        commit = commit.replaceAll("*", "");
-        sectionElement.innerHTML += `<li>${commit}</li>`;
+        sectionEl.innerHTML += `<li>${commit}</li>`;
       });
-      sectionElement.innerHTML += "</ul>";
-      releaseElement.appendChild(sectionElement);
+
+      sectionEl.innerHTML += "</ul>";
+      releaseEl.appendChild(sectionEl);
     });
 
-    releaseElement.innerHTML += `<a href="${release.html_url}" class="view-release-on-github" target="_blank">View on GitHub</a>`;
+    releaseEl.innerHTML += `<a href="${release.html_url}" class="view-release-on-github" target="_blank"><i class="fa-brands fa-github"></i> View on GitHub</a>`;
 
-    changelogSection.appendChild(releaseElement);
+    changelogEl.appendChild(releaseEl);
   });
 }
 

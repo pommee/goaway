@@ -1,7 +1,3 @@
-#changelog h2 {
-  font-size: 2rem;
-}
-
 .changelog-entry {
   background-color: var(--bg-secondary);
   border-radius: 10px;
@@ -63,7 +59,7 @@
 }
 
 .view-release-on-github:hover {
-  background-color: var(--accent-primary);
+  background-color: var(--hover-bg);
   color: white;
   transform: translateY(-2px);
 }
