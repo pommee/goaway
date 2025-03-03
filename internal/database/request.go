@@ -20,7 +20,7 @@ func GetClientNameFromRequestLog(db *sql.DB, ip string) string {
 	if err == nil {
 		defer rows.Close()
 		if rows.Next() {
-			rows.Scan(&hostname)
+			_ = rows.Scan(&hostname)
 			hostname = strings.TrimSuffix(hostname, ".")
 		}
 	}

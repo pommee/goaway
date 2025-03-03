@@ -13,18 +13,40 @@ import (
 	"github.com/miekg/dns"
 )
 
+var rcodes = map[int]string{
+	dns.RcodeSuccess:        "NoError",
+	dns.RcodeFormatError:    "FormErr",
+	dns.RcodeServerFailure:  "ServFail",
+	dns.RcodeNameError:      "NXDomain",
+	dns.RcodeNotImplemented: "NotImp",
+	dns.RcodeRefused:        "Refused",
+	dns.RcodeYXDomain:       "YXDomain",
+	dns.RcodeYXRrset:        "YXRRSet",
+	dns.RcodeNXRrset:        "NXRRSet",
+	dns.RcodeNotAuth:        "NotAuth",
+	dns.RcodeNotZone:        "NotZone",
+	dns.RcodeBadSig:         "BADSIG",
+	dns.RcodeBadKey:         "BADKEY",
+	dns.RcodeBadTime:        "BADTIME",
+	dns.RcodeBadMode:        "BADMODE",
+	dns.RcodeBadName:        "BADNAME",
+	dns.RcodeBadAlg:         "BADALG",
+	dns.RcodeBadTrunc:       "BADTRUNC",
+	dns.RcodeBadCookie:      "BADCOOKIE",
+}
+
 func (s *DNSServer) GetVendor(mac string) (string, error) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 	return database.FindVendor(s.DB, mac)
 }
 
-func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) error {
+func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
 	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	return database.SaveMacEntry(s.DB, clientIP, mac, vendor)
+	database.SaveMacEntry(s.DB, clientIP, mac, vendor)
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {

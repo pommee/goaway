@@ -95,7 +95,8 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 		return fmt.Errorf("failed to extract domains from %s: %w", url, err)
 	}
 
-	b.InitializeBlocklist(name, url)
+	_ = b.InitializeBlocklist(name, url)
+
 	if err := b.AddDomains(domains, name, url); err != nil {
 		return fmt.Errorf("failed to add domains to database: %w", err)
 	}
@@ -277,8 +278,8 @@ func (b *Blacklist) InitializeBlocklist(name, url string) error {
 
 	_, err = tx.Exec(`INSERT OR IGNORE INTO sources (name, url, lastUpdated, active) VALUES (?, ?, ?, ?)`, name, url, time.Now().Unix(), true)
 	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to initialize new source: %w", err)
+		_ = tx.Rollback()
+		return fmt.Errorf("failed to initialize new blocklist: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -417,13 +418,13 @@ func (b *Blacklist) RemoveSourceAndDomains(source string) error {
 
 	_, err = tx.Exec(`DELETE FROM blacklist WHERE source_id = ?`, sourceID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return fmt.Errorf("failed to remove domains for source '%s': %w", source, err)
 	}
 
 	_, err = tx.Exec(`DELETE FROM sources WHERE id = ?`, sourceID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return fmt.Errorf("failed to remove source '%s': %w", source, err)
 	}
 

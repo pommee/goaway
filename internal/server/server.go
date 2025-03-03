@@ -17,30 +17,11 @@ import (
 	"github.com/miekg/dns"
 )
 
-var log = logging.GetLogger()
-var rcodes = map[int]string{
-	dns.RcodeSuccess:        "NoError",
-	dns.RcodeFormatError:    "FormErr",
-	dns.RcodeServerFailure:  "ServFail",
-	dns.RcodeNameError:      "NXDomain",
-	dns.RcodeNotImplemented: "NotImp",
-	dns.RcodeRefused:        "Refused",
-	dns.RcodeYXDomain:       "YXDomain",
-	dns.RcodeYXRrset:        "YXRRSet",
-	dns.RcodeNXRrset:        "NXRRSet",
-	dns.RcodeNotAuth:        "NotAuth",
-	dns.RcodeNotZone:        "NotZone",
-	dns.RcodeBadSig:         "BADSIG",
-	dns.RcodeBadKey:         "BADKEY",
-	dns.RcodeBadTime:        "BADTIME",
-	dns.RcodeBadMode:        "BADMODE",
-	dns.RcodeBadName:        "BADNAME",
-	dns.RcodeBadAlg:         "BADALG",
-	dns.RcodeBadTrunc:       "BADTRUNC",
-	dns.RcodeBadCookie:      "BADCOOKIE",
-}
-var dbMutex sync.Mutex
-var wsMutex sync.Mutex
+var (
+	log     = logging.GetLogger()
+	dbMutex sync.Mutex
+	wsMutex sync.Mutex
+)
 
 const batchSize = 100
 
@@ -160,7 +141,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			entryWSJson, _ := json.Marshal(entry)
 			if s.WS != nil {
 				wsMutex.Lock()
-				s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
+				_ = s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
 				wsMutex.Unlock()
 			}
 			results <- entry

@@ -16,9 +16,9 @@ func FindVendor(db *sql.DB, mac string) (string, error) {
 	return vendor, nil
 }
 
-func SaveMacEntry(db *sql.DB, clientIP, mac, vendor string) error {
+func SaveMacEntry(db *sql.DB, clientIP, mac, vendor string) {
 	query := "INSERT INTO mac_addresses (ip, mac, vendor) VALUES (?, ?, ?)"
 	_, err := db.Exec(query, clientIP, mac, vendor)
 
-	return err
+	log.Warning("Unable to save new MAC entry %v", err)
 }

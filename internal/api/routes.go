@@ -665,7 +665,12 @@ func (apiServer *API) updateCustom(c *gin.Context) {
 		return
 	}
 
-	apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
+	err = apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
 }
 

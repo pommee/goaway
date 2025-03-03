@@ -19,11 +19,8 @@ func ProcessARPTable() {
 	// Update first time server is started
 	updateARPTable()
 
-	for {
-		select {
-		case <-ticker.C:
-			updateARPTable()
-		}
+	for range ticker.C {
+		updateARPTable()
 	}
 }
 

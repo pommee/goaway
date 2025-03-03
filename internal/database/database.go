@@ -37,7 +37,11 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
 	}
 
-	NewMacDatabase(db)
+	err = NewMacDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mac_addresses table: %w", err)
+	}
+
 	return &Session{Con: db}, nil
 }
 
