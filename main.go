@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"goaway/internal/api"
+	"goaway/internal/arp"
 	"goaway/internal/asciiart"
 	"goaway/internal/logging"
 	"goaway/internal/server"
@@ -64,7 +65,7 @@ func startServer(config settings.Config) {
 	}
 
 	go dnsServer.ProcessLogEntries()
-	go dnsServer.ProcessARPTable()
+	go arp.ProcessARPTable()
 
 	blockedDomains, serverInstance := dnsServer.Init()
 	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.APIServer.Authentication)
