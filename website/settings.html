@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>goaway</title>
@@ -31,10 +31,6 @@
         <div class="hidden" id="update-available-indicator">
           <button class="update-available-btn">Update available!</button>
         </div>
-
-        <button class="theme-toggle" title="Toggle theme">
-          <i class="fas fa-sun"></i>
-        </button>
 
         <div class="system-metrics">
           <p id="server-version">v0.0.0</p>
@@ -114,9 +110,9 @@
       <div class="settings-list">
         <div class="setting-item">
           <div class="label-container">
-            <label for="setting-1">Enable Dark Mode [WIP]</label>
+            <label for="setting-1">Toggle theme</label>
             <label class="toggle">
-              <input type="checkbox" id="darkMode" />
+              <input type="checkbox" id="toggleTheme" />
               <span class="slider"></span>
             </label>
           </div>
@@ -216,53 +212,6 @@
           <p class="setting-explanation">
             Once a domain is resolved, it will be cached. Default is 60 seconds
             if a TTL is not given when resolving.
-          </p>
-        </div>
-
-        <div class="setting-item">
-          <div class="label-container">
-            <label for="setting-max-cache-size">Max Cache Size [WIP]</label>
-            <input
-              type="number"
-              id="maxCacheSize"
-              value="1000"
-              min="100"
-              max="10000"
-            />
-          </div>
-          <p class="setting-explanation">
-            Amount of domains to keep in the cache. Will remove the oldest
-            domain once max is reached.
-          </p>
-        </div>
-
-        <div class="setting-item">
-          <div class="label-container">
-            <label for="setting-upstream-dns">Upstream DNS Server [WIP]</label>
-            <input type="text" id="upstreamDNS" value="8.8.8.8" />
-          </div>
-          <p class="setting-explanation">
-            Upstream DNS server to resolve domains. Default is 8.8.8.8:53
-            (Google).
-          </p>
-        </div>
-
-        <div class="setting-item">
-          <div class="label-container">
-            <label for="setting-timeout"
-              >DNS Request Timeout (in seconds) [WIP]</label
-            >
-            <input
-              type="number"
-              id="domainResolveTimeout"
-              value="60"
-              min="1"
-              max="3600"
-            />
-          </div>
-          <p class="setting-explanation">
-            Amount of time the server shall spend on trying to resolve a domain.
-            Default is 60 seconds.
           </p>
         </div>
       </div>

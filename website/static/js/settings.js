@@ -1,6 +1,7 @@
 const inputs = document.querySelectorAll(
   "#main input:not(#currentPassword):not(#newPassword):not(#confirmPassword), #main select"
 );
+const toggleTheme = document.getElementById("toggleTheme");
 const savePopup = document.getElementById("save-popup");
 const saveButton = document.getElementById("save-btn");
 const dismissButton = document.getElementById("dismiss-btn");
@@ -22,6 +23,18 @@ document.addEventListener("DOMContentLoaded", () => {
       isModified = true;
       showPopup();
     });
+  });
+
+  const root = document.documentElement;
+  const savedTheme = localStorage.getItem("theme") || "light";
+  root.style.colorScheme = savedTheme;
+  toggleTheme.checked = savedTheme === "light";
+
+  toggleTheme.addEventListener("change", () => {
+    const newTheme = root.style.colorScheme === "light" ? "dark" : "light";
+    root.style.colorScheme = newTheme;
+    toggleTheme.checked = newTheme === "light";
+    localStorage.setItem("theme", newTheme);
   });
 
   confirmPasswordInput.addEventListener("input", validatePasswords);
@@ -104,10 +117,6 @@ async function saveSettings() {
         settings[input.id] = input.value;
       }
     });
-
-  if (passwordInput.value) {
-    settings["password"] = passwordInput.value;
-  }
 
   await PostRequest("/settings", JSON.stringify(settings));
 }

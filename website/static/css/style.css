@@ -41,33 +41,6 @@
   }
 }
 
-.theme-toggle {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 10px 15px 0px 15px;
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.theme-toggle i {
-  color: var(--accent-primary);
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.theme-toggle:hover {
-  background: var(--hover-bg);
-}
-
-.theme-toggle:active i {
-  transform: rotate(360deg);
-}
-
 body {
   font-family: "JetBrains Mono", monospace;
   background-color: var(--bg-primary);
