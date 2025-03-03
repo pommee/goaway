@@ -473,8 +473,16 @@ body {
 }
 
 legend {
-  padding: 0 5px 0 5px;
+  padding: 2px 6px;
+  background: linear-gradient(
+    45deg,
+    rgba(0, 43, 255, 0.8),
+    rgba(122, 0, 255, 0.8)
+  );
   text-align: center;
+  border-radius: 8px;
+  color: white;
+  border: 1px solid var(--border-color);
 }
 
 .blocked-domains-table .top-clients div {
