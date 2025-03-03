@@ -5,6 +5,8 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"goaway/internal/api/models"
+	"goaway/internal/database"
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"goaway/internal/updater"
@@ -150,12 +152,6 @@ func (apiServer *API) handleMetrics(c *gin.Context) {
 		percentageBlocked = (float64(blockedQueries) / float64(totalQueries)) * 100
 	}
 
-	var clientCount int
-	err := apiServer.DnsServer.DB.QueryRow(`SELECT COUNT(DISTINCT client_ip) FROM request_log`).Scan(&clientCount)
-	if err != nil {
-		clientCount = 0
-	}
-
 	domainsLength, _ := apiServer.DnsServer.Blacklist.CountDomains()
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowedQueries,
@@ -163,61 +159,29 @@ func (apiServer *API) handleMetrics(c *gin.Context) {
 		"total":             totalQueries,
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    domainsLength,
-		"clients":           clientCount,
+		"clients":           database.GetDistinctRequestIP(apiServer.DnsServer.DB),
 	})
 }
 
 func (apiServer *API) getQueryTimestamps(c *gin.Context) {
-	type QueryEntry struct {
-		Timestamp time.Time `json:"timestamp"`
-		Blocked   bool      `json:"blocked"`
-	}
-
-	rows, err := apiServer.DnsServer.DB.Query("SELECT timestamp, blocked FROM request_log")
+	timestamps, err := database.GetRequestTimestampAndBlocked(apiServer.DnsServer.DB)
 	if err != nil {
-		log.Error("%v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Error("%v", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
-	}
-	defer rows.Close()
-
-	queries := []QueryEntry{}
-	for rows.Next() {
-		var query QueryEntry
-		if err := rows.Scan(&query.Timestamp, &query.Blocked); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		queries = append(queries, query)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"queries": queries,
+		"queries": timestamps,
 	})
 }
 
 func (apiServer *API) getQueryTypes(c *gin.Context) {
-	type QueryEntry struct {
-		Count     int    `json:"count"`
-		QueryType string `json:"queryType"`
-	}
-
-	rows, err := apiServer.DnsServer.DB.Query("SELECT COUNT(query_type) as count, query_type from request_log WHERE query_type NOT LIKE \"\" GROUP BY query_type ORDER BY COUNT(*) DESC")
+	queries, err := database.GetUniqueQueryTypes(apiServer.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-	defer rows.Close()
-
-	queries := []QueryEntry{}
-	for rows.Next() {
-		var query QueryEntry
-		if err := rows.Scan(&query.Count, &query.QueryType); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		queries = append(queries, query)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -226,20 +190,42 @@ func (apiServer *API) getQueryTypes(c *gin.Context) {
 }
 
 func (apiServer *API) getQueries(c *gin.Context) {
+	query := parseQueryParams(c)
+	queries, err := database.FetchQueries(apiServer.DnsServer.DB, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	total, err := database.CountQueries(apiServer.DnsServer.DB, query.Search)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"draw":            c.DefaultQuery("draw", "1"),
+		"recordsTotal":    total,
+		"recordsFiltered": total,
+		"details":         queries,
+	})
+}
+
+func parseQueryParams(c *gin.Context) models.QueryParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	search := c.DefaultQuery("search", "")
 	sortColumn := c.DefaultQuery("sortColumn", "timestamp")
 	sortDirection := c.DefaultQuery("sortDirection", "desc")
-	offset := (page - 1) * pageSize
 
-	validSortColumns := map[string]string{
+	validColumns := map[string]string{
 		"timestamp": "timestamp",
 		"domain":    "domain",
 		"client":    "client_ip",
 		"ip":        "ip",
 	}
-	column, ok := validSortColumns[sortColumn]
+
+	column, ok := validColumns[sortColumn]
 	if !ok {
 		column = "timestamp"
 	}
@@ -248,53 +234,14 @@ func (apiServer *API) getQueries(c *gin.Context) {
 		sortDirection = "desc"
 	}
 
-	query := fmt.Sprintf(`
-		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type
-		FROM request_log
-		WHERE domain LIKE ?
-		ORDER BY %s %s
-		LIMIT ? OFFSET ?`, column, sortDirection)
-
-	rows, err := apiServer.DnsServer.DB.Query(query, "%"+search+"%", pageSize, offset)
-	if err != nil {
-		log.Error("Database query error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	return models.QueryParams{
+		Page:      page,
+		PageSize:  pageSize,
+		Search:    search,
+		Column:    column,
+		Direction: sortDirection,
+		Offset:    (page - 1) * pageSize,
 	}
-	defer rows.Close()
-
-	queries := []server.RequestLogEntry{}
-	for rows.Next() {
-		var query server.RequestLogEntry
-		var ipString string
-		query.ClientInfo = &server.Client{}
-
-		if err := rows.Scan(
-			&query.Timestamp, &query.Domain, &ipString,
-			&query.Blocked, &query.Cached, &query.ResponseTimeNS,
-			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType,
-		); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		query.IP = strings.Split(ipString, ",")
-		queries = append(queries, query)
-	}
-
-	var totalRecords int
-	err = apiServer.DnsServer.DB.QueryRow(`SELECT COUNT(*) FROM request_log WHERE domain LIKE ?`, "%"+search+"%").Scan(&totalRecords)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"draw":            c.DefaultQuery("draw", "1"),
-		"recordsTotal":    totalRecords,
-		"recordsFiltered": totalRecords,
-		"details":         queries,
-	})
 }
 
 func (apiServer *API) liveQueries(c *gin.Context) {
@@ -419,64 +366,13 @@ func (apiServer *API) updateSettings(c *gin.Context) {
 }
 
 func (apiServer *API) getClients(c *gin.Context) {
-	uniqueClients := make(map[string]struct {
-		Name     string
-		LastSeen time.Time
-		Mac      string
-		Vendor   string
-	})
-
-	rows, err := apiServer.DnsServer.DB.Query(`
-		SELECT r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor
-		FROM request_log r
-		LEFT JOIN mac_addresses m ON r.client_ip = m.ip
-	`)
+	uniqueClients, err := database.FetchAllClients(apiServer.DnsServer.DB)
 	if err != nil {
-		log.Error("%v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var ip, name string
-		var timestamp time.Time
-		var mac, vendor sql.NullString
-
-		if err := rows.Scan(&ip, &name, &timestamp, &mac, &vendor); err != nil {
-			log.Error("%v", err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		var macStr, vendorStr string
-		if mac.Valid {
-			macStr = mac.String
-		}
-		if vendor.Valid {
-			vendorStr = vendor.String
-		}
-
-		if existing, exists := uniqueClients[ip]; !exists || timestamp.After(existing.LastSeen) {
-			uniqueClients[ip] = struct {
-				Name     string
-				LastSeen time.Time
-				Mac      string
-				Vendor   string
-			}{
-				Name:     name,
-				LastSeen: timestamp,
-				Mac:      macStr,
-				Vendor:   vendorStr,
-			}
-		}
-	}
-
-	var clients []map[string]interface{}
+	clients := make([]map[string]interface{}, 0, len(uniqueClients))
 	for ip, entry := range uniqueClients {
 		clients = append(clients, map[string]interface{}{
 			"ip":       ip,
@@ -487,90 +383,42 @@ func (apiServer *API) getClients(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"clients": clients,
-	})
+	c.JSON(http.StatusOK, gin.H{"clients": clients})
 }
 
 func (apiServer *API) getClientDetails(c *gin.Context) {
-	client_ip := c.DefaultQuery("clientIP", "")
-
-	var stats struct {
-		TotalRequests     int
-		UniqueDomains     int
-		BlockedRequests   int
-		CachedRequests    int
-		AvgResponseTimeMs float64
-		MostQueriedDomain string
-		LastSeen          string
-	}
-
-	err := apiServer.DnsServer.DB.QueryRow(`
-		SELECT 
-			COUNT(*),
-			COUNT(DISTINCT domain),
-			SUM(CASE WHEN blocked THEN 1 ELSE 0 END),
-			SUM(CASE WHEN cached THEN 1 ELSE 0 END),
-			AVG(response_time_ns) / 1e6,
-			MAX(timestamp)
-		FROM request_log 
-		WHERE client_ip LIKE ?`, "%"+client_ip+"%").Scan(
-		&stats.TotalRequests, &stats.UniqueDomains, &stats.BlockedRequests,
-		&stats.CachedRequests, &stats.AvgResponseTimeMs, &stats.LastSeen)
-
+	clientIP := c.DefaultQuery("clientIP", "")
+	clientRequestDetails, err := database.GetClientRequestDetails(apiServer.DnsServer.DB, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = apiServer.DnsServer.DB.QueryRow(`
-		SELECT domain FROM request_log 
-		WHERE client_ip LIKE ?
-		GROUP BY domain 
-		ORDER BY COUNT(*) DESC 
-		LIMIT 1`, "%"+client_ip+"%").Scan(&stats.MostQueriedDomain)
-
+	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(apiServer.DnsServer.DB, clientIP)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rows, err := apiServer.DnsServer.DB.Query(`
-		SELECT domain, COUNT(*) as query_count 
-		FROM request_log 
-		WHERE client_ip LIKE ? 
-		GROUP BY domain 
-		ORDER BY query_count DESC`, "%"+client_ip+"%")
+	queriedDomains, err := database.GetAllQueriedDomainsByIP(apiServer.DnsServer.DB, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	domainQueryCounts := make(map[string]int)
-	for rows.Next() {
-		var domain string
-		var count int
-		if err := rows.Scan(&domain, &count); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		domainQueryCounts[domain] = count
-	}
-
-	client := map[string]interface{}{
-		"IP":                client_ip,
-		"TotalRequests":     stats.TotalRequests,
-		"UniqueDomains":     stats.UniqueDomains,
-		"BlockedRequests":   stats.BlockedRequests,
-		"CachedRequests":    stats.CachedRequests,
-		"AvgResponseTimeMs": stats.AvgResponseTimeMs,
-		"MostQueriedDomain": stats.MostQueriedDomain,
-		"LastSeen":          stats.LastSeen,
-		"AllDomains":        domainQueryCounts,
-	}
-
-	c.JSON(http.StatusOK, gin.H{"details": client})
+	c.JSON(http.StatusOK, gin.H{
+		"details": map[string]interface{}{
+			"IP":                clientIP,
+			"TotalRequests":     clientRequestDetails.TotalRequests,
+			"UniqueDomains":     clientRequestDetails.UniqueDomains,
+			"BlockedRequests":   clientRequestDetails.BlockedRequests,
+			"CachedRequests":    clientRequestDetails.CachedRequests,
+			"AvgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
+			"MostQueriedDomain": mostQueriedDomain,
+			"LastSeen":          clientRequestDetails.LastSeen,
+			"AllDomains":        queriedDomains,
+		},
+	})
 }
 
 func (apiServer *API) getUpstreams(c *gin.Context) {
@@ -767,80 +615,25 @@ func (apiServer *API) setPreferredUpstream(c *gin.Context) {
 }
 
 func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
-	rows, err := apiServer.DnsServer.DB.Query(`
-		SELECT domain, COUNT(*) as hits
-		FROM request_log
-		WHERE blocked = 1
-		GROUP BY domain
-		ORDER BY hits DESC
-		LIMIT 5
-	`)
+	topBlockedDomains, err := database.GetTopBlockedDomains(apiServer.DnsServer.DB, apiServer.DnsServer.Counters.BlockedRequests)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var domains []map[string]interface{}
-	for rows.Next() {
-		var (
-			domain string
-			hits   int
-			freq   int
-		)
-		if err := rows.Scan(&domain, &hits); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if apiServer.DnsServer.Counters.BlockedRequests > 0 {
-			freq = (hits * 100) / apiServer.DnsServer.Counters.BlockedRequests
-		}
-		domains = append(domains, map[string]interface{}{
-			"name":      domain,
-			"hits":      hits,
-			"frequency": freq,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{"domains": domains})
+	c.JSON(http.StatusOK, gin.H{"domains": topBlockedDomains})
 }
 
 func (apiServer *API) getTopClients(c *gin.Context) {
-	rows, err := apiServer.DnsServer.DB.Query(`
-		SELECT client_ip, COUNT(*) AS request_count,
-		(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM request_log)) AS frequency
-		FROM request_log
-		GROUP BY client_ip
-		ORDER BY request_count DESC
-		LIMIT 5;
-	`)
+	topClients, err := database.GetTopClients(apiServer.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var clients []map[string]interface{}
-	for rows.Next() {
-		var (
-			client_ip     string
-			request_count int
-			frequency     float32
-		)
-		if err := rows.Scan(&client_ip, &request_count, &frequency); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		clients = append(clients, map[string]interface{}{
-			"client":       client_ip,
-			"requestCount": request_count,
-			"frequency":    frequency,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{"clients": clients})
+	c.JSON(http.StatusOK, gin.H{"clients": topClients})
 }
 
 func (apiServer *API) getLists(c *gin.Context) {

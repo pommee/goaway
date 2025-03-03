@@ -7,6 +7,7 @@ import (
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
 	"goaway/internal/logging"
+	model "goaway/internal/server/models"
 	"goaway/internal/settings"
 	"io"
 	"net"
@@ -17,10 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
-	_ "github.com/mattn/go-sqlite3"
-
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/miekg/dns"
 )
 
@@ -66,7 +65,7 @@ type DNSServer struct {
 	logIntervalSeconds  int
 	cache               sync.Map
 	WebServer           *gin.Engine
-	logEntryChannel     chan RequestLogEntry
+	logEntryChannel     chan model.RequestLogEntry
 	WS                  *websocket.Conn
 }
 
@@ -86,30 +85,12 @@ type CounterDetails struct {
 	BlockedRequests int `json:"blocked_requests"`
 }
 
-type RequestLogEntry struct {
-	Timestamp      time.Time     `json:"timestamp"`
-	Domain         string        `json:"domain"`
-	IP             []string      `json:"ip"`
-	Blocked        bool          `json:"blocked"`
-	Cached         bool          `json:"cached"`
-	ResponseTimeNS time.Duration `json:"responseTimeNS"`
-	ClientInfo     *Client       `json:"client"`
-	Status         string        `json:"status"`
-	QueryType      string        `json:"queryType"`
-}
-
 type Request struct {
 	w         dns.ResponseWriter
 	msg       *dns.Msg
 	question  dns.Question
 	timestamp time.Time
-	client    *Client
-}
-
-type Client struct {
-	IP   string
-	Name string
-	MAC  string
+	client    *model.Client
 }
 
 func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
@@ -146,7 +127,7 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		lastLogTime:         time.Now(),
 		logIntervalSeconds:  1,
 		cache:               sync.Map{},
-		logEntryChannel:     make(chan RequestLogEntry, 1000),
+		logEntryChannel:     make(chan model.RequestLogEntry, 1000),
 	}
 
 	return server, nil
@@ -175,13 +156,13 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg.RecursionAvailable = true
 
 	var wg sync.WaitGroup
-	results := make(chan RequestLogEntry, len(r.Question))
+	results := make(chan model.RequestLogEntry, len(r.Question))
 
 	for _, question := range r.Question {
 		wg.Add(1)
 		go func(question dns.Question) {
 			defer wg.Done()
-			client := &Client{IP: clientIP, Name: clientName, MAC: macAddress}
+			client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
 			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
 			entryWSJson, _ := json.Marshal(entry)
 			if s.WS != nil {
@@ -211,18 +192,9 @@ func getMacAddress(ip string) string {
 }
 
 func (s *DNSServer) GetVendor(mac string) (string, error) {
-	var vendor string
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
-
-	err := s.DB.QueryRow("SELECT vendor FROM mac_addresses WHERE mac = ?", mac).Scan(&vendor)
-	if err == sql.ErrNoRows {
-		return "", nil
-	} else if err != nil {
-		return "", err
-	}
-
-	return vendor, nil
+	return database.FindVendor(s.DB, mac)
 }
 
 func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) error {
@@ -230,8 +202,7 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) error {
 	defer dbMutex.Unlock()
 
 	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	_, err := s.DB.Exec("INSERT INTO mac_addresses (ip, mac, vendor) VALUES (?, ?, ?)", clientIP, mac, vendor)
-	return err
+	return database.SaveMacEntry(s.DB, clientIP, mac, vendor)
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
@@ -300,7 +271,7 @@ func lookupMacVendor(mac string) (string, error) {
 	return "", fmt.Errorf("vendor not found")
 }
 
-func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
+func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	if request.question.Qtype == dns.TypePTR && strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
 		return s.handlePTRQuery(request)
 	}
@@ -315,7 +286,7 @@ func (s *DNSServer) processQuery(request *Request) RequestLogEntry {
 	return s.handleQuery(request)
 }
 
-func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
+func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	ptrName := request.question.Name
 	ipParts := strings.TrimSuffix(ptrName, ".in-addr.arpa.")
 	parts := strings.Split(ipParts, ".")
@@ -340,7 +311,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
 		request.msg.Answer = append(request.msg.Answer, ptr)
 		_ = request.w.WriteMsg(request.msg)
 
-		return RequestLogEntry{
+		return model.RequestLogEntry{
 			Timestamp:      request.timestamp,
 			Domain:         request.question.Name,
 			IP:             []string{"localhost.lan"},
@@ -353,16 +324,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
 		}
 	}
 
-	hostname := "unknown"
-
-	rows, err := s.DB.Query("SELECT client_name FROM request_log WHERE client_ip = ? AND client_name != 'unknown' LIMIT 1", ipStr)
-	if err == nil {
-		defer rows.Close()
-		if rows.Next() {
-			rows.Scan(&hostname)
-			hostname = strings.TrimSuffix(hostname, ".")
-		}
-	}
+	hostname := database.GetClientNameFromRequestLog(s.DB, ipStr)
 
 	if hostname == "unknown" {
 		if names, err := net.LookupAddr(ipStr); err == nil && len(names) > 0 {
@@ -384,7 +346,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
 		request.msg.Answer = append(request.msg.Answer, ptr)
 		_ = request.w.WriteMsg(request.msg)
 
-		return RequestLogEntry{
+		return model.RequestLogEntry{
 			Timestamp:      request.timestamp,
 			Domain:         request.question.Name,
 			IP:             []string{hostname},
@@ -400,7 +362,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) RequestLogEntry {
 	return s.handleQuery(request)
 }
 
-func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
+func (s *DNSServer) handleQuery(request *Request) model.RequestLogEntry {
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qclass)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
@@ -429,7 +391,7 @@ func (s *DNSServer) handleQuery(request *Request) RequestLogEntry {
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
-	return RequestLogEntry{
+	return model.RequestLogEntry{
 		Timestamp:      request.timestamp,
 		Domain:         request.question.Name,
 		IP:             resolvedAddresses,
@@ -549,7 +511,7 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 	return ipAddresses, ttl, status
 }
 
-func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
+func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	log.Info("Blocked: %s", request.question.Name)
 
 	request.msg.Rcode = dns.RcodeSuccess
@@ -580,7 +542,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
 
 	s.Counters.BlockedRequests++
 
-	return RequestLogEntry{
+	return model.RequestLogEntry{
 		Timestamp:      request.timestamp,
 		Domain:         request.question.Name,
 		IP:             []string{""},
@@ -592,28 +554,8 @@ func (s *DNSServer) handleBlacklisted(request *Request) RequestLogEntry {
 	}
 }
 
-func (s *DNSServer) LoadRequestLog() ([]RequestLogEntry, error) {
-	rows, err := s.DB.Query("SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status FROM request_log")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var logs []RequestLogEntry
-	for rows.Next() {
-		var entry RequestLogEntry
-		var clientIP, clientName, mac sql.NullString
-		if err := rows.Scan(&entry.Timestamp, &entry.Domain, &entry.IP, &entry.Blocked, &entry.Cached, &entry.ResponseTimeNS, &clientIP, &clientName); err != nil {
-			return nil, err
-		}
-		entry.ClientInfo = &Client{IP: clientIP.String, Name: clientName.String, MAC: mac.String}
-		logs = append(logs, entry)
-	}
-	return logs, nil
-}
-
 func (s *DNSServer) ProcessLogEntries() {
-	var batch []RequestLogEntry
+	var batch []model.RequestLogEntry
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
@@ -668,45 +610,10 @@ func updateARPTable() {
 	}
 }
 
-func (s *DNSServer) saveBatch(entries []RequestLogEntry) {
+func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
-
-	tx, err := s.DB.Begin()
-	if err != nil {
-		log.Error("Could not start database transaction %v", err)
-		return
-	}
-	defer func() {
-		if err := tx.Commit(); err != nil {
-			log.Warning("DB commit error %v", err)
-		}
-	}()
-
-	stmt, err := tx.Prepare("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	if err != nil {
-		log.Error("Could not create a prepared statement for request logs %v", err)
-		return
-	}
-	defer stmt.Close()
-
-	for _, entry := range entries {
-		if _, err := stmt.Exec(
-			entry.Timestamp.Unix(),
-			entry.Domain,
-			strings.Join(entry.IP, ","),
-			entry.Blocked,
-			entry.Cached,
-			entry.ResponseTimeNS,
-			entry.ClientInfo.IP,
-			entry.ClientInfo.Name,
-			entry.Status,
-			entry.QueryType,
-		); err != nil {
-			log.Error("Could not save request log. Reason: %v", err)
-			return
-		}
-	}
+	database.SaveRequestLog(s.DB, entries)
 }
 
 func (s *DNSServer) ClearOldEntries() {
@@ -721,47 +628,13 @@ func (s *DNSServer) ClearOldEntries() {
 		log.Debug("Running next cleanup in %s", time.Now().Add(cleanupInterval).Format("15:04:05"))
 		time.Sleep(cleanupInterval)
 
-		for retryCount := 0; retryCount < maxRetries; retryCount++ {
-			result, err := s.DB.Exec(fmt.Sprintf("DELETE FROM request_log WHERE strftime('%%s', 'now') - timestamp > %d", requestThreshold))
-			if err != nil {
-				if err.Error() == "database is locked" {
-					log.Debug("Database is locked; retrying (%d/%d)", retryCount+1, maxRetries)
-					time.Sleep(retryDelay)
-					continue
-				}
-				log.Error("Failed to clear old entries: %s", err)
-				break
-			}
-
-			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
-				log.Debug("Cleared %d old entries", affected)
-			}
-			s.UpdateCounters()
-			break
-		}
+		database.DeleteRequestLogsTimebased(s.DB, requestThreshold, maxRetries, retryDelay)
+		s.UpdateCounters()
 	}
-}
-
-func (s *DNSServer) GetCounters() (int, int, error) {
-	var blockedCount, allowedCount int
-
-	err := s.DB.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 1").Scan(&blockedCount)
-	if err != nil {
-		log.Error("Failed to get blocked requests count: %s", err)
-		return 0, 0, err
-	}
-
-	err = s.DB.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 0").Scan(&allowedCount)
-	if err != nil {
-		log.Error("Failed to get allowed requests count: %s", err)
-		return 0, 0, err
-	}
-
-	return blockedCount, allowedCount, nil
 }
 
 func (s *DNSServer) UpdateCounters() {
-	blockedCount, allowedCount, err := s.GetCounters()
+	blockedCount, allowedCount, err := database.CountAllowedAndBlockedRequest(s.DB)
 	if err != nil {
 		log.Error("%s %v", "failed to get counters: ", err)
 	}

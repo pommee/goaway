@@ -1,0 +1,24 @@
+package database
+
+import (
+	"database/sql"
+)
+
+func FindVendor(db *sql.DB, mac string) (string, error) {
+	var vendor string
+	err := db.QueryRow("SELECT vendor FROM mac_addresses WHERE mac = ?", mac).Scan(&vendor)
+	if err == sql.ErrNoRows {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+
+	return vendor, nil
+}
+
+func SaveMacEntry(db *sql.DB, clientIP, mac, vendor string) error {
+	query := "INSERT INTO mac_addresses (ip, mac, vendor) VALUES (?, ?, ?)"
+	_, err := db.Exec(query, clientIP, mac, vendor)
+
+	return err
+}
