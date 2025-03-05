@@ -423,7 +423,7 @@ func (s *DNSServer) ClearOldEntries() {
 
 	for {
 		requestThreshold := ((60 * 60) * 24) * s.StatisticsRetention
-		log.Debug("Running next cleanup in %s", time.Now().Add(cleanupInterval).Format("15:04:05"))
+		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
 		time.Sleep(cleanupInterval)
 
 		database.DeleteRequestLogsTimebased(s.DB, requestThreshold, maxRetries, retryDelay)
