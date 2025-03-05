@@ -57,14 +57,14 @@ func (c *DNSServerConfig) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (c DNSServerConfig) MarshalJSON() ([]byte, error) {
+func (c *DNSServerConfig) MarshalJSON() ([]byte, error) {
 	type Alias DNSServerConfig
 	return json.Marshal(&struct {
 		CacheTTL string `json:"CacheTTL"`
-		Alias
+		*Alias
 	}{
 		CacheTTL: c.CacheTTL.String(),
-		Alias:    (Alias)(c),
+		Alias:    (*Alias)(c),
 	})
 }
 

@@ -49,7 +49,7 @@ func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntry, error) 
 	}
 	defer rows.Close()
 
-	queries := []model.RequestLogEntry{}
+	var queries []model.RequestLogEntry
 	for rows.Next() {
 		var query model.RequestLogEntry
 		if err := rows.Scan(&query.Timestamp, &query.Blocked); err != nil {
@@ -70,7 +70,7 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 	}
 	defer rows.Close()
 
-	queries := []any{}
+	var queries []any
 	for rows.Next() {
 		query := struct {
 			Count     int    `json:"count"`
@@ -106,7 +106,7 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 	}
 	defer rows.Close()
 
-	queries := []model.RequestLogEntry{}
+	var queries []model.RequestLogEntry
 	for rows.Next() {
 		var query model.RequestLogEntry
 		var ipString string
@@ -296,17 +296,17 @@ func GetTopClients(db *sql.DB) ([]map[string]interface{}, error) {
 
 	var clients []map[string]interface{}
 	for rows.Next() {
-		var client_ip string
-		var request_count int
+		var clientIp string
+		var requestCount int
 		var frequency float32
 
-		if err := rows.Scan(&client_ip, &request_count, &frequency); err != nil {
+		if err := rows.Scan(&clientIp, &requestCount, &frequency); err != nil {
 			return nil, err
 		}
 
 		clients = append(clients, map[string]interface{}{
-			"client":       client_ip,
-			"requestCount": request_count,
+			"client":       clientIp,
+			"requestCount": requestCount,
 			"frequency":    frequency,
 		})
 	}

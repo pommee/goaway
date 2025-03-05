@@ -16,7 +16,7 @@ func ProcessARPTable() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	// Update first time server is started
+	// Update on first startup
 	updateARPTable()
 
 	for range ticker.C {

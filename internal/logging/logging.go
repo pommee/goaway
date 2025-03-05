@@ -129,36 +129,6 @@ func FromString(logLevel string) LogLevel {
 	}
 }
 
-func ToLogLevel(logLevel int) LogLevel {
-	switch logLevel {
-	case 0:
-		return DEBUG
-	case 1:
-		return INFO
-	case 2:
-		return WARNING
-	case 3:
-		return ERROR
-	default:
-		return INFO
-	}
-}
-
-func ToInteger(logLevel LogLevel) int {
-	switch logLevel {
-	case DEBUG:
-		return 0
-	case INFO:
-		return 1
-	case WARNING:
-		return 2
-	case ERROR:
-		return 3
-	default:
-		return 1
-	}
-}
-
 func (l LogLevel) String() string {
 	switch l {
 	case DEBUG:

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"goaway/internal/api/models"
 	"goaway/internal/database"
@@ -105,7 +106,7 @@ func (api *API) handleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
-func (apiServer *API) handleServer(c *gin.Context) {
+func (api *API) handleServer(c *gin.Context) {
 	cpuUsage, err := cpu.Percent(0, false)
 	if err != nil {
 		log.Error("%s", err)
@@ -127,25 +128,25 @@ func (apiServer *API) handleServer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"portDNS":           apiServer.Config.Port,
-		"portWebsite":       apiServer.DnsServer.Config.Port,
+		"portDNS":           api.Config.Port,
+		"portWebsite":       api.DnsServer.Config.Port,
 		"totalMem":          float64(vMem.Total) / 1024 / 1024 / 1024,
 		"usedMem":           float64(vMem.Used) / 1024 / 1024 / 1024,
 		"usedMemPercentage": float64(vMem.Free) / 1024 / 1024 / 1024,
 		"cpuUsage":          cpuUsage[0],
 		"cpuTemp":           temp,
 		"dbSize":            dbSize,
-		"version":           apiServer.Version,
+		"version":           api.Version,
 	})
 }
 
-func (apiServer *API) getAuthentication(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"enabled": apiServer.Config.Authentication})
+func (api *API) getAuthentication(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"enabled": api.Config.Authentication})
 }
 
-func (apiServer *API) handleMetrics(c *gin.Context) {
-	allowedQueries := apiServer.DnsServer.Counters.AllowedRequests
-	blockedQueries := apiServer.DnsServer.Counters.BlockedRequests
+func (api *API) handleMetrics(c *gin.Context) {
+	allowedQueries := api.DnsServer.Counters.AllowedRequests
+	blockedQueries := api.DnsServer.Counters.BlockedRequests
 	totalQueries := allowedQueries + blockedQueries
 
 	var percentageBlocked float64
@@ -153,19 +154,19 @@ func (apiServer *API) handleMetrics(c *gin.Context) {
 		percentageBlocked = (float64(blockedQueries) / float64(totalQueries)) * 100
 	}
 
-	domainsLength, _ := apiServer.DnsServer.Blacklist.CountDomains()
+	domainsLength, _ := api.DnsServer.Blacklist.CountDomains()
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowedQueries,
 		"blocked":           blockedQueries,
 		"total":             totalQueries,
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    domainsLength,
-		"clients":           database.GetDistinctRequestIP(apiServer.DnsServer.DB),
+		"clients":           database.GetDistinctRequestIP(api.DnsServer.DB),
 	})
 }
 
-func (apiServer *API) getQueryTimestamps(c *gin.Context) {
-	timestamps, err := database.GetRequestTimestampAndBlocked(apiServer.DnsServer.DB)
+func (api *API) getQueryTimestamps(c *gin.Context) {
+	timestamps, err := database.GetRequestTimestampAndBlocked(api.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
@@ -177,8 +178,8 @@ func (apiServer *API) getQueryTimestamps(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) getQueryTypes(c *gin.Context) {
-	queries, err := database.GetUniqueQueryTypes(apiServer.DnsServer.DB)
+func (api *API) getQueryTypes(c *gin.Context) {
+	queries, err := database.GetUniqueQueryTypes(api.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -190,15 +191,15 @@ func (apiServer *API) getQueryTypes(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) getQueries(c *gin.Context) {
+func (api *API) getQueries(c *gin.Context) {
 	query := parseQueryParams(c)
-	queries, err := database.FetchQueries(apiServer.DnsServer.DB, query)
+	queries, err := database.FetchQueries(api.DnsServer.DB, query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	total, err := database.CountQueries(apiServer.DnsServer.DB, query.Search)
+	total, err := database.CountQueries(api.DnsServer.DB, query.Search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -245,7 +246,7 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 	}
 }
 
-func (apiServer *API) liveQueries(c *gin.Context) {
+func (api *API) liveQueries(c *gin.Context) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -255,10 +256,10 @@ func (apiServer *API) liveQueries(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	apiServer.DnsServer.WS = conn
+	api.DnsServer.WS = conn
 }
 
-func (apiServer *API) handleUpdateBlockStatus(c *gin.Context) {
+func (api *API) handleUpdateBlockStatus(c *gin.Context) {
 	domain := c.Query("domain")
 	blocked := c.Query("blocked")
 	if domain == "" || blocked == "" {
@@ -267,8 +268,8 @@ func (apiServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	}
 
 	action := map[string]func(string) error{
-		"true":  apiServer.DnsServer.Blacklist.AddDomain,
-		"false": apiServer.DnsServer.Blacklist.RemoveDomain,
+		"true":  api.DnsServer.Blacklist.AddDomain,
+		"false": api.DnsServer.Blacklist.RemoveDomain,
 	}[blocked]
 
 	if action == nil {
@@ -289,7 +290,7 @@ func (apiServer *API) handleUpdateBlockStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%s has been whitelisted.", domain)})
 }
 
-func (apiServer *API) getDomains(c *gin.Context) {
+func (api *API) getDomains(c *gin.Context) {
 	page := c.DefaultQuery("page", "1")
 	pageSize := c.DefaultQuery("pageSize", "10")
 	search := c.DefaultQuery("search", "")
@@ -305,7 +306,7 @@ func (apiServer *API) getDomains(c *gin.Context) {
 		pageSizeInt = 10
 	}
 
-	domains, total, err := apiServer.DnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
+	domains, total, err := api.DnsServer.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
@@ -319,7 +320,7 @@ func (apiServer *API) getDomains(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) getSettings(c *gin.Context) {
+func (api *API) getSettings(c *gin.Context) {
 	dnsSettings := struct {
 		Port                int      `json:"Port"`
 		LoggingDisabled     bool     `json:"LoggingDisabled"`
@@ -328,21 +329,21 @@ func (apiServer *API) getSettings(c *gin.Context) {
 		CacheTTL            int      `json:"CacheTTL"`
 		StatisticsRetention int      `json:"StatisticsRetention"`
 	}{
-		Port:                apiServer.DnsServer.Config.Port,
-		LoggingDisabled:     apiServer.DnsServer.Config.LoggingDisabled,
-		UpstreamDNS:         apiServer.DnsServer.Config.UpstreamDNS,
-		PreferredUpstream:   apiServer.DnsServer.Config.PreferredUpstream,
-		CacheTTL:            int(apiServer.DnsServer.Config.CacheTTL.Seconds()),
-		StatisticsRetention: apiServer.DnsServer.Config.StatisticsRetention,
+		Port:                api.DnsServer.Config.Port,
+		LoggingDisabled:     api.DnsServer.Config.LoggingDisabled,
+		UpstreamDNS:         api.DnsServer.Config.UpstreamDNS,
+		PreferredUpstream:   api.DnsServer.Config.PreferredUpstream,
+		CacheTTL:            int(api.DnsServer.Config.CacheTTL.Seconds()),
+		StatisticsRetention: api.DnsServer.Config.StatisticsRetention,
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"api": apiServer.Config,
+		"api": api.Config,
 		"dns": dnsSettings,
 	})
 }
 
-func (apiServer *API) updateSettings(c *gin.Context) {
+func (api *API) updateSettings(c *gin.Context) {
 	var updatedSettings map[string]interface{}
 	if err := c.BindJSON(&updatedSettings); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -351,23 +352,23 @@ func (apiServer *API) updateSettings(c *gin.Context) {
 		return
 	}
 
-	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	config.UpdateDNSSettings(updatedSettings)
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Info("Updated settings!")
 	log.Debug("%s", string(settingsJson))
 
-	apiServer.DnsServer.Config = *config.DNSServer
-	apiServer.Config = config.APIServer
+	api.DnsServer.Config = *config.DNSServer
+	api.Config = config.APIServer
 
 	c.JSON(http.StatusOK, gin.H{
-		"api": apiServer.Config,
-		"dns": apiServer.DnsServer.Config,
+		"api": api.Config,
+		"dns": api.DnsServer.Config,
 	})
 }
 
-func (apiServer *API) getClients(c *gin.Context) {
-	uniqueClients, err := database.FetchAllClients(apiServer.DnsServer.DB)
+func (api *API) getClients(c *gin.Context) {
+	uniqueClients, err := database.FetchAllClients(api.DnsServer.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -387,21 +388,21 @@ func (apiServer *API) getClients(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"clients": clients})
 }
 
-func (apiServer *API) getClientDetails(c *gin.Context) {
+func (api *API) getClientDetails(c *gin.Context) {
 	clientIP := c.DefaultQuery("clientIP", "")
-	clientRequestDetails, err := database.GetClientRequestDetails(apiServer.DnsServer.DB, clientIP)
+	clientRequestDetails, err := database.GetClientRequestDetails(api.DnsServer.DB, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(apiServer.DnsServer.DB, clientIP)
-	if err != nil && err != sql.ErrNoRows {
+	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(api.DnsServer.DB, clientIP)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	queriedDomains, err := database.GetAllQueriedDomainsByIP(apiServer.DnsServer.DB, clientIP)
+	queriedDomains, err := database.GetAllQueriedDomainsByIP(api.DnsServer.DB, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -422,11 +423,11 @@ func (apiServer *API) getClientDetails(c *gin.Context) {
 	})
 }
 
-func (apiServer *API) getUpstreams(c *gin.Context) {
-	upstreams := apiServer.DnsServer.Config.UpstreamDNS
+func (api *API) getUpstreams(c *gin.Context) {
+	upstreams := api.DnsServer.Config.UpstreamDNS
 	results := make([]map[string]string, len(upstreams))
 
-	preferredUpstream := apiServer.DnsServer.Config.PreferredUpstream
+	preferredUpstream := api.DnsServer.Config.PreferredUpstream
 
 	var wg sync.WaitGroup
 	wg.Add(len(upstreams))
@@ -492,7 +493,7 @@ func getICMPPing(host string) string {
 	return icmpPing
 }
 
-func (apiServer *API) createUpstreams(c *gin.Context) {
+func (api *API) createUpstreams(c *gin.Context) {
 	type UpstreamsRequest struct {
 		Upstreams []string `json:"upstreams"`
 	}
@@ -518,7 +519,7 @@ func (apiServer *API) createUpstreams(c *gin.Context) {
 		}
 
 		exists := false
-		for _, existing := range apiServer.DnsServer.Config.UpstreamDNS {
+		for _, existing := range api.DnsServer.Config.UpstreamDNS {
 			if existing == upstream {
 				exists = true
 				break
@@ -538,17 +539,17 @@ func (apiServer *API) createUpstreams(c *gin.Context) {
 	}
 
 	log.Info("Adding unique upstreams: %v", filteredUpstreams)
-	apiServer.DnsServer.Config.UpstreamDNS = append(
-		apiServer.DnsServer.Config.UpstreamDNS,
+	api.DnsServer.Config.UpstreamDNS = append(
+		api.DnsServer.Config.UpstreamDNS,
 		filteredUpstreams...,
 	)
 
-	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	config.Save()
 	c.JSON(http.StatusOK, gin.H{"added_upstreams": filteredUpstreams})
 }
 
-func (apiServer *API) removeUpstreams(c *gin.Context) {
+func (api *API) removeUpstreams(c *gin.Context) {
 	upstreamToDelete := c.Query("upstream")
 
 	if upstreamToDelete == "" {
@@ -557,35 +558,35 @@ func (apiServer *API) removeUpstreams(c *gin.Context) {
 	}
 
 	var updatedUpstreams []string
-	for _, upstream := range apiServer.DnsServer.Config.UpstreamDNS {
+	for _, upstream := range api.DnsServer.Config.UpstreamDNS {
 		if upstream != upstreamToDelete {
 			updatedUpstreams = append(updatedUpstreams, upstream)
 		}
 	}
 
-	apiServer.DnsServer.Config.UpstreamDNS = updatedUpstreams
+	api.DnsServer.Config.UpstreamDNS = updatedUpstreams
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Upstream removed successfully",
 	})
 }
 
-func (apiServer *API) clearQueries(c *gin.Context) {
-	result, err := apiServer.DnsServer.DB.Exec("DELETE FROM request_log")
+func (api *API) clearQueries(c *gin.Context) {
+	result, err := api.DnsServer.DB.Exec("DELETE FROM request_log")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
 		return
 	}
 	rowsAffected, _ := result.RowsAffected()
 
-	apiServer.DnsServer.Counters = server.CounterDetails{}
+	api.DnsServer.Counters = server.CounterDetails{}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
 	})
 }
 
-func (apiServer *API) setPreferredUpstream(c *gin.Context) {
+func (api *API) setPreferredUpstream(c *gin.Context) {
 	upstreamToSet := c.DefaultQuery("upstream", "")
 
 	if upstreamToSet == "" {
@@ -594,7 +595,7 @@ func (apiServer *API) setPreferredUpstream(c *gin.Context) {
 	}
 
 	var found bool
-	for _, upstream := range apiServer.DnsServer.Config.UpstreamDNS {
+	for _, upstream := range api.DnsServer.Config.UpstreamDNS {
 		if upstream == upstreamToSet {
 			found = true
 			break
@@ -606,17 +607,17 @@ func (apiServer *API) setPreferredUpstream(c *gin.Context) {
 		return
 	}
 
-	apiServer.DnsServer.Config.PreferredUpstream = upstreamToSet
-	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", apiServer.DnsServer.Config.PreferredUpstream)
+	api.DnsServer.Config.PreferredUpstream = upstreamToSet
+	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", api.DnsServer.Config.PreferredUpstream)
 	log.Info("%s", updatedMsg)
 
-	config := settings.Config{DNSServer: &apiServer.DnsServer.Config, APIServer: apiServer.Config}
+	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	config.Save()
 	c.JSON(http.StatusOK, gin.H{"message": updatedMsg})
 }
 
-func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
-	topBlockedDomains, err := database.GetTopBlockedDomains(apiServer.DnsServer.DB, apiServer.DnsServer.Counters.BlockedRequests)
+func (api *API) getTopBlockedDomains(c *gin.Context) {
+	topBlockedDomains, err := database.GetTopBlockedDomains(api.DnsServer.DB, api.DnsServer.Counters.BlockedRequests)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -626,8 +627,8 @@ func (apiServer *API) getTopBlockedDomains(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": topBlockedDomains})
 }
 
-func (apiServer *API) getTopClients(c *gin.Context) {
-	topClients, err := database.GetTopClients(apiServer.DnsServer.DB)
+func (api *API) getTopClients(c *gin.Context) {
+	topClients, err := database.GetTopClients(api.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -637,8 +638,8 @@ func (apiServer *API) getTopClients(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"clients": topClients})
 }
 
-func (apiServer *API) getLists(c *gin.Context) {
-	lists, err := apiServer.DnsServer.Blacklist.GetSourceStatistics()
+func (api *API) getLists(c *gin.Context) {
+	lists, err := api.DnsServer.Blacklist.GetSourceStatistics()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -647,7 +648,7 @@ func (apiServer *API) getLists(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"lists": lists})
 }
 
-func (apiServer *API) updateCustom(c *gin.Context) {
+func (api *API) updateCustom(c *gin.Context) {
 	type UpdateListRequest struct {
 		Domains []string `json:"domains"`
 	}
@@ -666,7 +667,7 @@ func (apiServer *API) updateCustom(c *gin.Context) {
 		return
 	}
 
-	err = apiServer.DnsServer.Blacklist.AddCustomDomains(request.Domains)
+	err = api.DnsServer.Blacklist.AddCustomDomains(request.Domains)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
 		return
@@ -675,7 +676,7 @@ func (apiServer *API) updateCustom(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
 }
 
-func (apiServer *API) toggleBlocklist(c *gin.Context) {
+func (api *API) toggleBlocklist(c *gin.Context) {
 	type ToggledBlocklistRequest struct {
 		Name string `json:"name"`
 	}
@@ -694,7 +695,7 @@ func (apiServer *API) toggleBlocklist(c *gin.Context) {
 		return
 	}
 
-	err = apiServer.DnsServer.Blacklist.ToggleBlocklistStatus(request.Name)
+	err = api.DnsServer.Blacklist.ToggleBlocklistStatus(request.Name)
 	if err != nil {
 		log.Error("Failed to toggle blocklist status: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -704,50 +705,50 @@ func (apiServer *API) toggleBlocklist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", request.Name)})
 }
 
-func (apiServer *API) addList(c *gin.Context) {
+func (api *API) addList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")
 
-	if apiServer.DnsServer.Blacklist.BlocklistURL[name] != "" {
+	if api.DnsServer.Blacklist.BlocklistURL[name] != "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List already exists"})
 		return
 	}
 
-	err := apiServer.DnsServer.Blacklist.FetchAndLoadHosts(url, name)
+	err := api.DnsServer.Blacklist.FetchAndLoadHosts(url, name)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	apiServer.DnsServer.Blacklist.BlocklistURL[name] = url
+	api.DnsServer.Blacklist.BlocklistURL[name] = url
 
 	c.JSON(http.StatusOK, nil)
 }
 
-func (apiServer *API) removeList(c *gin.Context) {
+func (api *API) removeList(c *gin.Context) {
 	name := c.Query("name")
 
-	if apiServer.DnsServer.Blacklist.BlocklistURL[name] == "" {
+	if api.DnsServer.Blacklist.BlocklistURL[name] == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
 		return
 	}
 
-	err := apiServer.DnsServer.Blacklist.RemoveSourceAndDomains(name)
+	err := api.DnsServer.Blacklist.RemoveSourceAndDomains(name)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	delete(apiServer.DnsServer.Blacklist.BlocklistURL, name)
+	delete(api.DnsServer.Blacklist.BlocklistURL, name)
 	c.JSON(http.StatusOK, nil)
 }
 
-func (apiServer *API) getDomainsForList(c *gin.Context) {
+func (api *API) getDomainsForList(c *gin.Context) {
 	list := c.Query("list")
 	if list == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'list' query parameter"})
 		return
 	}
 
-	domains, err := apiServer.DnsServer.Blacklist.GetDomainsForList(list)
+	domains, err := api.DnsServer.Blacklist.GetDomainsForList(list)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -756,7 +757,7 @@ func (apiServer *API) getDomainsForList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"domains": domains})
 }
 
-func (apiServer *API) runUpdate(c *gin.Context) {
+func (api *API) runUpdate(c *gin.Context) {
 	w := c.Writer
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -785,7 +786,7 @@ func (apiServer *API) runUpdate(c *gin.Context) {
 	}
 }
 
-func (apiServer *API) updatePassword(c *gin.Context) {
+func (api *API) updatePassword(c *gin.Context) {
 	type PasswordChange struct {
 		CurrentPassword string `json:"currentPassword"`
 		NewPassword     string `json:"newPassword"`
@@ -805,15 +806,18 @@ func (apiServer *API) updatePassword(c *gin.Context) {
 		return
 	}
 
-	if !apiServer.validateCredentials("admin", request.CurrentPassword) {
+	if !api.validateCredentials("admin", request.CurrentPassword) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid current password"})
 		return
 	}
 
-	user := user.User{Username: "admin", Password: request.NewPassword}
-	user.UpdatePassword(apiServer.DnsServer.DB)
-	log.Info("Password has been changed!")
+	existingUser := user.User{Username: "admin", Password: request.NewPassword}
+	if err = existingUser.UpdatePassword(api.DnsServer.DB); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to update password"})
+		return
+	}
 
+	log.Info("Password has been changed!")
 	c.JSON(http.StatusOK, nil)
 }
 

@@ -63,26 +63,26 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 }
 
 func (api *API) SetupAuth() {
-	user := &user.User{Username: "admin"}
-	if user.Exists(api.DnsServer.DB) {
+	newUser := &user.User{Username: "admin"}
+	if newUser.Exists(api.DnsServer.DB) {
 		return
 	}
 
 	log.Info("Creating a new admin user")
 	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
-		user.Password = password
-		err := user.Create(api.DnsServer.DB)
+		newUser.Password = password
+		err := newUser.Create(api.DnsServer.DB)
 		if err != nil {
 			log.Error("Unable to create new user: %v", err)
 		}
 		log.Info("Using custom password: [hidden]")
 	} else {
-		user.Password = generateRandomPassword()
-		err := user.Create(api.DnsServer.DB)
+		newUser.Password = generateRandomPassword()
+		err := newUser.Create(api.DnsServer.DB)
 		if err != nil {
 			log.Error("Unable to create new user: %v", err)
 		}
-		log.Info("Randomly generated admin password: %s", user.Password)
+		log.Info("Randomly generated admin password: %s", newUser.Password)
 	}
 }
 

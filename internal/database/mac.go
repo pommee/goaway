@@ -2,12 +2,13 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 )
 
 func FindVendor(db *sql.DB, mac string) (string, error) {
 	var vendor string
 	err := db.QueryRow("SELECT vendor FROM mac_addresses WHERE mac = ?", mac).Scan(&vendor)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	} else if err != nil {
 		return "", err

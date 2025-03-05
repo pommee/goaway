@@ -2,6 +2,7 @@ package user
 
 import (
 	"database/sql"
+	"errors"
 	"goaway/internal/logging"
 
 	"golang.org/x/crypto/bcrypt"
@@ -42,7 +43,7 @@ func (user *User) Exists(db *sql.DB) bool {
 	query := "SELECT 1 FROM user WHERE username = ? LIMIT 1"
 	var exists int
 	if err := db.QueryRow(query, user.Username).Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false
 		}
 		log.Error("Query error: %v", err)
@@ -56,7 +57,7 @@ func (user *User) Authenticate(db *sql.DB) bool {
 
 	var hashedPassword string
 	if err := db.QueryRow(query, user.Username).Scan(&hashedPassword); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("User not found: %s", user.Username)
 			return false
 		}

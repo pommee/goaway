@@ -73,29 +73,29 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	blacklist := blacklist.Blacklist{
+	blacklistEntry := blacklist.Blacklist{
 		DB: db.Con,
 		BlocklistURL: map[string]string{
 			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
 		},
 	}
 
-	if err := blacklist.Initialize(); err != nil {
+	if err := blacklistEntry.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
-	if err := blacklist.InitializeBlocklist("Custom", ""); err != nil {
+	if err := blacklistEntry.InitializeBlocklist("Custom", ""); err != nil {
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
 	}
 
-	blacklist.BlocklistURL, err = blacklist.GetBlocklistUrls()
+	blacklistEntry.BlocklistURL, err = blacklistEntry.GetBlocklistUrls()
 	if err != nil {
 		log.Error("Failed to get blocklist URLs: %v", err)
 	}
 
 	server := &DNSServer{
 		Config:              *config,
-		Blacklist:           blacklist,
+		Blacklist:           blacklistEntry,
 		DB:                  db.Con,
 		StatisticsRetention: config.StatisticsRetention,
 		lastLogTime:         time.Now(),
@@ -141,7 +141,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			entryWSJson, _ := json.Marshal(entry)
 			if s.WS != nil {
 				wsMutex.Lock()
-				_ = s.WS.WriteMessage(websocket.TextMessage, []byte(entryWSJson))
+				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
 				wsMutex.Unlock()
 			}
 			results <- entry

@@ -97,7 +97,7 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 
 	_ = b.InitializeBlocklist(name, url)
 
-	if err := b.AddDomains(domains, name, url); err != nil {
+	if err := b.AddDomains(domains, url); err != nil {
 		return fmt.Errorf("failed to add domains to database: %w", err)
 	}
 
@@ -139,18 +139,18 @@ func (b *Blacklist) extractDomains(body io.Reader) ([]string, error) {
 
 func (b *Blacklist) AddDomain(domain string) error {
 	result, err := b.DB.Exec(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`, domain)
+	if err != nil {
+		return fmt.Errorf("failed to add domain to blacklist: %w", err)
+	}
 
 	affected, _ := result.RowsAffected()
 	if affected == 0 {
 		return fmt.Errorf("%s is already blacklisted", domain)
 	}
-	if err != nil {
-		return fmt.Errorf("failed to add domain to blacklist: %w", err)
-	}
 	return nil
 }
 
-func (b *Blacklist) AddDomains(domains []string, source, url string) error {
+func (b *Blacklist) AddDomains(domains []string, url string) error {
 	tx, err := b.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
@@ -210,13 +210,13 @@ func (b *Blacklist) CountDomains() (int, error) {
 
 func (b *Blacklist) RemoveDomain(domain string) error {
 	result, err := b.DB.Exec(`DELETE FROM blacklist WHERE domain = ?`, domain)
+	if err != nil {
+		return fmt.Errorf("failed to remove domain from blacklist: %w", err)
+	}
 
 	affected, _ := result.RowsAffected()
 	if affected == 0 {
 		return fmt.Errorf("%s is already whitelisted", domain)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to remove domain from blacklist: %w", err)
 	}
 	return nil
 }
@@ -226,7 +226,7 @@ func (b *Blacklist) IsBlacklisted(domain string) (bool, error) {
 	row := b.DB.QueryRow(query, domain)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check if domain is blacklisted: %w", err)
@@ -298,7 +298,7 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 	currentTime := time.Now().Unix()
 	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, "Custom").Scan(&sourceID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			err = tx.QueryRow(`INSERT INTO sources (name, lastUpdated) VALUES (?, ?) RETURNING id`, "Custom", currentTime).Scan(&sourceID)
 			if err != nil {
 				return fmt.Errorf("failed to insert custom source: %w", err)
@@ -410,7 +410,7 @@ func (b *Blacklist) RemoveSourceAndDomains(source string) error {
 	var sourceID int
 	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, source).Scan(&sourceID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("source '%s' not found", source)
 		}
 		return fmt.Errorf("failed to get source ID: %w", err)
