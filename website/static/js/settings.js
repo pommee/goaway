@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const root = document.documentElement;
-  const savedTheme = localStorage.getItem("theme") || "light";
+  const savedTheme = localStorage.getItem("theme") || "dark";
   root.style.colorScheme = savedTheme;
   toggleTheme.checked = savedTheme === "light";
 
