@@ -66,11 +66,17 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 		}
 	}
 
-	if clientIP == "127.0.0.1" || clientIP == "::1" {
-		if h, err := os.Hostname(); err == nil {
-			return clientIP, h, macAddress
+	if clientIP == "127.0.0.1" || clientIP == "::1" || clientIP == "[" {
+		localIP, err := getLocalIP()
+		if err != nil {
+			log.Warning("Failed to get local IP: %v", err)
+			localIP = "127.0.0.1"
 		}
-		return clientIP, "localhost", macAddress
+
+		if h, err := os.Hostname(); err == nil {
+			return localIP, h, macAddress
+		}
+		return localIP, "localhost", macAddress
 	}
 
 	if hostnames, err := net.LookupAddr(clientIP); err == nil && len(hostnames) > 0 {
@@ -78,6 +84,23 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 	}
 
 	return clientIP, "unknown", macAddress
+}
+
+func getLocalIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+
+	return "127.0.0.1", fmt.Errorf("no non-loopback IPv4 address found")
 }
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
