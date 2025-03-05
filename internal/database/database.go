@@ -42,6 +42,11 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create mac_addresses table: %w", err)
 	}
 
+	err = NewUserDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user table: %w", err)
+	}
+
 	return &Session{Con: db}, nil
 }
 
@@ -50,6 +55,18 @@ func NewMacDatabase(db *sql.DB) error {
 		mac TEXT PRIMARY KEY,
 		ip TEXT,
 		vendor TEXT
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewUserDatabase(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
+		username TEXT PRIMARY KEY,
+		password TEXT
 	)`)
 	if err != nil {
 		return err

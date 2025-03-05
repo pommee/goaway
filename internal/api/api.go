@@ -8,6 +8,7 @@ import (
 	"goaway/internal/logging"
 	"goaway/internal/server"
 	"goaway/internal/settings"
+	"goaway/internal/user"
 	"os"
 	"sync"
 	"time"
@@ -28,12 +29,11 @@ type Credentials struct {
 }
 
 type API struct {
-	router        *gin.Engine
-	routes        *gin.RouterGroup
-	DnsServer     *server.DNSServer
-	Config        *settings.APIServerConfig
-	adminPassword string
-	Version       string
+	router    *gin.Engine
+	routes    *gin.RouterGroup
+	DnsServer *server.DNSServer
+	Config    *settings.APIServerConfig
+	Version   string
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
@@ -63,12 +63,26 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 }
 
 func (api *API) SetupAuth() {
+	user := &user.User{Username: "admin"}
+	if user.Exists(api.DnsServer.DB) {
+		return
+	}
+
+	log.Info("Creating a new admin user")
 	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
-		api.adminPassword = password
+		user.Password = password
+		err := user.Create(api.DnsServer.DB)
+		if err != nil {
+			log.Error("Unable to create new user: %v", err)
+		}
 		log.Info("Using custom password: [hidden]")
 	} else {
-		api.adminPassword = generateRandomPassword()
-		log.Info("Randomly generated admin password: %s", api.adminPassword)
+		user.Password = generateRandomPassword()
+		err := user.Create(api.DnsServer.DB)
+		if err != nil {
+			log.Error("Unable to create new user: %v", err)
+		}
+		log.Info("Randomly generated admin password: %s", user.Password)
 	}
 }
 

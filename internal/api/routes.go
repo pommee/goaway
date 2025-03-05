@@ -10,6 +10,7 @@ import (
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"goaway/internal/updater"
+	"goaway/internal/user"
 	"io"
 	"io/fs"
 	"net"
@@ -809,7 +810,8 @@ func (apiServer *API) updatePassword(c *gin.Context) {
 		return
 	}
 
-	apiServer.adminPassword = request.NewPassword
+	user := user.User{Username: "admin", Password: request.NewPassword}
+	user.UpdatePassword(apiServer.DnsServer.DB)
 	log.Info("Password has been changed!")
 
 	c.JSON(http.StatusOK, nil)

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"goaway/internal/user"
 	"net/http"
 	"strings"
 	"time"
@@ -78,5 +79,6 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 }
 
 func (websiteServer *API) validateCredentials(username, password string) bool {
-	return username == "admin" && password == websiteServer.adminPassword
+	user := &user.User{Username: username, Password: password}
+	return user.Authenticate(websiteServer.DnsServer.DB)
 }
