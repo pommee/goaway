@@ -167,7 +167,7 @@ async function initializeLogTable() {
         dataSrc: "details",
         error: function (xhr) {
           if (xhr.status === 401) {
-            window.location.href = "/login.html";
+            Logout();
           } else {
             console.error("Failed to load data:", xhr.statusText);
           }

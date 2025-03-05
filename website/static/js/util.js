@@ -55,8 +55,7 @@ function GetRequest(url) {
               "info",
               "You have been logged out. Please log in again."
             );
-            ClearLocalStorage();
-            window.location.href = "/login.html";
+            Logout();
           }
           throw new Error("Network response was not ok");
         }
@@ -89,8 +88,7 @@ function PostRequest(url, body) {
               "info",
               "You have been logged out. Please log in again."
             );
-            ClearLocalStorage();
-            window.location.href = "/login.html";
+            Logout();
           }
           throw new Error("Network response was not ok");
         }
@@ -122,8 +120,7 @@ function DeleteRequest(url) {
               "info",
               "You have been logged out. Please log in again."
             );
-            ClearLocalStorage();
-            window.location.href = "/login.html";
+            Logout();
           }
           throw new Error("Network response was not ok");
         }
@@ -148,11 +145,15 @@ try {
 
 try {
   document.getElementById("logout").addEventListener("click", async () => {
-    ClearLocalStorage();
-    window.location.href = "/login.html";
+    Logout();
   });
 } catch (e) {
   // ignored
+}
+
+function Logout() {
+  ClearLocalStorage();
+  window.location.href = "/login.html";
 }
 
 function showNotification(headerMessage, type, ...message) {

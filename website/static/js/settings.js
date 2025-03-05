@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       savePassword();
       passwordModal.style.display = "none";
       passwordError.textContent = "";
+      Logout();
     } else {
       passwordError.textContent = "Passwords do not match.";
     }

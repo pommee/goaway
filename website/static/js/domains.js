@@ -12,8 +12,8 @@ function renderStatusAndResponseTime(data) {
   const status = data.blocked
     ? "Blocked"
     : data.cached
-      ? "OK (cached)"
-      : "OK (forwarded)";
+    ? "OK (cached)"
+    : "OK (forwarded)";
   const responseTime = (data.responseTimeNS / 1_000_000).toFixed(2);
   return `${status}<br>${responseTime} ms`;
 }
@@ -30,7 +30,7 @@ async function handleToggleClick(event) {
 
   try {
     const blockReq = await $.get(
-      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`,
+      `/api/updateBlockStatus?domain=${domain}&blocked=${newBlockedStatus}`
     );
     showInfoNotification(blockReq.message);
 
@@ -67,7 +67,7 @@ async function initializeLogTable() {
         },
         error: function (xhr) {
           if (xhr.status === 401) {
-            window.location.href = "/login.html";
+            Logout();
           } else {
             console.error("Failed to load data:", xhr.statusText);
           }
@@ -110,7 +110,7 @@ async function handleAddDomain() {
   if (domain) {
     try {
       const blockReq = await $.get(
-        `/api/updateBlockStatus?domain=${domain}&blocked=true`,
+        `/api/updateBlockStatus?domain=${domain}&blocked=true`
       );
       showInfoNotification(blockReq.message);
       closeAddDomainModal();
