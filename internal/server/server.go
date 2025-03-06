@@ -35,8 +35,8 @@ type DNSServer struct {
 	DB                  *sql.DB
 	Counters            CounterDetails
 	StatisticsRetention int
-	lastLogTime         time.Time
 	logIntervalSeconds  int
+	lastLogTime         time.Time
 	cache               sync.Map
 	WebServer           *gin.Engine
 	logEntryChannel     chan model.RequestLogEntry
@@ -60,11 +60,11 @@ type CounterDetails struct {
 }
 
 type Request struct {
-	w         dns.ResponseWriter
-	msg       *dns.Msg
-	question  dns.Question
-	timestamp time.Time
-	client    *model.Client
+	w        dns.ResponseWriter
+	msg      *dns.Msg
+	question dns.Question
+	sent     time.Time
+	client   *model.Client
 }
 
 func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
@@ -121,7 +121,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	timestamp := time.Now()
+	sent := time.Now()
 	clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
 
 	msg := new(dns.Msg)
@@ -137,7 +137,8 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		go func(question dns.Question) {
 			defer wg.Done()
 			client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
-			entry := s.processQuery(&Request{w, msg, question, timestamp, client})
+			entry := s.processQuery(&Request{w, msg, question, sent, client})
+			log.Debug("Requesting domain %s took %s", entry.Domain, entry.ResponseTime)
 			entryWSJson, _ := json.Marshal(entry)
 			if s.WS != nil {
 				wsMutex.Lock()

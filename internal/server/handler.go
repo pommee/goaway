@@ -144,15 +144,15 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 		_ = request.w.WriteMsg(request.msg)
 
 		return model.RequestLogEntry{
-			Timestamp:      request.timestamp,
-			Domain:         request.question.Name,
-			IP:             []string{"localhost.lan"},
-			Blocked:        false,
-			Cached:         false,
-			ResponseTimeNS: time.Since(request.timestamp),
-			ClientInfo:     request.client,
-			Status:         "NoError",
-			QueryType:      "PTR",
+			Timestamp:    request.sent,
+			Domain:       request.question.Name,
+			IP:           []string{"localhost.lan"},
+			Blocked:      false,
+			Cached:       false,
+			ResponseTime: time.Since(request.sent),
+			ClientInfo:   request.client,
+			Status:       "NoError",
+			QueryType:    "PTR",
 		}
 	}
 
@@ -179,15 +179,15 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 		_ = request.w.WriteMsg(request.msg)
 
 		return model.RequestLogEntry{
-			Timestamp:      request.timestamp,
-			Domain:         request.question.Name,
-			IP:             []string{hostname},
-			Blocked:        false,
-			Cached:         false,
-			ResponseTimeNS: time.Since(request.timestamp),
-			ClientInfo:     request.client,
-			Status:         "NoError",
-			QueryType:      "PTR",
+			Timestamp:    request.sent,
+			Domain:       request.question.Name,
+			IP:           []string{hostname},
+			Blocked:      false,
+			Cached:       false,
+			ResponseTime: time.Since(request.sent),
+			ClientInfo:   request.client,
+			Status:       "NoError",
+			QueryType:    "PTR",
 		}
 	}
 
@@ -224,15 +224,15 @@ func (s *DNSServer) handleQuery(request *Request) model.RequestLogEntry {
 	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
-		Timestamp:      request.timestamp,
-		Domain:         request.question.Name,
-		IP:             resolvedAddresses,
-		Blocked:        false,
-		Cached:         cached,
-		ResponseTimeNS: time.Since(request.timestamp),
-		ClientInfo:     request.client,
-		Status:         status,
-		QueryType:      dns.TypeToString[request.question.Qtype],
+		Timestamp:    request.sent,
+		Domain:       request.question.Name,
+		IP:           resolvedAddresses,
+		Blocked:      false,
+		Cached:       cached,
+		ResponseTime: time.Since(request.sent),
+		ClientInfo:   request.client,
+		Status:       status,
+		QueryType:    dns.TypeToString[request.question.Qtype],
 	}
 }
 
@@ -375,14 +375,14 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	s.Counters.BlockedRequests++
 
 	return model.RequestLogEntry{
-		Timestamp:      request.timestamp,
-		Domain:         request.question.Name,
-		IP:             []string{""},
-		Blocked:        true,
-		Cached:         false,
-		ResponseTimeNS: time.Since(request.timestamp),
-		ClientInfo:     request.client,
-		Status:         status,
+		Timestamp:    request.sent,
+		Domain:       request.question.Name,
+		IP:           []string{""},
+		Blocked:      true,
+		Cached:       false,
+		ResponseTime: time.Since(request.sent),
+		ClientInfo:   request.client,
+		Status:       status,
 	}
 }
 

@@ -114,7 +114,7 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 
 		if err := rows.Scan(
 			&query.Timestamp, &query.Domain, &ipString,
-			&query.Blocked, &query.Cached, &query.ResponseTimeNS,
+			&query.Blocked, &query.Cached, &query.ResponseTime,
 			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType,
 		); err != nil {
 			return nil, err
@@ -348,7 +348,7 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 			strings.Join(entry.IP, ","),
 			entry.Blocked,
 			entry.Cached,
-			entry.ResponseTimeNS,
+			entry.ResponseTime,
 			entry.ClientInfo.IP,
 			entry.ClientInfo.Name,
 			entry.Status,
