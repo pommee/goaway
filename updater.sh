@@ -10,7 +10,7 @@ LATEST_VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
 ASSET_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | endswith("linux_amd64.tar.gz")) | .browser_download_url')
 
 if [[ -z "$ASSET_URL" ]]; then
-    echo "Error: No valid asset URL found in the GitHub release."
+    echo "[Error] No valid asset URL found in the GitHub release."
     exit 1
 fi
 
