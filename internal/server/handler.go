@@ -129,15 +129,17 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
 		parts[i], parts[j] = parts[j], parts[i]
 	}
-
 	ipStr := strings.Join(parts, ".")
 
 	if ipStr == "127.0.0.1" {
 		return s.respondWithLocalhost(request)
 	}
 
-	hostname := database.GetClientNameFromRequestLog(s.DB, ipStr)
+	if !isPrivateIP(ipStr) {
+		return s.forwardPTRQueryUpstream(request)
+	}
 
+	hostname := database.GetClientNameFromRequestLog(s.DB, ipStr)
 	if hostname == "unknown" {
 		if names, err := net.LookupAddr(ipStr); err == nil && len(names) > 0 {
 			hostname = strings.TrimSuffix(names[0], ".")
@@ -149,6 +151,17 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 
 	return s.forwardPTRQueryUpstream(request)
+}
+
+func isPrivateIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	_, private24, _ := net.ParseCIDR("192.168.0.0/16")
+	_, private20, _ := net.ParseCIDR("172.16.0.0/12")
+	_, private16, _ := net.ParseCIDR("10.0.0.0/8")
+	return private24.Contains(ip) || private20.Contains(ip) || private16.Contains(ip)
 }
 
 func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry {
@@ -206,7 +219,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 }
 
 func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
-	answers, _, status := s.queryUpstream(request.question.Name, dns.TypePTR)
+	answers, _, status := s.queryUpstream(request.question.Name, request.question.Qtype)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
 	if status == "NXDomain" {
