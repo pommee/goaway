@@ -35,6 +35,24 @@ var rcodes = map[int]string{
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
 
+func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
+	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
+		return s.handlePTRQuery(request)
+	}
+
+	domainName := strings.TrimSuffix(request.question.Name, ".")
+	isBlacklisted, err := s.Blacklist.IsBlacklisted(domainName)
+	if err != nil {
+		log.Error("%v", err)
+	}
+
+	if isBlacklisted {
+		return s.handleBlacklisted(request)
+	}
+
+	return s.handleStandardQuery(request)
+}
+
 func (s *DNSServer) GetVendor(mac string) (string, error) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
@@ -103,21 +121,6 @@ func getLocalIP() (string, error) {
 	return "127.0.0.1", fmt.Errorf("no non-loopback IPv4 address found")
 }
 
-func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	if request.question.Qtype == dns.TypePTR && strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
-		return s.handlePTRQuery(request)
-	}
-
-	isBlacklisted, err := s.Blacklist.IsBlacklisted(strings.TrimSuffix(request.question.Name, "."))
-	if err != nil {
-		log.Error("%v", err)
-	}
-	if isBlacklisted {
-		return s.handleBlacklisted(request)
-	}
-	return s.handleQuery(request)
-}
-
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	ptrName := request.question.Name
 	ipParts := strings.TrimSuffix(ptrName, ".in-addr.arpa.")
@@ -130,30 +133,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	ipStr := strings.Join(parts, ".")
 
 	if ipStr == "127.0.0.1" {
-		ptr := &dns.PTR{
-			Hdr: dns.RR_Header{
-				Name:   request.question.Name,
-				Rrtype: dns.TypePTR,
-				Class:  dns.ClassINET,
-				Ttl:    3600,
-			},
-			Ptr: "localhost.lan.",
-		}
-
-		request.msg.Answer = append(request.msg.Answer, ptr)
-		_ = request.w.WriteMsg(request.msg)
-
-		return model.RequestLogEntry{
-			Timestamp:    request.sent,
-			Domain:       request.question.Name,
-			IP:           []string{"localhost.lan"},
-			Blocked:      false,
-			Cached:       false,
-			ResponseTime: time.Since(request.sent),
-			ClientInfo:   request.client,
-			Status:       "NoError",
-			QueryType:    "PTR",
-		}
+		return s.respondWithLocalhost(request)
 	}
 
 	hostname := database.GetClientNameFromRequestLog(s.DB, ipStr)
@@ -165,37 +145,101 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 
 	if hostname != "unknown" {
-		ptr := &dns.PTR{
-			Hdr: dns.RR_Header{
-				Name:   request.question.Name,
-				Rrtype: dns.TypePTR,
-				Class:  dns.ClassINET,
-				Ttl:    3600,
-			},
-			Ptr: hostname + ".",
-		}
+		return s.respondWithHostname(request, hostname)
+	}
 
-		request.msg.Answer = append(request.msg.Answer, ptr)
-		_ = request.w.WriteMsg(request.msg)
+	return s.forwardPTRQueryUpstream(request)
+}
 
-		return model.RequestLogEntry{
-			Timestamp:    request.sent,
-			Domain:       request.question.Name,
-			IP:           []string{hostname},
-			Blocked:      false,
-			Cached:       false,
-			ResponseTime: time.Since(request.sent),
-			ClientInfo:   request.client,
-			Status:       "NoError",
-			QueryType:    "PTR",
+func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry {
+	ptr := &dns.PTR{
+		Hdr: dns.RR_Header{
+			Name:   request.question.Name,
+			Rrtype: dns.TypePTR,
+			Class:  dns.ClassINET,
+			Ttl:    3600,
+		},
+		Ptr: "localhost.lan.",
+	}
+
+	request.msg.Answer = append(request.msg.Answer, ptr)
+	_ = request.w.WriteMsg(request.msg)
+
+	return model.RequestLogEntry{
+		Timestamp:    request.sent,
+		Domain:       request.question.Name,
+		IP:           []string{"localhost.lan"},
+		Blocked:      false,
+		Cached:       false,
+		ResponseTime: time.Since(request.sent),
+		ClientInfo:   request.client,
+		Status:       "NoError",
+		QueryType:    "PTR",
+	}
+}
+
+func (s *DNSServer) respondWithHostname(request *Request, hostname string) model.RequestLogEntry {
+	ptr := &dns.PTR{
+		Hdr: dns.RR_Header{
+			Name:   request.question.Name,
+			Rrtype: dns.TypePTR,
+			Class:  dns.ClassINET,
+			Ttl:    3600,
+		},
+		Ptr: hostname + ".",
+	}
+
+	request.msg.Answer = append(request.msg.Answer, ptr)
+	_ = request.w.WriteMsg(request.msg)
+
+	return model.RequestLogEntry{
+		Timestamp:    request.sent,
+		Domain:       request.question.Name,
+		IP:           []string{hostname},
+		Blocked:      false,
+		Cached:       false,
+		ResponseTime: time.Since(request.sent),
+		ClientInfo:   request.client,
+		Status:       "NoError",
+		QueryType:    "PTR",
+	}
+}
+
+func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
+	answers, _, status := s.queryUpstream(request.question.Name, dns.TypePTR)
+	request.msg.Answer = append(request.msg.Answer, answers...)
+
+	if status == "NXDomain" {
+		request.msg.Rcode = dns.RcodeNameError
+	} else if status == "ServFail" {
+		request.msg.Rcode = dns.RcodeServerFailure
+	}
+
+	var resolvedHostnames []string
+	for _, answer := range answers {
+		if ptr, ok := answer.(*dns.PTR); ok {
+			resolvedHostnames = append(resolvedHostnames, ptr.Ptr)
 		}
 	}
 
-	return s.handleQuery(request)
+	_ = request.w.WriteMsg(request.msg)
+	s.Counters.AllowedRequests++
+
+	return model.RequestLogEntry{
+		Timestamp:    request.sent,
+		Domain:       request.question.Name,
+		IP:           resolvedHostnames,
+		Blocked:      false,
+		Cached:       false,
+		ResponseTime: time.Since(request.sent),
+		ClientInfo:   request.client,
+		Status:       status,
+		QueryType:    "PTR",
+	}
 }
 
-func (s *DNSServer) handleQuery(request *Request) model.RequestLogEntry {
-	answers, cached, status := s.resolve(request.question.Name, request.question.Qclass)
+func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
+	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
 	if status == "NXDomain" {
@@ -205,18 +249,16 @@ func (s *DNSServer) handleQuery(request *Request) model.RequestLogEntry {
 	}
 
 	var resolvedAddresses []string
-	if len(answers) > 0 {
-		for _, answer := range answers {
-			switch rec := answer.(type) {
-			case *dns.A:
-				resolvedAddresses = append(resolvedAddresses, rec.A.String())
-			case *dns.AAAA:
-				resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
-			case *dns.PTR:
-				resolvedAddresses = append(resolvedAddresses, rec.Ptr)
-			case *dns.CNAME:
-				resolvedAddresses = append(resolvedAddresses, rec.Target)
-			}
+	for _, answer := range answers {
+		switch rec := answer.(type) {
+		case *dns.A:
+			resolvedAddresses = append(resolvedAddresses, rec.A.String())
+		case *dns.AAAA:
+			resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
+		case *dns.PTR:
+			resolvedAddresses = append(resolvedAddresses, rec.Ptr)
+		case *dns.CNAME:
+			resolvedAddresses = append(resolvedAddresses, rec.Target)
 		}
 	}
 
@@ -244,6 +286,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 		}
 	}
 
+	fmt.Println(qtype)
 	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
@@ -259,44 +302,28 @@ func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[s
 	visited[domain] = true
 
 	answers, ttl, status := s.queryUpstream(domain, qtype)
-	if len(answers) == 0 {
-		cnameAnswers, cnameTTL, cnameStatus := s.queryUpstream(domain, dns.TypeCNAME)
-		if len(cnameAnswers) > 0 {
-			for _, answer := range cnameAnswers {
-				if cname, ok := answer.(*dns.CNAME); ok {
-					targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
-					if len(targetAnswers) > 0 {
-						minTTL := cnameTTL
-						if targetTTL < minTTL {
-							minTTL = targetTTL
-						}
-						return append(cnameAnswers, targetAnswers...), minTTL, targetStatus
+	if len(answers) > 0 {
+		return answers, ttl, status
+	}
+
+	cnameAnswers, cnameTTL, cnameStatus := s.queryUpstream(domain, dns.TypeCNAME)
+	if len(cnameAnswers) > 0 {
+		for _, answer := range cnameAnswers {
+			if cname, ok := answer.(*dns.CNAME); ok {
+				targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
+				if len(targetAnswers) > 0 {
+					minTTL := cnameTTL
+					if targetTTL < minTTL {
+						minTTL = targetTTL
 					}
-					return cnameAnswers, cnameTTL, cnameStatus
+					return append(cnameAnswers, targetAnswers...), minTTL, targetStatus
 				}
+				return cnameAnswers, cnameTTL, cnameStatus
 			}
 		}
 	}
+
 	return answers, ttl, status
-}
-
-func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
-	cachedRecord := cached.(cachedRecord)
-	if time.Now().Before(cachedRecord.ExpiresAt) {
-		return cachedRecord.IPAddresses, true
-	}
-	return nil, false
-}
-
-func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32) {
-	cacheTTL := s.Config.CacheTTL
-	if ttl > 0 {
-		cacheTTL = time.Duration(ttl) * time.Second
-	}
-	s.cache.Store(domain, cachedRecord{
-		IPAddresses: ipAddresses,
-		ExpiresAt:   time.Now().Add(cacheTTL),
-	})
 }
 
 func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32, string) {
@@ -384,58 +411,4 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		ClientInfo:   request.client,
 		Status:       status,
 	}
-}
-
-func (s *DNSServer) ProcessLogEntries() {
-	var batch []model.RequestLogEntry
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case entry := <-s.logEntryChannel:
-			batch = append(batch, entry)
-			if len(batch) >= batchSize {
-				s.saveBatch(batch)
-				batch = nil
-			}
-		case <-ticker.C:
-			if len(batch) > 0 {
-				s.saveBatch(batch)
-				batch = nil
-			}
-		}
-	}
-}
-
-func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
-	database.SaveRequestLog(s.DB, entries)
-}
-
-func (s *DNSServer) ClearOldEntries() {
-	const (
-		maxRetries      = 10
-		retryDelay      = 150 * time.Millisecond
-		cleanupInterval = 1 * time.Minute
-	)
-
-	for {
-		requestThreshold := ((60 * 60) * 24) * s.StatisticsRetention
-		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
-		time.Sleep(cleanupInterval)
-
-		database.DeleteRequestLogsTimebased(s.DB, requestThreshold, maxRetries, retryDelay)
-		s.UpdateCounters()
-	}
-}
-
-func (s *DNSServer) UpdateCounters() {
-	blockedCount, allowedCount, err := database.CountAllowedAndBlockedRequest(s.DB)
-	if err != nil {
-		log.Error("%s %v", "failed to get counters: ", err)
-	}
-	s.Counters.BlockedRequests = blockedCount
-	s.Counters.AllowedRequests = allowedCount
 }
