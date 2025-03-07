@@ -126,7 +126,6 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
-	msg.Authoritative = true
 	msg.RecursionAvailable = true
 
 	var wg sync.WaitGroup
