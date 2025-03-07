@@ -112,7 +112,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 		Addr:      fmt.Sprintf(":%d", s.Config.Port),
 		Net:       "udp",
 		Handler:   s,
-		UDPSize:   65535,
+		UDPSize:   512,
 		ReusePort: true,
 	}
 
@@ -127,6 +127,10 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 	msg.RecursionAvailable = true
+
+	if r.IsEdns0() != nil {
+		msg.SetEdns0(1024, false)
+	}
 
 	var wg sync.WaitGroup
 	results := make(chan model.RequestLogEntry, len(r.Question))
