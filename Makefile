@@ -1,4 +1,4 @@
-.PHONY: publish lint example-queries dev format
+.PHONY: publish lint example-queries dev format test
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
@@ -29,3 +29,6 @@ example-queries:
 
 dev:
 	@air
+
+test:
+	go test -count=1 -bench=. -benchmem ./test/...
