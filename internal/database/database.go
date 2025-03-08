@@ -18,21 +18,12 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS request_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME NOT NULL,
-            domain TEXT NOT NULL,
-			ip TEXT NOT NULL,
-            blocked BOOLEAN NOT NULL,
-            cached BOOLEAN NOT NULL,
-            response_time_ns INTEGER NOT NULL,
-            client_ip TEXT,
-            client_name TEXT,
-			status TEXT,
-			query_type TEXT
-        );
-    `)
+	_, err = db.Exec("PRAGMA journal_mode=WAL;")
+	if err != nil {
+		log.Warning("failed to set journal_mode to WAL")
+	}
+
+	err = NewRequestLogDatabase(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
 	}
@@ -48,6 +39,29 @@ func Initialize() (*Session, error) {
 	}
 
 	return &Session{Con: db}, nil
+}
+
+func NewRequestLogDatabase(db *sql.DB) error {
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS request_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME NOT NULL,
+            domain TEXT NOT NULL,
+			ip TEXT NOT NULL,
+            blocked BOOLEAN NOT NULL,
+            cached BOOLEAN NOT NULL,
+            response_time_ns INTEGER NOT NULL,
+            client_ip TEXT,
+            client_name TEXT,
+			status TEXT,
+			query_type TEXT
+        );
+    `)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewMacDatabase(db *sql.DB) error {
