@@ -68,10 +68,10 @@ body {
 .sidenav {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 99vh;
   width: var(--sidenav-width);
   position: fixed;
-  z-index: 999;
+  z-index: 998;
   top: 0;
   left: 0;
   background-color: var(--bg-secondary);
