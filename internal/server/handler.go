@@ -299,7 +299,6 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 		}
 	}
 
-	fmt.Println(qtype)
 	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
