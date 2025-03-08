@@ -13,6 +13,7 @@ const newPasswordInput = document.getElementById("newPassword");
 const savePasswordButton = document.getElementById("save-password-btn");
 const cancelPasswordButton = document.getElementById("cancel-password-btn");
 const passwordError = document.getElementById("password-error");
+const fontSelection = document.getElementById("fontSelection");
 
 document.addEventListener("DOMContentLoaded", () => {
   initializeSettings();
@@ -80,6 +81,17 @@ document.addEventListener("DOMContentLoaded", () => {
   dismissButton.addEventListener("click", () => {
     isModified = false;
     hidePopup();
+  });
+
+  const savedFont =
+    localStorage.getItem("selectedFont") || "'JetBrains Mono', monospace";
+  document.body.style.fontFamily = savedFont;
+  fontSelection.value = savedFont;
+
+  fontSelection.addEventListener("change", () => {
+    const selectedFont = fontSelection.value;
+    document.body.style.fontFamily = selectedFont;
+    localStorage.setItem("selectedFont", selectedFont);
   });
 });
 

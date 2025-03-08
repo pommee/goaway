@@ -13,9 +13,7 @@
   text-align: center;
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .upstream-card:hover {
@@ -118,7 +116,6 @@ textarea {
   border-radius: 8px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  font-family: "JetBrains Mono", monospace;
   font-size: 1rem;
   width: 80%;
   height: 200px;
@@ -128,9 +125,7 @@ textarea {
   text-align: left;
   box-sizing: border-box;
   outline: none;
-  transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 textarea:focus {

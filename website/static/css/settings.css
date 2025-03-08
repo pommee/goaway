@@ -54,7 +54,8 @@
 }
 
 .setting-item select {
-  width: 120px;
+  width: fit-content;
+  min-width: 100px;
   padding: 10px;
   font-size: 1.2rem;
   color: var(--text-primary);

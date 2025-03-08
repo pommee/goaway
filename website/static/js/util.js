@@ -5,6 +5,10 @@ document.addEventListener("DOMContentLoaded", function () {
   if (savedTheme) {
     document.documentElement.style.colorScheme = savedTheme;
   }
+
+  const savedFont =
+    localStorage.getItem("selectedFont") || "'JetBrains Mono', monospace";
+  document.documentElement.style.setProperty("--main-font", savedFont);
 });
 
 if (!GetServerIP()) {

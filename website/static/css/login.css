@@ -63,7 +63,6 @@ body {
   border: 1px solid #444;
   border-radius: 4px;
   color: #e5e5e5;
-  font-family: "JetBrains Mono", monospace;
   box-sizing: border-box;
 }
 
@@ -80,7 +79,6 @@ body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-family: "JetBrains Mono", monospace;
   font-size: 1em;
   transition: background-color 0.3s;
 }

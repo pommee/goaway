@@ -3,6 +3,8 @@
   transition: 0.5s ease;
   transition-property: color, background-color, border-color, box-shadow;
 
+  --main-font: "JetBrains Mono", monospace;
+
   --bg-primary: light-dark(#ffffff, #0f0f13);
   --bg-secondary: light-dark(#f4f4f5, #1a1b1e);
   --bg-tertiary: light-dark(#e4e4e7, #25262b);
@@ -42,7 +44,7 @@
 }
 
 body {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--main-font);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   margin: 0;
