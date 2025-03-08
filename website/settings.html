@@ -123,6 +123,33 @@
 
         <div class="setting-item">
           <div class="label-container">
+            <label for="colorSchemeSelection" class="setting-label"
+              >Color Scheme</label
+            >
+            <button id="change-color-scheme-btn" onclick="openModal()">
+              Edit Colors
+            </button>
+          </div>
+          <p class="setting-explanation">
+            Change the color scheme of the dashboard.
+          </p>
+        </div>
+
+        <div class="color-scheme-modal" id="colorSchemeModal">
+          <h2>Edit Color Scheme</h2>
+          <div class="color-scheme-actions">
+            <button onclick="closeColorScheme()">Close</button>
+            <button onclick="saveColorScheme()">Save</button>
+            <button onclick="resetColorScheme()">Reset to default</button>
+          </div>
+          <div class="color-scheme-modal-content">
+            <div id="color-list"></div>
+            <iframe id="color-scheme-preview"></iframe>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="label-container">
             <label for="fontSelection" class="setting-label">Font</label>
             <select id="fontSelection">
               <option value="'JetBrains Mono', monospace">

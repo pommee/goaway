@@ -15,6 +15,65 @@ const cancelPasswordButton = document.getElementById("cancel-password-btn");
 const passwordError = document.getElementById("password-error");
 const fontSelection = document.getElementById("fontSelection");
 
+const colorEntries = [
+  {
+    name: "Primary Background",
+    selector: "--bg-primary",
+  },
+  {
+    name: "Secondary Background",
+    selector: "--bg-secondary",
+  },
+  {
+    name: "Tertiary background",
+    selector: "--bg-tertiary",
+  },
+  {
+    name: "Hover Background",
+    selector: "--hover-bg",
+  },
+  {
+    name: "Metric background",
+    selector: "--metric-bg",
+  },
+  {
+    name: "Text Primary",
+    selector: "--text-primary",
+  },
+  {
+    name: "Text Secondary",
+    selector: "--text-secondary",
+  },
+  {
+    name: "Text Muted",
+    selector: "--text-muted",
+  },
+  {
+    name: "Primary Accent",
+    selector: "--accent-primary",
+  },
+  {
+    name: "Secondary Accent",
+    selector: "--accent-secondary",
+  },
+  {
+    name: "Notification Success",
+    selector: "--success-color",
+  },
+  {
+    name: "Notification Warning",
+    selector: "--warning-color",
+  },
+  {
+    name: "Notification Error",
+    selector: "--danger-color",
+  },
+  {
+    name: "Border",
+    selector: "--border-color",
+  },
+];
+
 document.addEventListener("DOMContentLoaded", () => {
   initializeSettings();
   let isModified = false;
@@ -144,6 +203,90 @@ function validatePasswords() {
     confirmPasswordInput.setCustomValidity("");
     return true;
   }
+}
+
+function openModal() {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const colorList = document.getElementById("color-list");
+  const previewWindow = document.getElementById("color-scheme-preview");
+  const currentTheme = localStorage.getItem("theme") || "dark";
+
+  document.getElementById("colorSchemeModal").style.display = "block";
+  colorList.innerHTML = "";
+  previewWindow.src = "./index.html";
+
+  colorEntries.forEach((entry) => {
+    const colorValue = rootStyles.getPropertyValue(entry.selector).trim();
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+
+    label.innerText = entry.name;
+    input.type = "color";
+
+    if (colorValue.includes("light-dark")) {
+      input.value =
+        currentTheme === "dark"
+          ? getColor(colorValue, 1)
+          : getColor(colorValue, 0);
+    } else {
+      input.value = colorValue;
+    }
+
+    input.oninput = (e) => {
+      document.documentElement.style.setProperty(
+        entry.selector,
+        e.target.value
+      );
+    };
+
+    colorList.appendChild(label);
+    colorList.appendChild(input);
+    colorList.appendChild(document.createElement("br"));
+  });
+}
+
+function getColor(entry, index) {
+  const regex =
+    /\((#[0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?,\s*(#[0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?\)/;
+  const matches = entry.match(regex);
+  return matches ? matches[index + 1] : null;
+}
+
+function closeColorScheme() {
+  document.getElementById("colorSchemeModal").style.display = "none";
+}
+
+function saveColorScheme() {
+  const root = document.documentElement;
+  let colorScheme = {};
+
+  colorEntries.forEach((entry, index) => {
+    const colorPicker = document.querySelectorAll("#color-list input")[index];
+    if (colorPicker) {
+      root.style.setProperty(entry.selector, colorPicker.value);
+      colorScheme[entry.selector] = colorPicker.value;
+      localStorage.setItem("color-scheme", JSON.stringify(colorScheme));
+    }
+  });
+
+  document.getElementById("colorSchemeModal").style.display = "none";
+  showInfoNotification("Updated color scheme");
+}
+
+function resetColorScheme() {
+  const root = document.documentElement;
+
+  colorEntries.forEach((entry) => {
+    const defaultValue = getComputedStyle(root)
+      .getPropertyValue(entry.selector)
+      .trim();
+
+    root.style.setProperty(entry.selector, defaultValue);
+  });
+
+  localStorage.removeItem("color-scheme");
+  closeColorScheme();
+  showInfoNotification("Color scheme reset to default.");
 }
 
 function savePassword() {

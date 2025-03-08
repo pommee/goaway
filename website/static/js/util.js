@@ -1,6 +1,8 @@
 const notifications = [];
 
 document.addEventListener("DOMContentLoaded", function () {
+  LoadColorScheme();
+
   const savedTheme = localStorage.getItem("theme");
   if (savedTheme) {
     document.documentElement.style.colorScheme = savedTheme;
@@ -153,6 +155,18 @@ try {
   });
 } catch (e) {
   // ignored
+}
+
+function LoadColorScheme() {
+  const root = document.documentElement;
+  const savedColorScheme =
+    JSON.parse(localStorage.getItem("color-scheme")) || {};
+
+  for (var key in savedColorScheme) {
+    savedColorScheme[key] ||
+      getComputedStyle(root).getPropertyValue(key).trim();
+    root.style.setProperty(key, savedColorScheme[key]);
+  }
 }
 
 function Logout() {

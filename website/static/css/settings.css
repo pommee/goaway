@@ -189,7 +189,8 @@ h2 {
   color: white;
 }
 
-#change-password-btn {
+#change-password-btn,
+#change-color-scheme-btn {
   padding: 10px 15px;
   background-color: #007acc;
   color: white;
@@ -202,4 +203,85 @@ h2 {
 
 #change-password-btn:hover {
   background-color: #005f99;
+}
+
+.color-scheme-modal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  padding: 40px;
+  width: 99%;
+  height: 99%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+.color-scheme-modal h2 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.color-scheme-modal-content {
+  display: flex;
+  padding: 20px;
+  height: 90%;
+  gap: 20px;
+}
+
+#color-list {
+  width: 30%;
+  overflow-y: auto;
+  padding-right: 20px;
+}
+
+#color-list label {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+#color-list input[type="color"] {
+  width: 100%;
+  height: 40px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#color-list input[type="color"]:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+#color-scheme-preview {
+  width: 70%;
+  height: 100%;
+  border: 1px solid var(--border-color);
+}
+
+.color-scheme-modal button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 20px;
+  background-color: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.color-scheme-modal button:hover {
+  background-color: var(--accent-secondary);
+}
+
+.color-scheme-actions {
+  display: flex;
+  gap: 5px;
 }
