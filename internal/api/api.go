@@ -105,6 +105,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.POST("/settings", api.updateSettings)
 	api.routes.POST("/custom", api.updateCustom)
 	api.routes.POST("/toggleBlocklist", api.toggleBlocklist)
+	api.routes.POST("/resolution", api.createResolution)
 
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/liveQueries", api.liveQueries)
@@ -115,6 +116,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.GET("/settings", api.getSettings)
 	api.routes.GET("/clients", api.getClients)
 	api.routes.GET("/clientDetails", api.getClientDetails)
+	api.routes.GET("/resolutions", api.getResolutions)
 	api.routes.GET("/upstreams", api.getUpstreams)
 	api.routes.GET("/preferredUpstream", api.setPreferredUpstream)
 	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)

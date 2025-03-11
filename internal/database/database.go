@@ -28,6 +28,11 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
 	}
 
+	err = NewResolutionDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resolution table: %w", err)
+	}
+
 	err = NewMacDatabase(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mac_addresses table: %w", err)
@@ -57,6 +62,18 @@ func NewRequestLogDatabase(db *sql.DB) error {
 			query_type TEXT
         );
     `)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewResolutionDatabase(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS resolution (
+		ip TEXT PRIMARY KEY,
+		domain TEXT
+	)`)
 	if err != nil {
 		return err
 	}

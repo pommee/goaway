@@ -6,3 +6,8 @@ type QueryParams struct {
 	Column, Direction string
 	Offset            int
 }
+
+type NewResolution struct {
+	IP     string
+	Domain string
+}

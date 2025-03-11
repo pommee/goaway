@@ -75,9 +75,8 @@ body {
   top: 0;
   left: 0;
   background-color: var(--bg-secondary);
-  padding: 20px 0;
+  padding: 0 0;
   border-right: 1px solid var(--border-color);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease-in-out;
   overflow-y: auto;
 }

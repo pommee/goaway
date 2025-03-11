@@ -16,3 +16,8 @@ type ClientRequestDetails struct {
 	AvgResponseTimeMs                                             float64
 	LastSeen, MostQueriedDomain                                   string
 }
+
+type Resolution struct {
+	IP     string
+	Domain string
+}

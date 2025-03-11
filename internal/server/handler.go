@@ -299,12 +299,52 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 		}
 	}
 
-	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
+	answers, ttl, status := s.resolveResolution(domain)
+	if len(answers) > 0 {
+		s.cacheRecord(cacheKey, answers, ttl)
+		return answers, false, status
+	}
+
+	answers, ttl, status = s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 	}
 
 	return answers, false, status
+}
+
+func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
+	var (
+		records []dns.RR
+		ttl     uint32 = 60
+		status  string = "NOERROR"
+	)
+
+	ipFound, err := database.FetchResolution(s.DB, domain)
+	if err != nil {
+		log.Error("Database lookup error for domain (%s): %v", domain, err)
+		return nil, 0, "SERVFAIL"
+	}
+
+	if net.ParseIP(ipFound) != nil {
+		var rr dns.RR
+		if strings.Contains(ipFound, ":") {
+			rr = &dns.AAAA{
+				Hdr:  dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: ttl},
+				AAAA: net.ParseIP(ipFound),
+			}
+		} else {
+			rr = &dns.A{
+				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl},
+				A:   net.ParseIP(ipFound),
+			}
+		}
+		records = append(records, rr)
+	} else {
+		status = "NXDOMAIN"
+	}
+
+	return records, ttl, status
 }
 
 func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[string]bool) ([]dns.RR, uint32, string) {

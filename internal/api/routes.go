@@ -423,6 +423,30 @@ func (api *API) getClientDetails(c *gin.Context) {
 	})
 }
 
+func (api *API) getResolutions(c *gin.Context) {
+	resolutions, err := database.FetchResolutions(api.DnsServer.DB)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"resolutions": resolutions})
+}
+
+func (api *API) createResolution(c *gin.Context) {
+	var newResolution models.NewResolution
+	if err := c.BindJSON(&newResolution); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid resolution data",
+		})
+		return
+	}
+
+	database.CreateNewResolution(api.DnsServer.DB, newResolution.IP, newResolution.Domain)
+
+	c.Status(http.StatusOK)
+}
+
 func (api *API) getUpstreams(c *gin.Context) {
 	upstreams := api.DnsServer.Config.UpstreamDNS
 	results := make([]map[string]string, len(upstreams))
