@@ -447,6 +447,21 @@ func (api *API) createResolution(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (api *API) deleteResolution(c *gin.Context) {
+	domain := c.Query("domain")
+	ip := c.Query("ip")
+
+	rowsAffected, err := database.DeleteResolution(api.DnsServer.DB, ip, domain)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": rowsAffected})
+}
+
 func (api *API) getUpstreams(c *gin.Context) {
 	upstreams := api.DnsServer.Config.UpstreamDNS
 	results := make([]map[string]string, len(upstreams))

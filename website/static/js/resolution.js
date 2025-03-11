@@ -16,6 +16,35 @@ function renderIP(data) {
   `;
 }
 
+function renderRemoveButton(data) {
+  return `<button class="remove-button" data-ip="${data.IP}" data-domain="${data.Domain}">Remove</button>`;
+}
+
+async function handleToggleClick(event) {
+  const domain = $(event.target).data("domain");
+  const ip = $(event.target).data("ip");
+
+  try {
+    const response = await fetch(
+      GetServerIP() + `/api/resolution?domain=${domain}&ip=${ip}`,
+      {
+        method: "DELETE",
+      }
+    );
+    showInfoNotification(`Deleted resolution ${domain} | ${ip}`);
+
+    resolutionTable
+      .rows(function (_, data, _) {
+        return data.Domain === domain && data.IP === ip;
+      })
+      .remove()
+      .draw();
+  } catch (error) {
+    console.error("Error updating block status:", error);
+    showErrorNotification("Failed to update block status. Please try again.");
+  }
+}
+
 async function initializeResolutionTable() {
   $(document).ready(function () {
     resolutionTable = $("#resolution-table").DataTable({
@@ -36,6 +65,7 @@ async function initializeResolutionTable() {
       columns: [
         { data: "Domain", render: renderDomain },
         { data: "IP", render: renderIP },
+        { data: null, render: renderRemoveButton },
       ],
       order: [[0, "desc"]],
     });
@@ -44,6 +74,7 @@ async function initializeResolutionTable() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeResolutionTable();
+  $(document).on("click", ".remove-button", handleToggleClick);
 
   const form = document.getElementById("resolutionEntryForm");
   const ipInput = document.getElementById("ipAddress");

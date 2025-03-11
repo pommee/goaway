@@ -131,6 +131,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.DELETE("/upstreams", api.removeUpstreams)
 	api.routes.DELETE("/queries", api.clearQueries)
 	api.routes.DELETE("/list", api.removeList)
+	api.routes.DELETE("/resolution", api.deleteResolution)
 }
 
 func generateRandomPassword() string {

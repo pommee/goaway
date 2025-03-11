@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"goaway/internal/database/models"
 	"strings"
 )
@@ -69,4 +70,42 @@ func CreateNewResolution(db *sql.DB, ip, domain string) {
 		log.Error("Could not save resolution. Reason: %v", err)
 		return
 	}
+}
+
+func DeleteResolution(db *sql.DB, ip, domain string) (int, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("could not delete resolution due to db error: %v", err)
+	}
+	defer func() {
+		if err := tx.Commit(); err != nil {
+			log.Warning("DB commit error: %v", err)
+		}
+	}()
+
+	query := "DELETE FROM resolution WHERE ip = ? AND domain = ?"
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("could not delete resolution due to db error: %v", err)
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(ip, domain)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("could not delete resolution. Reason: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("could not retrieve affected rows: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		log.Warning("No resolution found with IP: %s and Domain: %s", ip, domain)
+	}
+
+	return int(rowsAffected), nil
 }
