@@ -68,14 +68,14 @@ body {
 .sidenav {
   display: flex;
   flex-direction: column;
-  height: 99vh;
+  height: 100vh;
   width: var(--sidenav-width);
   position: fixed;
   z-index: 998;
   top: 0;
   left: 0;
   background-color: var(--bg-secondary);
-  padding: 0 0;
+  padding: 0;
   border-right: 1px solid var(--border-color);
   transition: transform 0.3s ease-in-out;
   overflow-y: auto;
