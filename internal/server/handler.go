@@ -316,7 +316,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
 	var (
 		records []dns.RR
-		ttl     uint32 = 60
+		ttl     uint32 = uint32(s.Config.CacheTTL.Seconds())
 		status  string = "NOERROR"
 	)
 
