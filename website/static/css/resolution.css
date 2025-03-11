@@ -180,12 +180,11 @@
 }
 
 .form-container {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  margin-bottom: 20px;
-  font-family: "JetBrains Mono", monospace;
+  margin-top: 20px;
 }
 
 .form-container h2 {
