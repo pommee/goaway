@@ -23,7 +23,7 @@ var (
 	version, commit, date string
 	log                   = logging.GetLogger()
 
-	//go:embed website/*
+	//go:embed website/dist/*
 	content embed.FS
 )
 

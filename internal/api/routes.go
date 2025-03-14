@@ -14,6 +14,7 @@ import (
 	"goaway/internal/user"
 	"io"
 	"io/fs"
+	"mime"
 	"net"
 	"net/http"
 	"os"
@@ -31,19 +32,13 @@ import (
 )
 
 func (api *API) ServeEmbeddedContent(content embed.FS) {
-	mimeTypes := map[string]string{
-		".html": "text/html",
-		".css":  "text/css",
-		".js":   "application/javascript",
-	}
-
 	ipAddress, err := getServerIP()
 	if err != nil {
 		log.Error("Error getting IP address: %v", err)
 		return
 	}
 
-	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(content, "website/dist", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error walking through path %s: %w", path, err)
 		}
@@ -57,25 +52,29 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		mimeType := mimeTypes[ext]
+		mimeType := mime.TypeByExtension(ext)
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
 
-		route := strings.TrimPrefix(path, "website/")
-		if route == "index.html" {
-			api.router.GET("/", func(c *gin.Context) {
-				c.Header("X-Server-IP", ipAddress)
-				c.Data(http.StatusOK, mimeType, fileContent)
-			})
-		}
-
+		route := strings.TrimPrefix(path, "website/dist/")
 		api.router.GET("/"+route, func(c *gin.Context) {
 			c.Header("X-Server-IP", ipAddress)
 			c.Data(http.StatusOK, mimeType, fileContent)
 		})
 
 		return nil
+	})
+
+	// Handle SPA routing
+	api.router.NoRoute(func(c *gin.Context) {
+		fileContent, err := content.ReadFile("website/dist/index.html")
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Error loading index.html")
+			return
+		}
+		c.Header("Content-Type", "text/html")
+		c.Data(http.StatusOK, "text/html", fileContent)
 	})
 
 	if err != nil {

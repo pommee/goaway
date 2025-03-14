@@ -11,8 +11,8 @@ args_bin = [
     "--auth=false",
     "--statisticsRetention=7",
 ]
-cmd = 'go build -o goaway -ldflags="-X main.version=0.0.0" -o ./tmp/goaway .'
-exclude_dir = ["assets", "tmp", "vendor"]
+cmd = 'pnpm -C website build && go build -o goaway -ldflags="-X main.version=0.0.0" -o ./tmp/goaway .'
+exclude_dir = ["assets", "tmp", "vendor", "website/dist"]
 include_ext = ["go", "tpl", "tmpl", "html", "css", "js"]
 
 [color]
