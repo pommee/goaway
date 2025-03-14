@@ -14,6 +14,7 @@ import (
 	"goaway/internal/user"
 	"io"
 	"io/fs"
+	"mime"
 	"net"
 	"net/http"
 	"os"
@@ -31,23 +32,17 @@ import (
 )
 
 func (api *API) ServeEmbeddedContent(content embed.FS) {
-	mimeTypes := map[string]string{
-		".html": "text/html",
-		".css":  "text/css",
-		".js":   "application/javascript",
-	}
-
 	ipAddress, err := getServerIP()
 	if err != nil {
 		log.Error("Error getting IP address: %v", err)
 		return
 	}
 
-	err = fs.WalkDir(content, "website", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(content, "website/dist", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error walking through path %s: %w", path, err)
 		}
-		if d.IsDir() {
+		if d.IsDir() || path == "website/dist/index.html" {
 			return nil
 		}
 
@@ -57,53 +52,78 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		mimeType := mimeTypes[ext]
+		mimeType := mime.TypeByExtension(ext)
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
 
-		route := strings.TrimPrefix(path, "website/")
-		if route == "index.html" {
-			api.router.GET("/", func(c *gin.Context) {
-				c.Header("X-Server-IP", ipAddress)
-				c.Data(http.StatusOK, mimeType, fileContent)
-			})
-		}
-
+		route := strings.TrimPrefix(path, "website/dist/")
 		api.router.GET("/"+route, func(c *gin.Context) {
-			c.Header("X-Server-IP", ipAddress)
 			c.Data(http.StatusOK, mimeType, fileContent)
 		})
 
 		return nil
 	})
-
 	if err != nil {
 		log.Error("Error serving embedded content: %v", err)
+		return
 	}
+
+	indexContent, err := content.ReadFile("website/dist/index.html")
+	if err != nil {
+		log.Error("Error reading index.html: %v", err)
+		return
+	}
+
+	indexWithConfig := injectServerConfig(string(indexContent), ipAddress)
+	handleIndexHTML := func(c *gin.Context) {
+		c.Header("Content-Type", "text/html")
+		c.Data(http.StatusOK, "text/html", []byte(indexWithConfig))
+	}
+
+	api.router.GET("/", handleIndexHTML)
+	api.router.NoRoute(handleIndexHTML)
+}
+
+func injectServerConfig(htmlContent, serverIP string) string {
+	serverConfigScript := `<script>
+	window.SERVER_CONFIG = {
+		serverIP: "` + serverIP + `",
+		apiBaseURL: "http:\//` + serverIP + `:8080\/api"
+	};
+	</script>`
+
+	return strings.Replace(
+		htmlContent,
+		"<head>",
+		"<head>\n  "+serverConfigScript,
+		1,
+	)
 }
 
 func (api *API) handleLogin(c *gin.Context) {
 	var creds Credentials
-	if err := c.ShouldBindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	if err := c.BindJSON(&creds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	if !api.validateCredentials(creds.Username, creds.Password) {
+	if api.validateCredentials(creds.Username, creds.Password) {
+		token, err := generateToken(creds.Username)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token generation failed"})
+			return
+		}
+
+		serverIP, _ := getServerIP()
+		c.Header("Access-Control-Allow-Origin", fmt.Sprintf("http://%s:8080", serverIP))
+		c.Header("Access-Control-Allow-Credentials", "true")
+
+		setAuthCookie(c.Writer, token)
+		c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-		return
 	}
-
-	token, err := generateToken(creds.Username)
-	if err != nil {
-		log.Error("Failed to create token: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
-		return
-	}
-
-	setAuthCookie(c.Writer, token)
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
 func (api *API) handleServer(c *gin.Context) {
@@ -354,8 +374,8 @@ func (api *API) updateSettings(c *gin.Context) {
 
 	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	config.UpdateDNSSettings(updatedSettings)
-	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Info("Updated settings!")
+	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Debug("%s", string(settingsJson))
 
 	api.DnsServer.Config = *config.DNSServer
@@ -410,15 +430,15 @@ func (api *API) getClientDetails(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"details": map[string]interface{}{
-			"IP":                clientIP,
-			"TotalRequests":     clientRequestDetails.TotalRequests,
-			"UniqueDomains":     clientRequestDetails.UniqueDomains,
-			"BlockedRequests":   clientRequestDetails.BlockedRequests,
-			"CachedRequests":    clientRequestDetails.CachedRequests,
-			"AvgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
-			"MostQueriedDomain": mostQueriedDomain,
-			"LastSeen":          clientRequestDetails.LastSeen,
-			"AllDomains":        queriedDomains,
+			"ip":                clientIP,
+			"totalRequests":     clientRequestDetails.TotalRequests,
+			"uniqueDomains":     clientRequestDetails.UniqueDomains,
+			"blockedRequests":   clientRequestDetails.BlockedRequests,
+			"cachedRequests":    clientRequestDetails.CachedRequests,
+			"avgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
+			"mostQueriedDomain": mostQueriedDomain,
+			"lastSeen":          clientRequestDetails.LastSeen,
+			"allDomains":        queriedDomains,
 		},
 	})
 }

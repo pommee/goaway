@@ -23,7 +23,7 @@ var (
 	version, commit, date string
 	log                   = logging.GetLogger()
 
-	//go:embed website/*
+	//go:embed website/dist/*
 	content embed.FS
 )
 
@@ -97,6 +97,8 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 
 func runDNSServer(wg *sync.WaitGroup, serverInstance *dns.Server, errorChannel chan struct{}) {
 	defer wg.Done()
+	log.Info("Started DNS server on port %s", serverInstance.Addr)
+
 	if err := serverInstance.ListenAndServe(); err != nil {
 		log.Error("DNS server failed: %s", err)
 		errorChannel <- struct{}{}

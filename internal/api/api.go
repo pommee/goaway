@@ -9,10 +9,13 @@ import (
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"goaway/internal/user"
+	"net"
+
 	"os"
 	"sync"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,6 +46,16 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	api.DnsServer = dnsServer
 	api.DnsServer.WebServer = api.router
 
+	serverIP, _ := getServerIP()
+	api.router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8080", fmt.Sprintf("http://%s:8080", serverIP)},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
+		ExposeHeaders:    []string{"Set-Cookie"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	api.setupRoutes()
 	api.setupAuthorizedRoutes()
 	api.ServeEmbeddedContent(content)
@@ -52,9 +65,24 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 
 	go func() {
 		defer wg.Done()
-		log.Info("Starting server on port %d", api.Config.Port)
-		if err := api.router.Run(fmt.Sprintf(":%d", api.Config.Port)); err != nil {
-			log.Error("%v", err)
+
+		addr := fmt.Sprintf(":%d", api.Config.Port)
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			log.Error("Failed to start server: %v", err)
+			errorChannel <- struct{}{}
+			return
+		}
+		log.Info("Web server started on port :%d", api.Config.Port)
+
+		serverIP, err := getServerIP()
+		if err != nil {
+			log.Error("Could not start web server, reason: %v", err)
+		}
+		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
+
+		if err := api.router.RunListener(listener); err != nil {
+			log.Error("Server error: %v", err)
 			errorChannel <- struct{}{}
 		}
 	}()
@@ -96,6 +124,9 @@ func (api *API) setupRoutes() {
 func (api *API) setupAuthorizedRoutes() {
 	if api.Config.Authentication {
 		api.SetupAuth()
+	}
+
+	if api.Config.Authentication {
 		api.routes.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")

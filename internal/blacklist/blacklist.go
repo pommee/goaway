@@ -356,9 +356,9 @@ func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, er
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		stats[sourceName] = map[string]interface{}{
-			"blocked_count": blockedCount,
-			"lastUpdated":   lastUpdated,
-			"active":        active,
+			"blockedCount": blockedCount,
+			"lastUpdated":  lastUpdated,
+			"active":       active,
 		}
 	}
 
