@@ -20,7 +20,7 @@ var log = logging.GetLogger()
 
 const (
 	tokenDuration = 5 * time.Minute
-	jwtSecret     = "the-secret-key"
+	jwtSecret     = "kMNSRwKip7Yet4rb2z8"
 )
 
 type Credentials struct {
