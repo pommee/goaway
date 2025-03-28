@@ -59,6 +59,8 @@ export default function RequestTimeline() {
               acc.push(entry);
             }
 
+            query.blocked ? entry.blocked++ : entry.allowed++;
+
             return acc;
           }, [])
           .sort((a, b) => new Date(a.interval) - new Date(b.interval));

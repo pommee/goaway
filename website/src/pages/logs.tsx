@@ -71,7 +71,7 @@ async function fetchQueries(
       url += `&search=${encodeURIComponent(domainFilter)}`;
     }
 
-    const [response] = await GetRequest(url);
+    const [, response] = await GetRequest(url);
 
     if (response?.details && Array.isArray(response.details)) {
       return {
