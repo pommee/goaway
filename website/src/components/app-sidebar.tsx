@@ -1,13 +1,11 @@
 import * as React from "react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
-  ArrowUpLeftSquare,
   ChartNoAxesGantt,
   Home,
   ListFilter,
   LogOut,
   Logs,
-  Server,
   Settings,
   User,
 } from "lucide-react";
@@ -141,7 +139,7 @@ const data = {
     },
     {
       title: "Logout",
-      url: "#",
+      url: "/login",
       icon: LogOut,
       blank: "",
     },

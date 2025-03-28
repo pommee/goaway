@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { PostRequest, GetRequest } from "@/util";
+import { PostRequest, GetRequest, PutRequest } from "@/util";
+import { useNavigate } from "react-router-dom";
 
 const SETTINGS_SECTIONS = [
   {
@@ -20,6 +21,22 @@ const SETTINGS_SECTIONS = [
         options: ["JetBrains Mono", "Arial", "Times New Roman", "Courier New"],
         default: "JetBrains Mono",
         widgetType: Combobox,
+      },
+      {
+        label: "CurrentPassword",
+        key: "currentPassword",
+        explanation: "Current password",
+        options: [],
+        default: "password",
+        widgetType: Input,
+      },
+      {
+        label: "Password",
+        key: "password",
+        explanation: "awd",
+        options: [],
+        default: "password",
+        widgetType: Input,
       },
     ],
   },
@@ -72,6 +89,7 @@ const SETTINGS_SECTIONS = [
 export default function Settings() {
   const [preferences, setPreferences] = useState<Record<string, any>>({});
   const [isChanged, setIsChanged] = useState(false);
+  const navigate = useNavigate();
 
   const fetchSettings = async () => {
     try {
@@ -115,7 +133,6 @@ export default function Settings() {
       };
 
       setIsChanged(JSON.stringify(newPreferences) !== JSON.stringify(prev));
-
       return newPreferences;
     });
   };
@@ -124,12 +141,32 @@ export default function Settings() {
     try {
       await PostRequest("settings", preferences);
       setIsChanged(false);
-      toast.success("Settings updated successfully");
+
+      setTimeout(() => {
+        toast.success("Settings updated successfully");
+      }, 100);
     } catch (error) {
       console.error("Error saving settings", error);
       toast.error("Failed to save settings");
     }
+
+    const newPassword = preferences.password;
+    if (newPassword !== undefined) {
+      const [passwordChangeStatus, _] = await PutRequest("password", {
+        currentPassword: preferences.currentPassword,
+        newPassword: preferences.password,
+      });
+      if (passwordChangeStatus === 200) {
+        toast.success("Updated password!");
+        navigate("/login");
+      }
+    }
   };
+
+  useEffect(() => {
+    setPreferences(preferences);
+    setIsChanged(false);
+  }, [preferences]);
 
   useEffect(() => {
     if (isChanged) {
@@ -197,9 +234,8 @@ export default function Settings() {
                             onChange: (
                               e: React.ChangeEvent<HTMLInputElement>
                             ) => handleSelect(key, e.target.value),
-                            type: "number",
                             placeholder: "Enter Value",
-                            className: "w-full md:w-40 text-right",
+                            className: "w-full md:w-40",
                           }
                         : {})}
                     />

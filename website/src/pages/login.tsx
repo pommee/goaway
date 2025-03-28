@@ -31,7 +31,7 @@ export function Login({
     }
 
     try {
-      const [statusCode, response] = await PostRequest("login", {
+      const [statusCode, _] = await PostRequest("login", {
         username,
         password,
       });

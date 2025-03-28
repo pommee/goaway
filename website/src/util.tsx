@@ -62,6 +62,31 @@ export async function GetRequest(url: string) {
   }
 }
 
+export async function PutRequest(url: string, bodyData: any) {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bodyData),
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      showToast(data.error);
+      return [res.status, null];
+    }
+
+    const data = await res.json();
+    return [res.status, data];
+  } catch (error) {
+    showToast("Could not reach server, try again later.");
+    return [500, null];
+  }
+}
+
 export async function DeleteRequest(url: string) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
