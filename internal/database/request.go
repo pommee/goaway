@@ -40,7 +40,7 @@ func GetDistinctRequestIP(db *sql.DB) int {
 	return clientCount
 }
 
-func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntry, error) {
+func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntryTimestamps, error) {
 	query := "SELECT timestamp, blocked FROM request_log"
 
 	rows, err := db.Query(query)
@@ -49,9 +49,9 @@ func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntry, error) 
 	}
 	defer rows.Close()
 
-	var queries []model.RequestLogEntry
+	var queries []model.RequestLogEntryTimestamps
 	for rows.Next() {
-		var query model.RequestLogEntry
+		var query model.RequestLogEntryTimestamps
 		if err := rows.Scan(&query.Timestamp, &query.Blocked); err != nil {
 			return nil, err
 		}
