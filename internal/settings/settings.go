@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -191,10 +190,8 @@ func (config *Config) UpdateDNSSettings(updatedSettings map[string]interface{}) 
 	})
 
 	updateField("cacheTTL", func(value interface{}) {
-		if ttl, ok := value.(string); ok {
-			if parsedTTL, err := time.ParseDuration(ttl + "s"); err == nil {
-				config.DNSServer.CacheTTL = parsedTTL
-			}
+		if ttl, ok := value.(float64); ok {
+			config.DNSServer.CacheTTL = time.Duration(ttl) * time.Second
 		}
 	})
 
@@ -206,11 +203,9 @@ func (config *Config) UpdateDNSSettings(updatedSettings map[string]interface{}) 
 	})
 
 	updateField("statisticsRetention", func(value interface{}) {
-		if statisticsRetention, ok := value.(string); ok {
-			days, _ := strconv.Atoi(statisticsRetention)
-			config.DNSServer.StatisticsRetention = days
+		if days, ok := value.(float64); ok {
+			config.DNSServer.StatisticsRetention = int(days)
 		}
 	})
-
 	config.Save()
 }

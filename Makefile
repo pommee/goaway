@@ -1,4 +1,4 @@
-.PHONY: publish lint example-queries dev format test
+.PHONY: publish build lint example-queries dev format test
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
@@ -14,6 +14,9 @@ publish:
 	.
 
 	docker buildx rm multiarch-builder
+
+build:
+	pnpm -C website install && pnpm -C website build
 
 start:
 	docker compose up -d
