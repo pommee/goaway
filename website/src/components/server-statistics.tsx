@@ -1,3 +1,4 @@
+import { compare } from "compare-versions";
 import { useEffect, useState } from "react";
 import { Globe, Thermometer, Server, Database } from "lucide-react";
 import { GetRequest } from "@/util";
@@ -66,7 +67,7 @@ export function ServerStatistics() {
           installedVersion &&
           data.version &&
           !updateNotified &&
-          isNewerVersion(data.version, installedVersion)
+          compare(data.version, installedVersion, ">")
         ) {
           toast(`New version available: v${data.version}`, {
             action: {
@@ -87,17 +88,6 @@ export function ServerStatistics() {
     const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
   }, [updateNotified]);
-
-  function isNewerVersion(newVersion: string, oldVersion: string) {
-    const parse = (v: string) => v.split(".").map(Number);
-    const [nMajor, nMinor, nPatch] = parse(newVersion);
-    const [oMajor, oMinor, oPatch] = parse(oldVersion);
-    return (
-      nMajor > oMajor ||
-      (nMajor === oMajor && nMinor > oMinor) ||
-      (nMajor === oMajor && nMinor === oMinor && nPatch > oPatch)
-    );
-  }
 
   function startUpdate() {
     setUpdateLogs(["Starting update..."]);

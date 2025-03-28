@@ -27,3 +27,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+website/pnpm-lock.yaml
