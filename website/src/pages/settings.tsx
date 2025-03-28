@@ -33,7 +33,7 @@ const SETTINGS_SECTIONS = [
       {
         label: "Password",
         key: "password",
-        explanation: "awd",
+        explanation: "New password",
         options: [],
         default: "password",
         widgetType: Input,

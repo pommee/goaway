@@ -46,6 +46,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type QueryResponse = {
   details: Queries[];
@@ -240,11 +246,35 @@ export function Logs() {
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                    <TableCell
+                      className="max-w-60 truncate cursor-pointer"
+                      key={cell.id}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              ref={(el) => {
+                                if (el && el.scrollWidth > el.clientWidth) {
+                                  el.setAttribute("data-truncated", "true");
+                                }
+                              }}
+                              className="block truncate"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                   ))}
                 </TableRow>

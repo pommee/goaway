@@ -109,7 +109,7 @@ export function ServerStatistics() {
     };
 
     eventSource.onerror = () => {
-      setUpdateLogs((logs) => [...logs, "Update process failed or completed."]);
+      setUpdateLogs((logs) => [...logs, "Closing event stream..."]);
       eventSource.close();
     };
     localStorage.setItem("installedVersion", newVersion);
