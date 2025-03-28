@@ -86,20 +86,20 @@ func DeleteResolution(db *sql.DB, ip, domain string) (int, error) {
 	query := "DELETE FROM resolution WHERE ip = ? AND domain = ?"
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return 0, fmt.Errorf("could not delete resolution due to db error: %v", err)
 	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(ip, domain)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return 0, fmt.Errorf("could not delete resolution. Reason: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return 0, fmt.Errorf("could not retrieve affected rows: %v", err)
 	}
 

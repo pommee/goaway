@@ -23,13 +23,13 @@ export type QueryType = {
   queryType: string;
 };
 
-export function PieChartRequestType() {
+export default function PieChartRequestType() {
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     async function fetchQueryTypes() {
       try {
-        const [_, data] = await GetRequest("queryTypes");
+        const [, data] = await GetRequest("queryTypes");
         if (!data.queries || !Array.isArray(data.queries)) {
           console.error("Invalid response format:", data);
           return;

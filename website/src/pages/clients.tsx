@@ -11,7 +11,7 @@ export type ClientEntry = {
   vendor: string;
 };
 
-export function Clients() {
+export default function Clients() {
   const [clients, setClients] = useState<ClientEntry[]>([]);
 
   useEffect(() => {

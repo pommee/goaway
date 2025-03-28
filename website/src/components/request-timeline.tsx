@@ -22,14 +22,14 @@ const chartConfig = {
   },
 };
 
-export function RequestTimeline() {
+export default function RequestTimeline() {
   const [chartData, setChartData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const [_, data] = await GetRequest("queryTimestamps");
+        const [, data] = await GetRequest("queryTimestamps");
 
         const now = new Date();
         const twentyFourHoursAgo = new Date(
@@ -58,8 +58,6 @@ export function RequestTimeline() {
               };
               acc.push(entry);
             }
-
-            query.blocked ? entry.blocked++ : entry.allowed++;
 
             return acc;
           }, [])

@@ -29,7 +29,7 @@ async function SendDomains(domains: string[]) {
     } else {
       toast.error("Failed to update domains.");
     }
-  } catch (error) {
+  } catch {
     toast.error("An error occurred while sending the request.");
   }
 }

@@ -53,13 +53,13 @@ export function MetricsCard({
   );
 }
 
-export function MetricsCards() {
+export default function MetricsCards() {
   const [metricsData, setMetricsData] = useState<Metrics | null>(null);
 
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const [_, data] = await GetRequest("metrics");
+        const [, data] = await GetRequest("metrics");
         setMetricsData(data);
       } catch (error) {
         console.error("Failed to fetch server statistics:", error);

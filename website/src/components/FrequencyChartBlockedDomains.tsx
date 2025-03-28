@@ -18,7 +18,7 @@ export type TopBlockedDomains = {
   name: string;
 };
 
-export function FrequencyChartBlockedDomains() {
+export default function FrequencyChartBlockedDomains() {
   const [data, setData] = useState<TopBlockedDomains[]>([]);
   const [chartConfig] = useState<ChartConfig>({
     blocked: { label: "Blocked" },
@@ -27,7 +27,7 @@ export function FrequencyChartBlockedDomains() {
   useEffect(() => {
     async function fetchTopBlockedDomains() {
       try {
-        const [_, domains] = await GetRequest("topBlockedDomains");
+        const [, domains] = await GetRequest("topBlockedDomains");
         const formattedData = domains.domains.map(
           (domain: TopBlockedDomains) => ({
             name: domain.name,

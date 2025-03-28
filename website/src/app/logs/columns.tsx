@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { BanIcon, Verified } from "lucide-react";
 
 type Client = {
   IP: string;
@@ -92,9 +91,15 @@ export const columns: ColumnDef<Queries>[] = [
           ? `OK (forwarded) ${query.status}`
           : `Blocked ${query.status}`;
       const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(2);
+      const rowText = ` ${wasOK} | ${responseTimeMS}ms`;
       return (
-        <div>
-          {wasOK} <br></br> {responseTimeMS} ms
+        <div className="flex">
+          {query.blocked === false ? (
+            <Verified size={14} color="green" className="mt-1 mr-0.5" />
+          ) : (
+            <BanIcon size={14} color="red" className="mt-1 mr-0.5" />
+          )}{" "}
+          {rowText}
         </div>
       );
     },

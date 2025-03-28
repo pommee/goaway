@@ -4,11 +4,11 @@ import { Routes, Route } from "react-router-dom";
 import Home from "@/pages/home";
 import Settings from "./settings";
 import { Toaster } from "@/components/ui/sonner";
-import { Logs } from "./logs";
-import { Lists } from "./lists";
-import { Clients } from "./clients";
 import Changelog from "./changelog";
-import { Login } from "./login";
+import Clients from "./clients";
+import Lists from "./lists";
+import Logs from "./logs";
+import Login from "./login";
 
 function App() {
   return (

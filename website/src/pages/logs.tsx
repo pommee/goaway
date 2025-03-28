@@ -71,7 +71,7 @@ async function fetchQueries(
       url += `&search=${encodeURIComponent(domainFilter)}`;
     }
 
-    const [_, response] = await GetRequest(url);
+    const [response] = await GetRequest(url);
 
     if (response?.details && Array.isArray(response.details)) {
       return {
@@ -98,7 +98,7 @@ async function fetchQueries(
   }
 }
 
-export function Logs() {
+export default function Logs() {
   const [queries, setQueries] = useState<Queries[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -174,7 +174,7 @@ export function Logs() {
   });
 
   async function clearLogs() {
-    const [_, response] = await DeleteRequest("queries");
+    const [response] = await DeleteRequest("queries");
     toast.success(response.message);
     setQueries([]);
   }

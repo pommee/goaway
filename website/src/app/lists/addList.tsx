@@ -15,7 +15,7 @@ import { GetRequest } from "@/util";
 import { toast } from "sonner";
 
 async function CreateNewList(listName: string, url: string) {
-  const [code, _] = await GetRequest(`addList?name=${listName}&url=${url}`);
+  const [code] = await GetRequest(`addList?name=${listName}&url=${url}`);
   if (code === 200) {
     toast.success(`${listName} has been added!`);
   }

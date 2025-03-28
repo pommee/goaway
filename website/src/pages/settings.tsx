@@ -87,7 +87,9 @@ const SETTINGS_SECTIONS = [
 ];
 
 export default function Settings() {
-  const [preferences, setPreferences] = useState<Record<string, any>>({});
+  const [preferences, setPreferences] = useState<
+    Record<string, string | boolean | number>
+  >({});
   const [isChanged, setIsChanged] = useState(false);
   const navigate = useNavigate();
 
@@ -152,7 +154,7 @@ export default function Settings() {
 
     const newPassword = preferences.password;
     if (newPassword !== undefined) {
-      const [passwordChangeStatus, _] = await PutRequest("password", {
+      const [passwordChangeStatus] = await PutRequest("password", {
         currentPassword: preferences.currentPassword,
         newPassword: preferences.password,
       });
@@ -179,7 +181,7 @@ export default function Settings() {
         duration: 5000,
       });
     }
-  }, [isChanged]);
+  });
 
   return (
     <div

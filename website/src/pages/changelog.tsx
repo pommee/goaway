@@ -1,5 +1,5 @@
 import { Github } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const Changelog = () => {
   const [releases, setReleases] = useState([]);
@@ -8,7 +8,7 @@ const Changelog = () => {
 
   useEffect(() => {
     fetchReleases();
-  }, []);
+  });
 
   const fetchReleases = async () => {
     const repoUrl = "https://api.github.com/repos/pommee/goaway/releases";

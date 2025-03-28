@@ -9,7 +9,7 @@ type RequestLogEntry struct {
 	IP           []string      `json:"ip,omitempty"`
 	Timestamp    time.Time     `json:"timestamp,omitempty"`
 	ResponseTime time.Duration `json:"responseTimeNS,omitempty"`
-	Blocked      bool          `json:"blocked,omitempty"`
+	Blocked      bool          `json:"blocked"`
 	Cached       bool          `json:"cached,omitempty"`
 	ClientInfo   *Client       `json:"client,omitempty"`
 }

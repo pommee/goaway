@@ -18,7 +18,7 @@ export type TopBlockedClients = {
   client: string;
 };
 
-export function FrequencyChartTopBlockedClients() {
+export default function FrequencyChartTopBlockedClients() {
   const [data, setData] = useState<TopBlockedClients[]>([]);
   const [chartConfig] = useState<ChartConfig>({
     blocked: { label: "Blocked" },
@@ -27,7 +27,7 @@ export function FrequencyChartTopBlockedClients() {
   useEffect(() => {
     async function fetchTopBlockedClients() {
       try {
-        const [_, clients] = await GetRequest("topClients");
+        const [, clients] = await GetRequest("topClients");
         const formattedData = clients.clients.map(
           (client: TopBlockedClients) => ({
             client: client.client,

@@ -2,7 +2,7 @@ import { toast } from "sonner";
 
 let lastToastMessage: string | null = null;
 
-export const getApiBaseUrl = () => {
+const getApiBaseUrl = () => {
   return document.location.origin;
 };
 
@@ -17,7 +17,7 @@ const showToast = (message: string) => {
   }
 };
 
-export async function PostRequest(url: string, bodyData: any) {
+export async function PostRequest(url: string, bodyData: unknown) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "POST",
@@ -36,7 +36,7 @@ export async function PostRequest(url: string, bodyData: any) {
 
     const data = await res.json();
     return [res.status, data];
-  } catch (error) {
+  } catch {
     showToast("Could not reach server, try again later.");
     return [500, null];
   }
@@ -56,13 +56,13 @@ export async function GetRequest(url: string) {
 
     const data = await res.json();
     return [res.status, data];
-  } catch (error) {
+  } catch {
     showToast("Could not reach server, try again later.");
     return [500, null];
   }
 }
 
-export async function PutRequest(url: string, bodyData: any) {
+export async function PutRequest(url: string, bodyData: unknown) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "PUT",
@@ -81,7 +81,7 @@ export async function PutRequest(url: string, bodyData: any) {
 
     const data = await res.json();
     return [res.status, data];
-  } catch (error) {
+  } catch {
     showToast("Could not reach server, try again later.");
     return [500, null];
   }
@@ -102,7 +102,7 @@ export async function DeleteRequest(url: string) {
 
     const data = await res.json();
     return [res.status, data];
-  } catch (error) {
+  } catch {
     showToast("Could not reach server, try again later.");
     return [500, null];
   }

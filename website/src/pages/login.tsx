@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { PostRequest } from "@/util";
 import { useNavigate } from "react-router-dom";
 
-export function Login({
+export default function Login({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
@@ -31,7 +31,7 @@ export function Login({
     }
 
     try {
-      const [statusCode, _] = await PostRequest("login", {
+      const [statusCode] = await PostRequest("login", {
         username,
         password,
       });

@@ -22,6 +22,7 @@ start:
 	docker compose up -d
 
 lint:
+	pnpm -C website lint && \
 	golangci-lint run
 
 format:

@@ -57,11 +57,14 @@ export function ServerStatistics() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [_, data] = await GetRequest("server");
+        const [, data] = await GetRequest("server");
         setMetrics(data);
         setNewVersion(data.version);
 
         const installedVersion = localStorage.getItem("installedVersion");
+        if (installedVersion === undefined) {
+          localStorage.setItem("installedVersion", data.version);
+        }
 
         if (
           installedVersion &&

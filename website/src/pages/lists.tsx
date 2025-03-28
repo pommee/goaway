@@ -12,7 +12,7 @@ export type ListEntry = {
   lastUpdated: number;
 };
 
-export function Lists() {
+export default function Lists() {
   const [lists, setLists] = useState<ListEntry[]>([]);
 
   useEffect(() => {
