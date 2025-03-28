@@ -3,11 +3,7 @@ import { toast } from "sonner";
 let lastToastMessage: string | null = null;
 
 export const getApiBaseUrl = () => {
-  if (window.SERVER_CONFIG && window.SERVER_CONFIG.apiBaseURL) {
-    return window.SERVER_CONFIG.apiBaseURL;
-  }
-
-  return import.meta.env.VITE_API_URL || "/api";
+  return document.location.origin;
 };
 
 const showToast = (message: string) => {
@@ -23,7 +19,7 @@ const showToast = (message: string) => {
 
 export async function PostRequest(url: string, bodyData: any) {
   try {
-    const res = await fetch(`${getApiBaseUrl()}/${url}`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -48,7 +44,7 @@ export async function PostRequest(url: string, bodyData: any) {
 
 export async function GetRequest(url: string) {
   try {
-    const res = await fetch(`${getApiBaseUrl()}/${url}`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       credentials: "include",
     });
 
@@ -68,7 +64,7 @@ export async function GetRequest(url: string) {
 
 export async function DeleteRequest(url: string) {
   try {
-    const res = await fetch(`${getApiBaseUrl()}/${url}`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",
       credentials: "include",
     });
