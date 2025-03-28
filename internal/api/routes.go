@@ -115,8 +115,7 @@ func (api *API) handleLogin(c *gin.Context) {
 			return
 		}
 
-		serverIP, _ := getServerIP()
-		c.Header("Access-Control-Allow-Origin", fmt.Sprintf("http://%s:8080", serverIP))
+		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Credentials", "true")
 
 		setAuthCookie(c.Writer, token)

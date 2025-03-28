@@ -46,9 +46,8 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	api.DnsServer = dnsServer
 	api.DnsServer.WebServer = api.router
 
-	serverIP, _ := getServerIP()
 	api.router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8080", fmt.Sprintf("http://%s:8080", serverIP)},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
 		ExposeHeaders:    []string{"Set-Cookie"},
