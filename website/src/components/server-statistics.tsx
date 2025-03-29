@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import confetti from "canvas-confetti";
 
 export type Metrics = {
   cpuTemp: number;
@@ -75,17 +76,18 @@ export function ServerStatistics() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [, data] = await GetRequest("server");
-        setMetrics(data);
-        setNewVersion(data.version);
-
         let installedVersion = localStorage.getItem("installedVersion");
         const newestVersion = localStorage.getItem("newestVersion");
+
+        const [, data] = await GetRequest("server");
+        setMetrics(data);
+
         if (installedVersion === null) {
           localStorage.setItem("installedVersion", data.version);
           installedVersion = localStorage.getItem("installedVersion");
         }
         if (newestVersion !== null) {
+          setNewVersion(newestVersion);
           if (
             installedVersion &&
             !updateNotified &&
@@ -117,13 +119,23 @@ export function ServerStatistics() {
 
     eventSource.onmessage = (event) => {
       setUpdateLogs((logs) => [...logs, event.data]);
+
+      if (event.data.includes("Update successful")) {
+        toast.info("Updated!", { description: `Now running v${newVersion}` });
+        localStorage.setItem("installedVersion", newVersion);
+        eventSource.close();
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      }
     };
 
     eventSource.onerror = () => {
       setUpdateLogs((logs) => [...logs, "Closing event stream..."]);
       eventSource.close();
     };
-    localStorage.setItem("installedVersion", newVersion);
   }
 
   const formatNumber = (num: number) => num.toFixed(1);

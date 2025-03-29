@@ -14,19 +14,19 @@ if [[ -z "$ASSET_URL" ]]; then
     exit 1
 fi
 
-echo "[INFO] Downloading $BINARY_NAME version $LATEST_VERSION..."
+echo "[i] Downloading $BINARY_NAME version $LATEST_VERSION..."
 curl -L -o "$TMP_DIR/$BINARY_NAME.tar.gz" "$ASSET_URL"
 
-echo "[INFO] Extracting $BINARY_NAME..."
+echo "[i] Extracting $BINARY_NAME..."
 tar -xzf "$TMP_DIR/$BINARY_NAME.tar.gz" -C "$TMP_DIR"
 
-echo "[INFO] Stopping $BINARY_NAME..."
+echo "[i] Stopping $BINARY_NAME..."
 pkill $BINARY_NAME
 
-echo "[INFO] Moving binary $TMP_DIR/$BINARY_NAME"
+echo "[i] Moving binary $TMP_DIR/$BINARY_NAME"
 mv "$TMP_DIR/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
 
-echo "[INFO] Starting goaway again..."
+echo "[i] Starting goaway again..."
 exec $ORIGINAL_CMD
 
 rm -rf "$TMP_DIR"

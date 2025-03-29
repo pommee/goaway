@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 type sendSSE func(string)
 
 func SelfUpdate(sse sendSSE) error {
-	sse("[INFO] Loading update script")
+	sse("[i] Loading update script")
 	scriptPath := "./updater.sh"
 
-	sse("[INFO] Executing update script")
+	sse("[i] Executing update script")
 	cmd := exec.Command("bash", scriptPath)
 
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -28,10 +29,17 @@ func SelfUpdate(sse sendSSE) error {
 		return fmt.Errorf("failed to start command: %v", err)
 	}
 
+	done := make(chan struct{})
+
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
 		for scanner.Scan() {
-			sse(scanner.Text())
+			text := scanner.Text()
+			if strings.Contains(text, "Stopping") {
+				close(done)
+				return
+			}
+			sse(text)
 		}
 	}()
 
@@ -42,9 +50,22 @@ func SelfUpdate(sse sendSSE) error {
 		}
 	}()
 
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("update failed: %v", err)
+	select {
+	case <-done:
+		return nil
+	case err := <-waitCmd(cmd):
+		if err != nil {
+			return fmt.Errorf("update failed: %v", err)
+		}
 	}
 
 	return nil
+}
+
+func waitCmd(cmd *exec.Cmd) <-chan error {
+	ch := make(chan error, 1)
+	go func() {
+		ch <- cmd.Wait()
+	}()
+	return ch
 }
