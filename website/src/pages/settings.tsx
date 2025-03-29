@@ -86,7 +86,7 @@ const SETTINGS_SECTIONS = [
   },
 ];
 
-export default function Settings() {
+export function Settings() {
   const [preferences, setPreferences] = useState<
     Record<string, string | boolean | number>
   >({});

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { PostRequest } from "@/util";
 import { useNavigate } from "react-router-dom";
 
-export default function Login({
+export function Login({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {

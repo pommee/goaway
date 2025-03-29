@@ -4,7 +4,7 @@ import MetricsCards from "@/components/metrics-card";
 import PieChartRequestType from "@/components/pie-chart";
 import RequestTimeline from "@/components/request-timeline";
 
-export default function Home() {
+export function Home() {
   return (
     <>
       <MetricsCards />

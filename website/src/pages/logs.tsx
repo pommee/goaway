@@ -105,7 +105,7 @@ async function fetchQueries(
   }
 }
 
-export default function Logs() {
+export function Logs() {
   const [queries, setQueries] = useState<Queries[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
