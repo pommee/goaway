@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, Delete } from "lucide-react";
+import { ChevronDown, FileWarning, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type QueryResponse = {
   details: Queries[];
@@ -174,17 +183,45 @@ export default function Logs() {
   });
 
   async function clearLogs() {
-    const [response] = await DeleteRequest("queries");
-    toast.success(response.message);
-    setQueries([]);
+    const [responseCode] = await DeleteRequest("queries");
+    if (responseCode === 200) {
+      toast.success("Logs cleared successfully!");
+      setQueries([]);
+    }
   }
 
   return (
     <div className="w-full">
-      <Button onClick={() => clearLogs()} className="group" variant="outline">
-        <Delete className="mr-2 group-hover:animate-pulse" size={16} />
-        Clear Logs
-      </Button>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
+          >
+            Clear logs
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+          <div className="flex justify-center mb-4">
+            <TriangleAlert className="h-10 w-10 text-amber-500" />
+          </div>
+          <DialogDescription className="text-base">
+            <div className="bg-amber-600 border-2 border-amber-800 rounded-md p-4 mt-2">
+              <p className="text-white">
+                Are you sure you want to clear all logs? This is an irreversible
+                action!
+              </p>
+            </div>
+          </DialogDescription>
+          <Button
+            variant="outline"
+            className="bg-red-800 hover:bg-red-700 text-white"
+            onClick={clearLogs}
+          >
+            Yes
+          </Button>
+        </DialogContent>
+      </Dialog>{" "}
       <div className="flex items-center py-4">
         <Input
           placeholder="Filter domain..."
@@ -292,7 +329,6 @@ export default function Logs() {
           </TableBody>
         </Table>
       </div>
-
       <div className="flex items-center justify-between px-2 mt-4">
         <div className="flex-1 text-sm text-muted-foreground">
           Displaying {table.getFilteredSelectedRowModel().rows.length} of{" "}
