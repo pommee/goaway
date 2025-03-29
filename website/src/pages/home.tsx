@@ -12,9 +12,13 @@ export default function Home() {
         <RequestTimeline />
         <PieChartRequestType />
       </div>
-      <div className="flex w-full mt-5 gap-4">
-        <FrequencyChartBlockedDomains />
-        <FrequencyChartTopBlockedClients />
+      <div className="flex w-full mt-5 gap-4 flex-col md:flex-row">
+        <div className="w-full md:w-1/2 h-[250px]">
+          <FrequencyChartBlockedDomains />
+        </div>
+        <div className="w-full md:w-1/2 h-[250px]">
+          <FrequencyChartTopBlockedClients />
+        </div>
       </div>
     </>
   );

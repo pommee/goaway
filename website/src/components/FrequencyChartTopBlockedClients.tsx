@@ -48,38 +48,36 @@ export default function FrequencyChartTopBlockedClients() {
   }, []);
 
   return (
-    <div className="w-1/2 h-[250px]">
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle>Top Clients</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[calc(100%-50px)] flex items-center">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <BarChart
-              accessibilityLayer
-              data={data}
-              layout="vertical"
-              className="w-full h-full"
-              margin={{
-                left: 20,
-              }}
-            >
-              <XAxis type="number" dataKey="frequency" hide />
-              <YAxis
-                dataKey="client"
-                type="category"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                width={100}
-                tickFormatter={(value) => value}
-              />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="frequency" fill="cornflowerblue" radius={5} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>Top Clients</CardTitle>
+      </CardHeader>
+      <CardContent className="h-[calc(100%-50px)] flex items-center">
+        <ChartContainer config={chartConfig} className="w-full h-full">
+          <BarChart
+            accessibilityLayer
+            data={data}
+            layout="vertical"
+            className="w-full h-full"
+            margin={{
+              left: 20,
+            }}
+          >
+            <XAxis type="number" dataKey="frequency" hide />
+            <YAxis
+              dataKey="client"
+              type="category"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+              width={100}
+              tickFormatter={(value) => value}
+            />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <Bar dataKey="frequency" fill="cornflowerblue" radius={5} />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 }
