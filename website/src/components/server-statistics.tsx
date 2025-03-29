@@ -47,6 +47,16 @@ function MetricItem({
   );
 }
 
+async function checkForUpdate() {
+  const response = await fetch(
+    "https://api.github.com/repos/pommee/goaway/tags"
+  );
+  const data = await response.json();
+
+  const newestVersion = data[0].name.replace("v", "");
+  localStorage.setItem("newestVersion", newestVersion);
+}
+
 export function ServerStatistics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [updateNotified, setUpdateNotified] = useState(false);
@@ -55,33 +65,41 @@ export function ServerStatistics() {
   const [newVersion, setNewVersion] = useState<string>("");
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      checkForUpdate();
+    }, 300000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     async function fetchData() {
       try {
         const [, data] = await GetRequest("server");
         setMetrics(data);
         setNewVersion(data.version);
 
-        const installedVersion = localStorage.getItem("installedVersion");
-        if (installedVersion === undefined) {
+        let installedVersion = localStorage.getItem("installedVersion");
+        const newestVersion = localStorage.getItem("newestVersion");
+        if (installedVersion === null) {
           localStorage.setItem("installedVersion", data.version);
+          installedVersion = localStorage.getItem("installedVersion");
         }
-
-        if (
-          installedVersion &&
-          data.version &&
-          !updateNotified &&
-          compare(data.version, installedVersion, ">")
-        ) {
-          toast(`New version available: v${data.version}`, {
-            action: {
-              label: "Update",
-              onClick: () => setShowUpdateModal(true),
-            },
-          });
-          setUpdateNotified(true);
+        if (newestVersion !== null) {
+          if (
+            installedVersion &&
+            !updateNotified &&
+            compare(newestVersion, installedVersion, ">")
+          ) {
+            toast(`New version available: v${newestVersion}`, {
+              action: {
+                label: "Update",
+                onClick: () => setShowUpdateModal(true),
+              },
+            });
+            setUpdateNotified(true);
+          }
         }
-
-        localStorage.setItem("installedVersion", data.version);
       } catch (error) {
         console.error("Failed to fetch server statistics:", error);
       }
