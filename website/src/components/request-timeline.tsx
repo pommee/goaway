@@ -59,6 +59,7 @@ export default function RequestTimeline() {
               acc.push(entry);
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             query.blocked ? entry.blocked++ : entry.allowed++;
 
             return acc;
