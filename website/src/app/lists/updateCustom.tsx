@@ -11,19 +11,11 @@ import { RefreshCcw } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { PostRequest } from "@/util";
 
 async function SendDomains(domains: string[]) {
   try {
-    const response = await fetch("/api/custom", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        domains: domains,
-      }),
-    });
-
+    const response = await PostRequest("/api/custom", domains);
     if (response.ok) {
       toast.success("Domains updated successfully!");
     } else {

@@ -17,6 +17,13 @@ const showToast = (message: string) => {
   }
 };
 
+async function isAuthenticated(res: Response) {
+  console.log(res.status);
+  if (res.status === 401) {
+    document.location.href = "/login";
+  }
+}
+
 export async function PostRequest(url: string, bodyData: unknown) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
@@ -29,6 +36,7 @@ export async function PostRequest(url: string, bodyData: unknown) {
     });
 
     if (!res.ok) {
+      await isAuthenticated(res);
       const data = await res.json();
       showToast(data.error);
       return [res.status, null];
@@ -49,6 +57,7 @@ export async function GetRequest(url: string) {
     });
 
     if (!res.ok) {
+      await isAuthenticated(res);
       const data = await res.json();
       showToast(data.error);
       return [res.status, null];
@@ -74,6 +83,7 @@ export async function PutRequest(url: string, bodyData: unknown) {
     });
 
     if (!res.ok) {
+      await isAuthenticated(res);
       const data = await res.json();
       showToast(data.error);
       return [res.status, null];
@@ -95,6 +105,7 @@ export async function DeleteRequest(url: string) {
     });
 
     if (!res.ok) {
+      await isAuthenticated(res);
       const data = await res.json();
       showToast(data.error);
       return [res.status, null];
