@@ -21,7 +21,9 @@ function timeAgo(timestamp: string) {
   const minutes = Math.floor((diffInSeconds / 60) % 60);
   const hours = Math.floor(diffInSeconds / 3600);
 
-  return `${hours}h ${minutes}m ${seconds}s ago`;
+  return hours > 0
+    ? `${hours}h ${minutes}m ${seconds}s ago`
+    : `${minutes}m ${seconds}s ago`;
 }
 
 export function ClientCard(clientEntry: ClientEntry) {
@@ -79,7 +81,7 @@ export function ClientCard(clientEntry: ClientEntry) {
       {showDetails && (
         <CardDetails
           ip={clientEntry.ip}
-          lastSeen={clientEntry.lastSeen}
+          lastSeen={lastSeenText}
           mac={clientEntry.mac}
           name={clientEntry.name}
           vendor={clientEntry.vendor}
