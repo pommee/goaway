@@ -26,7 +26,7 @@ lint:
 	golangci-lint run
 
 format:
-	npx prettier --write "website/*.{html,css,js}"
+	npx prettier --write "website/**/*.{html,css,js,tsx}"
 
 example-queries:
 	@./testing/dig-domains.sh
