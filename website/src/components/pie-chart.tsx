@@ -55,7 +55,7 @@ export default function RequestTypeChart() {
             count: request.count,
             requestType: request.queryType,
             fill: colors[index % colors.length],
-          })
+          }),
         );
 
         setChartData(formattedData);

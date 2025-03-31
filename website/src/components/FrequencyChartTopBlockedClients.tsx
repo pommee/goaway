@@ -33,7 +33,7 @@ export default function FrequencyChartTopBlockedClients() {
             client: client.client,
             requestCount: client.requestCount,
             frequency: client.frequency,
-          })
+          }),
         );
 
         setData(formattedData);

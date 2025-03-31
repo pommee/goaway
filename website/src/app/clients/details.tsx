@@ -25,7 +25,7 @@ export function CardDetails({
   ...clientEntry
 }: ClientEntry & { onClose: () => void }) {
   const [clientDetails, setClientDetails] = useState<ClientEntryDetails | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,7 +34,7 @@ export function CardDetails({
       setIsLoading(true);
       try {
         const [code, response] = await GetRequest(
-          `clientDetails?clientIP=${clientEntry.ip}`
+          `clientDetails?clientIP=${clientEntry.ip}`,
         );
         if (code !== 200) {
           toast.warning(`Unable to fetch client details`);

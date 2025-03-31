@@ -50,7 +50,7 @@ function MetricItem({
 
 async function checkForUpdate() {
   const response = await fetch(
-    "https://api.github.com/repos/pommee/goaway/tags"
+    "https://api.github.com/repos/pommee/goaway/tags",
   );
   const data = await response.json();
 

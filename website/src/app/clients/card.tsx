@@ -28,7 +28,7 @@ function timeAgo(timestamp: string) {
 
 export function ClientCard(clientEntry: ClientEntry) {
   const [lastSeenText, setLastSeenText] = useState(() =>
-    timeAgo(clientEntry.lastSeen)
+    timeAgo(clientEntry.lastSeen),
   );
   const [showDetails, setShowDetails] = useState(false);
 

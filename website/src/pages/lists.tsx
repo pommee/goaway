@@ -27,7 +27,7 @@ export function Lists() {
         ([name, details]) => ({
           name,
           ...details,
-        })
+        }),
       );
 
       setLists(listArray);

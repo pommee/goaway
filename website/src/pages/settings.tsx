@@ -225,25 +225,25 @@ export function Settings() {
                             className: "w-full md:w-40",
                           }
                         : Widget === Switch
-                        ? {
-                            checked: Boolean(preferences[key]),
-                            onCheckedChange: (value: boolean) =>
-                              handleSelect(key, value),
-                          }
-                        : Widget === Input
-                        ? {
-                            value: preferences[key] || "",
-                            onChange: (
-                              e: React.ChangeEvent<HTMLInputElement>
-                            ) => handleSelect(key, e.target.value),
-                            placeholder: "Enter Value",
-                            className: "w-full md:w-40",
-                          }
-                        : {})}
+                          ? {
+                              checked: Boolean(preferences[key]),
+                              onCheckedChange: (value: boolean) =>
+                                handleSelect(key, value),
+                            }
+                          : Widget === Input
+                            ? {
+                                value: preferences[key] || "",
+                                onChange: (
+                                  e: React.ChangeEvent<HTMLInputElement>,
+                                ) => handleSelect(key, e.target.value),
+                                placeholder: "Enter Value",
+                                className: "w-full md:w-40",
+                              }
+                            : {})}
                     />
                   </div>
                 </div>
-              )
+              ),
             )}
           </div>
         </Card>

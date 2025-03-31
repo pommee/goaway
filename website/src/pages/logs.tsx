@@ -70,7 +70,7 @@ type QueryResponse = {
 async function fetchQueries(
   page: number,
   pageSize: number,
-  domainFilter: string = ""
+  domainFilter: string = "",
 ): Promise<QueryResponse> {
   try {
     let url = `queries?page=${page}&pageSize=${pageSize}`;
@@ -115,7 +115,7 @@ export function Logs() {
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -139,7 +139,7 @@ export function Logs() {
         setDomainFilter(value);
         setPageIndex(0);
       }, 500),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -260,7 +260,7 @@ export function Logs() {
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -298,14 +298,14 @@ export function Logs() {
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext()
+                                cell.getContext(),
                               )}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             {flexRender(
                               cell.column.columnDef.cell,
-                              cell.getContext()
+                              cell.getContext(),
                             )}
                           </TooltipContent>
                         </Tooltip>

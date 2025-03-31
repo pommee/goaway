@@ -33,7 +33,7 @@ export default function FrequencyChartBlockedDomains() {
             name: domain.name,
             blocked: domain.hits,
             frequency: domain.frequency,
-          })
+          }),
         );
 
         setData(formattedData);

@@ -90,7 +90,7 @@ const Changelog = () => {
       {releases.map((release, idx) => {
         const date = new Date(release.published_at);
         const sections = parseChangelogBody(
-          release.body || "No release notes available."
+          release.body || "No release notes available.",
         );
         const installedVersion = localStorage.getItem("installedVersion");
 

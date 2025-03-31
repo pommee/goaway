@@ -9,7 +9,7 @@ export function ListCard(listEntry: ListEntry) {
     "sv-SE",
     {
       hour12: false,
-    }
+    },
   );
 
   return (
