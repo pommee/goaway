@@ -7,38 +7,45 @@ const Changelog = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchReleases();
-  });
+    const cachedData = sessionStorage.getItem("githubReleases");
+    const cachedTime = sessionStorage.getItem("githubReleasesTimestamp");
+
+    const now = Date.now();
+    const cacheExpiry = cachedTime ? parseInt(cachedTime, 10) : 0;
+
+    if (cachedData && now < cacheExpiry) {
+      setReleases(JSON.parse(cachedData));
+      setLoading(false);
+    } else {
+      fetchReleases();
+    }
+  }, []);
 
   const fetchReleases = async () => {
     const repoUrl = "https://api.github.com/repos/pommee/goaway/releases";
 
     try {
       const response = await fetch(repoUrl);
-
       if (!response.ok)
         throw new Error(`Failed to fetch releases: ${response.statusText}`);
 
+      const data = await response.json();
       const cacheControl = response.headers.get("Cache-Control");
       const cacheMaxAgeMatch = cacheControl?.match(/max-age=(\d+)/);
       const cacheMaxAge = cacheMaxAgeMatch
-        ? parseInt(cacheMaxAgeMatch[1]) * 1000
-        : 0;
+        ? parseInt(cacheMaxAgeMatch[1], 10) * 1000
+        : 300000;
 
-      const data = await response.json();
+      sessionStorage.setItem("githubReleases", JSON.stringify(data));
+      sessionStorage.setItem(
+        "githubReleasesTimestamp",
+        (Date.now() + cacheMaxAge).toString(),
+      );
+
       setReleases(data);
-      setLoading(false);
-
-      const now = new Date().getTime();
-      const cacheExpirationTime = now + cacheMaxAge;
-      if (cacheExpirationTime > now) {
-        setReleases(data);
-      } else {
-        fetchReleases();
-      }
     } catch (err) {
-      console.error(err);
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
