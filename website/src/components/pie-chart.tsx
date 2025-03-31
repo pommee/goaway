@@ -1,6 +1,13 @@
 "use client";
 
-import { Pie, PieChart } from "recharts";
+import {
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -9,6 +16,13 @@ import {
 } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
 import { GetRequest } from "@/util";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const colors = [
   "var(--chart-1)",
@@ -23,8 +37,9 @@ export type QueryType = {
   queryType: string;
 };
 
-export default function PieChartRequestType() {
+export default function RequestTypeChart() {
   const [chartData, setChartData] = useState([]);
+  const [chartType, setChartType] = useState("radar");
 
   useEffect(() => {
     async function fetchQueryTypes() {
@@ -54,21 +69,61 @@ export default function PieChartRequestType() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleChartTypeChange = (value) => {
+    setChartType(value);
+  };
+
   return (
-    <Card className="border-2 w-3/7">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Request Types</CardTitle>
+    <Card className="w-3/8">
+      <CardHeader className="pb-0">
+        <div className="flex items-center justify-between w-full">
+          <CardTitle>Request Types</CardTitle>
+          <Select value={chartType} onValueChange={handleChartTypeChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Chart Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="radar">Radar Chart</SelectItem>
+              <SelectItem value="pie">Pie Chart</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={{}}
-          className="[&_.recharts-pie-label-text]:fill-foreground"
-        >
-          <PieChart>
-            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <Pie data={chartData} dataKey="count" label nameKey="requestType" />
-          </PieChart>
-        </ChartContainer>
+        {chartType === "radar" ? (
+          <ChartContainer config={{}}>
+            <RadarChart data={chartData}>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <PolarGrid />
+              <PolarAngleAxis dataKey="requestType" />
+              <Radar
+                dataKey="count"
+                fill="#8884d8"
+                fillOpacity={0.6}
+                stroke="#8884d8"
+                activeDot={{ r: 8 }}
+              />
+            </RadarChart>
+          </ChartContainer>
+        ) : (
+          <ChartContainer
+            config={{}}
+            className="[&_.recharts-pie-label-text]:fill-foreground"
+          >
+            <PieChart>
+              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+              <Pie
+                data={chartData}
+                dataKey="count"
+                label
+                nameKey="requestType"
+              />
+            </PieChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );
