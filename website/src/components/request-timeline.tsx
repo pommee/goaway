@@ -33,7 +33,7 @@ export default function RequestTimeline() {
 
         const now = new Date();
         const twentyFourHoursAgo = new Date(
-          now.getTime() - 24 * 60 * 60 * 1000
+          now.getTime() - 24 * 60 * 60 * 1000,
         );
 
         const processedData = data.queries
@@ -84,14 +84,14 @@ export default function RequestTimeline() {
   return (
     <div className="w-full">
       <Card>
-        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-2 sm:flex-row">
+        <CardHeader className="flex items-center sm:flex-row">
           <div className="grid flex-1 gap-1 text-center sm:text-left">
             <CardTitle>
               Request Timeline (Last 24 Hours, 2-Minute Intervals)
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="px-0 pt-4 sm:pt-6">
+        <CardContent className="px-0">
           <ChartContainer
             config={chartConfig}
             className="aspect-auto h-[200px] w-full"
