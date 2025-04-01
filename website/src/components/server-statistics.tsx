@@ -49,13 +49,35 @@ function MetricItem({
 }
 
 async function checkForUpdate() {
-  const response = await fetch(
-    "https://api.github.com/repos/pommee/goaway/tags",
-  );
-  const data = await response.json();
+  try {
+    localStorage.setItem("lastUpdateCheck", Date.now().toString());
 
-  const newestVersion = data[0].name.replace("v", "");
-  localStorage.setItem("newestVersion", newestVersion);
+    const response = await fetch(
+      "https://api.github.com/repos/pommee/goaway/tags",
+    );
+    const data = await response.json();
+
+    const latestVersion = data[0].name.replace("v", "");
+    localStorage.setItem("latestVersion", latestVersion);
+
+    return latestVersion;
+  } catch (error) {
+    console.error("Failed to check for updates:", error);
+    return null;
+  }
+}
+
+function shouldCheckForUpdate() {
+  const lastUpdateCheck = localStorage.getItem("lastUpdateCheck");
+
+  if (!lastUpdateCheck) {
+    return true;
+  }
+
+  const lastCheckTime = parseInt(lastUpdateCheck, 10);
+  const fiveMinutesInMs = 5 * 60 * 1000;
+
+  return Date.now() - lastCheckTime > fiveMinutesInMs;
 }
 
 function celebrateUpdate() {
@@ -86,9 +108,15 @@ export function ServerStatistics() {
   const [newVersion, setNewVersion] = useState<string>("");
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (shouldCheckForUpdate()) {
       checkForUpdate();
-    }, 300000);
+    }
+
+    const interval = setInterval(() => {
+      if (shouldCheckForUpdate()) {
+        checkForUpdate();
+      }
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -96,24 +124,21 @@ export function ServerStatistics() {
   useEffect(() => {
     async function fetchData() {
       try {
-        let installedVersion = localStorage.getItem("installedVersion");
-        const newestVersion = localStorage.getItem("newestVersion");
-
         const [, data] = await GetRequest("server");
         setMetrics(data);
 
-        if (installedVersion === null) {
-          localStorage.setItem("installedVersion", data.version);
-          installedVersion = localStorage.getItem("installedVersion");
-        }
-        if (newestVersion !== null) {
-          setNewVersion(newestVersion);
+        const latestVersion = localStorage.getItem("latestVersion");
+        const installedVersion = data.version;
+        localStorage.setItem("installedVersion", installedVersion);
+
+        if (latestVersion !== null) {
+          setNewVersion(latestVersion);
           if (
             installedVersion &&
             !updateNotified &&
-            compare(newestVersion, installedVersion, ">")
+            compare(latestVersion, installedVersion, ">")
           ) {
-            toast(`New version available: v${newestVersion}`, {
+            toast(`New version available: v${latestVersion}`, {
               action: {
                 label: "Update",
                 onClick: () => setShowUpdateModal(true),
