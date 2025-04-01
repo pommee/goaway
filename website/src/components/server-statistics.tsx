@@ -1,6 +1,5 @@
-import { compare } from "compare-versions";
 import { useEffect, useState } from "react";
-import { Globe, Thermometer, Server, Database } from "lucide-react";
+import { Thermometer, Database, Cpu, LucideMemoryStick } from "lucide-react";
 import { GetRequest } from "@/util";
 import { toast } from "sonner";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import { compare } from "compare-versions";
 import confetti from "canvas-confetti";
 
 export type Metrics = {
@@ -26,6 +26,11 @@ export type Metrics = {
   version: string;
 };
 
+const getColor = (value: number, max: number) => {
+  const hue = Math.max(0, 120 - (value / max) * 120);
+  return `hsl(${hue}, 100%, 50%)`;
+};
+
 function MetricItem({
   label,
   value,
@@ -38,12 +43,14 @@ function MetricItem({
   color: string;
 }) {
   return (
-    <div className="flex items-center justify-between p-1 text-sm rounded-sm">
+    <div className="flex items-center justify-between p-1 text-sm rounded-md">
       <div className="flex items-center">
-        <Icon size={16} className={`text-${color}-400 mr-2`} />
-        <span>{label}:</span>
+        <Icon size={16} className="mr-3" />
+        <span>{label}</span>
       </div>
-      <span className="font-mono">{value}</span>
+      <span className="font-mono font-medium" style={{ color }}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -51,15 +58,12 @@ function MetricItem({
 async function checkForUpdate() {
   try {
     localStorage.setItem("lastUpdateCheck", Date.now().toString());
-
     const response = await fetch(
       "https://api.github.com/repos/pommee/goaway/tags",
     );
     const data = await response.json();
-
     const latestVersion = data[0].name.replace("v", "");
     localStorage.setItem("latestVersion", latestVersion);
-
     return latestVersion;
   } catch (error) {
     console.error("Failed to check for updates:", error);
@@ -69,14 +73,11 @@ async function checkForUpdate() {
 
 function shouldCheckForUpdate() {
   const lastUpdateCheck = localStorage.getItem("lastUpdateCheck");
-
   if (!lastUpdateCheck) {
     return true;
   }
-
   const lastCheckTime = parseInt(lastUpdateCheck, 10);
   const fiveMinutesInMs = 5 * 60 * 1000;
-
   return Date.now() - lastCheckTime > fiveMinutesInMs;
 }
 
@@ -192,38 +193,44 @@ export function ServerStatistics() {
 
   return (
     <>
-      <div className="bg-gray-800 rounded-lg m-2 p-4 text-gray-300">
-        <div className="text-center text-sm mb-2">v{metrics.version}</div>
-        <div className="bg-[rgba(0,0,0,0.2)] md:bg-[rgba(0,0,0,0.2)] p-1 rounded-sm">
-          <div className="space-y-2">
-            <MetricItem
-              label="CPU"
-              value={`${formatNumber(metrics.cpuUsage)}%`}
-              icon={Globe}
-              color="blue"
-            />
+      <div className="bg-gray-800 rounded-lg m-2 overflow-hidden shadow-lg">
+        <div className="border-b border-gray-700 px-4 py-2 flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-400">
+            Server Status
+          </span>
+          <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300 font-mono">
+            v{metrics.version}
+          </span>
+        </div>
 
-            <MetricItem
-              label="CPU temp"
-              value={`${formatNumber(metrics.cpuTemp)}°`}
-              icon={Thermometer}
-              color="red"
-            />
+        <div className="p-3 space-y-1">
+          <MetricItem
+            label="CPU"
+            value={`${formatNumber(metrics.cpuUsage)}%`}
+            icon={Cpu}
+            color={getColor(metrics.cpuUsage, 100)}
+          />
 
-            <MetricItem
-              label="Mem"
-              value={`${formatNumber(metrics.usedMemPercentage)}%`}
-              icon={Server}
-              color="purple"
-            />
+          <MetricItem
+            label="CPU temp"
+            value={`${formatNumber(metrics.cpuTemp)}°`}
+            icon={Thermometer}
+            color={getColor(metrics.cpuTemp, 80)}
+          />
 
-            <MetricItem
-              label="Size"
-              value={`${formatNumber(metrics.dbSize)}MB`}
-              icon={Database}
-              color="green"
-            />
-          </div>
+          <MetricItem
+            label="Memory"
+            value={`${formatNumber(metrics.usedMemPercentage)}%`}
+            icon={LucideMemoryStick}
+            color={getColor(metrics.usedMemPercentage, 100)}
+          />
+
+          <MetricItem
+            label="DB Size"
+            value={`${formatNumber(metrics.dbSize)}MB`}
+            icon={Database}
+            color={getColor(metrics.dbSize, 50)}
+          />
         </div>
       </div>
 
