@@ -148,8 +148,8 @@ export function ServerStatistics() {
             setUpdateNotified(true);
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch server statistics:", error);
+      } catch {
+        return;
       }
     }
 
