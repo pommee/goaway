@@ -3,9 +3,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { BanIcon, Verified } from "lucide-react";
 
 type Client = {
-  IP: string;
-  Name: string;
-  MAC: string;
+  ip: string;
+  name: string;
+  mac: string;
 };
 
 export type Queries = {
@@ -49,12 +49,12 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       const date = new Date(row.original.timestamp);
       const formattedDate = `${date.getFullYear()}/${String(
-        date.getMonth() + 1,
+        date.getMonth() + 1
       ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
-        date.getHours() + 1,
+        date.getHours() + 1
       ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
         2,
-        "0",
+        "0"
       )}:${String(date.getSeconds() - 13).padStart(2, "0")}`;
       return <div>{formattedDate}</div>;
     },
@@ -62,7 +62,10 @@ export const columns: ColumnDef<Queries>[] = [
   {
     accessorKey: "domain",
     header: "Domain",
-    cell: ({ row }) => <div>{row.getValue("domain")}</div>,
+    cell: ({ row }) => {
+      const wasBlocked = row.original.blocked === true ? "text-red-500" : "";
+      return <div className={`${wasBlocked}`}>{row.getValue("domain")}</div>;
+    },
   },
   {
     accessorKey: "ip",
@@ -76,7 +79,7 @@ export const columns: ColumnDef<Queries>[] = [
       const client = row.original.client;
       return (
         <div>
-          {client.Name} | {client.IP}
+          {client.name} | {client.ip}
         </div>
       );
     },
@@ -89,16 +92,16 @@ export const columns: ColumnDef<Queries>[] = [
       const wasOK =
         query.blocked == false
           ? `OK (forwarded) ${query.status}`
-          : `Blocked ${query.status}`;
+          : query.status;
       const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(2);
       const rowText = ` ${wasOK} | ${responseTimeMS}ms`;
       return (
         <div className="flex">
           {query.blocked === false ? (
-            <Verified size={14} color="green" className="mt-1 mr-0.5" />
+            <Verified size={14} color="green" className="mt-1 mr-1" />
           ) : (
-            <BanIcon size={14} color="red" className="mt-1 mr-0.5" />
-          )}{" "}
+            <BanIcon size={14} color="red" className="mt-1 mr-1" />
+          )}
           {rowText}
         </div>
       );
@@ -108,5 +111,10 @@ export const columns: ColumnDef<Queries>[] = [
     accessorKey: "queryType",
     header: "Type",
     cell: ({ row }) => <div>{row.getValue("queryType")}</div>,
+  },
+  {
+    accessorKey: "responseSizeBytes",
+    header: "Size",
+    cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>,
   },
 ];

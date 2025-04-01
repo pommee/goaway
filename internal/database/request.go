@@ -93,7 +93,7 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 
 func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
 	query := fmt.Sprintf(`
-		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type
+		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes
 		FROM request_log
 		WHERE domain LIKE ?
 		ORDER BY %s %s
@@ -115,7 +115,7 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 		if err := rows.Scan(
 			&query.Timestamp, &query.Domain, &ipString,
 			&query.Blocked, &query.Cached, &query.ResponseTime,
-			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType,
+			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType, &query.ResponseSizeBytes,
 		); err != nil {
 			return nil, err
 		}
@@ -333,10 +333,11 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 		}
 	}()
 
-	query := "INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	stmt, err := tx.Prepare(query)
+
 	if err != nil {
-		log.Error("Could not create a prepared statement for request logs %v", err)
+		log.Error("Could not create a prepared statement for request logs, reason: %v", err)
 		return
 	}
 	defer stmt.Close()
@@ -353,6 +354,7 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 			entry.ClientInfo.Name,
 			entry.Status,
 			entry.QueryType,
+			entry.ResponseSizeBytes,
 		); err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return

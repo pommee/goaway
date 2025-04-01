@@ -59,7 +59,8 @@ func NewRequestLogDatabase(db *sql.DB) error {
             client_ip TEXT,
             client_name TEXT,
 			status TEXT,
-			query_type TEXT
+			query_type TEXT,
+			response_size_bytes TEXT
         );
     `)
 	if err != nil {

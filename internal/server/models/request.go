@@ -3,15 +3,16 @@ package model
 import "time"
 
 type RequestLogEntry struct {
-	Domain       string        `json:"domain,omitempty"`
-	Status       string        `json:"status,omitempty"`
-	QueryType    string        `json:"queryType,omitempty"`
-	IP           []string      `json:"ip,omitempty"`
-	Timestamp    time.Time     `json:"timestamp,omitempty"`
-	ResponseTime time.Duration `json:"responseTimeNS,omitempty"`
-	Blocked      bool          `json:"blocked"`
-	Cached       bool          `json:"cached,omitempty"`
-	ClientInfo   *Client       `json:"client,omitempty"`
+	Domain            string        `json:"domain"`
+	Status            string        `json:"status"`
+	QueryType         string        `json:"queryType"`
+	IP                []string      `json:"ip"`
+	ResponseSizeBytes int           `json:"responseSizeBytes"`
+	Timestamp         time.Time     `json:"timestamp"`
+	ResponseTime      time.Duration `json:"responseTimeNS"`
+	Blocked           bool          `json:"blocked"`
+	Cached            bool          `json:"cached"`
+	ClientInfo        *Client       `json:"client"`
 }
 
 type RequestLogEntryTimestamps struct {

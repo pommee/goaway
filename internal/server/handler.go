@@ -175,19 +175,21 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		Ptr: "localhost.lan.",
 	}
 
+	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, ptr)
 	_ = request.w.WriteMsg(request.msg)
 
 	return model.RequestLogEntry{
-		Timestamp:    request.sent,
-		Domain:       request.question.Name,
-		IP:           []string{"localhost.lan"},
-		Blocked:      false,
-		Cached:       false,
-		ResponseTime: time.Since(request.sent),
-		ClientInfo:   request.client,
-		Status:       "NoError",
-		QueryType:    "PTR",
+		Timestamp:         request.sent,
+		Domain:            request.question.Name,
+		Status:            "NoError",
+		IP:                []string{"localhost.lan"},
+		Blocked:           false,
+		Cached:            false,
+		ResponseTime:      time.Since(request.sent),
+		ClientInfo:        request.client,
+		QueryType:         "PTR",
+		ResponseSizeBytes: responseSizeBytes,
 	}
 }
 
@@ -202,19 +204,21 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Ptr: hostname + ".",
 	}
 
+	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, ptr)
 	_ = request.w.WriteMsg(request.msg)
 
 	return model.RequestLogEntry{
-		Timestamp:    request.sent,
-		Domain:       request.question.Name,
-		IP:           []string{hostname},
-		Blocked:      false,
-		Cached:       false,
-		ResponseTime: time.Since(request.sent),
-		ClientInfo:   request.client,
-		Status:       "NoError",
-		QueryType:    "PTR",
+		Domain:            request.question.Name,
+		Status:            "NoError",
+		QueryType:         "PTR",
+		IP:                []string{hostname},
+		ResponseSizeBytes: responseSizeBytes,
+		Timestamp:         request.sent,
+		ResponseTime:      time.Since(request.sent),
+		Blocked:           false,
+		Cached:            false,
+		ClientInfo:        request.client,
 	}
 }
 
@@ -235,19 +239,21 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		}
 	}
 
+	responseSizeBytes := request.msg.Len()
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
-		Timestamp:    request.sent,
-		Domain:       request.question.Name,
-		IP:           resolvedHostnames,
-		Blocked:      false,
-		Cached:       false,
-		ResponseTime: time.Since(request.sent),
-		ClientInfo:   request.client,
-		Status:       status,
-		QueryType:    "PTR",
+		Domain:            request.question.Name,
+		Status:            status,
+		QueryType:         "PTR",
+		IP:                resolvedHostnames,
+		ResponseSizeBytes: responseSizeBytes,
+		Timestamp:         request.sent,
+		ResponseTime:      time.Since(request.sent),
+		Blocked:           false,
+		Cached:            false,
+		ClientInfo:        request.client,
 	}
 }
 
@@ -275,19 +281,21 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		}
 	}
 
+	responseSizeBytes := request.msg.Len()
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
-		Timestamp:    request.sent,
-		Domain:       request.question.Name,
-		IP:           resolvedAddresses,
-		Blocked:      false,
-		Cached:       cached,
-		ResponseTime: time.Since(request.sent),
-		ClientInfo:   request.client,
-		Status:       status,
-		QueryType:    dns.TypeToString[request.question.Qtype],
+		Domain:            request.question.Name,
+		Status:            status,
+		QueryType:         dns.TypeToString[request.question.Qtype],
+		IP:                resolvedAddresses,
+		ResponseSizeBytes: responseSizeBytes,
+		Timestamp:         request.sent,
+		ResponseTime:      time.Since(request.sent),
+		Blocked:           false,
+		Cached:            cached,
+		ClientInfo:        request.client,
 	}
 }
 
@@ -448,19 +456,22 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		AAAA: net.ParseIP("::"),
 	}
 
+	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, rr4, rr6)
 	_ = request.w.WriteMsg(request.msg)
 
 	s.Counters.BlockedRequests++
 
 	return model.RequestLogEntry{
-		Timestamp:    request.sent,
-		Domain:       request.question.Name,
-		IP:           []string{""},
-		Blocked:      true,
-		Cached:       false,
-		ResponseTime: time.Since(request.sent),
-		ClientInfo:   request.client,
-		Status:       status,
+		Domain:            request.question.Name,
+		Status:            status,
+		QueryType:         dns.TypeToString[request.question.Qtype],
+		IP:                []string{""},
+		ResponseSizeBytes: responseSizeBytes,
+		Timestamp:         request.sent,
+		ResponseTime:      time.Since(request.sent),
+		Blocked:           true,
+		Cached:            false,
+		ClientInfo:        request.client,
 	}
 }
