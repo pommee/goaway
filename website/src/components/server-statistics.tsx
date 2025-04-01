@@ -58,6 +58,26 @@ async function checkForUpdate() {
   localStorage.setItem("newestVersion", newestVersion);
 }
 
+function celebrateUpdate() {
+  const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+  confetti({
+    particleCount: 50,
+    angle: 60,
+    spread: 55,
+    startVelocity: 60,
+    origin: { x: 0, y: 0.8 },
+    colors: colors,
+  });
+  confetti({
+    particleCount: 50,
+    angle: 120,
+    spread: 55,
+    startVelocity: 60,
+    origin: { x: 1, y: 0.8 },
+    colors: colors,
+  });
+}
+
 export function ServerStatistics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [updateNotified, setUpdateNotified] = useState(false);
@@ -123,12 +143,9 @@ export function ServerStatistics() {
       if (event.data.includes("Update successful")) {
         toast.info("Updated!", { description: `Now running v${newVersion}` });
         localStorage.setItem("installedVersion", newVersion);
+        setShowUpdateModal(false);
         eventSource.close();
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
+        celebrateUpdate();
       }
     };
 
