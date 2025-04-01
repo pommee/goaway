@@ -49,12 +49,12 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       const date = new Date(row.original.timestamp);
       const formattedDate = `${date.getFullYear()}/${String(
-        date.getMonth() + 1
+        date.getMonth() + 1,
       ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
-        date.getHours() + 1
+        date.getHours() + 1,
       ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
         2,
-        "0"
+        "0",
       )}:${String(date.getSeconds() - 13).padStart(2, "0")}`;
       return <div>{formattedDate}</div>;
     },
