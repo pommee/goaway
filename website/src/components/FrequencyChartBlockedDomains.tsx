@@ -7,7 +7,7 @@ import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartTooltipContent
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ export type TopBlockedDomains = {
 export default function FrequencyChartBlockedDomains() {
   const [data, setData] = useState<TopBlockedDomains[]>([]);
   const [chartConfig] = useState<ChartConfig>({
-    blocked: { label: "Blocked" },
+    blocked: { label: "Blocked" }
   });
 
   useEffect(() => {
@@ -32,8 +32,8 @@ export default function FrequencyChartBlockedDomains() {
           (domain: TopBlockedDomains) => ({
             name: domain.name,
             blocked: domain.hits,
-            frequency: domain.frequency,
-          }),
+            frequency: domain.frequency
+          })
         );
 
         setData(formattedData);
@@ -60,7 +60,7 @@ export default function FrequencyChartBlockedDomains() {
             layout="vertical"
             className="w-full h-full"
             margin={{
-              left: 20,
+              left: 20
             }}
           >
             <XAxis type="number" dataKey="frequency" hide />

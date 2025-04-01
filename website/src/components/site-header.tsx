@@ -14,7 +14,7 @@ export function SiteHeader() {
     "/upstream": "Upstream",
     "/clients": "Clients",
     "/settings": "Settings",
-    "/changelog": "Changelog",
+    "/changelog": "Changelog"
   };
 
   const title = pageTitles[location.pathname] || "Documents";

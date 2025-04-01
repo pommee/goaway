@@ -29,10 +29,10 @@ export async function PostRequest(url: string, bodyData: unknown) {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(bodyData),
-      credentials: "include",
+      credentials: "include"
     });
 
     if (!res.ok) {
@@ -53,7 +53,7 @@ export async function PostRequest(url: string, bodyData: unknown) {
 export async function GetRequest(url: string) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
-      credentials: "include",
+      credentials: "include"
     });
 
     if (!res.ok) {
@@ -76,10 +76,10 @@ export async function PutRequest(url: string, bodyData: unknown) {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(bodyData),
-      credentials: "include",
+      credentials: "include"
     });
 
     if (!res.ok) {
@@ -101,7 +101,7 @@ export async function DeleteRequest(url: string) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",
-      credentials: "include",
+      credentials: "include"
     });
 
     if (!res.ok) {

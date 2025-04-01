@@ -39,7 +39,7 @@ const Changelog = () => {
       sessionStorage.setItem("githubReleases", JSON.stringify(data));
       sessionStorage.setItem(
         "githubReleasesTimestamp",
-        (Date.now() + cacheMaxAge).toString(),
+        (Date.now() + cacheMaxAge).toString()
       );
 
       setReleases(data);
@@ -76,7 +76,7 @@ const Changelog = () => {
             return {
               hash,
               message: message.replace(/^\*\s*/, ""),
-              url: `https://github.com/pommee/goaway/commit/${hash}`,
+              url: `https://github.com/pommee/goaway/commit/${hash}`
             };
           }
 
@@ -97,7 +97,7 @@ const Changelog = () => {
       {releases.map((release, idx) => {
         const date = new Date(release.published_at);
         const sections = parseChangelogBody(
-          release.body || "No release notes available.",
+          release.body || "No release notes available."
         );
         const installedVersion = localStorage.getItem("installedVersion");
 
@@ -125,7 +125,7 @@ const Changelog = () => {
               {date.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
-                hour12: false,
+                hour12: false
               })}
             </p>
 

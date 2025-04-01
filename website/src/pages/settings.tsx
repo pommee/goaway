@@ -20,7 +20,7 @@ const SETTINGS_SECTIONS = [
         explanation: "Choose your preferred dashboard font",
         options: ["JetBrains Mono", "Arial", "Times New Roman", "Courier New"],
         default: "JetBrains Mono",
-        widgetType: Combobox,
+        widgetType: Combobox
       },
       {
         label: "CurrentPassword",
@@ -28,7 +28,7 @@ const SETTINGS_SECTIONS = [
         explanation: "Current password",
         options: [],
         default: "password",
-        widgetType: Input,
+        widgetType: Input
       },
       {
         label: "Password",
@@ -36,9 +36,9 @@ const SETTINGS_SECTIONS = [
         explanation: "New password",
         options: [],
         default: "password",
-        widgetType: Input,
-      },
-    ],
+        widgetType: Input
+      }
+    ]
   },
   {
     title: "Logging",
@@ -50,7 +50,7 @@ const SETTINGS_SECTIONS = [
         explanation: "Set the verbosity of system logs",
         options: ["Debug", "Info", "Warning", "Error"],
         default: "Info",
-        widgetType: Combobox,
+        widgetType: Combobox
       },
       {
         label: "Statistics Retention",
@@ -58,7 +58,7 @@ const SETTINGS_SECTIONS = [
         explanation: "Days to retain system statistics",
         options: [1, 7, 30, 90],
         default: 7,
-        widgetType: Combobox,
+        widgetType: Combobox
       },
       {
         label: "Disable Logging",
@@ -66,9 +66,9 @@ const SETTINGS_SECTIONS = [
         explanation: "Completely turn off logging",
         options: [true, false],
         default: false,
-        widgetType: Switch,
-      },
-    ],
+        widgetType: Switch
+      }
+    ]
   },
   {
     title: "DNS Server",
@@ -80,10 +80,10 @@ const SETTINGS_SECTIONS = [
         explanation: "Domain resolution cache duration (seconds)",
         options: [30, 60, 120, 300],
         default: 60,
-        widgetType: Input,
-      },
-    ],
-  },
+        widgetType: Input
+      }
+    ]
+  }
 ];
 
 export function Settings() {
@@ -103,7 +103,7 @@ export function Settings() {
           logLevel: response.dns?.LogLevel || "Info",
           statisticsRetention: response.dns?.StatisticsRetention || 7,
           disableLogging: response.dns?.LoggingDisabled || false,
-          cacheTTL: response.dns?.CacheTTL || 60,
+          cacheTTL: response.dns?.CacheTTL || 60
         };
 
         setPreferences(updatedPreferences);
@@ -114,7 +114,7 @@ export function Settings() {
           logLevel: "Info",
           statisticsRetention: 7,
           disableLogging: false,
-          cacheTTL: 60,
+          cacheTTL: 60
         });
       }
     } catch (error) {
@@ -131,7 +131,7 @@ export function Settings() {
     setPreferences((prev) => {
       const newPreferences = {
         ...prev,
-        [key]: typeof prev[key] === "number" ? Number(value) : value,
+        [key]: typeof prev[key] === "number" ? Number(value) : value
       };
 
       setIsChanged(JSON.stringify(newPreferences) !== JSON.stringify(prev));
@@ -156,7 +156,7 @@ export function Settings() {
     if (newPassword !== undefined) {
       const [passwordChangeStatus] = await PutRequest("password", {
         currentPassword: preferences.currentPassword,
-        newPassword: preferences.password,
+        newPassword: preferences.password
       });
       if (passwordChangeStatus === 200) {
         toast.success("Updated password!");
@@ -176,9 +176,9 @@ export function Settings() {
         description: "You have pending configuration updates",
         action: {
           label: "Save Now",
-          onClick: handleSaveChanges,
+          onClick: handleSaveChanges
         },
-        duration: 5000,
+        duration: 5000
       });
     }
   });
@@ -222,28 +222,28 @@ export function Settings() {
                             onChange: (value: string) =>
                               handleSelect(key, value),
                             options,
-                            className: "w-full md:w-40",
+                            className: "w-full md:w-40"
                           }
                         : Widget === Switch
                           ? {
                               checked: Boolean(preferences[key]),
                               onCheckedChange: (value: boolean) =>
-                                handleSelect(key, value),
+                                handleSelect(key, value)
                             }
                           : Widget === Input
                             ? {
                                 value: preferences[key] || "",
                                 onChange: (
-                                  e: React.ChangeEvent<HTMLInputElement>,
+                                  e: React.ChangeEvent<HTMLInputElement>
                                 ) => handleSelect(key, e.target.value),
                                 placeholder: "Enter Value",
-                                className: "w-full md:w-40",
+                                className: "w-full md:w-40"
                               }
                             : {})}
                     />
                   </div>
                 </div>
-              ),
+              )
             )}
           </div>
         </Card>

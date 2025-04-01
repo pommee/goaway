@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { RefreshCcw } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";

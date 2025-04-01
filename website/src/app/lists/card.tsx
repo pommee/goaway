@@ -8,8 +8,8 @@ export function ListCard(listEntry: ListEntry) {
   const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
     "sv-SE",
     {
-      hour12: false,
-    },
+      hour12: false
+    }
   );
 
   return (

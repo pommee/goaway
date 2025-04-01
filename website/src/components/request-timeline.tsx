@@ -7,19 +7,19 @@ import {
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartTooltipContent
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
 
 const chartConfig = {
   blocked: {
     label: "Blocked",
-    color: "red",
+    color: "red"
   },
   allowed: {
     label: "Allowed",
-    color: "green",
-  },
+    color: "green"
+  }
 };
 
 export default function RequestTimeline() {
@@ -33,7 +33,7 @@ export default function RequestTimeline() {
 
         const now = new Date();
         const twentyFourHoursAgo = new Date(
-          now.getTime() - 24 * 60 * 60 * 1000,
+          now.getTime() - 24 * 60 * 60 * 1000
         );
 
         const processedData = data.queries
@@ -54,7 +54,7 @@ export default function RequestTimeline() {
               entry = {
                 interval: intervalKey,
                 blocked: 0,
-                allowed: 0,
+                allowed: 0
               };
               acc.push(entry);
             }
@@ -134,7 +134,7 @@ export default function RequestTimeline() {
                   const date = new Date(value);
                   return date.toLocaleTimeString("sv-SE", {
                     hour: "numeric",
-                    minute: "2-digit",
+                    minute: "2-digit"
                   });
                 }}
               />
@@ -147,7 +147,7 @@ export default function RequestTimeline() {
                         month: "short",
                         day: "numeric",
                         hour: "numeric",
-                        minute: "2-digit",
+                        minute: "2-digit"
                       });
                     }}
                     indicator="dot"

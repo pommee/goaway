@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogDescription } from "@radix-ui/react-dialog";
@@ -35,7 +35,7 @@ function MetricItem({
   label,
   value,
   icon: Icon,
-  color,
+  color
 }: {
   label: string;
   value: string | number;
@@ -59,7 +59,7 @@ async function checkForUpdate() {
   try {
     localStorage.setItem("lastUpdateCheck", Date.now().toString());
     const response = await fetch(
-      "https://api.github.com/repos/pommee/goaway/tags",
+      "https://api.github.com/repos/pommee/goaway/tags"
     );
     const data = await response.json();
     const latestVersion = data[0].name.replace("v", "");
@@ -89,7 +89,7 @@ function celebrateUpdate() {
     spread: 55,
     startVelocity: 60,
     origin: { x: 0, y: 0.8 },
-    colors: colors,
+    colors: colors
   });
   confetti({
     particleCount: 50,
@@ -97,7 +97,7 @@ function celebrateUpdate() {
     spread: 55,
     startVelocity: 60,
     origin: { x: 1, y: 0.8 },
-    colors: colors,
+    colors: colors
   });
 }
 
@@ -142,8 +142,8 @@ export function ServerStatistics() {
             toast(`New version available: v${latestVersion}`, {
               action: {
                 label: "Update",
-                onClick: () => setShowUpdateModal(true),
-              },
+                onClick: () => setShowUpdateModal(true)
+              }
             });
             setUpdateNotified(true);
           }

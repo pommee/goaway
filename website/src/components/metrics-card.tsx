@@ -30,7 +30,7 @@ export function MetricsCard({
   bgColor,
   type = "number",
   metricsData,
-  description = "",
+  description = ""
 }: MetricsCardProps) {
   const value = metricsData?.[valueKey as keyof Metrics];
 
@@ -44,8 +44,8 @@ export function MetricsCard({
       className={clsx("relative p-2 rounded-lg w-full overflow-hidden")}
       style={{
         background: `linear-gradient(to right, #1a1a1a, ${getBgColorValue(
-          bgColor,
-        )})`,
+          bgColor
+        )})`
       }}
     >
       <div className="relative z-10 flex items-center justify-between">
@@ -68,7 +68,7 @@ function getBgColorValue(bgColor: string) {
       "bg-green-800": "#166534",
       "bg-red-800": "#991b1b",
       "bg-blue-800": "#1e40af",
-      "bg-purple-800": "#6b21a8",
+      "bg-purple-800": "#6b21a8"
     }[bgColor] || "#1a1a1a"
   );
 }

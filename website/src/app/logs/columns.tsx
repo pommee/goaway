@@ -41,7 +41,7 @@ export const columns: ColumnDef<Queries>[] = [
       />
     ),
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: false
   },
   {
     accessorKey: "timestamp",
@@ -49,15 +49,15 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       const date = new Date(row.original.timestamp);
       const formattedDate = `${date.getFullYear()}/${String(
-        date.getMonth() + 1,
+        date.getMonth() + 1
       ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
-        date.getHours() + 1,
+        date.getHours() + 1
       ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
         2,
-        "0",
+        "0"
       )}:${String(date.getSeconds() - 13).padStart(2, "0")}`;
       return <div>{formattedDate}</div>;
-    },
+    }
   },
   {
     accessorKey: "domain",
@@ -65,12 +65,12 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       const wasBlocked = row.original.blocked === true ? "text-red-500" : "";
       return <div className={`${wasBlocked}`}>{row.getValue("domain")}</div>;
-    },
+    }
   },
   {
     accessorKey: "ip",
     header: "IP",
-    cell: ({ row }) => <div>{row.getValue("ip")}</div>,
+    cell: ({ row }) => <div>{row.getValue("ip")}</div>
   },
   {
     id: "client",
@@ -82,7 +82,7 @@ export const columns: ColumnDef<Queries>[] = [
           {client.name} | {client.ip}
         </div>
       );
-    },
+    }
   },
   {
     accessorKey: "status",
@@ -105,16 +105,16 @@ export const columns: ColumnDef<Queries>[] = [
           {rowText}
         </div>
       );
-    },
+    }
   },
   {
     accessorKey: "queryType",
     header: "Type",
-    cell: ({ row }) => <div>{row.getValue("queryType")}</div>,
+    cell: ({ row }) => <div>{row.getValue("queryType")}</div>
   },
   {
     accessorKey: "responseSizeBytes",
     header: "Size",
-    cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>,
-  },
+    cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>
+  }
 ];

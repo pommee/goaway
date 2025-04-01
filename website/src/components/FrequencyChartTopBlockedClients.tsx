@@ -7,7 +7,7 @@ import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartTooltipContent
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ export type TopBlockedClients = {
 export default function FrequencyChartTopBlockedClients() {
   const [data, setData] = useState<TopBlockedClients[]>([]);
   const [chartConfig] = useState<ChartConfig>({
-    blocked: { label: "Blocked" },
+    blocked: { label: "Blocked" }
   });
 
   useEffect(() => {
@@ -32,8 +32,8 @@ export default function FrequencyChartTopBlockedClients() {
           (client: TopBlockedClients) => ({
             client: client.client,
             requestCount: client.requestCount,
-            frequency: client.frequency,
-          }),
+            frequency: client.frequency
+          })
         );
 
         setData(formattedData);
@@ -60,7 +60,7 @@ export default function FrequencyChartTopBlockedClients() {
             layout="vertical"
             className="w-full h-full"
             margin={{
-              left: 20,
+              left: 20
             }}
           >
             <XAxis type="number" dataKey="frequency" hide />

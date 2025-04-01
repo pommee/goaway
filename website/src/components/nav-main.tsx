@@ -7,7 +7,7 @@ import clsx from "clsx";
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
+  CollapsibleTrigger
 } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
@@ -18,11 +18,11 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  SidebarMenuSubItem
 } from "@/components/ui/sidebar";
 
 export function NavMain({
-  items,
+  items
 }: {
   items: {
     title: string;
@@ -51,7 +51,7 @@ export function NavMain({
                   asChild
                   tooltip={item.title}
                   className={clsx({
-                    "bg-accent text-white font-semibold": isActive,
+                    "bg-accent text-white font-semibold": isActive
                   })}
                 >
                   <a href={item.url}>
@@ -75,7 +75,7 @@ export function NavMain({
                               <a
                                 href={subItem.url}
                                 className={clsx({
-                                  "text-accent": pathname === subItem.url,
+                                  "text-accent": pathname === subItem.url
                                 })}
                               >
                                 <span>{subItem.title}</span>

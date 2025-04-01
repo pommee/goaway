@@ -6,13 +6,13 @@ import {
   PolarAngleAxis,
   PolarGrid,
   Radar,
-  RadarChart,
+  RadarChart
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartTooltipContent
 } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
 import { GetRequest } from "@/util";
@@ -21,7 +21,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
 
 const colors = [
@@ -29,7 +29,7 @@ const colors = [
   "var(--chart-2)",
   "var(--chart-3)",
   "var(--chart-4)",
-  "var(--chart-5)",
+  "var(--chart-5)"
 ];
 
 export type QueryType = {
@@ -54,8 +54,8 @@ export default function RequestTypeChart() {
           (request: QueryType, index: number) => ({
             count: request.count,
             requestType: request.queryType,
-            fill: colors[index % colors.length],
-          }),
+            fill: colors[index % colors.length]
+          })
         );
 
         setChartData(formattedData);

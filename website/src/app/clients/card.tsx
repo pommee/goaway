@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  CardFooter,
+  CardFooter
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Clock, Eye, User } from "lucide-react";
@@ -28,7 +28,7 @@ function timeAgo(timestamp: string) {
 
 export function ClientCard(clientEntry: ClientEntry) {
   const [lastSeenText, setLastSeenText] = useState(() =>
-    timeAgo(clientEntry.lastSeen),
+    timeAgo(clientEntry.lastSeen)
   );
   const [showDetails, setShowDetails] = useState(false);
 

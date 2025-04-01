@@ -9,7 +9,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  useReactTable,
+  useReactTable
 } from "@tanstack/react-table";
 import { ChevronDown, TriangleAlert } from "lucide-react";
 
@@ -18,7 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,7 +27,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from "@/components/ui/table";
 import { columns, Queries } from "@/app/logs/columns";
 import { useEffect, useState } from "react";
@@ -36,27 +36,27 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight,
+  ChevronsRight
 } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
 
 type QueryResponse = {
@@ -69,7 +69,7 @@ type QueryResponse = {
 async function fetchQueries(
   page: number,
   pageSize: number,
-  domainFilter: string = "",
+  domainFilter: string = ""
 ): Promise<QueryResponse> {
   try {
     let url = `queries?page=${page}&pageSize=${pageSize}`;
@@ -86,17 +86,22 @@ async function fetchQueries(
           client: {
             ip: item.client?.ip || "",
             name: item.client?.name || "",
-            mac: item.client?.mac || "",
+            mac: item.client?.mac || ""
           },
-          ip: Array.isArray(item.ip) ? item.ip : [],
+          ip: Array.isArray(item.ip) ? item.ip : []
         })),
         draw: response.draw || "1",
         recordsFiltered: response.recordsFiltered || 0,
-        recordsTotal: response.recordsTotal || 0,
+        recordsTotal: response.recordsTotal || 0
       };
     } else {
       console.error("Invalid response format", response);
-      return { details: [], draw: "1", recordsFiltered: 0, recordsTotal: 0 };
+      return {
+        details: [],
+        draw: "1",
+        recordsFiltered: 0,
+        recordsTotal: 0
+      };
     }
   } catch (error) {
     console.error("Failed to fetch queries:", error);
@@ -114,7 +119,7 @@ export function Logs() {
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
+    []
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -138,7 +143,7 @@ export function Logs() {
         setDomainFilter(value);
         setPageIndex(0);
       }, 500),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -174,9 +179,9 @@ export function Logs() {
       rowSelection,
       pagination: {
         pageIndex,
-        pageSize,
-      },
-    },
+        pageSize
+      }
+    }
   });
 
   async function clearLogs() {
@@ -259,7 +264,7 @@ export function Logs() {
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                   </TableHead>
                 ))}
@@ -297,14 +302,14 @@ export function Logs() {
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext(),
+                                cell.getContext()
                               )}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             {flexRender(
                               cell.column.columnDef.cell,
-                              cell.getContext(),
+                              cell.getContext()
                             )}
                           </TooltipContent>
                         </Tooltip>

@@ -11,12 +11,12 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
+  PopoverTrigger
 } from "@/components/ui/popover";
 
 interface ComboboxProps {
@@ -60,7 +60,7 @@ export function Combobox({ value, onChange, options }: ComboboxProps) {
                   <Check
                     className={cn(
                       "ml-auto",
-                      value === option ? "opacity-100" : "opacity-0",
+                      value === option ? "opacity-100" : "opacity-0"
                     )}
                   />
                 </CommandItem>

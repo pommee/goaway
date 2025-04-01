@@ -4,7 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Eraser, Eye, RefreshCcw, ToggleLeft } from "lucide-react";
 import { ListEntry } from "@/pages/lists";

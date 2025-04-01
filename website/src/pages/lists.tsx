@@ -26,8 +26,8 @@ export function Lists() {
       const listArray: ListEntry[] = Object.entries(response.lists).map(
         ([name, details]) => ({
           name,
-          ...details,
-        }),
+          ...details
+        })
       );
 
       setLists(listArray);

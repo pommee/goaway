@@ -7,7 +7,7 @@ import {
   LogOut,
   Logs,
   Settings,
-  User,
+  User
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -18,7 +18,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarMenuItem
 } from "@/components/ui/sidebar";
 import { ServerStatistics } from "./server-statistics";
 import { Separator } from "./ui/separator";
@@ -84,7 +84,7 @@ const quotes = [
   "Bye data miners!",
   "Privacy protected!",
   "Tracking blocked!",
-  "Not happening!",
+  "Not happening!"
 ];
 
 const data = {
@@ -92,12 +92,12 @@ const data = {
     {
       title: "Home",
       url: "/home",
-      icon: Home,
+      icon: Home
     },
     {
       title: "Logs",
       url: "/logs",
-      icon: Logs,
+      icon: Logs
     },
     //    {
     //      title: "Domains",
@@ -107,7 +107,7 @@ const data = {
     {
       title: "Lists",
       url: "/lists",
-      icon: ListFilter,
+      icon: ListFilter
     },
     // {
     //  title: "Upstream",
@@ -117,33 +117,33 @@ const data = {
     {
       title: "Clients",
       url: "/clients",
-      icon: User,
+      icon: User
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings,
+      icon: Settings
     },
     {
       title: "Changelog",
       url: "/changelog",
-      icon: ChartNoAxesGantt,
-    },
+      icon: ChartNoAxesGantt
+    }
   ],
   navSecondary: [
     {
       title: "GitHub",
       url: "https://github.com/pommee/goaway",
       icon: SiGithub,
-      blank: "_blank",
+      blank: "_blank"
     },
     {
       title: "Logout",
       url: "/login",
       icon: LogOut,
-      blank: "",
-    },
-  ],
+      blank: ""
+    }
+  ]
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
