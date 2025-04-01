@@ -39,6 +39,9 @@ func FetchResolution(db *sql.DB, domain string) (string, error) {
 
 	var foundDomain string
 	err := db.QueryRow(query, domain).Scan(&foundDomain)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
 	if err != nil {
 		return "", err
 	}
