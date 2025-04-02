@@ -52,6 +52,8 @@ type QueryResponse struct {
 type cachedRecord struct {
 	IPAddresses []dns.RR
 	ExpiresAt   time.Time
+	CachedAt    time.Time
+	OriginalTTL uint32
 }
 
 type CounterDetails struct {
