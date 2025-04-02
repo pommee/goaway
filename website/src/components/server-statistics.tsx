@@ -35,12 +35,14 @@ function MetricItem({
   label,
   value,
   icon: Icon,
-  color
+  color,
+  isLoading = false
 }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   color: string;
+  isLoading?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between p-1 text-sm rounded-md">
@@ -48,9 +50,13 @@ function MetricItem({
         <Icon size={16} className="mr-3" />
         <span>{label}</span>
       </div>
-      <span className="font-mono font-medium" style={{ color }}>
-        {value}
-      </span>
+      {isLoading ? (
+        <div className="bg-gray-700 rounded w-10 h-4 animate-pulse"></div>
+      ) : (
+        <span className="font-mono font-medium" style={{ color }}>
+          {value}
+        </span>
+      )}
     </div>
   );
 }
@@ -107,6 +113,7 @@ export function ServerStatistics() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateLogs, setUpdateLogs] = useState<string[]>([]);
   const [newVersion, setNewVersion] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (shouldCheckForUpdate()) {
@@ -127,6 +134,7 @@ export function ServerStatistics() {
       try {
         const [, data] = await GetRequest("server");
         setMetrics(data);
+        setIsLoading(false);
 
         const latestVersion = localStorage.getItem("latestVersion");
         const installedVersion = data.version;
@@ -183,14 +191,6 @@ export function ServerStatistics() {
 
   const formatNumber = (num: number) => num.toFixed(1);
 
-  if (!metrics) {
-    return (
-      <div className="bg-gray-800 rounded-lg m-2 p-4 text-gray-300">
-        Loading...
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="bg-gray-800 rounded-lg m-2 overflow-hidden shadow-lg">
@@ -198,38 +198,54 @@ export function ServerStatistics() {
           <span className="text-xs font-medium text-gray-400">
             Server Status
           </span>
-          <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300 font-mono">
-            v{metrics.version}
-          </span>
+          {isLoading ? (
+            <div className="bg-gray-700 rounded-full h-4 w-12 animate-pulse"></div>
+          ) : (
+            <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300 font-mono">
+              v{metrics?.version}
+            </span>
+          )}
         </div>
 
         <div className="p-3 space-y-1">
           <MetricItem
             label="CPU"
-            value={`${formatNumber(metrics.cpuUsage)}%`}
+            value={
+              isLoading ? "0%" : `${formatNumber(metrics?.cpuUsage || 0)}%`
+            }
             icon={Cpu}
-            color={getColor(metrics.cpuUsage, 100)}
+            color={getColor(metrics?.cpuUsage || 0, 100)}
+            isLoading={isLoading}
           />
 
           <MetricItem
             label="CPU temp"
-            value={`${formatNumber(metrics.cpuTemp)}°`}
+            value={isLoading ? "0°" : `${formatNumber(metrics?.cpuTemp || 0)}°`}
             icon={Thermometer}
-            color={getColor(metrics.cpuTemp, 80)}
+            color={getColor(metrics?.cpuTemp || 0, 80)}
+            isLoading={isLoading}
           />
 
           <MetricItem
             label="Memory"
-            value={`${formatNumber(metrics.usedMemPercentage)}%`}
+            value={
+              isLoading
+                ? "0%"
+                : `${formatNumber(metrics?.usedMemPercentage || 0)}%`
+            }
             icon={Memory}
-            color={getColor(metrics.usedMemPercentage, 100)}
+            color={getColor(metrics?.usedMemPercentage || 0, 100)}
+            isLoading={isLoading}
           />
 
           <MetricItem
             label="DB Size"
-            value={`${formatNumber(metrics.dbSize)}MB`}
+            value={
+              isLoading ? "0MB" : `${formatNumber(metrics?.dbSize || 0)}MB`
+            }
             icon={Database}
-            color={getColor(metrics.dbSize, 50)}
+            color={getColor(metrics?.dbSize || 0, 50)}
+            isLoading={isLoading}
           />
         </div>
       </div>

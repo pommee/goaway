@@ -1,6 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import Layout from "../app/layout";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import Changelog from "./changelog";
 import { Clients } from "./clients";
@@ -9,22 +9,131 @@ import { Login } from "./login";
 import { Home } from "./home";
 import { Logs } from "./logs";
 import { Settings } from "./settings";
+import { AnimatePresence, motion } from "framer-motion";
+import { Suspense } from "react";
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-full w-full">
+      <div className="flex flex-col items-center">
+        <div className="w-16 h-16 border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-400">Loading page...</p>
+      </div>
+    </div>
+  );
+}
+
+function PageTransition({ children }) {
+  const pageVariants = {
+    initial: {
+      opacity: 0,
+      x: 10
+    },
+    in: {
+      opacity: 1,
+      x: 0
+    },
+    out: {
+      opacity: 0,
+      x: -10
+    }
+  };
+
+  const pageTransition = {
+    type: "tween",
+    ease: "easeInOut",
+    duration: 0.3
+  };
+
+  return (
+    <motion.div
+      initial="initial"
+      animate="in"
+      exit="out"
+      variants={pageVariants}
+      transition={pageTransition}
+      className="h-full"
+    >
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </motion.div>
+  );
+}
 
 function App() {
+  const location = useLocation();
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/logs" element={<Logs />} />
-          <Route path="/lists" element={<Lists />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/changelog" element={<Changelog />} />
-        </Route>
-      </Routes>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route
+            path="/login"
+            element={
+              <PageTransition>
+                <Login />
+              </PageTransition>
+            }
+          />
+          <Route element={<Layout />}>
+            <Route
+              path="/"
+              element={
+                <PageTransition>
+                  <Home />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/home"
+              element={
+                <PageTransition>
+                  <Home />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <PageTransition>
+                  <Logs />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/lists"
+              element={
+                <PageTransition>
+                  <Lists />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/clients"
+              element={
+                <PageTransition>
+                  <Clients />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PageTransition>
+                  <Settings />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/changelog"
+              element={
+                <PageTransition>
+                  <Changelog />
+                </PageTransition>
+              }
+            />
+          </Route>
+        </Routes>
+      </AnimatePresence>
       <Toaster />
     </ThemeProvider>
   );
