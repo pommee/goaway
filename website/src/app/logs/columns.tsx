@@ -1,6 +1,6 @@
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef } from "@tanstack/react-table";
-import { BanIcon, Verified } from "lucide-react";
+import { BanIcon, Brain, Verified } from "lucide-react";
 
 type Client = {
   ip: string;
@@ -47,16 +47,27 @@ export const columns: ColumnDef<Queries>[] = [
     accessorKey: "timestamp",
     header: "Time",
     cell: ({ row }) => {
-      const date = new Date(row.original.timestamp);
-      const formattedDate = `${date.getFullYear()}/${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
-        date.getHours() + 1
-      ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
-        2,
-        "0"
-      )}:${String(date.getSeconds() - 13).padStart(2, "0")}`;
-      return <div>{formattedDate}</div>;
+      try {
+        const timestamp = row.original.timestamp;
+        const date = new Date(timestamp);
+
+        if (isNaN(date.getTime())) {
+          return <div>{timestamp}</div>;
+        }
+
+        const formattedDate = `${date.getFullYear()}/${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
+          date.getHours()
+        ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
+          2,
+          "0"
+        )}:${String(date.getSeconds()).padStart(2, "0")}`;
+
+        return <div>{formattedDate}</div>;
+      } catch {
+        return <div>{row.original.timestamp}</div>;
+      }
     }
   },
   {
@@ -90,15 +101,21 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       const query = row.original;
       const wasOK =
-        query.blocked == false
-          ? `OK (forwarded) ${query.status}`
+        query.blocked === false
+          ? query.cached
+            ? `cache (forwarded) ${query.status}`
+            : `ok (forwarded) ${query.status}`
           : query.status;
       const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(2);
-      const rowText = ` ${wasOK} | ${responseTimeMS}ms`;
+      const rowText = ` ${wasOK} ${responseTimeMS}ms`;
       return (
         <div className="flex">
           {query.blocked === false ? (
-            <Verified size={14} color="green" className="mt-1 mr-1" />
+            query.cached ? (
+              <Brain size={14} color="yellow" className="mt-1 mr-1" />
+            ) : (
+              <Verified size={14} color="green" className="mt-1 mr-1" />
+            )
           ) : (
             <BanIcon size={14} color="red" className="mt-1 mr-1" />
           )}
