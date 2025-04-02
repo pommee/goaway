@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+import { GithubLogo } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 const Changelog = () => {
@@ -166,7 +166,7 @@ const Changelog = () => {
                 rel="noopener noreferrer"
                 className="view-release-on-github inline-flex items-center text-blue-400 hover:underline gap-2"
               >
-                <Github size={16} />
+                <GithubLogo size={16} />
                 View on GitHub
               </a>
             </div>

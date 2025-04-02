@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
+import { ArrowsDownUp, Check } from "@phosphor-icons/react";
 
 interface ComboboxProps {
   value: string;
@@ -38,7 +37,7 @@ export function Combobox({ value, onChange, options }: ComboboxProps) {
           className="w-[200px] justify-between"
         >
           {value ? value : "Select an option..."}
-          <ChevronsUpDown className="opacity-50" />
+          <ArrowsDownUp className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">

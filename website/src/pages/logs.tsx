@@ -11,8 +11,6 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { ChevronDown, TriangleAlert } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,12 +31,6 @@ import { columns, Queries } from "@/app/logs/columns";
 import { useEffect, useState } from "react";
 import { DeleteRequest, GetRequest } from "@/util";
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
-} from "lucide-react";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -58,6 +50,14 @@ import {
   DialogDescription,
   DialogTrigger
 } from "@/components/ui/dialog";
+import {
+  CaretDoubleLeft,
+  CaretDoubleRight,
+  CaretDown,
+  CaretLeft,
+  CaretRight,
+  Warning
+} from "@phosphor-icons/react";
 
 type QueryResponse = {
   details: Queries[];
@@ -205,7 +205,7 @@ export function Logs() {
         </DialogTrigger>
         <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
           <div className="flex justify-center mb-4">
-            <TriangleAlert className="h-10 w-10 text-amber-500" />
+            <Warning className="h-10 w-10 text-amber-500" />
           </div>
           <DialogDescription className="text-base">
             <div className="bg-amber-600 border-2 border-amber-800 rounded-md p-4 mt-2">
@@ -233,7 +233,7 @@ export function Logs() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
+              Columns <CaretDown />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -369,7 +369,7 @@ export function Logs() {
               disabled={pageIndex === 0 || loading}
             >
               <span className="sr-only">Go to first page</span>
-              <ChevronsLeft />
+              <CaretDoubleLeft />
             </Button>
             <Button
               variant="outline"
@@ -378,7 +378,7 @@ export function Logs() {
               disabled={pageIndex === 0 || loading}
             >
               <span className="sr-only">Go to previous page</span>
-              <ChevronLeft />
+              <CaretLeft />
             </Button>
             <Button
               variant="outline"
@@ -389,7 +389,7 @@ export function Logs() {
               disabled={pageIndex >= totalPages - 1 || loading}
             >
               <span className="sr-only">Go to next page</span>
-              <ChevronRight />
+              <CaretRight />
             </Button>
             <Button
               variant="outline"
@@ -398,7 +398,7 @@ export function Logs() {
               disabled={pageIndex >= totalPages - 1 || loading}
             >
               <span className="sr-only">Go to last page</span>
-              <ChevronsRight />
+              <CaretDoubleRight />
             </Button>
           </div>
         </div>

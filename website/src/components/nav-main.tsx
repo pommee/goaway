@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import clsx from "clsx";
 
@@ -20,6 +19,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from "@/components/ui/sidebar";
+import { CaretRight, Icon } from "@phosphor-icons/react";
 
 export function NavMain({
   items
@@ -27,7 +27,7 @@ export function NavMain({
   items: {
     title: string;
     url: string;
-    icon: LucideIcon;
+    icon: Icon;
     isActive?: boolean;
     items?: {
       title: string;
@@ -63,7 +63,7 @@ export function NavMain({
                   <>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuAction className="data-[state=open]:rotate-90">
-                        <ChevronRight />
+                        <CaretRight />
                         <span className="sr-only">Toggle</span>
                       </SidebarMenuAction>
                     </CollapsibleTrigger>

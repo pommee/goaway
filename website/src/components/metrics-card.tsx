@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
-import { LucideIcon, Shield, ShieldX, Users, Database } from "lucide-react";
 import clsx from "clsx";
 import { GetRequest } from "@/util";
+import {
+  Database,
+  Icon,
+  Shield,
+  ShieldSlash,
+  Users
+} from "@phosphor-icons/react";
 
 export type Metrics = {
   allowed: number;
@@ -16,7 +22,7 @@ export type Metrics = {
 interface MetricsCardProps {
   title: string;
   valueKey: string;
-  Icon: LucideIcon;
+  Icon: Icon;
   bgColor: string;
   type?: "number" | "percentage";
   metricsData: Metrics | null;
@@ -105,7 +111,7 @@ export default function MetricsCards() {
       <MetricsCard
         title="Queries Blocked"
         valueKey="blocked"
-        Icon={ShieldX}
+        Icon={ShieldSlash}
         bgColor="bg-red-800"
         metricsData={metricsData}
         description="Total queries filtered"

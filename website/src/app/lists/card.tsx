@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Ban, Clock } from "lucide-react";
 import { ListEntry } from "@/pages/lists";
 import { CardDetails } from "./details";
+import { Clock, ShieldSlash } from "@phosphor-icons/react";
 
 export function ListCard(listEntry: ListEntry) {
   const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
@@ -30,7 +30,7 @@ export function ListCard(listEntry: ListEntry) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center bg-zinc-900 rounded-full px-3 py-1 text-sm">
-            <Ban className="mr-1" size={14} />
+            <ShieldSlash className="mr-1" size={14} />
             <span>{listEntry.blockedCount}</span>
           </div>
 

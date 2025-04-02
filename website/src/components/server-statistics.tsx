@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Thermometer, Database, Cpu, LucideMemoryStick } from "lucide-react";
 import { GetRequest } from "@/util";
 import { toast } from "sonner";
 import {
@@ -13,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { compare } from "compare-versions";
 import confetti from "canvas-confetti";
+import { Cpu, Database, Memory, Thermometer } from "@phosphor-icons/react";
 
 export type Metrics = {
   cpuTemp: number;
@@ -221,7 +221,7 @@ export function ServerStatistics() {
           <MetricItem
             label="Memory"
             value={`${formatNumber(metrics.usedMemPercentage)}%`}
-            icon={LucideMemoryStick}
+            icon={Memory}
             color={getColor(metrics.usedMemPercentage, 100)}
           />
 

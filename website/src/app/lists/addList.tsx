@@ -7,12 +7,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { GetRequest } from "@/util";
 import { toast } from "sonner";
+import { Plus } from "@phosphor-icons/react";
 
 async function CreateNewList(listName: string, url: string) {
   const [code] = await GetRequest(`addList?name=${listName}&url=${url}`);

@@ -6,8 +6,13 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Eraser, Eye, RefreshCcw, ToggleLeft } from "lucide-react";
 import { ListEntry } from "@/pages/lists";
+import {
+  ArrowsClockwise,
+  Eraser,
+  Eye,
+  ToggleLeft
+} from "@phosphor-icons/react";
 
 export function CardDetails(listEntry: ListEntry) {
   return (
@@ -39,7 +44,7 @@ export function CardDetails(listEntry: ListEntry) {
               variant="outline"
               className="bg-blue-600 border-none hover:bg-blue-500 text-white flex-1 text-sm"
             >
-              <RefreshCcw className="mr-1" size={16} />
+              <ArrowsClockwise className="mr-1" size={16} />
               Update
             </Button>
           )}

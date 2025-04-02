@@ -7,11 +7,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { RefreshCcw } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { PostRequest } from "@/util";
+import { ArrowsClockwise } from "@phosphor-icons/react";
 
 async function SendDomains(domains: string[]) {
   try {
@@ -49,7 +49,7 @@ export function UpdateCustom() {
             className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
             onClick={() => setDialogOpen(true)}
           >
-            <RefreshCcw className="mr-2" size={20} />
+            <ArrowsClockwise className="mr-2" size={20} />
             Update custom
           </Button>
         </DialogTrigger>

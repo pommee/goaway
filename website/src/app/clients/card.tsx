@@ -7,10 +7,10 @@ import {
   CardFooter
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Eye, User } from "lucide-react";
 import { CardDetails } from "./details";
 import { ClientEntry } from "@/pages/clients";
 import { Button } from "@/components/ui/button";
+import { Clock, Eye, User } from "@phosphor-icons/react";
 
 function timeAgo(timestamp: string) {
   const now = new Date();

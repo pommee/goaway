@@ -1,6 +1,6 @@
+import { Check, Lightning, ShieldSlash } from "@phosphor-icons/react";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef } from "@tanstack/react-table";
-import { BanIcon, Brain, Verified } from "lucide-react";
 
 type Client = {
   ip: string;
@@ -112,12 +112,12 @@ export const columns: ColumnDef<Queries>[] = [
         <div className="flex">
           {query.blocked === false ? (
             query.cached ? (
-              <Brain size={14} color="yellow" className="mt-1 mr-1" />
+              <Lightning size={14} color="yellow" className="mt-1 mr-1" />
             ) : (
-              <Verified size={14} color="green" className="mt-1 mr-1" />
+              <Check size={14} color="green" className="mt-1 mr-1" />
             )
           ) : (
-            <BanIcon size={14} color="red" className="mt-1 mr-1" />
+            <ShieldSlash size={14} color="red" className="mt-1 mr-1" />
           )}
           {rowText}
         </div>

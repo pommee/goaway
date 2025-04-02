@@ -1,15 +1,5 @@
 import * as React from "react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import {
-  ChartNoAxesGantt,
-  Home,
-  ListFilter,
-  LogOut,
-  Logs,
-  Settings,
-  User
-} from "lucide-react";
-
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import {
@@ -23,6 +13,15 @@ import {
 import { ServerStatistics } from "./server-statistics";
 import { Separator } from "./ui/separator";
 import { TextAnimate } from "./ui/text-animate";
+import {
+  Gear,
+  House,
+  List,
+  Note,
+  Notebook,
+  SignOut,
+  Users
+} from "@phosphor-icons/react";
 
 const quotes = [
   "Block party!",
@@ -92,12 +91,12 @@ const data = {
     {
       title: "Home",
       url: "/home",
-      icon: Home
+      icon: House
     },
     {
       title: "Logs",
       url: "/logs",
-      icon: Logs
+      icon: Notebook
     },
     //    {
     //      title: "Domains",
@@ -107,7 +106,7 @@ const data = {
     {
       title: "Lists",
       url: "/lists",
-      icon: ListFilter
+      icon: List
     },
     // {
     //  title: "Upstream",
@@ -117,17 +116,17 @@ const data = {
     {
       title: "Clients",
       url: "/clients",
-      icon: User
+      icon: Users
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings
+      icon: Gear
     },
     {
       title: "Changelog",
       url: "/changelog",
-      icon: ChartNoAxesGantt
+      icon: Note
     }
   ],
   navSecondary: [
@@ -140,7 +139,7 @@ const data = {
     {
       title: "Logout",
       url: "/login",
-      icon: LogOut,
+      icon: SignOut,
       blank: ""
     }
   ]
