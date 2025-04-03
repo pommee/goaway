@@ -22,9 +22,7 @@ import (
 var (
 	version, commit, date string
 	log                   = logging.GetLogger()
-
-	//go:embed website/dist/*
-	content embed.FS
+	content               embed.FS
 )
 
 func main() {
@@ -114,7 +112,13 @@ func runWebServer(wg *sync.WaitGroup, dnsServer *server.DNSServer, config settin
 		},
 		Version: version,
 	}
-	apiServer.Start(content, dnsServer, errorChannel)
+
+	if content != (embed.FS{}) {
+		apiServer.Start(true, content, dnsServer, errorChannel)
+	} else {
+		log.Warning("No embedded content found, not serving")
+		apiServer.Start(false, content, dnsServer, errorChannel)
+	}
 }
 
 func waitForInterrupt() chan os.Signal {

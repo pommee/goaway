@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite build --sourcemap=inline",
+    "dev": "vite dev --port=8081",
     "build": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview"

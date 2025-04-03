@@ -39,15 +39,22 @@ type API struct {
 	Version   string
 }
 
-func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
+func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
 	api.routes = api.router.Group("/api")
 	api.DnsServer = dnsServer
 	api.DnsServer.WebServer = api.router
+	var allowedOrigins []string
+
+	if serveContent {
+		allowedOrigins = append(allowedOrigins, "*")
+	} else {
+		allowedOrigins = append(allowedOrigins, "http://localhost:8081")
+	}
 
 	api.router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
 		ExposeHeaders:    []string{"Set-Cookie"},
@@ -56,8 +63,11 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	}))
 
 	api.setupRoutes()
-	api.setupAuthorizedRoutes()
-	api.ServeEmbeddedContent(content)
+	api.setupAuthorizedRoutes(!serveContent)
+
+	if serveContent {
+		api.ServeEmbeddedContent(content)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -120,15 +130,23 @@ func (api *API) setupRoutes() {
 	api.router.GET("/api/metrics", api.handleMetrics)
 }
 
-func (api *API) setupAuthorizedRoutes() {
+func (api *API) setupAuthorizedRoutes(devmode bool) {
 	if api.Config.Authentication {
 		api.SetupAuth()
-	}
-
-	if api.Config.Authentication {
 		api.routes.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
+
+		if devmode {
+			api.routes.Use(cors.New(cors.Config{
+				AllowOrigins:     []string{"http://localhost:8081"},
+				AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
+				ExposeHeaders:    []string{"Set-Cookie"},
+				AllowCredentials: true,
+				MaxAge:           12 * time.Hour,
+			}))
+		}
 	}
 
 	api.routes.POST("/upstreams", api.createUpstreams)
