@@ -154,7 +154,6 @@ export function Logs() {
 
     ws.onopen = () => {
       setWsConnected(true);
-      console.log("WebSocket connected");
     };
 
     ws.onmessage = (event) => {
