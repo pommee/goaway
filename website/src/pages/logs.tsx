@@ -117,6 +117,7 @@ export function Logs() {
   const [loading, setLoading] = useState(true);
   const [domainFilter, setDomainFilter] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -253,6 +254,7 @@ export function Logs() {
       toast.success("Logs cleared successfully!");
       setQueries([]);
       setTotalRecords(0);
+      setIsModalOpen(false);
     }
   }
 
@@ -267,7 +269,7 @@ export function Logs() {
             </div>
           )}
         </div>
-        <Dialog>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button
               variant="outline"
