@@ -8,7 +8,7 @@ export function Home() {
   return (
     <>
       <MetricsCards />
-      <div className="flex w-full mb-5 mt-5 gap-4">
+      <div className="flex w-full mb-5 mt-5 gap-4 flex-col sm:flex-row">
         <RequestTimeline />
         <PieChartRequestType />
       </div>
