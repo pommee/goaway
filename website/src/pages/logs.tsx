@@ -116,6 +116,7 @@ export function Logs() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
   const [domainFilter, setDomainFilter] = useState("");
+  const [wsConnected, setWsConnected] = useState(false);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -145,6 +146,69 @@ export function Logs() {
       }, 500),
     []
   );
+
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/api/liveQueries`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      setWsConnected(true);
+      console.log("WebSocket connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const newQuery = JSON.parse(event.data);
+
+        const formattedQuery = {
+          ...newQuery,
+          client: {
+            ip: newQuery.client?.ip || "",
+            name: newQuery.client?.name || "",
+            mac: newQuery.client?.mac || ""
+          },
+          ip: Array.isArray(newQuery.ip) ? newQuery.ip : []
+        };
+
+        if (
+          !domainFilter ||
+          (formattedQuery.domain &&
+            formattedQuery.domain
+              .toLowerCase()
+              .includes(domainFilter.toLowerCase()))
+        ) {
+          setQueries((prevQueries) => {
+            const updatedQueries = [formattedQuery, ...prevQueries];
+            if (updatedQueries.length > pageSize) {
+              updatedQueries.pop();
+            }
+            return updatedQueries;
+          });
+
+          setTotalRecords((prev) => prev + 1);
+        }
+      } catch (error) {
+        console.error("Error handling WebSocket message:", error);
+      }
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setWsConnected(false);
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
+        setWsConnected(false);
+      };
+    };
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [pageIndex, pageSize, domainFilter]);
 
   useEffect(() => {
     async function fetchData() {
@@ -189,41 +253,53 @@ export function Logs() {
     if (responseCode === 200) {
       toast.success("Logs cleared successfully!");
       setQueries([]);
+      setTotalRecords(0);
     }
   }
 
   return (
     <div className="w-full">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
-          >
-            Clear logs
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
-          <div className="flex justify-center mb-4">
-            <Warning className="h-10 w-10 text-amber-500" />
-          </div>
-          <DialogDescription className="text-base">
-            <div className="bg-amber-600 border-2 border-amber-800 rounded-md p-4 mt-2">
-              <p className="text-white">
-                Are you sure you want to clear all logs? This is an irreversible
-                action!
-              </p>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center">
+          {wsConnected && (
+            <div className="flex items-center mr-4">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              <span className="text-sm text-green-500">Live updates</span>
             </div>
-          </DialogDescription>
-          <Button
-            variant="outline"
-            className="bg-red-800 hover:bg-red-700 text-white"
-            onClick={clearLogs}
-          >
-            Yes
-          </Button>
-        </DialogContent>
-      </Dialog>{" "}
+          )}
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
+            >
+              Clear logs
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+            <div className="flex justify-center mb-4">
+              <Warning className="h-10 w-10 text-amber-500" />
+            </div>
+            <DialogDescription className="text-base">
+              <div className="bg-amber-600 border-2 border-amber-800 rounded-md p-4 mt-2">
+                <p className="text-white">
+                  Are you sure you want to clear all logs? This is an
+                  irreversible action!
+                </p>
+              </div>
+            </DialogDescription>
+            <Button
+              variant="outline"
+              className="bg-red-800 hover:bg-red-700 text-white"
+              onClick={clearLogs}
+            >
+              Yes
+            </Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="flex items-center py-4">
         <Input
           placeholder="Filter domain..."
@@ -283,7 +359,14 @@ export function Logs() {
               </TableRow>
             ) : queries.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className={
+                    row.index === 0 && wsConnected
+                      ? "bg-zinc-700 bg-opacity-40 transition-colors duration-1000"
+                      : ""
+                  }
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       className="max-w-60 truncate cursor-pointer"
