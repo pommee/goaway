@@ -27,22 +27,22 @@ function PageTransition({ children }) {
   const pageVariants = {
     initial: {
       opacity: 0,
-      x: 10
+      scale: 0.98
     },
     in: {
       opacity: 1,
-      x: 0
+      scale: 1
     },
     out: {
       opacity: 0,
-      x: -10
+      scale: 0.98
     }
   };
 
   const pageTransition = {
     type: "tween",
-    ease: "easeInOut",
-    duration: 0.3
+    ease: "easeOut",
+    duration: 0.4
   };
 
   return (
