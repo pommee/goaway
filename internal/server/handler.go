@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/miekg/dns"
 )
 
@@ -34,6 +35,8 @@ var rcodes = map[int]string{
 	dns.RcodeBadTrunc:       "BADTRUNC",
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
+
+var hostCache, _ = lru.New[string, any](100)
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
@@ -69,7 +72,15 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 	clientIP := strings.Split(remoteAddr, ":")[0]
+
+	if cachedInfo, found := hostCache.Get(clientIP); found {
+		info := cachedInfo.([]string)
+		return info[0], info[1], info[2]
+	}
+
 	macAddress := arp.GetMacAddress(clientIP)
+	hostname := "unknown"
+	resultIP := clientIP
 
 	vendor, err := s.GetVendor(macAddress)
 	if macAddress != "unknown" {
@@ -90,18 +101,19 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 			log.Warning("Failed to get local IP: %v", err)
 			localIP = "127.0.0.1"
 		}
+		resultIP = localIP
 
 		if h, err := os.Hostname(); err == nil {
-			return localIP, h, macAddress
+			hostname = h
+		} else {
+			hostname = "localhost"
 		}
-		return localIP, "localhost", macAddress
+	} else if hostnames, err := net.LookupAddr(clientIP); err == nil && len(hostnames) > 0 {
+		hostname = strings.TrimSuffix(hostnames[0], ".")
 	}
 
-	if hostnames, err := net.LookupAddr(clientIP); err == nil && len(hostnames) > 0 {
-		return clientIP, strings.TrimSuffix(hostnames[0], "."), macAddress
-	}
-
-	return clientIP, "unknown", macAddress
+	hostCache.Add(clientIP, []string{resultIP, hostname, macAddress})
+	return resultIP, hostname, macAddress
 }
 
 func getLocalIP() (string, error) {
@@ -259,26 +271,32 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 
 func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
-	request.msg.Answer = append(request.msg.Answer, answers...)
+
+	var resolvedAddresses []string
+	if len(answers) > 0 {
+		resolvedAddresses = make([]string, 0, len(answers))
+		request.msg.Answer = append(request.msg.Answer, answers...)
+
+		for _, answer := range answers {
+			switch rec := answer.(type) {
+			case *dns.A:
+				resolvedAddresses = append(resolvedAddresses, rec.A.String())
+			case *dns.AAAA:
+				resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
+			case *dns.PTR:
+				resolvedAddresses = append(resolvedAddresses, rec.Ptr)
+			case *dns.CNAME:
+				resolvedAddresses = append(resolvedAddresses, rec.Target)
+			}
+		}
+	} else {
+		resolvedAddresses = []string{}
+	}
 
 	if status == "NXDomain" {
 		request.msg.Rcode = dns.RcodeNameError
 	} else if status == "ServFail" {
 		request.msg.Rcode = dns.RcodeServerFailure
-	}
-
-	var resolvedAddresses []string
-	for _, answer := range answers {
-		switch rec := answer.(type) {
-		case *dns.A:
-			resolvedAddresses = append(resolvedAddresses, rec.A.String())
-		case *dns.AAAA:
-			resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
-		case *dns.PTR:
-			resolvedAddresses = append(resolvedAddresses, rec.Ptr)
-		case *dns.CNAME:
-			resolvedAddresses = append(resolvedAddresses, rec.Target)
-		}
 	}
 
 	responseSizeBytes := request.msg.Len()
@@ -387,47 +405,50 @@ func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[s
 }
 
 func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32, string) {
-	var (
-		ipAddresses []dns.RR
-		ttl         uint32
-		status      = "SERVFAIL"
-	)
-	done := make(chan struct{})
+	m := new(dns.Msg)
+	m.SetQuestion(dns.Fqdn(domain), qtype)
+	m.RecursionDesired = true
+	m.SetEdns0(4096, false)
+
+	resultCh := make(chan *dns.Msg, 1)
+	errCh := make(chan error, 1)
 
 	go func() {
-		defer close(done)
-		c := new(dns.Client)
-
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(domain), qtype)
-		m.RecursionDesired = true
-
-		in, _, err := c.Exchange(m, s.Config.PreferredUpstream)
+		in, _, err := s.dnsClient.Exchange(m, s.Config.PreferredUpstream)
 		if err != nil {
-			log.Error("Resolution error for domain (%s): %v", domain, err)
+			errCh <- err
 			return
 		}
+		resultCh <- in
+	}()
 
+	select {
+	case in := <-resultCh:
+		status := "SERVFAIL"
 		if statusStr, ok := rcodes[in.Rcode]; ok {
 			status = statusStr
 		}
 
-		ipAddresses = append(ipAddresses, in.Answer...)
-		if len(in.Answer) > 0 && ttl == 0 {
+		var ttl uint32 = 3600
+		if len(in.Answer) > 0 {
 			ttl = in.Answer[0].Header().Ttl
+			for _, a := range in.Answer {
+				if a.Header().Ttl < ttl {
+					ttl = a.Header().Ttl
+				}
+			}
 		}
 
-		ipAddresses = append(ipAddresses, in.Ns...)
-	}()
+		return in.Answer, ttl, status
 
-	select {
-	case <-done:
+	case err := <-errCh:
+		log.Error("Resolution error for domain (%s): %v", domain, err)
+		return nil, 0, "SERVFAIL"
+
 	case <-time.After(5 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
-		status = "SERVFAIL"
+		return nil, 0, "SERVFAIL"
 	}
-
-	return ipAddresses, ttl, status
 }
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {

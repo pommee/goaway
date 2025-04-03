@@ -12,26 +12,42 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 		return nil, false
 	}
 
-	if time.Now().Before(cachedRecord.ExpiresAt) {
-		remainingSeconds := uint32(time.Until(cachedRecord.ExpiresAt).Seconds())
-		updatedRecords := make([]dns.RR, 0, len(cachedRecord.IPAddresses))
+	now := time.Now()
+	if now.Before(cachedRecord.ExpiresAt) {
+		remainingSeconds := uint32(cachedRecord.ExpiresAt.Sub(now).Seconds())
+		updatedRecords := make([]dns.RR, len(cachedRecord.IPAddresses))
 
-		for _, rr := range cachedRecord.IPAddresses {
-			clone := dns.Copy(rr)
-			clone.Header().Ttl = remainingSeconds
-			updatedRecords = append(updatedRecords, clone)
+		for i, rr := range cachedRecord.IPAddresses {
+			if rr.Header().Ttl != remainingSeconds {
+				clone := dns.Copy(rr)
+				clone.Header().Ttl = remainingSeconds
+				updatedRecords[i] = clone
+			} else {
+				updatedRecords[i] = rr
+			}
 		}
 
 		return updatedRecords, true
+	}
+
+	if cachedRecord.Key != "" {
+		s.cache.Delete(cachedRecord.Key)
 	}
 
 	return nil, false
 }
 
 func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32) {
+	if len(ipAddresses) == 0 {
+		return
+	}
+
 	cacheTTL := s.Config.CacheTTL
 	if ttl > 0 {
-		cacheTTL = time.Duration(ttl) * time.Second
+		recordTTL := time.Duration(ttl) * time.Second
+		if recordTTL < cacheTTL {
+			cacheTTL = recordTTL
+		}
 	}
 
 	now := time.Now()
@@ -40,5 +56,6 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 		ExpiresAt:   now.Add(cacheTTL),
 		CachedAt:    now,
 		OriginalTTL: ttl,
+		Key:         domain,
 	})
 }

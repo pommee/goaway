@@ -41,6 +41,7 @@ type DNSServer struct {
 	WebServer           *gin.Engine
 	logEntryChannel     chan model.RequestLogEntry
 	WS                  *websocket.Conn
+	dnsClient           *dns.Client
 }
 
 type QueryResponse struct {
@@ -54,6 +55,7 @@ type cachedRecord struct {
 	ExpiresAt   time.Time
 	CachedAt    time.Time
 	OriginalTTL uint32
+	Key         string
 }
 
 type CounterDetails struct {
@@ -95,6 +97,11 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		log.Error("Failed to get blocklist URLs: %v", err)
 	}
 
+	dnsClient := &dns.Client{
+		Timeout: 3 * time.Second,
+		UDPSize: 4096,
+	}
+
 	server := &DNSServer{
 		Config:              *config,
 		Blacklist:           blacklistEntry,
@@ -104,6 +111,7 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		logIntervalSeconds:  1,
 		cache:               sync.Map{},
 		logEntryChannel:     make(chan model.RequestLogEntry, 1000),
+		dnsClient:           dnsClient,
 	}
 
 	return server, nil
