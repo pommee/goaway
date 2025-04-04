@@ -42,7 +42,7 @@ jobs:
         with:
           hooks: goreleaser
           allow-initial-development-versions: true
-          custom-arguments: "-tags embed"
+          args: "-tags embed"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
