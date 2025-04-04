@@ -15,13 +15,6 @@ publish:
 
 	docker buildx rm multiarch-builder
 
-compile:
-	if [ -d "website/dist" ]; then \
-		go build -tags embed; \
-	else \
-		go build; \
-	fi
-
 build:
 	pnpm -C website install && pnpm -C website build
 
@@ -40,6 +33,10 @@ example-queries:
 
 dev-website:
 	pnpm -C website dev
+
+dev-server:
+	mkdir website/dist ; touch website/dist/.fake
+	air .
 
 test:
 	go test -count=1 -bench=. -benchmem ./test/...

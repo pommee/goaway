@@ -22,7 +22,9 @@ import (
 var (
 	version, commit, date string
 	log                   = logging.GetLogger()
-	content               embed.FS
+
+	//go:embed website/dist/*
+	content embed.FS
 )
 
 func main() {
@@ -50,6 +52,7 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().IntVar(&flags.StatisticsRetention, "statisticsRetention", 1, "Days to keep statistics")
 	cmd.Flags().BoolVar(&flags.DisableLogging, "disablelogging", false, "Disable logging")
 	cmd.Flags().BoolVar(&flags.DisableAuth, "auth", true, "Disable authentication for admin dashboard")
+	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only use while developing goaway")
 
 	return cmd
 }
@@ -113,7 +116,7 @@ func runWebServer(wg *sync.WaitGroup, dnsServer *server.DNSServer, config settin
 		Version: version,
 	}
 
-	if content != (embed.FS{}) {
+	if !config.DevMode {
 		apiServer.Start(true, content, dnsServer, errorChannel)
 	} else {
 		log.Warning("No embedded content found, not serving")

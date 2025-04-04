@@ -33,6 +33,7 @@ type Config struct {
 	DNSServer *DNSServerConfig `json:"dnsServer"`
 	APIServer *APIServerConfig `json:"apiServer"`
 	LogLevel  logging.LogLevel `json:"LogLevel"`
+	DevMode   bool
 }
 
 func (c *DNSServerConfig) UnmarshalJSON(data []byte) error {

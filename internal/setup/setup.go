@@ -17,6 +17,7 @@ type Flags struct {
 	StatisticsRetention int
 	DisableLogging      bool
 	DisableAuth         bool
+	DevMode             bool
 }
 
 func UpdateConfig(config *settings.Config, flags *Flags) {
@@ -26,6 +27,7 @@ func UpdateConfig(config *settings.Config, flags *Flags) {
 	config.APIServer.Port = flags.WebserverPort
 	config.APIServer.Authentication = flags.DisableAuth
 	config.LogLevel = logging.LogLevel(flags.LogLevel)
+	config.DevMode = flags.DevMode
 	log.SetLevel(logging.LogLevel(flags.LogLevel))
 }
 
