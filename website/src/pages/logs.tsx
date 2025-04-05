@@ -417,7 +417,7 @@ export function Logs() {
       </div>
       <div className="flex items-center justify-between px-2 mt-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          Displaying {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          Displaying {table.getPreSelectedRowModel().rows.length} of{" "}
           {totalRecords} record(s).
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
