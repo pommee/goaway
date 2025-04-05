@@ -50,6 +50,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	}
 
 	if isBlacklisted {
+		log.Info("Blocked: %s", request.question.Name)
 		return s.handleBlacklisted(request)
 	}
 
@@ -187,7 +188,6 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		Ptr: "localhost.lan.",
 	}
 
-	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, ptr)
 	_ = request.w.WriteMsg(request.msg)
 
@@ -201,7 +201,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		ResponseTime:      time.Since(request.sent),
 		ClientInfo:        request.client,
 		QueryType:         "PTR",
-		ResponseSizeBytes: responseSizeBytes,
+		ResponseSizeBytes: request.msg.Len(),
 	}
 }
 
@@ -216,7 +216,6 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Ptr: hostname + ".",
 	}
 
-	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, ptr)
 	_ = request.w.WriteMsg(request.msg)
 
@@ -225,7 +224,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Status:            "NoError",
 		QueryType:         "PTR",
 		IP:                []string{hostname},
-		ResponseSizeBytes: responseSizeBytes,
+		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
 		Blocked:           false,
@@ -252,7 +251,6 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		}
 	}
 
-	responseSizeBytes := request.msg.Len()
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
@@ -261,7 +259,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		Status:            status,
 		QueryType:         "PTR",
 		IP:                resolvedHostnames,
-		ResponseSizeBytes: responseSizeBytes,
+		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
 		Blocked:           false,
@@ -273,9 +271,8 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
 
-	var resolvedAddresses []string
+	resolvedAddresses := make([]string, 0, len(answers))
 	if len(answers) > 0 {
-		resolvedAddresses = make([]string, 0, len(answers))
 		request.msg.Answer = append(request.msg.Answer, answers...)
 
 		for _, answer := range answers {
@@ -290,8 +287,6 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				resolvedAddresses = append(resolvedAddresses, rec.Target)
 			}
 		}
-	} else {
-		resolvedAddresses = []string{}
 	}
 
 	switch status {
@@ -301,7 +296,6 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		request.msg.Rcode = dns.RcodeServerFailure
 	}
 
-	responseSizeBytes := request.msg.Len()
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
 
@@ -310,7 +304,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		Status:            status,
 		QueryType:         dns.TypeToString[request.question.Qtype],
 		IP:                resolvedAddresses,
-		ResponseSizeBytes: responseSizeBytes,
+		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
 		Blocked:           false,
@@ -392,10 +386,7 @@ func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[s
 			if cname, ok := answer.(*dns.CNAME); ok {
 				targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
 				if len(targetAnswers) > 0 {
-					minTTL := cnameTTL
-					if targetTTL < minTTL {
-						minTTL = targetTTL
-					}
+					minTTL := min(targetTTL, cnameTTL)
 					return append(cnameAnswers, targetAnswers...), minTTL, targetStatus
 				}
 				return cnameAnswers, cnameTTL, cnameStatus
@@ -454,8 +445,6 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 }
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
-	log.Info("Blocked: %s", request.question.Name)
-
 	request.msg.Rcode = dns.RcodeSuccess
 	var status = "Blacklisted"
 
@@ -479,7 +468,6 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		AAAA: net.ParseIP("::"),
 	}
 
-	responseSizeBytes := request.msg.Len()
 	request.msg.Answer = append(request.msg.Answer, rr4, rr6)
 	_ = request.w.WriteMsg(request.msg)
 
@@ -490,7 +478,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		Status:            status,
 		QueryType:         dns.TypeToString[request.question.Qtype],
 		IP:                []string{""},
-		ResponseSizeBytes: responseSizeBytes,
+		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
 		Blocked:           true,
