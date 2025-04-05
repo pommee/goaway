@@ -32,7 +32,7 @@ example-queries:
 	@./testing/dig-domains.sh
 
 dev-website:
-	pnpm -C website dev
+	pnpm -C website install && pnpm -C website dev
 
 dev-server:
 	mkdir website/dist ; touch website/dist/.fake
