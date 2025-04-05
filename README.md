@@ -24,7 +24,17 @@ A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
 ## 📦 Installation
 
-### Option 1: Quick Install (Recommended)
+### Option 1: Docker Installation (Recommended)
+
+Run goaway in a containerized environment:
+
+```shell
+docker run pommee/goaway:latest
+```
+
+Use compose for more customization, example can be found [here](https://github.com/pommee/goaway/blob/main/docker-compose.yml)
+
+### Option 2: Quick Install
 
 Install the latest version with the installation script:
 
@@ -33,22 +43,13 @@ curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev
 ```
 
 The installer will:
+
 1. Detect your operating system and architecture
 2. Download the appropriate binary
 3. Install it to `~/.local/bin`
 4. Set up necessary permissions
 
 If the installer fails, you can manually download binaries from the [releases page](https://github.com/pommee/goaway/releases).
-
-### Option 2: Docker Installation
-
-Run goaway in a containerized environment. There are two options:
-
-First one requires a clone of this repository and running the following in project root:
-
-```shell
-make start
-```
 
 ## 🚀 Getting Started
 
@@ -99,6 +100,15 @@ The default settings are defined in `settings.json`. You can customize it by mod
 | Windows  | 386          | Beta          |
 
 > **Note**: Primary testing is conducted on Linux (amd64). While the aim is to support all listed platforms, functionality on macOS and Windows may vary.
+
+## Dev
+
+The dashboard and servers are started separately, reason being hot-reloads and not having to embed the client into the binary.
+
+```bash
+make dev-website
+make dev-server
+```
 
 ## 📜 License
 
