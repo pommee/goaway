@@ -62,6 +62,7 @@ export default function FrequencyChartBlockedDomains() {
             margin={{
               left: 20
             }}
+            barSize={20}
           >
             <XAxis type="number" dataKey="frequency" hide />
             <YAxis
