@@ -2,7 +2,6 @@ services:
   goaway:
     image: pommee/goaway:latest
     build: .
-    restart: always
     volumes:
       - goaway_data:/app
     container_name: goaway
