@@ -24,7 +24,9 @@ func (user *User) Create(db *sql.DB) error {
 		log.Error("Could not start transaction: %v", err)
 		return err
 	}
-	defer tx.Rollback()
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
 
 	if _, err := tx.Exec(query, user.Username, hashedPassword); err != nil {
 		log.Error("Insert failed: %v", err)
@@ -85,7 +87,9 @@ func (user *User) UpdatePassword(db *sql.DB) error {
 		log.Error("Could not start transaction: %v", err)
 		return err
 	}
-	defer tx.Rollback()
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
 
 	if _, err := tx.Exec(query, hashedPassword, user.Username); err != nil {
 		log.Error("Password update failed: %v", err)

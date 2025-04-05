@@ -5,12 +5,12 @@ go 1.24
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-ping/ping v1.2.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/miekg/dns v1.1.64
+	github.com/prometheus-community/pro-bing v0.6.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/crypto v0.36.0

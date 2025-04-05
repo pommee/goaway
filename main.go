@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	version, commit, date string
-	log                   = logging.GetLogger()
+	version string
+	log     = logging.GetLogger()
 
 	//go:embed website/dist/*
 	content embed.FS

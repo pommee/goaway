@@ -70,7 +70,9 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sources: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	blocklistURL := make(map[string]string)
 	for rows.Next() {
@@ -88,7 +90,9 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	domains, err := b.extractDomains(resp.Body)
 	if err != nil {
@@ -167,7 +171,9 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	for _, domain := range domains {
 		if _, err := stmt.Exec(domain, sourceID); err != nil {
@@ -186,7 +192,9 @@ func (b *Blacklist) LoadBlacklist() (map[string]bool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query blacklist: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	domains := make(map[string]bool)
 	for rows.Next() {
@@ -249,7 +257,9 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query blacklist: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var domains []string
 	for rows.Next() {
@@ -317,7 +327,9 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	for _, domain := range domains {
 		if _, err := stmt.Exec(domain, sourceID); err != nil {
@@ -344,7 +356,9 @@ func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to query source statistics: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	stats := make(map[string]map[string]interface{})
 	for rows.Next() {
@@ -376,7 +390,9 @@ func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query domains for list: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var domains []string
 	for rows.Next() {

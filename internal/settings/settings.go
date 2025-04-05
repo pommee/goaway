@@ -108,7 +108,9 @@ func fetchAndSaveSettings(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch settings.json: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to fetch settings.json: HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -123,7 +125,9 @@ func fetchAndSaveSettings(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create settings file: %w", err)
 	}
-	defer out.Close()
+	defer func(out *os.File) {
+		_ = out.Close()
+	}(out)
 
 	if _, err = io.Copy(out, resp.Body); err != nil {
 		return fmt.Errorf("failed to save settings file: %w", err)

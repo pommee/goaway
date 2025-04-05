@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/prometheus-community/pro-bing"
 	"goaway/internal/api/models"
 	"goaway/internal/database"
 	"goaway/internal/server"
@@ -25,7 +26,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-ping/ping"
 	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
@@ -533,22 +533,21 @@ func getDNSDetails(host string) (string, string) {
 }
 
 func getICMPPing(host string) string {
-	pinger, err := ping.NewPinger(host)
+	pinger, err := probing.NewPinger(host)
 	if err != nil {
 		return "Error: " + err.Error()
 	}
-	pinger.Count = 1
+	pinger.Count = 3
 	pinger.Timeout = 2 * time.Second
 
-	var icmpPing string
-	pinger.OnRecv = func(pkt *ping.Packet) {
-		icmpPing = pkt.Rtt.String()
+	err = pinger.Run()
+	if err != nil {
+		log.Warning("Could not get ICMP ping from host: %s", host)
+		panic(err)
 	}
-
-	if err := pinger.Run(); err != nil {
-		return "Error: " + err.Error()
-	}
-	return icmpPing
+	stats := pinger.Statistics()
+	log.Info("%v", stats)
+	return stats.AvgRtt.String()
 }
 
 func (api *API) createUpstreams(c *gin.Context) {

@@ -238,9 +238,10 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	answers, _, status := s.queryUpstream(request.question.Name, request.question.Qtype)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 
-	if status == "NXDomain" {
+	switch status {
+	case "NXDomain":
 		request.msg.Rcode = dns.RcodeNameError
-	} else if status == "ServFail" {
+	case "ServFail":
 		request.msg.Rcode = dns.RcodeServerFailure
 	}
 
@@ -293,9 +294,10 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		resolvedAddresses = []string{}
 	}
 
-	if status == "NXDomain" {
+	switch status {
+	case "NXDomain":
 		request.msg.Rcode = dns.RcodeNameError
-	} else if status == "ServFail" {
+	case "ServFail":
 		request.msg.Rcode = dns.RcodeServerFailure
 	}
 
@@ -342,8 +344,8 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
 	var (
 		records []dns.RR
-		ttl     uint32 = uint32(s.Config.CacheTTL.Seconds())
-		status  string = "NOERROR"
+		ttl     = uint32(s.Config.CacheTTL.Seconds())
+		status  = "NOERROR"
 	)
 
 	ipFound, err := database.FetchResolution(s.DB, domain)

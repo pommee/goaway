@@ -11,7 +11,7 @@ import (
 )
 
 func createTestDB() (*database.Session, error) {
-	os.Remove("database.db")
+	_ = os.Remove("database.db")
 
 	db, err := database.Initialize()
 	if err != nil {
@@ -22,8 +22,8 @@ func createTestDB() (*database.Session, error) {
 }
 
 func removeTestDB(db *database.Session) {
-	db.Con.Close()
-	os.Remove("database.db")
+	_ = db.Con.Close()
+	_ = os.Remove("database.db")
 }
 
 func BenchmarkInsertRequestLog(b *testing.B) {
@@ -89,6 +89,6 @@ func BenchmarkQueryRequestLog(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to query request log: %v", err)
 		}
-		rows.Close()
+		_ = rows.Close()
 	}
 }

@@ -18,7 +18,9 @@ func GetClientNameFromRequestLog(db *sql.DB, ip string) string {
 
 	rows, err := db.Query("SELECT client_name FROM request_log WHERE client_ip = ? AND client_name != 'unknown' LIMIT 1", ip)
 	if err == nil {
-		defer rows.Close()
+		defer func(rows *sql.Rows) {
+			_ = rows.Close()
+		}(rows)
 		if rows.Next() {
 			_ = rows.Scan(&hostname)
 			hostname = strings.TrimSuffix(hostname, ".")
@@ -47,7 +49,9 @@ func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntryTimestamp
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var queries []model.RequestLogEntryTimestamps
 	for rows.Next() {
@@ -68,7 +72,9 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 		log.Error("Error: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var queries []any
 	for rows.Next() {
@@ -104,7 +110,9 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 		log.Error("Database query error: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var queries []model.RequestLogEntry
 	for rows.Next() {
@@ -138,7 +146,9 @@ func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	for rows.Next() {
 		var ip, name string
@@ -226,7 +236,9 @@ func GetAllQueriedDomainsByIP(db *sql.DB, clientIP string) (map[string]int, erro
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	domainQueryCounts := make(map[string]int)
 	for rows.Next() {
@@ -254,7 +266,9 @@ func GetTopBlockedDomains(db *sql.DB, blockedRequests int) ([]map[string]interfa
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var topBlockedDomains []map[string]interface{}
 	for rows.Next() {
@@ -292,7 +306,9 @@ func GetTopClients(db *sql.DB) ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var clients []map[string]interface{}
 	for rows.Next() {
@@ -340,7 +356,9 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 		log.Error("Could not create a prepared statement for request logs, reason: %v", err)
 		return
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	for _, entry := range entries {
 		if _, err := stmt.Exec(

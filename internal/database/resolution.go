@@ -15,7 +15,9 @@ func FetchResolutions(db *sql.DB) ([]models.Resolution, error) {
 		log.Error("Database query error: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var resolutions []models.Resolution
 	for rows.Next() {
@@ -67,7 +69,9 @@ func CreateNewResolution(db *sql.DB, ip, domain string) {
 		log.Error("Could not create a prepared statement for resolution %v", err)
 		return
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	if _, err := stmt.Exec(ip, domain); err != nil {
 		log.Error("Could not save resolution. Reason: %v", err)
@@ -92,7 +96,9 @@ func DeleteResolution(db *sql.DB, ip, domain string) (int, error) {
 		_ = tx.Rollback()
 		return 0, fmt.Errorf("could not delete resolution due to db error: %v", err)
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	result, err := stmt.Exec(ip, domain)
 	if err != nil {
