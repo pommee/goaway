@@ -11,6 +11,7 @@ import { Logs } from "./logs";
 import { Settings } from "./settings";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense } from "react";
+import { Resolution } from "./resolution";
 
 function PageLoader() {
   return (
@@ -104,6 +105,14 @@ function App() {
               element={
                 <PageTransition>
                   <Lists />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/resolution"
+              element={
+                <PageTransition>
+                  <Resolution />
                 </PageTransition>
               }
             />

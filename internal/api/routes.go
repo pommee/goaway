@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/prometheus-community/pro-bing"
 	"goaway/internal/api/models"
 	"goaway/internal/database"
 	"goaway/internal/server"
@@ -24,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	probing "github.com/prometheus-community/pro-bing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -453,7 +454,12 @@ func (api *API) getResolutions(c *gin.Context) {
 }
 
 func (api *API) createResolution(c *gin.Context) {
-	var newResolution models.NewResolution
+	type NewResolution struct {
+		IP     string
+		Domain string
+	}
+
+	var newResolution NewResolution
 	if err := c.BindJSON(&newResolution); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid resolution data",
@@ -461,8 +467,10 @@ func (api *API) createResolution(c *gin.Context) {
 		return
 	}
 
-	database.CreateNewResolution(api.DnsServer.DB, newResolution.IP, newResolution.Domain)
-
+	err := database.CreateNewResolution(api.DnsServer.DB, newResolution.IP, newResolution.Domain)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
 	c.Status(http.StatusOK)
 }
 
@@ -475,6 +483,11 @@ func (api *API) deleteResolution(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
+	}
+
+	if rowsAffected == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s does not exist", domain)})
 		return
 	}
 

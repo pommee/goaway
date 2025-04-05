@@ -51,11 +51,11 @@ func FetchResolution(db *sql.DB, domain string) (string, error) {
 	return foundDomain, nil
 }
 
-func CreateNewResolution(db *sql.DB, ip, domain string) {
+func CreateNewResolution(db *sql.DB, ip, domain string) error {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Error("Could not start database transaction %v", err)
-		return
+		return fmt.Errorf("could not create new resolution")
 	}
 	defer func() {
 		if err := tx.Commit(); err != nil {
@@ -67,16 +67,22 @@ func CreateNewResolution(db *sql.DB, ip, domain string) {
 	stmt, err := tx.Prepare(query)
 	if err != nil {
 		log.Error("Could not create a prepared statement for resolution %v", err)
-		return
+		return fmt.Errorf("could not create new resolution")
 	}
 	defer func(stmt *sql.Stmt) {
 		_ = stmt.Close()
 	}(stmt)
 
 	if _, err := stmt.Exec(ip, domain); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			log.Error("IP already exists. Reason: %v", err)
+			return fmt.Errorf("ip already exists, must me unique")
+		}
 		log.Error("Could not save resolution. Reason: %v", err)
-		return
+		return fmt.Errorf("could not create new resolution")
 	}
+
+	return nil
 }
 
 func DeleteResolution(db *sql.DB, ip, domain string) (int, error) {

@@ -11,13 +11,14 @@ export function SiteHeader() {
     "/logs": "Logs",
     "/domains": "Domains",
     "/lists": "Lists",
+    "/resolution": "Resolution",
     "/upstream": "Upstream",
     "/clients": "Clients",
     "/settings": "Settings",
     "/changelog": "Changelog"
   };
 
-  const title = pageTitles[location.pathname] || "Documents";
+  const title = pageTitles[location.pathname] || "";
 
   return (
     <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear">

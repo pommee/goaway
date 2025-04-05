@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SiGithub } from "@icons-pack/react-simple-icons";
+import { SiGithub, SiWire } from "@icons-pack/react-simple-icons";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import {
@@ -107,6 +107,11 @@ const data = {
       title: "Lists",
       url: "/lists",
       icon: List
+    },
+    {
+      title: "Resolution",
+      url: "/resolution",
+      icon: SiWire
     },
     // {
     //  title: "Upstream",

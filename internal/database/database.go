@@ -73,7 +73,7 @@ func NewRequestLogDatabase(db *sql.DB) error {
 func NewResolutionDatabase(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS resolution (
 		ip TEXT PRIMARY KEY,
-		domain TEXT
+		domain TEXT NOT NULL
 	)`)
 	if err != nil {
 		return err

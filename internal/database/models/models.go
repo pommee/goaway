@@ -18,6 +18,6 @@ type ClientRequestDetails struct {
 }
 
 type Resolution struct {
-	IP     string
-	Domain string
+	IP     string `json:"ip"`
+	Domain string `json:"domain"`
 }
