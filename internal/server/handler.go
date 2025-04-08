@@ -269,7 +269,9 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 }
 
 func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
+	queryStart := time.Now()
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
+	upstreamQueryTime := time.Since(queryStart)
 
 	resolvedAddresses := make([]string, 0, len(answers))
 	if len(answers) > 0 {
@@ -298,6 +300,9 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
+
+	processTimeNonQuery := time.Since(request.sent) - upstreamQueryTime
+	log.Debug("Processing took: %s", processTimeNonQuery)
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
