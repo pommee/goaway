@@ -135,8 +135,7 @@ func getLocalIP() (string, error) {
 }
 
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
-	ptrName := request.question.Name
-	ipParts := strings.TrimSuffix(ptrName, ".in-addr.arpa.")
+	ipParts := strings.TrimSuffix(request.question.Name, ".in-addr.arpa.")
 	parts := strings.Split(ipParts, ".")
 
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
@@ -262,8 +261,6 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
-		Blocked:           false,
-		Cached:            false,
 		ClientInfo:        request.client,
 	}
 }
@@ -312,7 +309,6 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
-		Blocked:           false,
 		Cached:            cached,
 		ClientInfo:        request.client,
 	}
@@ -451,8 +447,6 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	request.msg.Rcode = dns.RcodeSuccess
-	var status = "Blacklisted"
-
 	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
 			Name:   request.question.Name,
@@ -480,14 +474,12 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
-		Status:            status,
+		Status:            "Blacklisted",
 		QueryType:         dns.TypeToString[request.question.Qtype],
-		IP:                []string{""},
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
 		ResponseTime:      time.Since(request.sent),
 		Blocked:           true,
-		Cached:            false,
 		ClientInfo:        request.client,
 	}
 }
