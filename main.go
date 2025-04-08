@@ -41,8 +41,7 @@ func createRootCommand() *cobra.Command {
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			config := setup.InitializeSettings(&flags)
-			startServer(config)
+			startServer(setup.InitializeSettings(&flags))
 		},
 	}
 
@@ -58,7 +57,6 @@ func createRootCommand() *cobra.Command {
 }
 
 func startServer(config settings.Config) {
-	currentVersion := setup.GetVersionOrDefault(version)
 	dnsServer, err := server.NewDNSServer(config.DNSServer)
 	if err != nil {
 		log.Error("Failed to initialize server: %s", err)
@@ -67,11 +65,13 @@ func startServer(config settings.Config) {
 
 	go dnsServer.ProcessLogEntries()
 	go arp.ProcessARPTable()
+	go dnsServer.ClearOldEntries()
 
 	blockedDomains, serverInstance := dnsServer.Init()
+	currentVersion := setup.GetVersionOrDefault(version)
+
 	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.APIServer.Authentication)
 	dnsServer.UpdateCounters()
-	go dnsServer.ClearOldEntries()
 
 	startServices(dnsServer, serverInstance, config)
 }
@@ -79,10 +79,36 @@ func startServer(config settings.Config) {
 func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config settings.Config) {
 	var wg sync.WaitGroup
 	errorChannel := make(chan struct{}, 1)
+	sigChannel := make(chan os.Signal, 1)
+	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	wg.Add(2)
-	go runDNSServer(&wg, serverInstance, errorChannel)
-	go runWebServer(&wg, dnsServer, config, errorChannel)
+	go func() {
+		defer wg.Done()
+		log.Info("Started DNS server on port %s", serverInstance.Addr)
+		if err := serverInstance.ListenAndServe(); err != nil {
+			log.Error("DNS server failed: %s", err)
+			errorChannel <- struct{}{}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		apiServer := api.API{
+			Config: &settings.APIServerConfig{
+				Port:           config.APIServer.Port,
+				Authentication: config.APIServer.Authentication,
+			},
+			Version: version,
+		}
+
+		serveEmbedded := !config.DevMode
+		if !serveEmbedded {
+			log.Warning("No embedded content found, not serving")
+		}
+
+		apiServer.Start(serveEmbedded, content, dnsServer, errorChannel)
+	}()
 
 	go func() { wg.Wait() }()
 
@@ -90,42 +116,8 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 	case <-errorChannel:
 		log.Error("Server failure detected. Exiting.")
 		os.Exit(1)
-	case <-waitForInterrupt():
+	case <-sigChannel:
 		log.Info("Received interrupt. Shutting down.")
 		os.Exit(0)
 	}
-}
-
-func runDNSServer(wg *sync.WaitGroup, serverInstance *dns.Server, errorChannel chan struct{}) {
-	defer wg.Done()
-	log.Info("Started DNS server on port %s", serverInstance.Addr)
-
-	if err := serverInstance.ListenAndServe(); err != nil {
-		log.Error("DNS server failed: %s", err)
-		errorChannel <- struct{}{}
-	}
-}
-
-func runWebServer(wg *sync.WaitGroup, dnsServer *server.DNSServer, config settings.Config, errorChannel chan struct{}) {
-	defer wg.Done()
-	apiServer := api.API{
-		Config: &settings.APIServerConfig{
-			Port:           config.APIServer.Port,
-			Authentication: config.APIServer.Authentication,
-		},
-		Version: version,
-	}
-
-	if !config.DevMode {
-		apiServer.Start(true, content, dnsServer, errorChannel)
-	} else {
-		log.Warning("No embedded content found, not serving")
-		apiServer.Start(false, content, dnsServer, errorChannel)
-	}
-}
-
-func waitForInterrupt() chan os.Signal {
-	sigChannel := make(chan os.Signal, 1)
-	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
-	return sigChannel
 }
