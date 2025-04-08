@@ -67,7 +67,7 @@ export function CardDetails({
           </div>
         ) : clientDetails ? (
           <div className="overflow-y-auto pr-1 -mr-1 pb-4 flex-grow">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-300 bg-zinc-800 p-3 rounded-lg mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-300 bg-zinc-800 p-2 rounded-sm mb-4">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-400">IP:</span>
                 <span>{clientEntry.ip}</span>
@@ -87,19 +87,19 @@ export function CardDetails({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">Total Requests</div>
                 <div className="text-xl font-bold text-blue-400">
                   {clientDetails.totalRequests.toLocaleString()}
                 </div>
               </div>
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">Unique Domains</div>
                 <div className="text-xl font-bold text-blue-400">
                   {clientDetails.uniqueDomains.toLocaleString()}
                 </div>
               </div>
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">
                   Blocked Requests
                 </div>
@@ -107,7 +107,7 @@ export function CardDetails({
                   {clientDetails.blockedRequests.toLocaleString()}
                 </div>
               </div>
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">
                   Cached Requests
                 </div>
@@ -115,7 +115,7 @@ export function CardDetails({
                   {clientDetails.cachedRequests.toLocaleString()}
                 </div>
               </div>
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">
                   Avg Response Time
                 </div>
@@ -123,7 +123,7 @@ export function CardDetails({
                   {clientDetails.avgResponseTimeMs.toLocaleString()} ms
                 </div>
               </div>
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
+              <div className="bg-zinc-800 p-3 rounded-sm border border-zinc-700 hover:border-blue-500 transition-colors shadow-md">
                 <div className="text-sm text-gray-400 mb-1">Most Queried</div>
                 <div
                   className="text-xl font-bold text-blue-400 truncate"
@@ -138,7 +138,7 @@ export function CardDetails({
               <h3 className="text-center text-lg font-semibold mb-3 text-blue-400">
                 All Queried Domains
               </h3>
-              <div className="bg-zinc-800 rounded-lg p-2 max-h-48 sm:max-h-56 overflow-y-auto border border-zinc-700 shadow-inner">
+              <div className="bg-zinc-800 rounded-sm p-2 max-h-48 sm:max-h-56 overflow-y-auto border border-zinc-700 shadow-inner">
                 {Object.entries(clientDetails.allDomains)
                   .sort((a, b) => b[1] - a[1])
                   .map(([domain, count], index) => (
@@ -158,13 +158,13 @@ export function CardDetails({
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between gap-2 mt-4">
-              <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1">
+              <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-sm text-sm font-medium transition-colors flex-1">
                 View Details
               </button>
-              <button className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1">
+              <button className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-sm text-sm font-medium transition-colors flex-1">
                 Block Device
               </button>
-              <button className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1">
+              <button className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-sm text-sm font-medium transition-colors flex-1">
                 Device Settings
               </button>
             </div>
