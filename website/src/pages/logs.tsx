@@ -278,7 +278,7 @@ export function Logs() {
               Clear logs
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+          <DialogContent className="bg-zinc-900 text-white border-zinc-800 md:w-auto max-w-none">
             <div className="flex justify-center mb-4">
               <Warning className="h-10 w-10 text-amber-500" />
             </div>
