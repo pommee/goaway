@@ -66,7 +66,7 @@ export function Resolution() {
 
     const listArray: ListEntry[] = Object.entries(
       response.resolutions || {}
-    ).map(([_, details]) => ({
+    ).map(([, details]) => ({
       domain: details.domain,
       ip: details.ip
     }));
