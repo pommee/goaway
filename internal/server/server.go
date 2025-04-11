@@ -151,14 +151,16 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			defer wg.Done()
 			client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
 			entry := s.processQuery(&Request{w, msg, question, sent, client})
+
+			results <- entry
 			log.Debug("Requesting domain %s took %s", entry.Domain, entry.ResponseTime)
-			entryWSJson, _ := json.Marshal(entry)
+
 			if s.WS != nil {
 				wsMutex.Lock()
+				entryWSJson, _ := json.Marshal(entry)
 				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
 				wsMutex.Unlock()
 			}
-			results <- entry
 		}(question)
 	}
 
