@@ -37,6 +37,8 @@ type API struct {
 	DnsServer *server.DNSServer
 	Config    *settings.APIServerConfig
 	Version   string
+	Commit    string
+	Date      string
 }
 
 func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {

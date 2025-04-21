@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	version string
-	log     = logging.GetLogger()
+	version, commit, date string
+	log                   = logging.GetLogger()
 
 	//go:embed website/dist/*
 	content embed.FS
@@ -100,6 +100,8 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 				Authentication: config.APIServer.Authentication,
 			},
 			Version: version,
+			Commit:  commit,
+			Date:    date,
 		}
 
 		serveEmbedded := !config.DevMode

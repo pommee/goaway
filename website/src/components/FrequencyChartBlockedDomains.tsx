@@ -38,7 +38,7 @@ export default function FrequencyChartBlockedDomains() {
 
         setData(formattedData);
       } catch (error) {
-        console.error("Failed to fetch logs:", error);
+        // Ignore
       }
     }
 

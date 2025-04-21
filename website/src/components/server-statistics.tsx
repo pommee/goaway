@@ -24,6 +24,8 @@ export type Metrics = {
   usedMem: number;
   usedMemPercentage: number;
   version: string;
+  commit: string;
+  date: string;
 };
 
 const getColor = (value: number, max: number) => {
