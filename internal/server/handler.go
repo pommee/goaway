@@ -44,14 +44,26 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	}
 
 	domainName := strings.TrimSuffix(request.question.Name, ".")
-	isBlacklisted, err := s.Blacklist.IsBlacklisted(domainName)
-	if err != nil {
-		log.Error("%v", err)
+
+	if s.Status.Paused {
+		elapsed := time.Since(s.Status.PausedAt).Seconds()
+		remainingTime := s.Status.PauseTime - int(elapsed)
+
+		if remainingTime <= 0 {
+			s.Status.Paused = false
+		}
 	}
 
-	if isBlacklisted {
-		log.Info("Blocked: %s", request.question.Name)
-		return s.handleBlacklisted(request)
+	if !s.Status.Paused {
+		isBlacklisted, err := s.Blacklist.IsBlacklisted(domainName)
+		if err != nil {
+			log.Error("%v", err)
+		}
+
+		if isBlacklisted {
+			log.Info("Blocked: %s", request.question.Name)
+			return s.handleBlacklisted(request)
+		}
 	}
 
 	return s.handleStandardQuery(request)

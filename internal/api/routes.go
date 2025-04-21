@@ -476,6 +476,28 @@ func (api *API) createResolution(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (api *API) pauseBlocking(c *gin.Context) {
+	type BlockTime struct {
+		Time int `json:"time"`
+	}
+
+	var blockTime BlockTime
+	if err := c.BindJSON(&blockTime); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid time data",
+		})
+		return
+	}
+
+	api.DnsServer.Status = server.Status{
+		Paused:    true,
+		PausedAt:  time.Now(),
+		PauseTime: blockTime.Time,
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
 func (api *API) deleteResolution(c *gin.Context) {
 	domain := c.Query("domain")
 	ip := c.Query("ip")
@@ -494,6 +516,11 @@ func (api *API) deleteResolution(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"deleted": rowsAffected})
+}
+
+func (api *API) clearBlocking(c *gin.Context) {
+	api.DnsServer.Status = server.Status{}
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (api *API) getUpstreams(c *gin.Context) {
@@ -857,6 +884,23 @@ func (api *API) runUpdate(c *gin.Context) {
 	} else {
 		sendSSE("[i] Update successful!")
 		c.Status(http.StatusOK)
+	}
+}
+
+func (api *API) getBlocking(c *gin.Context) {
+	if api.DnsServer.Status.Paused {
+		elapsed := time.Since(api.DnsServer.Status.PausedAt).Seconds()
+		remainingTime := api.DnsServer.Status.PauseTime - int(elapsed)
+
+		if remainingTime <= 0 {
+			c.JSON(http.StatusOK, gin.H{"paused": false})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"paused": true, "timeLeft": remainingTime})
+		}
+	}
+
+	if !api.DnsServer.Status.Paused {
+		c.JSON(http.StatusOK, gin.H{"paused": false})
 	}
 }
 

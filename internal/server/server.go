@@ -29,6 +29,12 @@ type MacVendor struct {
 	Vendor string `json:"company"`
 }
 
+type Status struct {
+	Paused    bool
+	PausedAt  time.Time
+	PauseTime int
+}
+
 type DNSServer struct {
 	Config              settings.DNSServerConfig
 	Blacklist           blacklist.Blacklist
@@ -42,6 +48,7 @@ type DNSServer struct {
 	logEntryChannel     chan model.RequestLogEntry
 	WS                  *websocket.Conn
 	dnsClient           *dns.Client
+	Status              Status
 }
 
 type QueryResponse struct {

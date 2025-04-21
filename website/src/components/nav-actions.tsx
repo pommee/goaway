@@ -15,17 +15,27 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
-import { DotsThreeOutline, Info, Pause, Rss } from "@phosphor-icons/react";
+import {
+  Clock,
+  DotsThreeOutline,
+  Info,
+  Pause,
+  PlayCircle,
+  Rss
+} from "@phosphor-icons/react";
 import { JSX, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { GetRequest } from "@/util";
+import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import { Metrics } from "./server-statistics";
+import { toast } from "sonner";
+import { Input } from "./ui/input";
 
 const data = [
   [
@@ -42,7 +52,7 @@ const data = [
   ],
   [
     {
-      label: "[WIP] Pause blocking",
+      label: "Blocking",
       icon: Pause,
       dialog: PauseBlockingDialog
     }
@@ -112,15 +122,155 @@ function UpdateDialog() {
   );
 }
 
-function PauseBlockingDialog() {
+export default function PauseBlockingDialog() {
+  type PausedResponse = {
+    paused: boolean;
+    timeLeft: number;
+  };
+
+  const [time, setTime] = useState("10");
+  const [isLoading, setIsLoading] = useState(false);
+  const [pauseStatus, setPauseStatus] = useState<PausedResponse>();
+  const [remainingTime, setRemainingTime] = useState(0);
+
+  useEffect(() => {
+    const fetchPauseStatus = async () => {
+      try {
+        const [status, response] = await GetRequest("pause");
+        if (status === 200) {
+          setPauseStatus(response);
+
+          if (response.paused) {
+            setRemainingTime(response.timeLeft);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching pause status:", error);
+      }
+    };
+
+    fetchPauseStatus();
+
+    const intervalId = setInterval(() => {
+      if (pauseStatus?.paused) {
+        if (remainingTime > 0) {
+          setRemainingTime((prevTime) => Math.max(0, prevTime - 1));
+        } else {
+          fetchPauseStatus();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [pauseStatus?.paused]);
+
+  const handlePause = async () => {
+    setIsLoading(true);
+    try {
+      const [status, _] = await PostRequest("pause", {
+        time: parseInt(time)
+      });
+
+      if (status === 200) {
+        toast.info(`Paused blocking for ${time} seconds`);
+        const [getStatus, getResponse] = await GetRequest("pause");
+        if (getStatus === 200) {
+          setPauseStatus(getResponse);
+          if (getResponse.paused) {
+            setRemainingTime(getResponse.timeLeft);
+          }
+        }
+      } else {
+        console.error("Failed to pause blocking");
+        toast.error("Failed to pause blocking");
+      }
+    } catch (error) {
+      console.error("Error pausing blocking:", error);
+      toast.error("Error pausing blocking");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemovePause = async () => {
+    setIsLoading(true);
+    try {
+      const [status, _] = await DeleteRequest("pause");
+
+      if (status === 200) {
+        toast.success("Blocking resumed");
+        setPauseStatus((prev) => ({ ...prev, paused: false }));
+        setRemainingTime(0);
+      } else {
+        console.error("Failed to resume blocking");
+        toast.error("Failed to resume blocking");
+      }
+    } catch (error) {
+      console.error("Error resuming blocking:", error);
+      toast.error("Error resuming blocking");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <DialogContent className="w-1/2">
+    <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Pause Blocking</DialogTitle>
-        <DialogDescription>
-          Are you sure you want to pause blocking? You will be exposed!
+        <DialogTitle className="flex items-center gap-2">
+          <Clock className="text-blue-400" />
+          {pauseStatus?.paused ? "Blocking Paused" : "Pause Blocking"}
+        </DialogTitle>
+        <DialogDescription className="text-sm text-gray-500">
+          {pauseStatus?.paused
+            ? `Blocking is currently paused. Remaining time: ${remainingTime} seconds.`
+            : "This will temporarily pause domain blocking, allowing all traffic to pass through."}
         </DialogDescription>
       </DialogHeader>
+
+      {!pauseStatus?.paused ? (
+        <>
+          <div className="py-4">
+            <label
+              htmlFor="pause-time"
+              className="block text-sm font-medium mb-2"
+            >
+              Duration (seconds)
+            </label>
+            <Input
+              id="pause-time"
+              type="number"
+              min="1"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" className="border-gray-300">
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePause}
+              disabled={isLoading}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              {isLoading ? "Pausing..." : "Pause Blocking"}
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <DialogFooter className="flex justify-center mt-4">
+          <Button
+            onClick={handleRemovePause}
+            disabled={isLoading}
+            className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+          >
+            <PlayCircle size={18} />
+            {isLoading ? "Resuming..." : "Resume Blocking Now"}
+          </Button>
+        </DialogFooter>
+      )}
     </DialogContent>
   );
 }

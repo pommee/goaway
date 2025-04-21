@@ -156,6 +156,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.POST("/custom", api.updateCustom)
 	api.routes.POST("/toggleBlocklist", api.toggleBlocklist)
 	api.routes.POST("/resolution", api.createResolution)
+	api.routes.POST("/pause", api.pauseBlocking)
 
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/liveQueries", api.liveQueries)
@@ -175,6 +176,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.GET("/addList", api.addList)
 	api.routes.GET("/getDomainsForList", api.getDomainsForList)
 	api.routes.GET("/runUpdate", api.runUpdate)
+	api.routes.GET("/pause", api.getBlocking)
 
 	api.routes.PUT("/password", api.updatePassword)
 
@@ -182,6 +184,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.DELETE("/queries", api.clearQueries)
 	api.routes.DELETE("/list", api.removeList)
 	api.routes.DELETE("/resolution", api.deleteResolution)
+	api.routes.DELETE("/pause", api.clearBlocking)
 }
 
 func generateRandomPassword() string {
