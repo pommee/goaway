@@ -79,7 +79,15 @@ function AboutDialog() {
 
             <span className="pr-2">Commit:</span>
             <span className="text-white">
-              {responseData?.commit || "Not available"}
+              {(responseData?.commit && (
+                <a
+                  href={
+                    "https://github.com/pommee/goaway/commit/" +
+                    responseData?.commit
+                  }
+                />
+              )) ||
+                "Not available"}
             </span>
 
             <span className="pr-2">Date:</span>
