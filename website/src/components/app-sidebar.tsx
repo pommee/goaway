@@ -14,6 +14,7 @@ import { ServerStatistics } from "./server-statistics";
 import { Separator } from "./ui/separator";
 import { TextAnimate } from "./ui/text-animate";
 import {
+  CloudArrowUp,
   Gear,
   House,
   List,
@@ -113,11 +114,11 @@ const data = {
       url: "/resolution",
       icon: SiWire
     },
-    // {
-    //  title: "Upstream",
-    //  url: "/upstream",
-    //  icon: ArrowUpLeftSquare,
-    //},
+    {
+      title: "Upstream",
+      url: "/upstream",
+      icon: CloudArrowUp
+    },
     {
       title: "Clients",
       url: "/clients",

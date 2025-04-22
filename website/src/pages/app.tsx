@@ -12,6 +12,7 @@ import { Settings } from "./settings";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense } from "react";
 import { Resolution } from "./resolution";
+import { Upstream } from "./upstream";
 
 function PageLoader() {
   return (
@@ -113,6 +114,14 @@ function App() {
               element={
                 <PageTransition>
                   <Resolution />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/upstream"
+              element={
+                <PageTransition>
+                  <Upstream />
                 </PageTransition>
               }
             />

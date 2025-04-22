@@ -151,7 +151,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 		}
 	}
 
-	api.routes.POST("/upstreams", api.createUpstreams)
+	api.routes.POST("/upstream", api.createUpstream)
 	api.routes.POST("/settings", api.updateSettings)
 	api.routes.POST("/custom", api.updateCustom)
 	api.routes.POST("/toggleBlocklist", api.toggleBlocklist)
@@ -169,7 +169,6 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.GET("/clientDetails", api.getClientDetails)
 	api.routes.GET("/resolutions", api.getResolutions)
 	api.routes.GET("/upstreams", api.getUpstreams)
-	api.routes.GET("/preferredUpstream", api.setPreferredUpstream)
 	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)
 	api.routes.GET("/topClients", api.getTopClients)
 	api.routes.GET("/lists", api.getLists)
@@ -179,8 +178,9 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.GET("/pause", api.getBlocking)
 
 	api.routes.PUT("/password", api.updatePassword)
+	api.routes.PUT("/preferredUpstream", api.updatePreferredUpstream)
 
-	api.routes.DELETE("/upstreams", api.removeUpstreams)
+	api.routes.DELETE("/upstream", api.deleteUpstream)
 	api.routes.DELETE("/queries", api.clearQueries)
 	api.routes.DELETE("/list", api.removeList)
 	api.routes.DELETE("/resolution", api.deleteResolution)

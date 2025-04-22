@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -525,7 +526,7 @@ func (api *API) clearBlocking(c *gin.Context) {
 
 func (api *API) getUpstreams(c *gin.Context) {
 	upstreams := api.DnsServer.Config.UpstreamDNS
-	results := make([]map[string]string, len(upstreams))
+	results := make([]map[string]any, len(upstreams))
 
 	preferredUpstream := api.DnsServer.Config.PreferredUpstream
 
@@ -547,11 +548,11 @@ func (api *API) getUpstreams(c *gin.Context) {
 	})
 }
 
-func getUpstreamDetails(upstream, preferredUpstream string) map[string]string {
+func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
 	host := strings.TrimSuffix(upstream, ":53")
-	entry := map[string]string{
+	entry := map[string]any{
 		"upstream":  upstream,
-		"preferred": strconv.FormatBool(upstream == preferredUpstream),
+		"preferred": upstream == preferredUpstream,
 	}
 
 	entry["name"], entry["dnsPing"] = getDNSDetails(host)
@@ -560,16 +561,28 @@ func getUpstreamDetails(upstream, preferredUpstream string) map[string]string {
 	return entry
 }
 
+func getDNSServerName(ip string) (string, error) {
+	names, err := net.LookupAddr(ip)
+	if err != nil {
+		return "", err
+	}
+	if len(names) > 0 {
+		return names[0], nil
+	}
+	return "", fmt.Errorf("no hostname found for IP %s", ip)
+}
+
 func getDNSDetails(host string) (string, string) {
 	start := time.Now()
 	ips, err := net.LookupIP(host)
 	duration := time.Since(start)
+	name, _ := getDNSServerName(host)
 
 	if err != nil {
 		return "Error: " + err.Error(), "Error: " + err.Error()
 	}
 	if len(ips) > 0 {
-		return ips[0].String(), duration.String()
+		return name, duration.String()
 	}
 	return "No IP found", duration.String()
 }
@@ -588,67 +601,52 @@ func getICMPPing(host string) string {
 		panic(err)
 	}
 	stats := pinger.Statistics()
-	log.Info("%v", stats)
 	return stats.AvgRtt.String()
 }
 
-func (api *API) createUpstreams(c *gin.Context) {
-	type UpstreamsRequest struct {
-		Upstreams []string `json:"upstreams"`
+func (api *API) createUpstream(c *gin.Context) {
+	type UpstreamRequest struct {
+		Upstream string `json:"upstream"`
 	}
 
-	newUpstreams, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error("Failed to read request body: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	var request UpstreamsRequest
-	if err := json.Unmarshal(newUpstreams, &request); err != nil {
+	var request UpstreamRequest
+	if err := json.Unmarshal(body, &request); err != nil {
 		log.Error("Failed to parse JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
-	var filteredUpstreams []string
-	for _, upstream := range request.Upstreams {
-		if !strings.Contains(upstream, ":") {
-			upstream += ":53"
-		}
-
-		exists := false
-		for _, existing := range api.DnsServer.Config.UpstreamDNS {
-			if existing == upstream {
-				exists = true
-				break
-			}
-		}
-
-		if exists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
-			return
-		}
-	}
-
-	if len(filteredUpstreams) == 0 {
-		log.Info("No new unique upstreams to add")
-		c.JSON(http.StatusOK, gin.H{"message": "No new unique upstreams to add"})
+	upstream := request.Upstream
+	if upstream == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream is required"})
 		return
 	}
 
-	log.Info("Adding unique upstreams: %v", filteredUpstreams)
-	api.DnsServer.Config.UpstreamDNS = append(
-		api.DnsServer.Config.UpstreamDNS,
-		filteredUpstreams...,
-	)
+	if !strings.Contains(upstream, ":") {
+		upstream += ":53"
+	}
 
+	if slices.Contains(api.DnsServer.Config.UpstreamDNS, upstream) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
+		return
+	}
+
+	api.DnsServer.Config.UpstreamDNS = append(api.DnsServer.Config.UpstreamDNS, upstream)
 	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	config.Save()
-	c.JSON(http.StatusOK, gin.H{"added_upstreams": filteredUpstreams})
+
+	log.Info("Added %s as a new upstream", upstream)
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Added %s as a new upstream", upstream)})
 }
 
-func (api *API) removeUpstreams(c *gin.Context) {
+func (api *API) deleteUpstream(c *gin.Context) {
 	upstreamToDelete := c.Query("upstream")
 
 	if upstreamToDelete == "" {
@@ -664,6 +662,8 @@ func (api *API) removeUpstreams(c *gin.Context) {
 	}
 
 	api.DnsServer.Config.UpstreamDNS = updatedUpstreams
+	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
+	config.Save()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Upstream removed successfully",
@@ -683,36 +683,6 @@ func (api *API) clearQueries(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
 	})
-}
-
-func (api *API) setPreferredUpstream(c *gin.Context) {
-	upstreamToSet := c.DefaultQuery("upstream", "")
-
-	if upstreamToSet == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream is required"})
-		return
-	}
-
-	var found bool
-	for _, upstream := range api.DnsServer.Config.UpstreamDNS {
-		if upstream == upstreamToSet {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Upstream not found"})
-		return
-	}
-
-	api.DnsServer.Config.PreferredUpstream = upstreamToSet
-	updatedMsg := fmt.Sprintf("Preferred upstream set to %s", api.DnsServer.Config.PreferredUpstream)
-	log.Info("%s", updatedMsg)
-
-	config := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
-	config.Save()
-	c.JSON(http.StatusOK, gin.H{"message": updatedMsg})
 }
 
 func (api *API) getTopBlockedDomains(c *gin.Context) {
@@ -937,6 +907,48 @@ func (api *API) updatePassword(c *gin.Context) {
 
 	log.Info("Password has been changed!")
 	c.JSON(http.StatusOK, nil)
+}
+
+func (api *API) updatePreferredUpstream(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var request struct {
+		Upstream string `json:"upstream"`
+	}
+
+	if err := json.Unmarshal(body, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	if request.Upstream == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream is required"})
+		return
+	}
+
+	if !slices.Contains(api.DnsServer.Config.UpstreamDNS, request.Upstream) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Upstream not found"})
+		return
+	}
+
+	if api.DnsServer.Config.PreferredUpstream == request.Upstream {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Preferred upstream already set to %s", request.Upstream)})
+		return
+	}
+
+	api.DnsServer.Config.PreferredUpstream = request.Upstream
+	message := fmt.Sprintf("Preferred upstream set to %s", request.Upstream)
+	log.Info("%s", message)
+
+	updatedConfig := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
+	updatedConfig.Save()
+	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 
 func getCPUTemperature() (float64, error) {
