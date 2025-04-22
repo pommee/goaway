@@ -27,12 +27,12 @@ func AsciiArt(config settings.Config, blockedDomains int, version string, disabl
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
 
 	fmt.Printf(`
-   __ _  ___   __ ___      ____ _ _   _   DNS port         %s
-  / _' |/ _ \ / _' \ \ /\ / / _' | | | |  Web port         %s
- | (_| | (_) | (_| |\ V  V / (_| | |_| |  Upstream         %s
-  \__, |\___/ \__,_| \_/\_/ \__,_|\__, |  Authentication   %s
-   __/ |                           __/ |  Cache TTL:       %s
-  |___/          %s          |___/   Blocked Domains: %s
+   __ _  ___   __ ___      ____ _ _   _   DNS port:         %s
+  / _' |/ _ \ / _' \ \ /\ / / _' | | | |  Web port:         %s
+ | (_| | (_) | (_| |\ V  V / (_| | |_| |  Upstream:         %s
+  \__, |\___/ \__,_| \_/\_/ \__,_|\__, |  Authentication:   %s
+   __/ |                           __/ |  Cache TTL:        %s
+  |___/          %s          |___/   Blocked Domains:  %s
 
 `, portFormatted, adminPanelFormatted, upstreamFormatted, authFormatted, cacheTTLFormatted, versionFormatted, blockedDomainsFormatted)
 }
