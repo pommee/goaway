@@ -561,28 +561,16 @@ func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
 	return entry
 }
 
-func getDNSServerName(ip string) (string, error) {
-	names, err := net.LookupAddr(ip)
-	if err != nil {
-		return "", err
-	}
-	if len(names) > 0 {
-		return names[0], nil
-	}
-	return "", fmt.Errorf("no hostname found for IP %s", ip)
-}
-
 func getDNSDetails(host string) (string, string) {
 	start := time.Now()
 	ips, err := net.LookupIP(host)
 	duration := time.Since(start)
-	name, _ := getDNSServerName(host)
 
 	if err != nil {
 		return "Error: " + err.Error(), "Error: " + err.Error()
 	}
 	if len(ips) > 0 {
-		return name, duration.String()
+		return ips[0].String(), duration.String()
 	}
 	return "No IP found", duration.String()
 }
