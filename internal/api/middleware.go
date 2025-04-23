@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func authMiddleware() gin.HandlerFunc {
@@ -24,7 +24,7 @@ func authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.Parse(cookie, func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(cookie, func(t *jwt.Token) (any, error) {
 			return []byte(jwtSecret), nil
 		})
 		if err != nil || !token.Valid {
