@@ -52,8 +52,8 @@ export function ClientCard(clientEntry: ClientEntry) {
 
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <span className="text-sm font-medium">IP Address:</span>
+            <div className="flex items-center space-x-1 text-muted-foreground">
+              <span className="text-sm">IP:</span>
               <code className="bg-secondary/50 px-2 py-1 rounded-md text-xs">
                 {clientEntry.ip}
               </code>
