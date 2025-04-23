@@ -53,31 +53,35 @@ export default function FrequencyChartTopBlockedClients() {
         <CardTitle>Top Clients</CardTitle>
       </CardHeader>
       <CardContent className="h-[calc(100%-50px)] flex items-center">
-        <ChartContainer config={chartConfig} className="w-full h-full">
-          <BarChart
-            accessibilityLayer
-            data={data}
-            layout="vertical"
-            className="w-full h-full"
-            margin={{
-              left: 20
-            }}
-            barSize={20}
-          >
-            <XAxis type="number" dataKey="frequency" hide />
-            <YAxis
-              dataKey="client"
-              type="category"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              width={100}
-              tickFormatter={(value) => value}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <Bar dataKey="frequency" fill="cornflowerblue" radius={5} />
-          </BarChart>
-        </ChartContainer>
+        {(data.length > 0 && (
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <BarChart
+              accessibilityLayer
+              data={data}
+              layout="vertical"
+              className="w-full h-full"
+              margin={{
+                left: 20
+              }}
+              barSize={20}
+            >
+              <XAxis type="number" dataKey="frequency" hide />
+              <YAxis
+                dataKey="client"
+                type="category"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                width={100}
+                tickFormatter={(value) => value}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Bar dataKey="frequency" fill="cornflowerblue" radius={5} />
+            </BarChart>
+          </ChartContainer>
+        )) || (
+          <p className="text-gray-400">No client requests have been made</p>
+        )}
       </CardContent>
     </Card>
   );
