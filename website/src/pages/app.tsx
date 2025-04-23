@@ -9,10 +9,10 @@ import { Login } from "./login";
 import { Home } from "./home";
 import { Logs } from "./logs";
 import { Settings } from "./settings";
-import { AnimatePresence, motion } from "framer-motion";
 import { Suspense } from "react";
 import { Resolution } from "./resolution";
 import { Upstream } from "./upstream";
+import { AnimatePresence, motion } from "motion/react";
 
 function PageLoader() {
   return (
