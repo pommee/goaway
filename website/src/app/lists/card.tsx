@@ -45,6 +45,7 @@ export function ListCard(listEntry: ListEntry) {
           blockedCount={listEntry.blockedCount}
           lastUpdated={listEntry.lastUpdated}
           name={listEntry.name}
+          url={listEntry.url}
         />
       </div>
     </Card>

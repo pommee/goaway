@@ -346,7 +346,7 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 
 func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, error) {
 	query := `
-		SELECT s.name, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
+		SELECT s.name, s.url, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
 		FROM sources s
 		LEFT JOIN blacklist b ON s.id = b.source_id
 		GROUP BY s.name, s.lastUpdated, s.active
@@ -362,14 +362,15 @@ func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, er
 
 	stats := make(map[string]map[string]interface{})
 	for rows.Next() {
-		var sourceName string
+		var name, url string
 		var blockedCount int
 		var lastUpdated int64
 		var active bool
-		if err := rows.Scan(&sourceName, &blockedCount, &lastUpdated, &active); err != nil {
+		if err := rows.Scan(&name, &url, &blockedCount, &lastUpdated, &active); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		stats[sourceName] = map[string]interface{}{
+		stats[name] = map[string]any{
+			"url":          url,
 			"blockedCount": blockedCount,
 			"lastUpdated":  lastUpdated,
 			"active":       active,

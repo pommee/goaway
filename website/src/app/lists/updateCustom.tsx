@@ -15,8 +15,8 @@ import { ArrowsClockwise } from "@phosphor-icons/react";
 
 async function SendDomains(domains: string[]) {
   try {
-    const response = await PostRequest("/api/custom", domains);
-    if (response.ok) {
+    const [status, _] = await PostRequest("custom", { domains: domains });
+    if (status === 200) {
       toast.success("Domains updated successfully!");
     } else {
       toast.error("Failed to update domains.");

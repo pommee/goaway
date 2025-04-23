@@ -733,35 +733,6 @@ func (api *API) updateCustom(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
 }
 
-func (api *API) toggleBlocklist(c *gin.Context) {
-	type ToggledBlocklistRequest struct {
-		Name string `json:"name"`
-	}
-
-	updatedBlocklistName, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
-		return
-	}
-
-	var request ToggledBlocklistRequest
-	if err := json.Unmarshal(updatedBlocklistName, &request); err != nil {
-		log.Error("Failed to parse JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid JSON format"})
-		return
-	}
-
-	err = api.DnsServer.Blacklist.ToggleBlocklistStatus(request.Name)
-	if err != nil {
-		log.Error("Failed to toggle blocklist status: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", request.Name)})
-}
-
 func (api *API) addList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")
@@ -937,6 +908,24 @@ func (api *API) updatePreferredUpstream(c *gin.Context) {
 	updatedConfig := settings.Config{DNSServer: &api.DnsServer.Config, APIServer: api.Config}
 	updatedConfig.Save()
 	c.JSON(http.StatusOK, gin.H{"message": message})
+}
+
+func (api *API) toggleBlocklist(c *gin.Context) {
+	blocklist := c.Query("blocklist")
+
+	if blocklist == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid blocklist"})
+		return
+	}
+
+	err := api.DnsServer.Blacklist.ToggleBlocklistStatus(blocklist)
+	if err != nil {
+		log.Error("Failed to toggle blocklist status: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Failed to toggle status for %s", blocklist)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", blocklist)})
 }
 
 func getCPUTemperature() (float64, error) {

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 export type ListEntry = {
   name: string;
+  url: string;
   active: boolean;
   blockedCount: number;
   lastUpdated: number;
@@ -50,6 +51,7 @@ export function Lists() {
             blockedCount={list.blockedCount}
             lastUpdated={list.lastUpdated}
             name={list.name}
+            url={list.url}
           />
         ))}
       </div>

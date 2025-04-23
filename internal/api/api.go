@@ -154,7 +154,6 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.POST("/upstream", api.createUpstream)
 	api.routes.POST("/settings", api.updateSettings)
 	api.routes.POST("/custom", api.updateCustom)
-	api.routes.POST("/toggleBlocklist", api.toggleBlocklist)
 	api.routes.POST("/resolution", api.createResolution)
 	api.routes.POST("/pause", api.pauseBlocking)
 
@@ -176,6 +175,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.GET("/getDomainsForList", api.getDomainsForList)
 	api.routes.GET("/runUpdate", api.runUpdate)
 	api.routes.GET("/pause", api.getBlocking)
+	api.routes.GET("/toggleBlocklist", api.toggleBlocklist)
 
 	api.routes.PUT("/password", api.updatePassword)
 	api.routes.PUT("/preferredUpstream", api.updatePreferredUpstream)
