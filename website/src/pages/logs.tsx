@@ -95,7 +95,6 @@ async function fetchQueries(
         recordsTotal: response.recordsTotal || 0
       };
     } else {
-      console.error("Invalid response format", response);
       return {
         details: [],
         draw: "1",
@@ -104,7 +103,6 @@ async function fetchQueries(
       };
     }
   } catch (error) {
-    console.error("Failed to fetch queries:", error);
     return { details: [], draw: "1", recordsFiltered: 0, recordsTotal: 0 };
   }
 }

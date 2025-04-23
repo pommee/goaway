@@ -69,7 +69,6 @@ export default function RequestTimeline() {
         setChartData(processedData);
         setIsLoading(false);
       } catch (error) {
-        console.error("Failed to fetch query data", error);
         setIsLoading(false);
       }
     };

@@ -46,7 +46,6 @@ export default function RequestTypeChart() {
       try {
         const [, data] = await GetRequest("queryTypes");
         if (!data.queries || !Array.isArray(data.queries)) {
-          console.error("Invalid response format:", data);
           return;
         }
 
