@@ -23,69 +23,7 @@ import {
   SignOut,
   Users
 } from "@phosphor-icons/react";
-
-const quotes = [
-  "Block party!",
-  "No ads!",
-  "Bye-bye, spam!",
-  "Adios, ads!",
-  "Get lost!",
-  "Bye, trackers!",
-  "Stop, right there!",
-  "Catch you later!",
-  "Ad free zone!",
-  "Blockzilla strikes!",
-  "Ad-ocalypse now!",
-  "Nope, not today!",
-  "Buzz off, ads!",
-  "Ads? Not here!",
-  "Shh... no ads.",
-  "Ad blocker engaged!",
-  "Gone in a click!",
-  "Ads begone!",
-  "Block mode: ON!",
-  "Spam, who?",
-  "No entry for ads!",
-  "Bye-bye bandwidth hogs!",
-  "Ad-free vibes!",
-  "Don't block me!",
-  "Not in my house!",
-  "Get out, ads!",
-  "Bye-bye popups!",
-  "Say no to ads!",
-  "Ad block, power!",
-  "Stay adless!",
-  "Access denied!",
-  "Tracker blocked!",
-  "No tracking zone!",
-  "Rejected!",
-  "Not welcome here!",
-  "Request denied!",
-  "Nice try, ads!",
-  "Privacy shield up!",
-  "Blocked by choice!",
-  "Ad-free journey!",
-  "Nothing to see!",
-  "No soliciting!",
-  "Request terminated!",
-  "Traffic stopped!",
-  "Privacy first!",
-  "No way through!",
-  "Blocked successfully!",
-  "Shields activated!",
-  "Look elsewhere!",
-  "Access restricted!",
-  "Stop tracking me!",
-  "Blackholed!",
-  "Sinkhole active!",
-  "No ads allowed!",
-  "Tracker neutralized!",
-  "Request sunk!",
-  "Bye data miners!",
-  "Privacy protected!",
-  "Tracking blocked!",
-  "Not happening!"
-];
+import { GenerateQuote } from "@/quotes";
 
 const data = {
   navMain: [
@@ -152,8 +90,6 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
-
   return (
     <div className="border-r-1 border-accent">
       <Sidebar variant="inset" {...props}>
@@ -173,7 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       by="character"
                       once
                     >
-                      {quote}
+                      {GenerateQuote()}
                     </TextAnimate>
                     <span></span>
                   </div>
