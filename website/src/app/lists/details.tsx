@@ -18,6 +18,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
 import { Separator } from "@/components/ui/separator";
+import BlockedDomainsList from "./blockedDomains";
 
 export function CardDetails(listEntry: ListEntry) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,7 +83,6 @@ export function CardDetails(listEntry: ListEntry) {
             </div>
           </div>
         </div>
-
         <div className="flex gap-2 justify-between flex-wrap">
           <Button
             onClick={toggleBlocklist}
@@ -112,6 +112,9 @@ export function CardDetails(listEntry: ListEntry) {
             </>
           )}
         </div>
+        {listEntry.name === "Custom" && (
+          <BlockedDomainsList listName={listEntry.name} />
+        )}
       </DialogContent>
     </Dialog>
   );

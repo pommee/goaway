@@ -362,6 +362,55 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 	return nil
 }
 
+func (b *Blacklist) RemoveCustomDomain(domain string) error {
+	tx, err := b.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	var sourceID int
+	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, "Custom").Scan(&sourceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("custom source not found")
+		}
+		return fmt.Errorf("failed to get custom source ID: %w", err)
+	}
+
+	result, err := tx.Exec(`DELETE FROM blacklist WHERE domain = ? AND source_id = ?`, domain, sourceID)
+	if err != nil {
+		return fmt.Errorf("failed to delete domain '%s': %w", domain, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("domain '%s' not found in custom blacklist", domain)
+	}
+
+	delete(b.BlacklistCache, domain)
+
+	currentTime := time.Now().Unix()
+	_, err = tx.Exec(`UPDATE sources SET lastUpdated = ? WHERE id = ?`, currentTime, sourceID)
+	if err != nil {
+		return fmt.Errorf("failed to update lastUpdated for custom source: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, error) {
 	query := `
 		SELECT s.name, s.url, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active

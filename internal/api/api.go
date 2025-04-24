@@ -157,6 +157,7 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.POST("/resolution", api.createResolution)
 	api.routes.POST("/pause", api.pauseBlocking)
 
+	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/liveQueries", api.liveQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)

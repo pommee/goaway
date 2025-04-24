@@ -733,6 +733,23 @@ func (api *API) updateCustom(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
 }
 
+func (api *API) removeDomainFromCustom(c *gin.Context) {
+	domain := c.Query("domain")
+
+	if domain == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Empty domain name"})
+	}
+
+	err := api.DnsServer.Blacklist.RemoveCustomDomain(domain)
+	if err != nil {
+		log.Debug("Error occured while removing domain from custom list: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (api *API) addList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")
