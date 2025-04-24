@@ -55,12 +55,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	}
 
 	if !s.Status.Paused {
-		isBlacklisted, err := s.Blacklist.IsBlacklisted(domainName)
-		if err != nil {
-			log.Error("%v", err)
-		}
-
-		if isBlacklisted {
+		if s.Blacklist.IsBlacklisted(domainName) {
 			log.Info("Blocked: %s", request.question.Name)
 			return s.handleBlacklisted(request)
 		}

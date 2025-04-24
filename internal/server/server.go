@@ -37,7 +37,7 @@ type Status struct {
 
 type DNSServer struct {
 	Config              settings.DNSServerConfig
-	Blacklist           blacklist.Blacklist
+	Blacklist           *blacklist.Blacklist
 	DB                  *sql.DB
 	Counters            CounterDetails
 	StatisticsRetention int
@@ -84,24 +84,9 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	blacklistEntry := blacklist.Blacklist{
-		DB: db.Con,
-		BlocklistURL: map[string]string{
-			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
-		},
-	}
-
-	if err := blacklistEntry.Initialize(); err != nil {
-		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
-	}
-
-	if err := blacklistEntry.InitializeBlocklist("Custom", ""); err != nil {
-		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
-	}
-
-	blacklistEntry.BlocklistURL, err = blacklistEntry.GetBlocklistUrls()
+	blacklistEntry, err := blacklist.Initialize(db.Con)
 	if err != nil {
-		log.Error("Failed to get blocklist URLs: %v", err)
+		log.Error("Failed to initialize blacklist")
 	}
 
 	dnsClient := &dns.Client{

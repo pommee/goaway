@@ -15,23 +15,42 @@ import (
 var log = logging.GetLogger()
 
 type Blacklist struct {
-	DB           *sql.DB
-	BlocklistURL map[string]string
+	DB             *sql.DB
+	BlocklistURL   map[string]string
+	BlacklistCache map[string]bool
 }
 
-func (b *Blacklist) Initialize() error {
+func Initialize(db *sql.DB) (*Blacklist, error) {
+	b := &Blacklist{
+		DB: db,
+		BlocklistURL: map[string]string{
+			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
+		},
+		BlacklistCache: map[string]bool{},
+	}
+
 	if err := b.createBlacklistTable(); err != nil {
-		return fmt.Errorf("failed to initialize blacklist table: %w", err)
+		return nil, fmt.Errorf("failed to initialize blacklist table: %w", err)
 	}
 
 	if count, _ := b.CountDomains(); count == 0 {
 		log.Info("No domains in blacklist. Running initialization...")
 		if err := b.initializeBlockedDomains(); err != nil {
-			return fmt.Errorf("failed to initialize blocked domains: %w", err)
+			return nil, fmt.Errorf("failed to initialize blocked domains: %w", err)
 		}
 	}
 
-	return nil
+	if err := b.InitializeBlocklist("Custom", ""); err != nil {
+		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
+	}
+
+	b.GetBlocklistUrls()
+	err := b.PopulateBlocklistCache()
+	if err != nil {
+		log.Error("Failed to initialize blocklist cache")
+	}
+
+	return b, nil
 }
 
 func (b *Blacklist) createBlacklistTable() error {
@@ -82,7 +101,9 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 		}
 		blocklistURL[name] = url
 	}
-	return blocklistURL, rows.Err()
+
+	b.BlocklistURL = blocklistURL
+	return blocklistURL, nil
 }
 
 func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
@@ -151,6 +172,7 @@ func (b *Blacklist) AddDomain(domain string) error {
 	if affected == 0 {
 		return fmt.Errorf("%s is already blacklisted", domain)
 	}
+	b.BlacklistCache[domain] = true
 	return nil
 }
 
@@ -187,10 +209,12 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 	return nil
 }
 
-func (b *Blacklist) LoadBlacklist() (map[string]bool, error) {
+func (b *Blacklist) PopulateBlocklistCache() error {
+	b.BlacklistCache = map[string]bool{}
+
 	rows, err := b.DB.Query("SELECT domain FROM blacklist")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query blacklist: %w", err)
+		return fmt.Errorf("failed to query blacklist: %w", err)
 	}
 	defer func(rows *sql.Rows) {
 		_ = rows.Close()
@@ -200,11 +224,12 @@ func (b *Blacklist) LoadBlacklist() (map[string]bool, error) {
 	for rows.Next() {
 		var domain string
 		if err := rows.Scan(&domain); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return fmt.Errorf("failed to scan row: %w", err)
 		}
 		domains[domain] = true
 	}
-	return domains, rows.Err()
+	b.BlacklistCache = domains
+	return nil
 }
 
 func (b *Blacklist) CountDomains() (int, error) {
@@ -226,20 +251,12 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 	if affected == 0 {
 		return fmt.Errorf("%s is already whitelisted", domain)
 	}
+	b.BlacklistCache[domain] = true
 	return nil
 }
 
-func (b *Blacklist) IsBlacklisted(domain string) (bool, error) {
-	var query = "SELECT b.source_id FROM blacklist b JOIN sources s ON b.source_id = s.id WHERE b.domain = ? AND s.active = 1"
-	row := b.DB.QueryRow(query, domain)
-	var exists int
-	if err := row.Scan(&exists); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, fmt.Errorf("failed to check if domain is blacklisted: %w", err)
-	}
-	return true, nil
+func (b *Blacklist) IsBlacklisted(domain string) bool {
+	return b.BlacklistCache[domain]
 }
 
 func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([]string, int, error) {
@@ -336,6 +353,7 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 			err = tx.Rollback()
 			return fmt.Errorf("failed to add custom domain '%s': %w", domain, err)
 		}
+		b.BlacklistCache[domain] = true
 	}
 
 	if err := tx.Commit(); err != nil {
