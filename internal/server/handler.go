@@ -45,10 +45,8 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		return s.handlePTRQuery(request)
 	}
 
-	if s.Status.Paused {
-		if time.Since(s.Status.PausedAt).Seconds() >= float64(s.Status.PauseTime) {
-			s.Status.Paused = false
-		}
+	if s.Status.Paused && time.Since(s.Status.PausedAt).Seconds() >= float64(s.Status.PauseTime) {
+		s.Status.Paused = false
 	}
 
 	if !s.Status.Paused && s.Blacklist.IsBlacklisted(domainName) {
@@ -268,9 +266,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 }
 
 func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
-	queryStart := time.Now()
 	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
-	upstreamQueryTime := time.Since(queryStart)
 
 	resolvedAddresses := make([]string, 0, len(answers))
 	if len(answers) > 0 {
@@ -299,9 +295,6 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 
 	_ = request.w.WriteMsg(request.msg)
 	s.Counters.AllowedRequests++
-
-	processTimeNonQuery := time.Since(request.sent) - upstreamQueryTime
-	log.Debug("Processing took: %s", processTimeNonQuery)
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
