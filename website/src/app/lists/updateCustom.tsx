@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,15 +6,16 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { DialogDescription } from "@radix-ui/react-dialog";
-import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { PostRequest } from "@/util";
 import { ArrowsClockwise } from "@phosphor-icons/react";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { useState } from "react";
+import { toast } from "sonner";
 
 async function SendDomains(domains: string[]) {
   try {
-    const [status, _] = await PostRequest("custom", { domains: domains });
+    const [status] = await PostRequest("custom", { domains: domains });
     if (status === 200) {
       toast.success("Domains updated successfully!");
     } else {

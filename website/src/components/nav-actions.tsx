@@ -2,6 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger
@@ -15,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
   Clock,
   DotsThreeOutline,
@@ -24,17 +33,8 @@ import {
   Rss
 } from "@phosphor-icons/react";
 import { JSX, useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { DeleteRequest, GetRequest, PostRequest } from "@/util";
-import { Metrics } from "./server-statistics";
 import { toast } from "sonner";
+import { Metrics } from "./server-statistics";
 import { Input } from "./ui/input";
 
 const data = [
@@ -167,7 +167,7 @@ export default function PauseBlockingDialog() {
   const handlePause = async () => {
     setIsLoading(true);
     try {
-      const [status, _] = await PostRequest("pause", {
+      const [status] = await PostRequest("pause", {
         time: parseInt(time)
       });
 
@@ -195,7 +195,7 @@ export default function PauseBlockingDialog() {
   const handleRemovePause = async () => {
     setIsLoading(true);
     try {
-      const [status, _] = await DeleteRequest("pause");
+      const [status] = await DeleteRequest("pause");
 
       if (status === 200) {
         toast.success("Blocking resumed");

@@ -68,7 +68,7 @@ export default function RequestTimeline() {
 
         setChartData(processedData);
         setIsLoading(false);
-      } catch (error) {
+      } catch {
         setIsLoading(false);
       }
     };

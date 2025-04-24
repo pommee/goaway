@@ -1,17 +1,17 @@
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
+  CardDescription,
   CardFooter,
-  CardDescription
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { UpstreamEntry } from "@/pages/upstream";
-import { PutRequest, DeleteRequest } from "@/util";
+import { DeleteRequest, PutRequest } from "@/util";
 import { Cloud, Star } from "@phosphor-icons/react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function UpstreamCard(upstream: UpstreamEntry) {
   const currentUpstream = upstream;
@@ -46,7 +46,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       } else {
         toast.warning(response.message);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to set preferred upstream");
     }
   }
@@ -67,7 +67,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       } else {
         toast.warning(response.message || "Failed to delete upstream");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete upstream");
     } finally {
       setDeleteState("initial");

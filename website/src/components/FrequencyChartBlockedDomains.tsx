@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
 import { useEffect, useState } from "react";
-import { Info } from "@phosphor-icons/react";
 
 export type TopBlockedDomains = {
   frequency: number;
@@ -38,7 +37,7 @@ export default function FrequencyChartBlockedDomains() {
         );
 
         setData(formattedData);
-      } catch (error) {
+      } catch {
         // Ignore
       }
     }

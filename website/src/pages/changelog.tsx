@@ -5,7 +5,7 @@ import { toast } from "sonner";
 const Changelog = () => {
   const [releases, setReleases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, _] = useState(null);
+  const [error] = useState(null);
 
   useEffect(() => {
     const cachedData = sessionStorage.getItem("githubReleases");

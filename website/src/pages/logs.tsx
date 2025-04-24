@@ -1,17 +1,13 @@
 "use client";
 
-import * as React from "react";
-import {
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useReactTable
-} from "@tanstack/react-table";
+import { columns, Queries } from "@/app/logs/columns";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -20,6 +16,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,29 +30,13 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { columns, Queries } from "@/app/logs/columns";
-import { useEffect, useState } from "react";
-import { DeleteRequest, GetRequest } from "@/util";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTrigger
-} from "@/components/ui/dialog";
+import { DeleteRequest, GetRequest } from "@/util";
 import {
   CaretDoubleLeft,
   CaretDoubleRight,
@@ -58,6 +45,19 @@ import {
   CaretRight,
   Warning
 } from "@phosphor-icons/react";
+import {
+  ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+  VisibilityState
+} from "@tanstack/react-table";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type QueryResponse = {
   details: Queries[];
@@ -102,7 +102,7 @@ async function fetchQueries(
         recordsTotal: 0
       };
     }
-  } catch (error) {
+  } catch {
     return { details: [], draw: "1", recordsFiltered: 0, recordsTotal: 0 };
   }
 }
