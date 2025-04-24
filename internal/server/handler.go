@@ -39,26 +39,21 @@ var rcodes = map[int]string{
 var hostCache, _ = lru.New[string, any](100)
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(request.question.Name, ".in-addr.arpa.") {
+	domainName := strings.TrimSuffix(request.question.Name, ".")
+
+	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
 		return s.handlePTRQuery(request)
 	}
 
-	domainName := strings.TrimSuffix(request.question.Name, ".")
-
 	if s.Status.Paused {
-		elapsed := time.Since(s.Status.PausedAt).Seconds()
-		remainingTime := s.Status.PauseTime - int(elapsed)
-
-		if remainingTime <= 0 {
+		if time.Since(s.Status.PausedAt).Seconds() >= float64(s.Status.PauseTime) {
 			s.Status.Paused = false
 		}
 	}
 
-	if !s.Status.Paused {
-		if s.Blacklist.IsBlacklisted(domainName) {
-			log.Info("Blocked: %s", request.question.Name)
-			return s.handleBlacklisted(request)
-		}
+	if !s.Status.Paused && s.Blacklist.IsBlacklisted(domainName) {
+		log.Info("Blocked: %s", request.question.Name)
+		return s.handleBlacklisted(request)
 	}
 
 	return s.handleStandardQuery(request)
@@ -79,7 +74,7 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
-	clientIP := strings.Split(remoteAddr, ":")[0]
+	clientIP, _, _ := net.SplitHostPort(remoteAddr)
 
 	if cachedInfo, found := hostCache.Get(clientIP); found {
 		info := cachedInfo.([]string)
