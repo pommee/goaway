@@ -193,7 +193,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	return model.RequestLogEntry{
 		Timestamp:         request.sent,
 		Domain:            request.question.Name,
-		Status:            "NoError",
+		Status:            rcodes[dns.RcodeSuccess],
 		IP:                []string{"localhost.lan"},
 		Blocked:           false,
 		Cached:            false,
@@ -220,7 +220,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
-		Status:            "NoError",
+		Status:            rcodes[dns.RcodeSuccess],
 		QueryType:         "PTR",
 		IP:                []string{hostname},
 		ResponseSizeBytes: request.msg.Len(),
@@ -313,7 +313,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 	cacheKey := fmt.Sprintf("%s-%d", domain, qtype)
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
-			return ipAddresses, true, "NoError"
+			return ipAddresses, true, rcodes[dns.RcodeSuccess]
 		}
 	}
 
@@ -335,7 +335,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 	var (
 		records []dns.RR
 		ttl     = uint32(s.Config.CacheTTL.Seconds())
-		status  = "NOERROR"
+		status  = rcodes[dns.RcodeSuccess]
 	)
 
 	ipFound, err := database.FetchResolution(s.DB, domain)
