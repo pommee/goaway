@@ -1,9 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"goaway/internal/database"
 	model "goaway/internal/server/models"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 func (s *DNSServer) ProcessLogEntries() {
@@ -14,6 +17,13 @@ func (s *DNSServer) ProcessLogEntries() {
 	for {
 		select {
 		case entry := <-s.logEntryChannel:
+			if s.WS != nil {
+				wsMutex.Lock()
+				entryWSJson, _ := json.Marshal(entry)
+				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
+				wsMutex.Unlock()
+			}
+
 			batch = append(batch, entry)
 			if len(batch) >= batchSize {
 				s.saveBatch(batch)

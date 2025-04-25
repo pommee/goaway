@@ -2,7 +2,6 @@ package server
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"goaway/internal/blacklist"
 	"goaway/internal/database"
@@ -146,13 +145,6 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 			results <- entry
 			log.Debug("Requesting domain %s took %s", entry.Domain, entry.ResponseTime)
-
-			if s.WS != nil {
-				wsMutex.Lock()
-				entryWSJson, _ := json.Marshal(entry)
-				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
-				wsMutex.Unlock()
-			}
 		}(question)
 	}
 
