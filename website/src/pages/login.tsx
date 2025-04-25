@@ -1,42 +1,90 @@
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { PostRequest } from "@/util";
-import { useNavigate } from "react-router-dom";
 import { Eye, EyeClosed, Lock, UserCircle } from "@phosphor-icons/react";
-import { GenerateQuote } from "@/quotes";
-import { TextAnimate } from "@/components/ui/text-animate";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+import { type ISourceOptions } from "@tsparticles/engine";
+import { loadStarsPreset } from "@tsparticles/preset-stars";
+import Particles, { initParticlesEngine } from "@tsparticles/react";
+
+const FloatingTitle = () => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [direction, setDirection] = useState({ x: 1, y: 1 });
+  const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPosition((prev) => {
+        const newX = prev.x + direction.x * 0.3;
+        const newY = prev.y + direction.y * 0.2;
+
+        const newDirection = { ...direction };
+        if (newX > 20) newDirection.x = -1;
+        if (newX < -20) newDirection.x = 1;
+        if (newY > 10) newDirection.y = -1;
+        if (newY < -10) newDirection.y = 1;
+
+        setDirection(newDirection);
+        return { x: newX, y: newY };
+      });
+
+      setRotation((prev) => {
+        const newRotation = prev + 0.05;
+        return newRotation > 3 ? -3 : newRotation;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [direction]);
+
+  return (
+    <h1
+      className="text-6xl font-bold text-indigo-300 relative inline-block"
+      style={{
+        transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg)`,
+        textShadow:
+          "0 0 10px rgba(129, 140, 248, 0.7), 0 0 20px rgba(129, 140, 248, 0.5)",
+        transition: "transform 1s ease"
+      }}
+    >
+      GoAway
+    </h1>
+  );
+};
 
 export function Login({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const [, setInit] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [quote, setQuote] = useState(() => GenerateQuote());
   const navigate = useNavigate();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setQuote(GenerateQuote());
-    }, 4000);
-
-    return () => clearInterval(interval);
+    initParticlesEngine(async (engine) => {
+      await loadStarsPreset(engine);
+    }).then(() => {
+      setInit(true);
+    });
   }, []);
+
+  const options: ISourceOptions = useMemo(
+    () => ({
+      preset: "stars"
+    }),
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,29 +120,12 @@ export function Login({
 
   return (
     <div className="flex min-h-screen w-full items-center bg-zinc-900 justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-indigo-300">GoAway</h1>
-          <TextAnimate
-            className="truncate text-xs text-zinc-500"
-            animation="blurInUp"
-            by="character"
-            once
-          >
-            {quote}
-          </TextAnimate>
-        </div>
+      <Particles id="tsparticles" options={options} />
+      <div className="w-full max-w-md text-center">
+        <FloatingTitle />
 
         <div className={cn("flex flex-col", className)} {...props}>
-          <Card className="border border-zinc-800 shadow-xl bg-zinc-950">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-2xl font-bold text-center text-white">
-                Login
-              </CardTitle>
-              <CardDescription className="text-center text-zinc-400">
-                Enter your credentials to continue
-              </CardDescription>
-            </CardHeader>
+          <Card className="z-10 mt-10 border border-zinc-800 shadow-xl bg-zinc-950">
             <CardContent>
               <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-4">
@@ -115,7 +146,7 @@ export function Login({
                         autoFocus
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="pl-10 bg-zinc-900 border-zinc-800 text-zinc-200 focus:border-indigo-500 focus:ring-indigo-500"
+                        className="pl-10 bg-zinc-900"
                       />
                     </div>
                   </div>
