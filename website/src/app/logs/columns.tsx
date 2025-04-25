@@ -105,7 +105,7 @@ export const columns: ColumnDef<Queries>[] = [
           ? query.cached
             ? `cache (forwarded) ${query.status}`
             : `ok (forwarded) ${query.status}`
-          : query.status;
+          : `blacklisted ${query.status}`;
       const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(2);
       const rowText = ` ${wasOK} ${responseTimeMS}ms`;
       return (

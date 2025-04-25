@@ -221,7 +221,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
 		Status:            rcodes[dns.RcodeSuccess],
-		QueryType:         "PTR",
+		QueryType:         dns.TypeToString[request.question.Qtype],
 		IP:                []string{hostname},
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
@@ -235,13 +235,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
 	answers, _, status := s.queryUpstream(request.question.Name, request.question.Qtype)
 	request.msg.Answer = append(request.msg.Answer, answers...)
-
-	switch status {
-	case "NXDomain":
-		request.msg.Rcode = dns.RcodeNameError
-	case "ServFail":
-		request.msg.Rcode = dns.RcodeServerFailure
-	}
+	request.msg.Rcode = dns.RcodeNameError
 
 	var resolvedHostnames []string
 	for _, answer := range answers {
@@ -256,7 +250,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
 		Status:            status,
-		QueryType:         "PTR",
+		QueryType:         dns.TypeToString[request.question.Qclass],
 		IP:                resolvedHostnames,
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
@@ -265,47 +259,45 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	}
 }
 
-func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
-	answers, cached, status := s.resolve(request.question.Name, request.question.Qtype)
+func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
+	answers, cached, status := s.resolve(req.question.Name, req.question.Qtype)
 
-	resolvedAddresses := make([]string, 0, len(answers))
-	if len(answers) > 0 {
-		request.msg.Answer = append(request.msg.Answer, answers...)
+	msg := req.msg
+	client := req.client
+	var resolved []string
 
-		for _, answer := range answers {
-			switch rec := answer.(type) {
-			case *dns.A:
-				resolvedAddresses = append(resolvedAddresses, rec.A.String())
-			case *dns.AAAA:
-				resolvedAddresses = append(resolvedAddresses, rec.AAAA.String())
-			case *dns.PTR:
-				resolvedAddresses = append(resolvedAddresses, rec.Ptr)
-			case *dns.CNAME:
-				resolvedAddresses = append(resolvedAddresses, rec.Target)
-			}
+	for _, a := range answers {
+		msg.Answer = append(msg.Answer, a)
+
+		switch rr := a.(type) {
+		case *dns.A:
+			resolved = append(resolved, rr.A.String())
+		case *dns.AAAA:
+			resolved = append(resolved, rr.AAAA.String())
+		case *dns.PTR:
+			resolved = append(resolved, rr.Ptr)
+		case *dns.CNAME:
+			resolved = append(resolved, rr.Target)
 		}
 	}
 
-	switch status {
-	case "NXDomain":
-		request.msg.Rcode = dns.RcodeNameError
-	case "ServFail":
-		request.msg.Rcode = dns.RcodeServerFailure
+	if len(answers) == 0 {
+		msg.Rcode = dns.RcodeServerFailure
 	}
 
-	_ = request.w.WriteMsg(request.msg)
+	_ = req.w.WriteMsg(msg)
 	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
-		Domain:            request.question.Name,
+		Domain:            req.question.Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[request.question.Qtype],
-		IP:                resolvedAddresses,
-		ResponseSizeBytes: request.msg.Len(),
-		Timestamp:         request.sent,
-		ResponseTime:      time.Since(request.sent),
+		QueryType:         dns.TypeToString[req.question.Qtype],
+		IP:                resolved,
+		ResponseSizeBytes: msg.Len(),
+		Timestamp:         req.sent,
+		ResponseTime:      time.Since(req.sent),
 		Cached:            cached,
-		ClientInfo:        request.client,
+		ClientInfo:        client,
 	}
 }
 
@@ -317,7 +309,13 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 		}
 	}
 
-	answers, ttl, status := s.resolveResolution(domain)
+	answers, ttl, status := s.queryUpstream(domain, qtype)
+	if len(answers) > 0 {
+		s.cacheRecord(cacheKey, answers, ttl)
+		return answers, false, status
+	}
+
+	answers, ttl, status = s.resolveResolution(domain)
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 		return answers, false, status
@@ -326,6 +324,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 	answers, ttl, status = s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
+		return answers, false, status
 	}
 
 	return answers, false, status
@@ -341,7 +340,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 	ipFound, err := database.FetchResolution(s.DB, domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
-		return nil, 0, "SERVFAIL"
+		return nil, 0, rcodes[dns.RcodeServerFailure]
 	}
 
 	if net.ParseIP(ipFound) != nil {
@@ -359,7 +358,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 		}
 		records = append(records, rr)
 	} else {
-		status = "NXDOMAIN"
+		status = rcodes[dns.RcodeNameError]
 	}
 
 	return records, ttl, status
@@ -367,25 +366,20 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 
 func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[string]bool) ([]dns.RR, uint32, string) {
 	if visited[domain] {
-		return nil, 0, "SERVFAIL"
+		return nil, 0, rcodes[dns.RcodeServerFailure]
 	}
 	visited[domain] = true
 
-	answers, ttl, status := s.queryUpstream(domain, qtype)
+	answers, ttl, status := s.queryUpstream(domain, dns.TypeCNAME)
 	if len(answers) > 0 {
-		return answers, ttl, status
-	}
-
-	cnameAnswers, cnameTTL, cnameStatus := s.queryUpstream(domain, dns.TypeCNAME)
-	if len(cnameAnswers) > 0 {
-		for _, answer := range cnameAnswers {
+		for _, answer := range answers {
 			if cname, ok := answer.(*dns.CNAME); ok {
 				targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
 				if len(targetAnswers) > 0 {
-					minTTL := min(targetTTL, cnameTTL)
-					return append(cnameAnswers, targetAnswers...), minTTL, targetStatus
+					minTTL := min(targetTTL, ttl)
+					return append(answers, targetAnswers...), minTTL, targetStatus
 				}
-				return cnameAnswers, cnameTTL, cnameStatus
+				return answers, ttl, status
 			}
 		}
 	}
@@ -413,7 +407,7 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 
 	select {
 	case in := <-resultCh:
-		status := "SERVFAIL"
+		status := rcodes[dns.RcodeServerFailure]
 		if statusStr, ok := rcodes[in.Rcode]; ok {
 			status = statusStr
 		}
@@ -432,11 +426,11 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 
 	case err := <-errCh:
 		log.Error("Resolution error for domain (%s): %v", domain, err)
-		return nil, 0, "SERVFAIL"
+		return nil, 0, rcodes[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
-		return nil, 0, "SERVFAIL"
+		return nil, 0, rcodes[dns.RcodeServerFailure]
 	}
 }
 
@@ -469,7 +463,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
-		Status:            "Blacklisted",
+		Status:            rcodes[dns.RcodeSuccess],
 		QueryType:         dns.TypeToString[request.question.Qtype],
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
