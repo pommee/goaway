@@ -44,7 +44,7 @@ func Initialize(db *sql.DB) (*Blacklist, error) {
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
 	}
 
-	b.GetBlocklistUrls()
+	_, _ = b.GetBlocklistUrls()
 	err := b.PopulateBlocklistCache()
 	if err != nil {
 		log.Error("Failed to initialize blocklist cache")

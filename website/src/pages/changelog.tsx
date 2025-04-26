@@ -44,14 +44,14 @@ const Changelog = () => {
       );
 
       setReleases(data);
-    } catch (err) {
+    } catch {
       toast.warning("Could not fetch changelog");
     } finally {
       setLoading(false);
     }
   };
 
-  const parseChangelogBody = (body: any) => {
+  const parseChangelogBody = (body: string) => {
     if (!body) return [];
 
     const sections = [];

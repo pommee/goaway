@@ -162,7 +162,7 @@ export default function PauseBlockingDialog() {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [pauseStatus?.paused]);
+  }, [pauseStatus?.paused, remainingTime]);
 
   const handlePause = async () => {
     setIsLoading(true);
