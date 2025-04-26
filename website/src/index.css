@@ -125,3 +125,106 @@
 .shadow-glow {
   box-shadow: 0 0 4px currentColor;
 }
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(0px) translateX(10px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(10px) translateX(5px) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+}
+
+@keyframes glow {
+  0% {
+    text-shadow: 0 0 10px rgba(129, 140, 248, 0.7),
+      0 0 20px rgba(129, 140, 248, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 15px rgba(129, 140, 248, 0.9),
+      0 0 30px rgba(129, 140, 248, 0.7), 0 0 40px rgba(129, 140, 248, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 10px rgba(129, 140, 248, 0.7),
+      0 0 20px rgba(129, 140, 248, 0.5);
+  }
+}
+
+@keyframes card-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes input-appear {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes button-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+.animate-float {
+  animation: float 10s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-card-appear {
+  animation: card-appear 0.6s ease-out forwards;
+}
+
+.animate-input-appear {
+  animation: input-appear 0.4s ease-out forwards;
+}
+
+.animate-button-pulse {
+  animation: button-pulse 2s infinite;
+}
+
+.bg-card-gradient {
+  background: linear-gradient(
+    145deg,
+    rgba(24, 24, 27, 0.8) 0%,
+    rgba(17, 24, 39, 0.9) 100%
+  );
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(10px);
+}
+
+.hover\:shadow-glow:hover {
+  box-shadow: 0 0 25px 5px rgba(99, 102, 241, 0.15);
+}
