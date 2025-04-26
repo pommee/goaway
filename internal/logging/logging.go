@@ -7,6 +7,14 @@ import (
 	"sync"
 )
 
+const (
+	ColorReset  = "\033[0m"
+	ColorGray   = "\033[90m"
+	ColorWhite  = "\033[97m"
+	ColorYellow = "\033[33m"
+	ColorRed    = "\033[31m"
+)
+
 type LogLevel int
 
 const (
@@ -56,10 +64,10 @@ func (l *Logger) SetLevel(level LogLevel) {
 	l.mu.Unlock()
 }
 
-func (l *Logger) log(levelStr string, message string) {
+func (l *Logger) log(level string, color string, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.logger.Printf("%s%s", levelStr, message)
+	l.logger.Printf("%s%s%s%s", color, level, message, ColorReset)
 }
 
 func (l *Logger) verifyLog(level LogLevel) bool {
@@ -72,9 +80,9 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[DEBUG] ", message)
+		l.log("[DEBUG] ", ColorGray, message)
 	} else {
-		l.log("[DEBUG] ", format)
+		l.log("[DEBUG] ", ColorGray, format)
 	}
 }
 
@@ -84,9 +92,9 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[INFO] ", message)
+		l.log("[INFO] ", ColorWhite, message)
 	} else {
-		l.log("[INFO] ", format)
+		l.log("[INFO] ", ColorWhite, format)
 	}
 }
 
@@ -96,9 +104,9 @@ func (l *Logger) Warning(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[WARN] ", message)
+		l.log("[WARN] ", ColorYellow, message)
 	} else {
-		l.log("[WARN] ", format)
+		l.log("[WARN] ", ColorYellow, format)
 	}
 }
 
@@ -108,9 +116,9 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[ERROR] ", message)
+		l.log("[ERROR] ", ColorRed, message)
 	} else {
-		l.log("[ERROR] ", format)
+		l.log("[ERROR] ", ColorRed, format)
 	}
 }
 
