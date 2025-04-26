@@ -146,15 +146,19 @@
 
 @keyframes glow {
   0% {
-    text-shadow: 0 0 10px rgba(129, 140, 248, 0.7),
+    text-shadow:
+      0 0 10px rgba(129, 140, 248, 0.7),
       0 0 20px rgba(129, 140, 248, 0.5);
   }
   50% {
-    text-shadow: 0 0 15px rgba(129, 140, 248, 0.9),
-      0 0 30px rgba(129, 140, 248, 0.7), 0 0 40px rgba(129, 140, 248, 0.5);
+    text-shadow:
+      0 0 15px rgba(129, 140, 248, 0.9),
+      0 0 30px rgba(129, 140, 248, 0.7),
+      0 0 40px rgba(129, 140, 248, 0.5);
   }
   100% {
-    text-shadow: 0 0 10px rgba(129, 140, 248, 0.7),
+    text-shadow:
+      0 0 10px rgba(129, 140, 248, 0.7),
       0 0 20px rgba(129, 140, 248, 0.5);
   }
 }
