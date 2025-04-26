@@ -29,9 +29,6 @@ func BenchmarkDNSRequest(b *testing.B) {
 		}
 		totalDuration += time.Since(start)
 	}
-
-	avgDuration := totalDuration / time.Duration(b.N)
-	b.ReportMetric(float64(avgDuration.Microseconds()), "avg_us/op")
 }
 
 func BenchmarkDNSRequestParallel(b *testing.B) {
@@ -55,9 +52,6 @@ func BenchmarkDNSRequestParallel(b *testing.B) {
 			atomic.AddInt64(&totalDuration, time.Since(start).Nanoseconds())
 		}
 	})
-
-	avgDuration := time.Duration(totalDuration / int64(b.N))
-	b.ReportMetric(float64(avgDuration.Microseconds()), "avg_us/op")
 }
 
 func TestDNSConnectivity(t *testing.T) {
