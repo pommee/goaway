@@ -42,4 +42,7 @@ test:
 	go test -count=1 -bench=. -benchmem ./test/...
 
 bench:
-	go run testing/benchmark.go -test.bench=.
+	-mv testing/benchmark.new testing/benchmark.old
+	go run testing/benchmark.go -test.bench=. > testing/benchmark.new
+	cat testing/benchmark.new
+	-benchstat testing/benchmark.old testing/benchmark.new
