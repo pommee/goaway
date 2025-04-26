@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: make-format
+        name: Run make format
+        entry: make format
+        language: system
+        types: [ts, tsx]
+      - id: make-lint
+        name: Run make lint
+        entry: make lint
+        language: system
+        types: [go]
