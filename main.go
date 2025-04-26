@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,6 +15,9 @@ import (
 	"goaway/internal/server"
 	"goaway/internal/settings"
 	"goaway/internal/setup"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/miekg/dns"
 	"github.com/spf13/cobra"
@@ -57,6 +61,13 @@ func createRootCommand() *cobra.Command {
 }
 
 func startServer(config settings.Config) {
+	if os.Getenv("GOAWAY_PROFILE") == "true" {
+		log.Warning("GOAWAY_PROFILE was set, starting profiler...")
+		go func() {
+			fmt.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
+
 	dnsServer, err := server.NewDNSServer(config.DNSServer)
 	if err != nil {
 		log.Error("Failed to initialize server: %s", err)

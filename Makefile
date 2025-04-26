@@ -1,4 +1,4 @@
-.PHONY: publish build lint example-queries dev format test
+.PHONY: publish build lint example-queries dev format test bench
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
@@ -40,3 +40,6 @@ dev-server:
 
 test:
 	go test -count=1 -bench=. -benchmem ./test/...
+
+bench:
+	go run testing/benchmark.go -test.bench=.
