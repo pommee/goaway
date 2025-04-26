@@ -264,7 +264,6 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	answers, cached, status := s.resolve(req.question.Name, req.question.Qtype)
 
 	msg := req.msg
-	client := req.client
 	var resolved []string
 
 	for _, a := range answers {
@@ -298,7 +297,7 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 		Timestamp:         req.sent,
 		ResponseTime:      time.Since(req.sent),
 		Cached:            cached,
-		ClientInfo:        client,
+		ClientInfo:        req.client,
 	}
 }
 

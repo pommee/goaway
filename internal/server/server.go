@@ -123,8 +123,6 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	sent := time.Now()
-	clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
-
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 	msg.RecursionAvailable = true
@@ -140,8 +138,9 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		wg.Add(1)
 		go func(question dns.Question) {
 			defer wg.Done()
-			client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
-			entry := s.processQuery(&Request{w, msg, question, sent, client})
+			entry := s.processQuery(&Request{w, msg, question, sent, nil})
+			clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
+			entry.ClientInfo = &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
 
 			results <- entry
 			log.Debug("Requesting domain %s took %s", entry.Domain, entry.ResponseTime)
