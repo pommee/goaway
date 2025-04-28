@@ -141,9 +141,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			entry := s.processQuery(&Request{w, msg, question, sent, nil})
 			clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
 			entry.ClientInfo = &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
-
 			results <- entry
-			log.Debug("Requesting domain %s took %s", entry.Domain, entry.ResponseTime)
 		}(question)
 	}
 
