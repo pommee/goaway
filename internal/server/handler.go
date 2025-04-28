@@ -299,7 +299,7 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string) {
-	cacheKey := domain + "-" + strconv.Itoa(int(qtype))
+	cacheKey := domain + strconv.Itoa(int(qtype))
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, rcodes[dns.RcodeSuccess]
