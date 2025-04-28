@@ -31,3 +31,4 @@ dist-ssr
 website/pnpm-lock.yaml
 testing/benchmark.new
 testing/benchmark.old
+benchmark.prof

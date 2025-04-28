@@ -46,3 +46,7 @@ bench:
 	go run testing/benchmark.go -test.bench=. > testing/benchmark.new
 	cat testing/benchmark.new
 	-benchstat testing/benchmark.old testing/benchmark.new
+
+bench-profile:
+	go run testing/benchmark.go -test.bench=. & \
+	go tool pprof http://localhost:6060/debug/pprof/profile\?seconds\=5
