@@ -19,10 +19,7 @@ import (
 var (
 	log     = logging.GetLogger()
 	dbMutex sync.Mutex
-	wsMutex sync.Mutex
 )
-
-const batchSize = 100
 
 type MacVendor struct {
 	Vendor string `json:"company"`
@@ -131,24 +128,13 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		msg.SetEdns0(1024, false)
 	}
 
-	var wg sync.WaitGroup
-	results := make(chan model.RequestLogEntry, len(r.Question))
+	clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
+	client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
 
 	for _, question := range r.Question {
-		wg.Add(1)
 		go func(question dns.Question) {
-			defer wg.Done()
-			entry := s.processQuery(&Request{w, msg, question, sent, nil})
-			clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
-			entry.ClientInfo = &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
-			results <- entry
+			entry := s.processQuery(&Request{w, msg, question, sent, client})
+			s.logEntryChannel <- entry
 		}(question)
-	}
-
-	wg.Wait()
-	close(results)
-
-	for entry := range results {
-		s.logEntryChannel <- entry
 	}
 }

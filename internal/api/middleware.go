@@ -10,6 +10,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const (
+	TOKEN_DURATION = 5 * time.Minute
+	SECRET         = "kMNSRwKip7Yet4rb2z8"
+)
+
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/server") {
@@ -25,7 +30,7 @@ func authMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(cookie, func(t *jwt.Token) (any, error) {
-			return []byte(jwtSecret), nil
+			return []byte(SECRET), nil
 		})
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
@@ -41,7 +46,7 @@ func authMiddleware() gin.HandlerFunc {
 				return
 			}
 
-			if time.Now().Unix() > expirationTime-int64(tokenDuration/2) {
+			if time.Now().Unix() > expirationTime-int64(TOKEN_DURATION/2) {
 				newToken, err := generateToken(claims["username"].(string))
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
@@ -61,10 +66,10 @@ func authMiddleware() gin.HandlerFunc {
 func generateToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
-		"exp":      time.Now().Add(tokenDuration).Unix(),
+		"exp":      time.Now().Add(TOKEN_DURATION).Unix(),
 		"iat":      time.Now().Unix(),
 	})
-	return token.SignedString([]byte(jwtSecret))
+	return token.SignedString([]byte(SECRET))
 }
 
 func setAuthCookie(w http.ResponseWriter, token string) {
@@ -75,7 +80,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
-		Expires:  time.Now().Add(tokenDuration),
+		Expires:  time.Now().Add(TOKEN_DURATION),
 	})
 }
 

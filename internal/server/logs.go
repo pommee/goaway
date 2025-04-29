@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const BATCH_SIZE = 100
+
 func (s *DNSServer) ProcessLogEntries() {
 	var batch []model.RequestLogEntry
 	ticker := time.NewTicker(1 * time.Second)
@@ -18,14 +20,12 @@ func (s *DNSServer) ProcessLogEntries() {
 		select {
 		case entry := <-s.logEntryChannel:
 			if s.WS != nil {
-				wsMutex.Lock()
 				entryWSJson, _ := json.Marshal(entry)
 				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
-				wsMutex.Unlock()
 			}
 
 			batch = append(batch, entry)
-			if len(batch) >= batchSize {
+			if len(batch) >= BATCH_SIZE {
 				s.saveBatch(batch)
 				batch = nil
 			}
@@ -40,8 +40,8 @@ func (s *DNSServer) ProcessLogEntries() {
 
 func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 	dbMutex.Lock()
-	defer dbMutex.Unlock()
 	database.SaveRequestLog(s.DB, entries)
+	dbMutex.Unlock()
 }
 
 func (s *DNSServer) Vacuum() {

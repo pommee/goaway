@@ -10,9 +10,7 @@ import (
 	"goaway/internal/settings"
 	"goaway/internal/user"
 	"net"
-
 	"os"
-	"sync"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -20,11 +18,6 @@ import (
 )
 
 var log = logging.GetLogger()
-
-const (
-	tokenDuration = 5 * time.Minute
-	jwtSecret     = "kMNSRwKip7Yet4rb2z8"
-)
 
 type Credentials struct {
 	Username string `json:"username" binding:"required"`
@@ -71,12 +64,7 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 		api.ServeEmbeddedContent(content)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
 	go func() {
-		defer wg.Done()
-
 		addr := fmt.Sprintf(":%d", api.Config.Port)
 		listener, err := net.Listen("tcp", addr)
 		if err != nil {
@@ -87,18 +75,17 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 		log.Info("Web server started on port :%d", api.Config.Port)
 
 		serverIP, err := getServerIP()
-		if err != nil {
-			log.Error("Could not start web server, reason: %v", err)
+		if err == nil {
+			log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
+		} else {
+			log.Error("Could not determine server IP: %v", err)
 		}
-		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
 
 		if err := api.router.RunListener(listener); err != nil {
 			log.Error("Server error: %v", err)
 			errorChannel <- struct{}{}
 		}
 	}()
-
-	wg.Wait()
 }
 
 func (api *API) SetupAuth() {
@@ -108,20 +95,17 @@ func (api *API) SetupAuth() {
 	}
 
 	log.Info("Creating a new admin user")
+
 	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
 		newUser.Password = password
-		err := newUser.Create(api.DnsServer.DB)
-		if err != nil {
-			log.Error("Unable to create new user: %v", err)
-		}
 		log.Info("Using custom password: [hidden]")
 	} else {
 		newUser.Password = generateRandomPassword()
-		err := newUser.Create(api.DnsServer.DB)
-		if err != nil {
-			log.Error("Unable to create new user: %v", err)
-		}
 		log.Info("Randomly generated admin password: %s", newUser.Password)
+	}
+
+	if err := newUser.Create(api.DnsServer.DB); err != nil {
+		log.Error("Unable to create new user: %v", err)
 	}
 }
 
@@ -193,6 +177,5 @@ func generateRandomPassword() string {
 	if _, err := rand.Read(randomBytes); err != nil {
 		log.Error("Error generating random bytes: %v", err)
 	}
-
 	return base64.RawStdEncoding.EncodeToString(randomBytes)
 }
