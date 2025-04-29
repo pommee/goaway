@@ -44,6 +44,12 @@ func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 	database.SaveRequestLog(s.DB, entries)
 }
 
+func (s *DNSServer) Vacuum() {
+	dbMutex.Lock()
+	s.DB.Exec("VACUUM")
+	dbMutex.Unlock()
+}
+
 func (s *DNSServer) ClearOldEntries() {
 	const (
 		maxRetries      = 10

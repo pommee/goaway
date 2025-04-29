@@ -667,6 +667,7 @@ func (api *API) clearQueries(c *gin.Context) {
 	rowsAffected, _ := result.RowsAffected()
 
 	api.DnsServer.Counters = server.CounterDetails{}
+	api.DnsServer.Vacuum()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),

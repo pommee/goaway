@@ -106,3 +106,8 @@ func NewUserDatabase(db *sql.DB) error {
 
 	return nil
 }
+
+func Vacuum(db *sql.DB) error {
+	_, err := db.Exec("VACUUM")
+	return err
+}
