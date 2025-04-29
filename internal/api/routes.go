@@ -967,11 +967,7 @@ func getDBSize() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	sizeInBytes := file.Size()
-	sizeInMB := float64(sizeInBytes) / (1024 * 1024)
-
-	return sizeInMB, nil
+	return float64(file.Size()) / (1024 * 1024), nil
 }
 
 func getServerIP() (string, error) {

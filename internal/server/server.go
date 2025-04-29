@@ -128,8 +128,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		msg.SetEdns0(1024, false)
 	}
 
-	clientIP, clientName, macAddress := s.getClientInfo(w.RemoteAddr().String())
-	client := &model.Client{IP: clientIP, Name: clientName, MAC: macAddress}
+	client := s.getClientInfo(w.RemoteAddr().String())
 
 	for _, question := range r.Question {
 		go func(question dns.Question) {

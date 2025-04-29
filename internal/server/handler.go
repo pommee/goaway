@@ -37,7 +37,7 @@ var rcodes = map[int]string{
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
 
-var hostCache, _ = lru.New[string, any](100)
+var hostCache, _ = lru.New[string, model.Client](100)
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := strings.TrimSuffix(request.question.Name, ".")
@@ -71,12 +71,11 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 	database.SaveMacEntry(s.DB, clientIP, mac, vendor)
 }
 
-func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
+func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	clientIP, _, _ := net.SplitHostPort(remoteAddr)
 
-	if cachedInfo, found := hostCache.Get(clientIP); found {
-		info := cachedInfo.([]string)
-		return info[0], info[1], info[2]
+	if cachedClient, found := hostCache.Get(clientIP); found {
+		return &cachedClient
 	}
 
 	macAddress := arp.GetMacAddress(clientIP)
@@ -113,8 +112,9 @@ func (s *DNSServer) getClientInfo(remoteAddr string) (string, string, string) {
 		hostname = strings.TrimSuffix(hostnames[0], ".")
 	}
 
-	hostCache.Add(clientIP, []string{resultIP, hostname, macAddress})
-	return resultIP, hostname, macAddress
+	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
+	hostCache.Add(clientIP, client)
+	return &client
 }
 
 func getLocalIP() (string, error) {
