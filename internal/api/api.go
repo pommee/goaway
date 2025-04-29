@@ -113,7 +113,7 @@ func (api *API) setupRoutes() {
 	api.router.POST("/api/login", api.handleLogin)
 	api.router.GET("/api/server", api.handleServer)
 	api.router.GET("/api/authentication", api.getAuthentication)
-	api.router.GET("/api/metrics", api.handleMetrics)
+	api.router.GET("/api/dnsMetrics", api.handleMetrics)
 }
 
 func (api *API) setupAuthorizedRoutes(devmode bool) {

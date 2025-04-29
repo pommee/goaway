@@ -85,7 +85,7 @@ export default function MetricsCards() {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const [, data] = await GetRequest("metrics");
+        const [, data] = await GetRequest("dnsMetrics");
         setMetricsData(data);
       } catch (error) {
         console.error("Failed to fetch server statistics:", error);
