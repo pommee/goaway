@@ -1,16 +1,20 @@
 "use client";
 
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
+  Bar,
+  BarChart,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Cell,
+  Tooltip,
+  LabelList
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GetRequest } from "@/util";
-import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { Warning } from "@phosphor-icons/react";
 
 export type TopBlockedDomains = {
   frequency: number;
@@ -18,27 +22,70 @@ export type TopBlockedDomains = {
   name: string;
 };
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate max-w-xs">
+          {data.name}
+        </p>
+        <div className="flex flex-col gap-1 text-sm">
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-indigo-500 mr-2" />
+            <span className="text-gray-600 dark:text-gray-300">Hits:</span>
+            <span className="ml-1 font-medium">
+              {data.hits.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-purple-500 mr-2" />
+            <span className="text-gray-600 dark:text-gray-300">Frequency:</span>
+            <span className="ml-1 font-medium">
+              {data.frequency.toFixed(2)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const EmptyState = () => (
+  <div className="flex flex-col items-center justify-center h-full w-full py-10">
+    <div className="mb-4">
+      <Warning size={36} />
+    </div>
+    <p className="text-gray-500 dark:text-gray-400 text-center">
+      No domains have been blocked yet
+    </p>
+    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 text-center">
+      Blocked domains will appear here when detected
+    </p>
+  </div>
+);
+
 export default function FrequencyChartBlockedDomains() {
   const [data, setData] = useState<TopBlockedDomains[]>([]);
-  const [chartConfig] = useState<ChartConfig>({
-    blocked: { label: "Blocked" }
-  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [sortBy, setSortBy] = useState<"frequency" | "hits">("frequency");
 
   useEffect(() => {
     async function fetchTopBlockedDomains() {
       try {
         const [, domains] = await GetRequest("topBlockedDomains");
-        const formattedData = domains.domains.map(
-          (domain: TopBlockedDomains) => ({
-            name: domain.name,
-            blocked: domain.hits,
-            frequency: domain.frequency
-          })
-        );
+
+        const formattedData = domains.domains.map((domain) => ({
+          name: domain.name,
+          hits: domain.hits,
+          frequency: domain.frequency
+        }));
 
         setData(formattedData);
+        setIsLoading(false);
       } catch {
-        // Ignore
+        setIsLoading(false);
       }
     }
 
@@ -47,39 +94,101 @@ export default function FrequencyChartBlockedDomains() {
     return () => clearInterval(interval);
   }, []);
 
+  const sortedData = [...data]
+    .sort((a, b) => b[sortBy] - a[sortBy])
+    .slice(0, 10);
+
+  const formatDomainName = (name: string) => {
+    if (name.length > 20) {
+      return name.substring(0, 17) + "...";
+    }
+    return name;
+  };
+
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden">
       <CardHeader>
-        <CardTitle>Top Blocked Domains</CardTitle>
-      </CardHeader>
-      <CardContent className="h-[calc(100%-50px)] flex items-center">
-        {(data.length > 0 && (
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <BarChart
-              accessibilityLayer
-              data={data}
-              layout="vertical"
-              className="w-full h-full"
-              margin={{
-                left: 20
-              }}
-              barSize={20}
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl font-bold">
+            Top Blocked Domains
+          </CardTitle>
+          <div className="flex space-x-2">
+            <Button
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                sortBy === "frequency"
+                  ? "bg-stone-800 text-white"
+                  : "bg-stone-500 text-white"
+              }`}
+              onClick={() => setSortBy("frequency")}
             >
-              <XAxis type="number" dataKey="frequency" hide />
+              Frequency
+            </Button>
+            <Button
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                sortBy === "hits"
+                  ? "bg-stone-800 text-white"
+                  : "bg-stone-500 text-white"
+              }`}
+              onClick={() => setSortBy("hits")}
+            >
+              Hits
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="h-[calc(100%-80px)]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : sortedData.length > 0 ? (
+          <ResponsiveContainer>
+            <BarChart
+              data={sortedData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              barSize={16}
+            >
+              <XAxis
+                type="number"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                domain={[0, "dataMax"]}
+              />
               <YAxis
                 dataKey="name"
                 type="category"
+                tick={{ fontSize: 12 }}
                 tickLine={false}
-                tickMargin={10}
                 axisLine={false}
-                width={100}
-                tickFormatter={(value) => value}
+                width={150}
+                tickFormatter={formatDomainName}
+                interval={0}
               />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="frequency" fill="cornflowerblue" radius={5} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
+              />
+              <Bar dataKey={sortBy} radius={[0, 4, 4, 0]}>
+                {sortedData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill="cornflowerblue" />
+                ))}
+                <LabelList
+                  dataKey={sortBy}
+                  formatter={(value: number) =>
+                    sortBy === "frequency"
+                      ? `${value.toFixed(1)}%`
+                      : value.toLocaleString()
+                  }
+                  style={{ fontSize: "14px", fill: "white" }}
+                />
+              </Bar>
             </BarChart>
-          </ChartContainer>
-        )) || <p className="text-gray-400">No domains have yet been blocked</p>}
+          </ResponsiveContainer>
+        ) : (
+          <EmptyState />
+        )}
       </CardContent>
     </Card>
   );
