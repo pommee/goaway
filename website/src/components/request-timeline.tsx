@@ -22,6 +22,11 @@ const chartConfig = {
   }
 };
 
+type Query = {
+  t: number;
+  b: boolean;
+};
+
 export default function RequestTimeline() {
   const [chartData, setChartData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -37,12 +42,12 @@ export default function RequestTimeline() {
         );
 
         const processedData = data.queries
-          .filter((query) => {
-            const queryTime = new Date(query.timestamp);
+          .filter((query: Query) => {
+            const queryTime = new Date(query.t);
             return queryTime >= twentyFourHoursAgo;
           })
-          .reduce((acc, query) => {
-            const timestamp = new Date(query.timestamp);
+          .reduce((acc: any, query: Query) => {
+            const timestamp = new Date(query.t);
             const minutes = Math.floor(timestamp.getMinutes() / 2) * 2;
             const intervalTime = new Date(timestamp);
             intervalTime.setMinutes(minutes, 0, 0);
@@ -60,7 +65,7 @@ export default function RequestTimeline() {
             }
 
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            query.blocked ? entry.blocked++ : entry.allowed++;
+            query.b ? entry.blocked++ : entry.allowed++;
 
             return acc;
           }, [])

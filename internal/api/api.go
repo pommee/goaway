@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,6 +38,7 @@ type API struct {
 func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
+	api.router.Use(gzip.Gzip(gzip.DefaultCompression))
 	api.routes = api.router.Group("/api")
 	api.DnsServer = dnsServer
 	api.DnsServer.WebServer = api.router
