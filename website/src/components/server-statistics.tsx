@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { compare } from "compare-versions";
 import confetti from "canvas-confetti";
-import { Cpu, Database, Memory, Thermometer } from "@phosphor-icons/react";
+import {
+  CaretLineUp,
+  Cpu,
+  Database,
+  Download,
+  Memory,
+  Thermometer
+} from "@phosphor-icons/react";
 
 export type Metrics = {
   cpuTemp: number;
@@ -253,28 +260,61 @@ export function ServerStatistics() {
       </div>
 
       <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-        <DialogContent className="w-1/2 max-w-none">
-          <DialogHeader>
-            <DialogTitle>Do you want to update to v{newVersion}?</DialogTitle>
+        <DialogContent className="sm:max-w-4xl rounded-lg border border-gray-200 shadow-lg dark:border-gray-800">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              Update Available: v{newVersion}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-300">
+              A new version is available for installation. View the full{" "}
+              <a
+                href="/changelog"
+                target="_blank"
+                className="text-blue-500 hover:text-blue-600 underline transition-colors"
+              >
+                changelog
+              </a>{" "}
+              for details.
+            </DialogDescription>
           </DialogHeader>
-          <DialogDescription>
-            You can find changelog{" "}
-            <a href="/changelog" className="font-bold font-und">
-              here
-            </a>
-          </DialogDescription>
-          <div className="h-64 overflow-auto bg-gray-900 text-green-400 p-2 font-mono text-sm rounded-md border border-gray-700">
-            {updateLogs.length > 0 ? (
-              updateLogs.map((log, index) => <div key={index}>{log}</div>)
-            ) : (
-              <div className="text-gray-400">Waiting for update logs...</div>
-            )}
+
+          <div className="space-y-4 py-2">
+            <div className="h-64 overflow-auto bg-gray-900 text-green-400 p-4 font-mono text-sm rounded-md border border-gray-700 shadow-inner">
+              {updateLogs.length > 0 ? (
+                updateLogs.map((log, index) => (
+                  <div key={index} className="leading-relaxed">
+                    {log}
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  <div className="text-center">
+                    <CaretLineUp className="h-8 w-8 animate-pulse mx-auto mb-2" />
+                    <p>Waiting for update to start...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+              You are recommended to backup your data before proceeding with the
+              update.
+            </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="flex items-center justify-between sm:justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpdateModal(false)}
+              className="border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+            >
+              Remind Me Later
+            </Button>
             <Button
               onClick={startUpdate}
-              className="bg-blue-500 hover:bg-blue-600"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
             >
+              <Download className="h-4 w-4" />
               Start Update
             </Button>
           </DialogFooter>
