@@ -32,7 +32,7 @@ const colors = [
   "var(--chart-5)"
 ];
 
-export type QueryType = {
+type QueryType = {
   count: number;
   queryType: string;
 };

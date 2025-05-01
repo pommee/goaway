@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { Button } from "./ui/button";
 
-export type TopBlockedDomains = {
+type TopBlockedDomains = {
   frequency: number;
   hits: number;
   name: string;

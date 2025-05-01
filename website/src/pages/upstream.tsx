@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { GetRequest } from "@/util";
-import { toast } from "sonner";
-import { UpstreamCard } from "@/app/upstream/card";
 import { AddUpstream } from "@/app/upstream/addUpstream";
+import { UpstreamCard } from "@/app/upstream/card";
+import { GetRequest } from "@/util";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-export type UpstreamResponse = {
+type UpstreamResponse = {
   preferredUpstream: string;
   upstreams: [UpstreamEntry];
 };

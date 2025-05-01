@@ -16,7 +16,7 @@ import {
   YAxis
 } from "recharts";
 
-export type TopBlockedClients = {
+type TopBlockedClients = {
   frequency: number;
   requestCount: number;
   client: string;

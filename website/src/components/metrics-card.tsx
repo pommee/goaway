@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
 
-export type Metrics = {
+type Metrics = {
   allowed: number;
   blocked: number;
   clients: number;
@@ -23,7 +23,7 @@ interface MetricsCardProps {
   description?: string;
 }
 
-export function MetricsCard({
+function MetricsCard({
   title,
   valueKey,
   Icon,

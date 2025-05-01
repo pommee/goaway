@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-  Table
-} from "@/components/ui/table";
-import { DeleteRequest, GetRequest, PostRequest } from "@/util";
-import { useEffect, useState } from "react";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
-  CardFooter
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import { Trash } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-export type ListEntry = {
+type ListEntry = {
   ip: string;
   domain: string;
 };
