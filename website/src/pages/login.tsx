@@ -78,7 +78,6 @@ export function Login({
       });
 
       if (statusCode === 200) {
-        toast.success("Login successful!");
         navigate("/");
       } else {
         toast.error("Invalid username or password.");
