@@ -1,5 +1,3 @@
-import * as React from "react";
-import { SiGithub, SiWire } from "@icons-pack/react-simple-icons";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import {
@@ -10,9 +8,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
-import { ServerStatistics } from "./server-statistics";
-import { Separator } from "./ui/separator";
-import { TextAnimate } from "./ui/text-animate";
+import { GenerateQuote } from "@/quotes";
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
   CloudArrowUp,
   Gear,
@@ -21,9 +18,13 @@ import {
   Note,
   Notebook,
   SignOut,
+  TrafficSign,
   Users
 } from "@phosphor-icons/react";
-import { GenerateQuote } from "@/quotes";
+import * as React from "react";
+import { ServerStatistics } from "./server-statistics";
+import { Separator } from "./ui/separator";
+import { TextAnimate } from "./ui/text-animate";
 
 const data = {
   navMain: [
@@ -50,7 +51,7 @@ const data = {
     {
       title: "Resolution",
       url: "/resolution",
-      icon: SiWire
+      icon: TrafficSign
     },
     {
       title: "Upstream",
