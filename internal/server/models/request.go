@@ -15,8 +15,9 @@ type RequestLogEntry struct {
 	ClientInfo        *Client       `json:"client"`
 }
 
-type RequestLogEntryTimestamps struct {
-	Timestamp time.Time `json:"t"`
-	Blocked   bool      `json:"b"`
-	Cached    bool      `json:"c"`
+type RequestLogIntervalSummary struct {
+	IntervalStart time.Time `json:"start"`
+	BlockedCount  int       `json:"blocked"`
+	CachedCount   int       `json:"cached"`
+	AllowedCount  int       `json:"allowed"`
 }

@@ -189,7 +189,7 @@ func (api *API) handleMetrics(c *gin.Context) {
 }
 
 func (api *API) getQueryTimestamps(c *gin.Context) {
-	timestamps, err := database.GetRequestTimestampAndBlocked(api.DnsServer.DB)
+	timestamps, err := database.GetRequestSummaryByInterval(api.DnsServer.DB)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})

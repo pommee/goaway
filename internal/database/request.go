@@ -42,27 +42,37 @@ func GetDistinctRequestIP(db *sql.DB) int {
 	return clientCount
 }
 
-func GetRequestTimestampAndBlocked(db *sql.DB) ([]model.RequestLogEntryTimestamps, error) {
-	query := "SELECT timestamp, blocked, cached FROM request_log"
+func GetRequestSummaryByInterval(db *sql.DB) ([]model.RequestLogIntervalSummary, error) {
+	query := `
+SELECT
+  (timestamp / 120) * 120 AS interval_start,
+  SUM(CASE WHEN blocked = 1 THEN 1 ELSE 0 END) AS blocked_count,
+  SUM(CASE WHEN cached = 1 THEN 1 ELSE 0 END) AS cached_count,
+  SUM(CASE WHEN blocked = 0 AND cached = 0 THEN 1 ELSE 0 END) AS allowed_count
+FROM request_log
+WHERE timestamp >= strftime('%s', 'now', '-24 hours')
+GROUP BY interval_start
+ORDER BY interval_start;
+`
 
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	defer rows.Close()
 
-	var queries []model.RequestLogEntryTimestamps
+	var summaries []model.RequestLogIntervalSummary
 	for rows.Next() {
-		var query model.RequestLogEntryTimestamps
-		if err := rows.Scan(&query.Timestamp, &query.Blocked, &query.Cached); err != nil {
+		var ts int64
+		var summary model.RequestLogIntervalSummary
+		if err := rows.Scan(&ts, &summary.BlockedCount, &summary.CachedCount, &summary.AllowedCount); err != nil {
 			return nil, err
 		}
-		queries = append(queries, query)
+		summary.IntervalStart = time.Unix(ts, 0)
+		summaries = append(summaries, summary)
 	}
 
-	return queries, nil
+	return summaries, nil
 }
 
 func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
@@ -183,14 +193,14 @@ func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
 
 func GetClientRequestDetails(db *sql.DB, clientIP string) (dbModel.ClientRequestDetails, error) {
 	query := `
-		SELECT 
+		SELECT
 			COUNT(*),
 			COUNT(DISTINCT domain),
 			SUM(CASE WHEN blocked THEN 1 ELSE 0 END),
 			SUM(CASE WHEN cached THEN 1 ELSE 0 END),
 			AVG(response_time_ns) / 1e6,
 			MAX(timestamp)
-		FROM request_log 
+		FROM request_log
 		WHERE client_ip LIKE ?`
 	searchPattern := "%" + clientIP + "%"
 
@@ -207,10 +217,10 @@ func GetClientRequestDetails(db *sql.DB, clientIP string) (dbModel.ClientRequest
 
 func GetMostQueriedDomainByIP(db *sql.DB, clientIP string) (string, error) {
 	query := `
-		SELECT domain FROM request_log 
+		SELECT domain FROM request_log
 		WHERE client_ip LIKE ?
-		GROUP BY domain 
-		ORDER BY COUNT(*) DESC 
+		GROUP BY domain
+		ORDER BY COUNT(*) DESC
 		LIMIT 1`
 	searchPattern := "%" + clientIP + "%"
 
@@ -225,10 +235,10 @@ func GetMostQueriedDomainByIP(db *sql.DB, clientIP string) (string, error) {
 
 func GetAllQueriedDomainsByIP(db *sql.DB, clientIP string) (map[string]int, error) {
 	query := `
-		SELECT domain, COUNT(*) as query_count 
-		FROM request_log 
-		WHERE client_ip LIKE ? 
-		GROUP BY domain 
+		SELECT domain, COUNT(*) as query_count
+		FROM request_log
+		WHERE client_ip LIKE ?
+		GROUP BY domain
 		ORDER BY query_count DESC`
 	searchPattern := "%" + clientIP + "%"
 

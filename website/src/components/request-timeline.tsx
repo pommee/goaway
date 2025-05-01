@@ -40,9 +40,10 @@ const chartConfig = {
 };
 
 type Query = {
-  t: number;
-  b: boolean;
-  c: boolean;
+  start: number;
+  blocked: boolean;
+  cached: boolean;
+  allowed: boolean;
 };
 
 export default function RequestTimeline() {
@@ -57,48 +58,16 @@ export default function RequestTimeline() {
   const fetchData = async () => {
     try {
       setIsRefreshing(true);
-      const [, data] = await GetRequest("queryTimestamps");
+      const [, responseData] = await GetRequest("queryTimestamps");
+      const data = responseData.queries.map((q: Query) => ({
+        interval: new Date(q.start),
+        blocked: q.blocked,
+        cached: q.cached,
+        allowed: q.allowed
+      }));
 
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-      const processedData = data.queries
-        .filter((query: Query) => {
-          const queryTime = new Date(query.t);
-          return queryTime >= twentyFourHoursAgo;
-        })
-        .reduce((acc, query: Query) => {
-          const timestamp = new Date(query.t);
-          const minutes = Math.floor(timestamp.getMinutes() / 2) * 2;
-          const intervalTime = new Date(timestamp);
-          intervalTime.setMinutes(minutes, 0, 0);
-          const intervalKey = intervalTime.toISOString();
-
-          let entry = acc.find((e) => e.interval === intervalKey);
-          if (!entry) {
-            entry = {
-              interval: intervalKey,
-              blocked: 0,
-              allowed: 0,
-              cached: 0
-            };
-            acc.push(entry);
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          if (query.b == false && query.c) {
-            entry.cached++;
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            query.b ? entry.blocked++ : entry.allowed++;
-          }
-
-          return acc;
-        }, [])
-        .sort((a, b) => new Date(a.interval) - new Date(b.interval));
-
-      setChartData(processedData);
-      setZoomedData(processedData);
+      setChartData(data);
+      setZoomedData(data);
       setIsLoading(false);
       setIsRefreshing(false);
     } catch (error) {
@@ -401,7 +370,7 @@ export default function RequestTimeline() {
             <div className="text-center">
               <p className="text-lg font-medium">No data available</p>
               <p className="text-sm text-muted-foreground">
-                No requests recorded in the selected time range
+                No requests recorded yet
               </p>
             </div>
           </CardContent>
