@@ -71,7 +71,9 @@ export function CardDetails(listEntry: ListEntry) {
           </div>
           <div className="flex gap-1 text-zinc-500">
             {"blocked:"}
-            <p className="text-white">{listEntry.blockedCount}</p>
+            <p className="text-white">
+              {listEntry.blockedCount.toLocaleString()}
+            </p>
           </div>
           <div className="flex gap-1 text-zinc-500">
             {"updated:"}
