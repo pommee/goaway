@@ -1,14 +1,8 @@
+import { GetRequest } from "@/util";
+import { Database, Icon, Shield, Trash, Users } from "@phosphor-icons/react";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
-import clsx from "clsx";
-import { GetRequest } from "@/util";
-import {
-  Database,
-  Icon,
-  Shield,
-  ShieldSlash,
-  Users
-} from "@phosphor-icons/react";
 
 export type Metrics = {
   allowed: number;
@@ -49,9 +43,7 @@ export function MetricsCard({
     <Card
       className={clsx("relative p-2 rounded-lg w-full overflow-hidden")}
       style={{
-        background: `linear-gradient(to right, #1a1a1a, ${getBgColorValue(
-          bgColor
-        )})`
+        background: `linear-gradient(to right, #1a1a1a, ${bgColor})`
       }}
     >
       <div className="relative z-10 flex items-center justify-between">
@@ -62,20 +54,9 @@ export function MetricsCard({
             <p className="text-xs text-gray-300 mt-0.5">{description}</p>
           )}
         </div>
-        <Icon className="w-10 h-10 text-white opacity-20" />
+        <Icon className="w-10 h-10 opacity-60" />
       </div>
     </Card>
-  );
-}
-
-function getBgColorValue(bgColor: string) {
-  return (
-    {
-      "bg-green-800": "#166534",
-      "bg-red-800": "#991b1b",
-      "bg-blue-800": "#1e40af",
-      "bg-purple-800": "#6b21a8"
-    }[bgColor] || "#1a1a1a"
   );
 }
 
@@ -104,15 +85,15 @@ export default function MetricsCards() {
         title="Total Queries"
         valueKey="total"
         Icon={Shield}
-        bgColor="bg-green-800"
+        bgColor="#166534"
         metricsData={metricsData}
         description="All DNS queries processed"
       />
       <MetricsCard
         title="Queries Blocked"
         valueKey="blocked"
-        Icon={ShieldSlash}
-        bgColor="bg-red-800"
+        Icon={Trash}
+        bgColor="#991b1b"
         metricsData={metricsData}
         description="Total queries filtered"
       />
@@ -120,7 +101,7 @@ export default function MetricsCards() {
         title="Percent Blocked"
         valueKey="percentageBlocked"
         Icon={Users}
-        bgColor="bg-blue-800"
+        bgColor="#1e40af"
         type="percentage"
         metricsData={metricsData}
         description="Percentage of blocked queries"
@@ -129,7 +110,7 @@ export default function MetricsCards() {
         title="Blocked Domains"
         valueKey="domainBlockLen"
         Icon={Database}
-        bgColor="bg-purple-800"
+        bgColor="#6b21a8"
         metricsData={metricsData}
         description="Number of domains in blocklist"
       />
