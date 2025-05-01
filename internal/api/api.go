@@ -159,6 +159,8 @@ func (api *API) setupAuthorizedRoutes(devmode bool) {
 	api.routes.GET("/topClients", api.getTopClients)
 	api.routes.GET("/lists", api.getLists)
 	api.routes.GET("/addList", api.addList)
+	api.routes.GET("/fetchUpdatedList", api.fetchUpdatedList)
+	api.routes.GET("/runUpdateList", api.runUpdateList)
 	api.routes.GET("/getDomainsForList", api.getDomainsForList)
 	api.routes.GET("/runUpdate", api.runUpdate)
 	api.routes.GET("/pause", api.getBlocking)

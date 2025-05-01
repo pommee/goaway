@@ -16,7 +16,16 @@ require (
 	golang.org/x/crypto v0.37.0
 )
 
-require github.com/gin-contrib/gzip v1.2.3
+require (
+	github.com/gin-contrib/gzip v1.2.3
+	github.com/stretchr/testify v1.10.0
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.13.2 // indirect

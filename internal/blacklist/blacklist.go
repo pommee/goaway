@@ -2,14 +2,19 @@ package blacklist
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"goaway/internal/logging"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 var log = logging.GetLogger()
@@ -106,6 +111,38 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 	return blocklistURL, nil
 }
 
+func (b *Blacklist) FetchRemoteHostsList(url, name string) ([]string, string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	domains, err := b.ExtractDomains(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to extract domains from %s: %w", url, err)
+	}
+
+	return domains, calculateDomainsChecksum(domains), nil
+}
+
+func (b *Blacklist) FetchDBHostsList(url, name string) ([]string, string, error) {
+	domains, err := b.GetDomainsForList(name)
+	if err != nil {
+		return nil, "", fmt.Errorf("could not fetch domains from database")
+	}
+
+	return domains, calculateDomainsChecksum(domains), nil
+}
+
+func calculateDomainsChecksum(domains []string) string {
+	sort.Strings(domains)
+	data := strings.Join(domains, "\n")
+
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
+}
+
 func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -115,7 +152,7 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 		_ = Body.Close()
 	}(resp.Body)
 
-	domains, err := b.extractDomains(resp.Body)
+	domains, err := b.ExtractDomains(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to extract domains from %s: %w", url, err)
 	}
@@ -130,36 +167,38 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 	return nil
 }
 
-func (b *Blacklist) extractDomains(body io.Reader) ([]string, error) {
-	var domains []string
+func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(body)
+	var domains []string
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if len(line) == 0 || line[0] == '#' {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) == 0 || strings.HasPrefix(fields[0], "#") {
 			continue
 		}
-		parts := strings.Fields(line)
 
-		if len(parts) > 1 {
-			switch parts[1] {
-			case "localhost", "localhost.localdomain", "broadcasthost", "local":
+		domain := fields[0]
+		if fields[0] == "0.0.0.0" || fields[0] == "127.0.0.1" && len(fields) > 1 {
+			domain = fields[1]
+			switch domain {
+			case "localhost", "localhost.localdomain", "broadcasthost", "local", "0.0.0.0":
 				continue
 			}
-			domains = append(domains, parts[1:2]...)
+		} else if domain == "0.0.0.0" || domain == "127.0.0.1" {
+			continue
 		}
-		domains = append(domains, parts[0])
+
+		domains = append(domains, domain)
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("error reading hosts file: %w", err)
 	}
-
 	if len(domains) == 0 {
 		return nil, errors.New("zero results when parsing")
 	}
 
-	return domains, nil
+	return slices.Compact(domains), nil
 }
 
 func (b *Blacklist) AddDomain(domain string) error {

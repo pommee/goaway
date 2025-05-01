@@ -770,6 +770,89 @@ func (api *API) addList(c *gin.Context) {
 	c.JSON(http.StatusOK, nil)
 }
 
+func (api *API) fetchUpdatedList(c *gin.Context) {
+	name := c.Query("name")
+	url := c.Query("url")
+
+	if api.DnsServer.Blacklist.BlocklistURL[name] == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
+		return
+	}
+
+	if name == "" || url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'name' or 'url' query parameter"})
+		return
+	}
+
+	remoteDomains, remoteChecksum, err := api.DnsServer.Blacklist.FetchRemoteHostsList(url, name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	dbDomains, dbChecksum, err := api.DnsServer.Blacklist.FetchDBHostsList(url, name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	if remoteChecksum == dbChecksum {
+		c.JSON(http.StatusOK, gin.H{"updateAvailable": false, "message": "No list updates available"})
+		return
+	}
+
+	diff := func(a, b []string) []string {
+		mb := make(map[string]struct{}, len(b))
+		for _, x := range b {
+			mb[x] = struct{}{}
+		}
+		diff := make([]string, 0)
+		for _, x := range a {
+			if _, found := mb[x]; !found {
+				diff = append(diff, x)
+			}
+		}
+		return diff
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"updateAvailable": true,
+		"remoteChecksum":  remoteChecksum,
+		"dbChecksum":      dbChecksum,
+		"diffAdded":       diff(remoteDomains, dbDomains),
+		"diffRemoved":     diff(dbDomains, remoteDomains),
+	})
+}
+
+func (api *API) runUpdateList(c *gin.Context) {
+	name := c.Query("name")
+	url := c.Query("url")
+
+	if api.DnsServer.Blacklist.BlocklistURL[name] == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
+		return
+	}
+
+	if name == "" || url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'name' or 'url' query parameter"})
+		return
+	}
+
+	err := api.DnsServer.Blacklist.RemoveSourceAndDomains(name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	err = api.DnsServer.Blacklist.FetchAndLoadHosts(url, name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	api.DnsServer.Blacklist.PopulateBlocklistCache()
+
+	c.Status(http.StatusOK)
+}
+
 func (api *API) removeList(c *gin.Context) {
 	name := c.Query("name")
 

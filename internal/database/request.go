@@ -387,7 +387,7 @@ func DeleteRequestLogsTimebased(db *sql.DB, requestThreshold, maxRetries int, re
 		result, err := db.Exec(query)
 		if err != nil {
 			if err.Error() == "database is locked" {
-				log.Debug("Database is locked; retrying (%d/%d)", retryCount+1, maxRetries)
+				log.Warning("Database is locked; retrying (%d/%d)", retryCount+1, maxRetries)
 				time.Sleep(retryDelay)
 				continue
 			}

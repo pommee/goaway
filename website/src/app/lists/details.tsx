@@ -22,6 +22,11 @@ import BlockedDomainsList from "./blockedDomains";
 
 export function CardDetails(listEntry: ListEntry) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [updateDiff, setUpdateDiff] = useState({
+    diffAdded: [],
+    diffRemoved: []
+  });
+  const [showDiff, setShowDiff] = useState(false);
 
   const toggleBlocklist = async () => {
     const [code, response] = await GetRequest(
@@ -33,6 +38,59 @@ export function CardDetails(listEntry: ListEntry) {
     } else {
       toast.error(response.message);
       setDialogOpen(false);
+    }
+  };
+
+  const checkForUpdates = async () => {
+    try {
+      const [code, response] = await GetRequest(
+        `fetchUpdatedList?name=${encodeURIComponent(listEntry.name)}&url=${
+          listEntry.url || ""
+        }`
+      );
+
+      if (code === 200) {
+        if (response.updateAvailable) {
+          setUpdateDiff({
+            diffAdded: response.diffAdded || [],
+            diffRemoved: response.diffRemoved || []
+          });
+          setShowDiff(true);
+        } else {
+          toast.info("No updates available");
+          setShowDiff(false);
+        }
+      } else {
+        toast.error(response.error);
+        setShowDiff(false);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error checking for updates");
+      setShowDiff(false);
+    }
+  };
+
+  const runUpdateList = async () => {
+    try {
+      const [code, response] = await GetRequest(
+        `runUpdateList?name=${encodeURIComponent(listEntry.name)}&url=${
+          listEntry.url || ""
+        }`
+      );
+
+      if (code === 200) {
+        setDialogOpen(false);
+        setShowDiff(false);
+        toast.info(`Updated ${listEntry.name}`);
+      } else {
+        toast.error(response.error);
+        setShowDiff(false);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error checking for updates");
+      setShowDiff(false);
     }
   };
 
@@ -98,11 +156,12 @@ export function CardDetails(listEntry: ListEntry) {
           {listEntry.name !== "Custom" && (
             <>
               <Button
+                onClick={checkForUpdates}
                 variant="outline"
                 className="bg-blue-600 border-none hover:bg-blue-500 text-white flex-1 text-sm"
               >
                 <ArrowsClockwise className="mr-1" size={16} />
-                Update [WIP]
+                Update
               </Button>
               <Button
                 variant="outline"
@@ -116,6 +175,58 @@ export function CardDetails(listEntry: ListEntry) {
         </div>
         {listEntry.name === "Custom" && (
           <BlockedDomainsList listName={listEntry.name} />
+        )}
+
+        {showDiff && (
+          <div className="mt-4 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+            <h3 className="font-bold mb-2">
+              Update for {listEntry.name} found
+            </h3>
+            <Separator className="bg-stone-700 mb-1" />
+            {updateDiff.diffAdded.length > 0 && (
+              <>
+                <div className="mb-3">
+                  <h4 className="text-green-400 mb-1">
+                    New Domains: {updateDiff.diffAdded.length}{" "}
+                  </h4>
+                  <div className="max-h-24 overflow-y-auto text-xs flex gap-1 flex-wrap">
+                    {updateDiff.diffAdded.map((item, i) => (
+                      <div
+                        key={`added-${i}`}
+                        className="text-green-300 bg-stone-900 p-1 rounded-sm"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Separator className="bg-stone-600 mb-2" />
+              </>
+            )}
+            {updateDiff.diffRemoved.length > 0 && (
+              <div>
+                <h4 className="text-red-400 mb-1">
+                  Deleted Domains: {updateDiff.diffRemoved.length}
+                </h4>
+                <div className="max-h-24 overflow-y-auto text-xs flex gap-1 flex-wrap">
+                  {updateDiff.diffRemoved.map((item, i) => (
+                    <div
+                      key={`removed-${i}`}
+                      className="text-red-300 bg-stone-900 p-1 rounded-sm"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button
+              className="mt-6 bg-green-700 hover:bg-green-600 cursor-pointer text-white w-full"
+              onClick={runUpdateList}
+            >
+              Accept changes
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
