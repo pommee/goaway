@@ -2,9 +2,9 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceArea,
   XAxis,
-  YAxis,
-  ReferenceArea
+  YAxis
 } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,13 +16,13 @@ import {
   ChartTooltipContent
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
-import { useEffect, useState } from "react";
-import { Button } from "./ui/button";
 import {
   ArrowsClockwise,
-  MagnifyingGlassPlus,
-  MagnifyingGlassMinus
+  MagnifyingGlassMinus,
+  MagnifyingGlassPlus
 } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
 
 const chartConfig = {
   blocked: {
@@ -67,7 +67,7 @@ export default function RequestTimeline() {
           const queryTime = new Date(query.t);
           return queryTime >= twentyFourHoursAgo;
         })
-        .reduce((acc: any, query: Query) => {
+        .reduce((acc, query: Query) => {
           const timestamp = new Date(query.t);
           const minutes = Math.floor(timestamp.getMinutes() / 2) * 2;
           const intervalTime = new Date(timestamp);
@@ -89,6 +89,7 @@ export default function RequestTimeline() {
           if (query.b == false && query.c) {
             entry.cached++;
           } else {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             query.b ? entry.blocked++ : entry.allowed++;
           }
 
@@ -134,8 +135,8 @@ export default function RequestTimeline() {
     const indexLeft = chartData.findIndex((d) => d.interval === refAreaLeft);
     const indexRight = chartData.findIndex((d) => d.interval === refAreaRight);
 
-    let startIndex = Math.min(indexLeft, indexRight);
-    let endIndex = Math.max(indexLeft, indexRight);
+    const startIndex = Math.min(indexLeft, indexRight);
+    const endIndex = Math.max(indexLeft, indexRight);
 
     if (startIndex < 0 || endIndex < 0) {
       setRefAreaLeft("");

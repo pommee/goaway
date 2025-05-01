@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GetRequest } from "@/util";
+import { Warning } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
   Cell,
+  LabelList,
+  ResponsiveContainer,
   Tooltip,
-  LabelList
+  XAxis,
+  YAxis
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GetRequest } from "@/util";
-import { Button } from "@/components/ui/button";
-import { Warning } from "@phosphor-icons/react";
 
 export type TopBlockedClients = {
   frequency: number;
@@ -22,7 +22,7 @@ export type TopBlockedClients = {
   client: string;
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
