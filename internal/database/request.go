@@ -380,7 +380,9 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 	}
 }
 
-func DeleteRequestLogsTimebased(db *sql.DB, requestThreshold, maxRetries int, retryDelay time.Duration) {
+type vacuumFunc func()
+
+func DeleteRequestLogsTimebased(vacuum vacuumFunc, db *sql.DB, requestThreshold, maxRetries int, retryDelay time.Duration) {
 	query := fmt.Sprintf("DELETE FROM request_log WHERE strftime('%%s', 'now') - timestamp > %d", requestThreshold)
 
 	for retryCount := range maxRetries {
@@ -396,6 +398,7 @@ func DeleteRequestLogsTimebased(db *sql.DB, requestThreshold, maxRetries int, re
 		}
 
 		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+			vacuum()
 			log.Debug("Cleared %d old entries", affected)
 		}
 		break

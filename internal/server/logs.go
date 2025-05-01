@@ -62,7 +62,7 @@ func (s *DNSServer) ClearOldEntries() {
 		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
 		time.Sleep(cleanupInterval)
 
-		database.DeleteRequestLogsTimebased(s.DB, requestThreshold, maxRetries, retryDelay)
+		database.DeleteRequestLogsTimebased(s.Vacuum, s.DB, requestThreshold, maxRetries, retryDelay)
 		s.UpdateCounters()
 	}
 }
