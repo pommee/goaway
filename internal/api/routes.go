@@ -848,7 +848,12 @@ func (api *API) runUpdateList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	api.DnsServer.Blacklist.PopulateBlocklistCache()
+	err = api.DnsServer.Blacklist.PopulateBlocklistCache()
+	if err != nil {
+		message := fmt.Sprintf("Unable to re-populate the blocklist cache: %v", err)
+		log.Warning("%s", message)
+		c.JSON(http.StatusBadGateway, gin.H{"error": message})
+	}
 
 	c.Status(http.StatusOK)
 }

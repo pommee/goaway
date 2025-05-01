@@ -46,7 +46,10 @@ func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 
 func (s *DNSServer) Vacuum() {
 	dbMutex.Lock()
-	s.DB.Exec("VACUUM")
+	_, err := s.DB.Exec("VACUUM")
+	if err != nil {
+		log.Warning("Error while vacuuming database: %v", err)
+	}
 	dbMutex.Unlock()
 }
 
