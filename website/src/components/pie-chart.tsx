@@ -92,10 +92,7 @@ export default function RequestTypeChart() {
         {chartType === "radar" ? (
           <ChartContainer config={{}}>
             <RadarChart data={chartData}>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <PolarGrid />
               <PolarAngleAxis dataKey="requestType" />
               <Radar
