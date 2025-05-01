@@ -4,7 +4,7 @@ import {
   CartesianGrid,
   XAxis,
   YAxis,
-  ResponsiveContainer
+  ReferenceArea
 } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,11 @@ import {
 import { GetRequest } from "@/util";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { ArrowsClockwise } from "@phosphor-icons/react";
+import {
+  ArrowsClockwise,
+  MagnifyingGlassPlus,
+  MagnifyingGlassMinus
+} from "@phosphor-icons/react";
 
 const chartConfig = {
   blocked: {
@@ -28,18 +32,27 @@ const chartConfig = {
   allowed: {
     label: "Allowed",
     color: "hsl(142, 71%, 45%)"
+  },
+  cached: {
+    label: "Cached",
+    color: "hsl(62, 86%, 55%)"
   }
 };
 
 type Query = {
   t: number;
   b: boolean;
+  c: boolean;
 };
 
 export default function RequestTimeline() {
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refAreaLeft, setRefAreaLeft] = useState("");
+  const [refAreaRight, setRefAreaRight] = useState("");
+  const [zoomedData, setZoomedData] = useState([]);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -59,7 +72,6 @@ export default function RequestTimeline() {
           const minutes = Math.floor(timestamp.getMinutes() / 2) * 2;
           const intervalTime = new Date(timestamp);
           intervalTime.setMinutes(minutes, 0, 0);
-
           const intervalKey = intervalTime.toISOString();
 
           let entry = acc.find((e) => e.interval === intervalKey);
@@ -67,19 +79,25 @@ export default function RequestTimeline() {
             entry = {
               interval: intervalKey,
               blocked: 0,
-              allowed: 0
+              allowed: 0,
+              cached: 0
             };
             acc.push(entry);
           }
 
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          query.b ? entry.blocked++ : entry.allowed++;
+          if (query.b == false && query.c) {
+            entry.cached++;
+          } else {
+            query.b ? entry.blocked++ : entry.allowed++;
+          }
 
           return acc;
         }, [])
         .sort((a, b) => new Date(a.interval) - new Date(b.interval));
 
       setChartData(processedData);
+      setZoomedData(processedData);
       setIsLoading(false);
       setIsRefreshing(false);
     } catch (error) {
@@ -106,7 +124,54 @@ export default function RequestTimeline() {
     );
   };
 
-  const filteredData = getFilteredData();
+  const handleZoomIn = () => {
+    if (refAreaLeft === refAreaRight || refAreaRight === "") {
+      setRefAreaLeft("");
+      setRefAreaRight("");
+      return;
+    }
+
+    const indexLeft = chartData.findIndex((d) => d.interval === refAreaLeft);
+    const indexRight = chartData.findIndex((d) => d.interval === refAreaRight);
+
+    let startIndex = Math.min(indexLeft, indexRight);
+    let endIndex = Math.max(indexLeft, indexRight);
+
+    if (startIndex < 0 || endIndex < 0) {
+      setRefAreaLeft("");
+      setRefAreaRight("");
+      return;
+    }
+
+    const filteredData = chartData.slice(startIndex, endIndex + 1);
+    setZoomedData(filteredData);
+    setIsZoomed(true);
+    setRefAreaLeft("");
+    setRefAreaRight("");
+  };
+
+  const handleZoomOut = () => {
+    setZoomedData(getFilteredData());
+    setIsZoomed(false);
+  };
+
+  const handleMouseDown = (e) => {
+    if (!e || !e.activeLabel) return;
+    setRefAreaLeft(e.activeLabel);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!refAreaLeft || !e || !e.activeLabel) return;
+    setRefAreaRight(e.activeLabel);
+  };
+
+  const handleMouseUp = () => {
+    if (refAreaLeft && refAreaRight) {
+      handleZoomIn();
+    }
+  };
+
+  const filteredData = isZoomed ? zoomedData : getFilteredData();
 
   if (isLoading) {
     return (
@@ -144,135 +209,184 @@ export default function RequestTimeline() {
                 : "No data available"}
             </p>
           </div>
-          <>
+          <div className="flex gap-2">
+            {isZoomed && (
+              <Button
+                className="bg-transparent border-1 text-white hover:bg-stone-800"
+                onClick={handleZoomOut}
+              >
+                <MagnifyingGlassMinus weight="bold" className="mr-1" />
+                Reset Zoom
+              </Button>
+            )}
             <Button
               className="bg-transparent border-1 text-white hover:bg-stone-800"
               onClick={fetchData}
               disabled={isRefreshing}
             >
-              <ArrowsClockwise weight="bold" />
+              <ArrowsClockwise weight="bold" className="mr-1" />
               Refresh
             </Button>
-          </>
+          </div>
         </CardHeader>
 
         {filteredData.length > 0 ? (
           <>
             <CardContent className="px-2 pt-0">
+              <div className="mb-2 text-sm text-muted-foreground">
+                {!isZoomed && (
+                  <div className="flex items-center ml-4">
+                    <MagnifyingGlassPlus weight="bold" className="mr-1" />
+                    Drag to zoom: Select an area on the chart to zoom in
+                  </div>
+                )}
+              </div>
               <ChartContainer
                 config={chartConfig}
                 className="aspect-auto h-[300px] w-full"
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={filteredData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="fillBlocked"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="var(--color-blocked)"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="var(--color-blocked)"
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="fillAllowed"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="var(--color-allowed)"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="var(--color-allowed)"
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      vertical={false}
-                      strokeDasharray="3 3"
-                      opacity={0.2}
+                <AreaChart
+                  data={filteredData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                >
+                  <defs>
+                    <linearGradient
+                      id="fillBlocked"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-blocked)"
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-blocked)"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                    <linearGradient
+                      id="fillAllowed"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-allowed)"
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-allowed)"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                    <linearGradient id="fillCached" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-cached)"
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-cached)"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 3"
+                    opacity={0.2}
+                  />
+                  <XAxis
+                    className="select-none"
+                    dataKey="interval"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    minTickGap={40}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return date.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: false
+                      });
+                    }}
+                  />
+                  <YAxis
+                    className="select-none"
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    tickFormatter={(value) =>
+                      value > 999 ? `${(value / 1000).toFixed(1)}k` : value
+                    }
+                  />
+                  <ChartTooltip
+                    cursor={{
+                      stroke: "#d1d5db",
+                      strokeWidth: 1,
+                      strokeDasharray: "4 4"
+                    }}
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(value) => {
+                          return new Date(value).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false
+                          });
+                        }}
+                      />
+                    }
+                  />
+                  <Area
+                    dataKey="allowed"
+                    type="monotone"
+                    fill="url(#fillAllowed)"
+                    stroke="var(--color-allowed)"
+                    strokeWidth={2}
+                    stackId="a"
+                  />
+                  <Area
+                    dataKey="blocked"
+                    type="monotone"
+                    fill="url(#fillBlocked)"
+                    stroke="var(--color-blocked)"
+                    strokeWidth={2}
+                    stackId="b"
+                  />
+                  <Area
+                    dataKey="cached"
+                    type="monotone"
+                    fill="url(#fillCached)"
+                    stroke="var(--color-cached)"
+                    strokeWidth={2}
+                    stackId="c"
+                  />
+                  {refAreaLeft && refAreaRight && (
+                    <ReferenceArea
+                      x1={refAreaLeft}
+                      x2={refAreaRight}
+                      strokeOpacity={0.3}
+                      fill="#8884d8"
+                      fillOpacity={0.3}
                     />
-                    <XAxis
-                      dataKey="interval"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      minTickGap={40}
-                      tickFormatter={(value) => {
-                        const date = new Date(value);
-                        return date.toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: false
-                        });
-                      }}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={40}
-                      tickFormatter={(value) =>
-                        value > 999 ? `${(value / 1000).toFixed(1)}k` : value
-                      }
-                    />
-                    <ChartTooltip
-                      cursor={{
-                        stroke: "#d1d5db",
-                        strokeWidth: 1,
-                        strokeDasharray: "4 4"
-                      }}
-                      content={
-                        <ChartTooltipContent
-                          labelFormatter={(value) => {
-                            return new Date(value).toLocaleString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false
-                            });
-                          }}
-                        />
-                      }
-                    />
-                    <Area
-                      dataKey="allowed"
-                      type="monotone"
-                      fill="url(#fillAllowed)"
-                      stroke="var(--color-allowed)"
-                      strokeWidth={2}
-                      stackId="a"
-                    />
-                    <Area
-                      dataKey="blocked"
-                      type="monotone"
-                      fill="url(#fillBlocked)"
-                      stroke="var(--color-blocked)"
-                      strokeWidth={2}
-                      stackId="b"
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                  )}
+                  <ChartLegend content={<ChartLegendContent />} />
+                </AreaChart>
               </ChartContainer>
             </CardContent>
           </>

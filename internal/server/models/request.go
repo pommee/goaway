@@ -18,4 +18,5 @@ type RequestLogEntry struct {
 type RequestLogEntryTimestamps struct {
 	Timestamp time.Time `json:"t"`
 	Blocked   bool      `json:"b"`
+	Cached    bool      `json:"c"`
 }
