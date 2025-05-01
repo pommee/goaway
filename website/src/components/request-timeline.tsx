@@ -247,7 +247,6 @@ export default function RequestTimeline() {
               >
                 <AreaChart
                   data={filteredData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
@@ -327,10 +326,16 @@ export default function RequestTimeline() {
                     className="select-none"
                     tickLine={false}
                     axisLine={false}
-                    width={40}
-                    tickFormatter={(value) =>
-                      value > 999 ? `${(value / 1000).toFixed(1)}k` : value
-                    }
+                    width={45}
+                    tickFormatter={(value) => {
+                      if (value >= 1_000_000) {
+                        return `${(value / 1_000_000).toFixed(1)}m`;
+                      } else if (value >= 1_000) {
+                        return `${(value / 1_000).toFixed(1)}k`;
+                      } else {
+                        return value;
+                      }
+                    }}
                   />
                   <ChartTooltip
                     cursor={{
