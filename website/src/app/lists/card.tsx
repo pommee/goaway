@@ -6,8 +6,13 @@ import { Clock, ShieldSlash } from "@phosphor-icons/react";
 
 export function ListCard(listEntry: ListEntry) {
   const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
-    "sv-SE",
+    "en-US",
     {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hour12: false
     }
   );

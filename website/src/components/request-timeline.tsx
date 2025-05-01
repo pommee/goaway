@@ -133,12 +133,13 @@ export default function RequestTimeline() {
               2-Minute Intervals,{" "}
               {filteredData.length > 0
                 ? "Last Updated: " +
-                  new Date().toLocaleString("sv-SE", {
+                  new Date().toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                    second: "2-digit"
+                    second: "2-digit",
+                    hour12: false
                   })
                 : "No data available"}
             </p>
@@ -218,9 +219,10 @@ export default function RequestTimeline() {
                       minTickGap={40}
                       tickFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleTimeString("sv-SE", {
+                        return date.toLocaleTimeString("en-US", {
                           hour: "numeric",
-                          minute: "2-digit"
+                          minute: "2-digit",
+                          hour12: false
                         });
                       }}
                     />
@@ -241,11 +243,12 @@ export default function RequestTimeline() {
                       content={
                         <ChartTooltipContent
                           labelFormatter={(value) => {
-                            return new Date(value).toLocaleString("sv-SE", {
+                            return new Date(value).toLocaleString("en-US", {
                               month: "short",
                               day: "numeric",
                               hour: "2-digit",
-                              minute: "2-digit"
+                              minute: "2-digit",
+                              hour12: false
                             });
                           }}
                         />
