@@ -36,10 +36,14 @@ Use compose for more customization, example can be found [here](https://github.c
 
 ### Option 2: Quick Install
 
-Install the latest version with the installation script:
+Install using the installation script:
 
 ```bash
+# Latest version available
 curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin
+
+# Specific version
+curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin 0.40.4
 ```
 
 The installer will:
