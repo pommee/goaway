@@ -2,7 +2,6 @@ package main
 
 import (
 	"net"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,44 +11,40 @@ import (
 var server = "localhost:6121"
 
 func BenchmarkDNSRequest(b *testing.B) {
+	c := new(dns.Client)
+
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn("google.com"), dns.TypeA)
 	m.RecursionDesired = true
 
-	var totalDuration time.Duration
 	b.ReportAllocs()
-
+	b.ResetTimer()
+	b.StartTimer()
 	for b.Loop() {
-		start := time.Now()
-		c := new(dns.Client)
-		c.Timeout = 2 * time.Second
 		_, _, err := c.Exchange(m, server)
 		if err != nil {
-			b.Fatalf("DNS query failed: %v", err)
+			b.Errorf("DNS query failed: %v", err)
 		}
-		totalDuration += time.Since(start)
 	}
 }
 
 func BenchmarkDNSRequestParallel(b *testing.B) {
+	c := new(dns.Client)
+	c.Timeout = 2 * time.Second
+
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn("google.com"), dns.TypeA)
 	m.RecursionDesired = true
 
-	var totalDuration int64
 	b.ReportAllocs()
-
 	b.ResetTimer()
+	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		c := new(dns.Client)
-		c.Timeout = 2 * time.Second
 		for pb.Next() {
-			start := time.Now()
 			_, _, err := c.Exchange(m, server)
 			if err != nil {
-				b.Fatalf("DNS query failed: %v", err)
+				b.Errorf("DNS query failed: %v", err)
 			}
-			atomic.AddInt64(&totalDuration, time.Since(start).Nanoseconds())
 		}
 	})
 }
