@@ -84,7 +84,6 @@ func NewDNSServer(config settings.Config) (*DNSServer, error) {
 		DB:                 db.Con,
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
-		cache:              sync.Map{},
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
 		dnsClient:          dnsClient,
 	}
@@ -119,6 +118,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	for _, question := range r.Question {
 		entry := s.processQuery(&Request{w, msg, question, sent, client})
+		log.Debug("%+v", entry)
 		s.logEntryChannel <- entry
 	}
 }
