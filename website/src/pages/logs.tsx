@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
 import {
@@ -276,25 +277,37 @@ export function Logs() {
               Clear logs
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 text-white border-zinc-800 md:w-auto max-w-none">
-            <div className="flex justify-center mb-4">
-              <Warning className="h-10 w-10 text-amber-500" />
-            </div>
-            <DialogDescription className="text-base">
-              <div className="bg-amber-600 border-2 border-amber-800 rounded-md p-4 mt-2">
-                <p className="text-white">
-                  Are you sure you want to clear all logs? This is an
-                  irreversible action!
-                </p>
+          <DialogContent className="bg-zinc-900 text-white border-zinc-800 md:w-auto max-w-md p-6 rounded-xl shadow-lg">
+            <div className="flex flex-col items-center text-center">
+              <Warning className="h-12 w-12 text-amber-500 mb-4" />
+              <DialogTitle className="text-xl font-semibold mb-2">
+                Confirm Log Clearance
+              </DialogTitle>
+              <DialogDescription className="text-base text-zinc-300 mb-6">
+                <div className="bg-red-600/50 p-4">
+                  <p>Are you sure you want to clear all logs?</p>{" "}
+                  <p>
+                    This action is
+                    <span className="font-semibold"> irreversible</span>.
+                  </p>
+                </div>
+              </DialogDescription>
+              <div className="flex gap-4">
+                <Button
+                  className="bg-red-700 hover:bg-red-600 text-white"
+                  onClick={clearLogs}
+                >
+                  Yes, clear logs
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="text-zinc-400 hover:text-white"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </Button>
               </div>
-            </DialogDescription>
-            <Button
-              variant="outline"
-              className="bg-red-800 hover:bg-red-700 text-white"
-              onClick={clearLogs}
-            >
-              Yes
-            </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
