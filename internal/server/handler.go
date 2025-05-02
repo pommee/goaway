@@ -299,31 +299,29 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string) {
-	cacheKey := domain + strconv.Itoa(int(qtype))
+	buf := []byte(domain)
+	buf = strconv.AppendUint(buf, uint64(qtype), 10)
+	cacheKey := string(buf)
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, rcodes[dns.RcodeSuccess]
 		}
 	}
 
-	answers, ttl, status := s.queryUpstream(domain, qtype)
-	if len(answers) > 0 {
+	if answers, ttl, status := s.queryUpstream(domain, qtype); len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 		return answers, false, status
 	}
 
-	answers, ttl, status = s.resolveResolution(domain)
-	if len(answers) > 0 {
+	if answers, ttl, status := s.resolveResolution(domain); len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 		return answers, false, status
 	}
 
-	answers, ttl, status = s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
+	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
-		return answers, false, status
 	}
-
 	return answers, false, status
 }
 

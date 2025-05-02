@@ -131,9 +131,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	client := s.getClientInfo(w.RemoteAddr().String())
 
 	for _, question := range r.Question {
-		go func(question dns.Question) {
-			entry := s.processQuery(&Request{w, msg, question, sent, client})
-			s.logEntryChannel <- entry
-		}(question)
+		entry := s.processQuery(&Request{w, msg, question, sent, client})
+		s.logEntryChannel <- entry
 	}
 }
