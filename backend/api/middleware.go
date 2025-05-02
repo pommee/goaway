@@ -86,5 +86,5 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 
 func (api *API) validateCredentials(username, password string) bool {
 	existingUser := &user.User{Username: username, Password: password}
-	return existingUser.Authenticate(api.DnsServer.DB)
+	return existingUser.Authenticate(api.DB)
 }

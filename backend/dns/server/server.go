@@ -25,27 +25,19 @@ type MacVendor struct {
 	Vendor string `json:"company"`
 }
 
-type Status struct {
-	Paused    bool
-	PausedAt  time.Time
-	PauseTime int
-}
-
 type DNSServer struct {
-	Config              settings.DNSServerConfig
-	Blacklist           *blacklist.Blacklist
-	DB                  *sql.DB
-	Counters            CounterDetails
-	StatisticsRetention int
-	logIntervalSeconds  int
-	lastLogTime         time.Time
-	cache               sync.Map
-	clientCache         sync.Map
-	WebServer           *gin.Engine
-	logEntryChannel     chan model.RequestLogEntry
-	WS                  *websocket.Conn
-	dnsClient           *dns.Client
-	Status              Status
+	Config             settings.Config
+	Blacklist          *blacklist.Blacklist
+	DB                 *sql.DB
+	logIntervalSeconds int
+	lastLogTime        time.Time
+	cache              sync.Map
+	clientCache        sync.Map
+	WebServer          *gin.Engine
+	logEntryChannel    chan model.RequestLogEntry
+	WS                 *websocket.Conn
+	dnsClient          *dns.Client
+	Status             settings.Status
 }
 
 type QueryResponse struct {
@@ -62,11 +54,6 @@ type cachedRecord struct {
 	Key         string
 }
 
-type CounterDetails struct {
-	AllowedRequests int `json:"allowed_requests"`
-	BlockedRequests int `json:"blocked_requests"`
-}
-
 type Request struct {
 	w        dns.ResponseWriter
 	msg      *dns.Msg
@@ -75,7 +62,7 @@ type Request struct {
 	client   *model.Client
 }
 
-func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
+func NewDNSServer(config settings.Config) (*DNSServer, error) {
 	db, err := database.Initialize()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
@@ -92,15 +79,14 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 	}
 
 	server := &DNSServer{
-		Config:              *config,
-		Blacklist:           blacklistEntry,
-		DB:                  db.Con,
-		StatisticsRetention: config.StatisticsRetention,
-		lastLogTime:         time.Now(),
-		logIntervalSeconds:  1,
-		cache:               sync.Map{},
-		logEntryChannel:     make(chan model.RequestLogEntry, 1000),
-		dnsClient:           dnsClient,
+		Config:             config,
+		Blacklist:          blacklistEntry,
+		DB:                 db.Con,
+		logIntervalSeconds: 1,
+		lastLogTime:        time.Now(),
+		cache:              sync.Map{},
+		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
+		dnsClient:          dnsClient,
 	}
 
 	return server, nil
@@ -108,7 +94,7 @@ func NewDNSServer(config *settings.DNSServerConfig) (*DNSServer, error) {
 
 func (s *DNSServer) Init() (int, *dns.Server) {
 	server := &dns.Server{
-		Addr:      fmt.Sprintf(":%d", s.Config.Port),
+		Addr:      fmt.Sprintf(":%d", s.Config.DNSPort),
 		Net:       "udp",
 		Handler:   s,
 		UDPSize:   512,

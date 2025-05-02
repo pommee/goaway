@@ -44,15 +44,6 @@ func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 	dbMutex.Unlock()
 }
 
-func (s *DNSServer) Vacuum() {
-	dbMutex.Lock()
-	_, err := s.DB.Exec("VACUUM")
-	if err != nil {
-		log.Warning("Error while vacuuming database: %v", err)
-	}
-	dbMutex.Unlock()
-}
-
 func (s *DNSServer) ClearOldEntries() {
 	const (
 		maxRetries      = 10
@@ -61,20 +52,10 @@ func (s *DNSServer) ClearOldEntries() {
 	)
 
 	for {
-		requestThreshold := ((60 * 60) * 24) * s.StatisticsRetention
+		requestThreshold := ((60 * 60) * 24) * s.Config.StatisticsRetention
 		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
 		time.Sleep(cleanupInterval)
 
-		database.DeleteRequestLogsTimebased(s.Vacuum, s.DB, requestThreshold, maxRetries, retryDelay)
-		s.UpdateCounters()
+		database.DeleteRequestLogsTimebased(s.Blacklist.Vacuum, s.DB, requestThreshold, maxRetries, retryDelay)
 	}
-}
-
-func (s *DNSServer) UpdateCounters() {
-	blockedCount, allowedCount, err := database.CountAllowedAndBlockedRequest(s.DB)
-	if err != nil {
-		log.Error("%s %v", "failed to get counters: ", err)
-	}
-	s.Counters.BlockedRequests = blockedCount
-	s.Counters.AllowedRequests = allowedCount
 }

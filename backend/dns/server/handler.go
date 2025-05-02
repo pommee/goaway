@@ -242,7 +242,6 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	}
 
 	_ = request.w.WriteMsg(request.msg)
-	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
@@ -280,7 +279,6 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	}
 
 	_ = req.w.WriteMsg(req.msg)
-	s.Counters.AllowedRequests++
 
 	return model.RequestLogEntry{
 		Domain:            req.question.Name,
@@ -448,8 +446,6 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	request.msg.Answer = append(request.msg.Answer, rr4, rr6)
 	_ = request.w.WriteMsg(request.msg)
-
-	s.Counters.BlockedRequests++
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,

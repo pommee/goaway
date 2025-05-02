@@ -89,6 +89,13 @@ func (b *Blacklist) initializeBlockedDomains() error {
 	return nil
 }
 
+func (s *Blacklist) Vacuum() {
+	_, err := s.DB.Exec("VACUUM")
+	if err != nil {
+		log.Warning("Error while vacuuming database: %v", err)
+	}
+}
+
 func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 	rows, err := b.DB.Query(`SELECT name, url FROM sources WHERE name != 'Custom'`)
 	if err != nil {
@@ -278,6 +285,33 @@ func (b *Blacklist) CountDomains() (int, error) {
 		return 0, fmt.Errorf("failed to count domains: %w", err)
 	}
 	return count, nil
+}
+
+func (b *Blacklist) GetAllowedAndBlocked() (allowed, blocked int, err error) {
+	rows, err := b.DB.Query(`SELECT blocked, COUNT(*) FROM request_log GROUP BY blocked`)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to query request_log: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var blockedFlag bool
+		var count int
+		if err := rows.Scan(&blockedFlag, &count); err != nil {
+			return 0, 0, fmt.Errorf("failed to scan row: %w", err)
+		}
+		if blockedFlag {
+			blocked = count
+		} else {
+			allowed = count
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, 0, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return allowed, blocked, nil
 }
 
 func (b *Blacklist) RemoveDomain(domain string) error {

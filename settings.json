@@ -1,18 +1,14 @@
 {
-  "dnsServer": {
-    "CacheTTL": "1m0s",
-    "Port": 53,
-    "LoggingDisabled": false,
-    "UpstreamDNS": [
-      "8.8.8.8:53",
-      "1.1.1.1:53"
-    ],
-    "PreferredUpstream": "8.8.8.8:53",
-    "StatisticsRetention": 7
-  },
-  "apiServer": {
-    "Port": 8080,
-    "Authentication": true
-  },
-  "LogLevel": 1
+  "dnsPort": 53,
+  "apiPort": 8080,
+  "statisticsRetention": 1,
+  "authentication": true,
+  "loggingDisabled": false,
+  "preferredUpstream": "8.8.8.8:53",
+  "upstreamDNS": [
+    "8.8.8.8:53",
+    "1.1.1.1:53"
+  ],
+  "cacheTTL": 100000000,
+  "logLevel": 1
 }

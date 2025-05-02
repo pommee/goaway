@@ -2,10 +2,12 @@ package api
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"embed"
 	"encoding/base64"
 	"fmt"
 	"goaway/backend/api/user"
+	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/server"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
@@ -16,6 +18,9 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var log = logging.GetLogger()
@@ -26,27 +31,30 @@ type Credentials struct {
 }
 
 type API struct {
-	router    *gin.Engine
-	routes    *gin.RouterGroup
-	DnsServer *server.DNSServer
-	Config    *settings.APIServerConfig
-	Version   string
-	Commit    string
-	Date      string
+	Authentication bool
+	Config         *settings.Config
+	router         *gin.Engine
+	routes         *gin.RouterGroup
+	DB             *sql.DB
+	Blacklist      *blacklist.Blacklist
+	WS             *websocket.Conn
+	DNSPort        int
+	Version        string
+	Commit         string
+	Date           string
 }
 
-func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
+func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
 	api.router.Use(gzip.Gzip(gzip.DefaultCompression))
 	api.routes = api.router.Group("/api")
-	api.DnsServer = dnsServer
-	api.DnsServer.WebServer = api.router
 	var allowedOrigins []string
 
-	if serveContent {
+	if !api.Config.DevMode {
 		allowedOrigins = append(allowedOrigins, "*")
 	} else {
+		log.Warning("No embedded content found, not serving")
 		allowedOrigins = append(allowedOrigins, "http://localhost:8081")
 	}
 
@@ -60,17 +68,16 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 	}))
 
 	api.setupRoutes()
-	api.setupAuthorizedRoutes(!serveContent)
+	api.setupAuthorizedRoutes()
 
-	if serveContent {
+	if !api.Config.DevMode {
 		api.ServeEmbeddedContent(content)
 	}
 
 	go func() {
 		const maxRetries = 10
 		const retryDelay = 10 * time.Second
-
-		addr := fmt.Sprintf(":%d", api.Config.Port)
+		addr := fmt.Sprintf(":%d", api.Config.APIPort)
 
 		for i := 1; i <= maxRetries; i++ {
 			listener, err := net.Listen("tcp", addr)
@@ -84,10 +91,10 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 				return
 			}
 
-			log.Info("Web server started on port :%d", api.Config.Port)
+			log.Info("Web server started on port :%d", api.Config.APIPort)
 
 			if serverIP, err := getServerIP(); err == nil {
-				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
+				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.APIPort)
 			} else {
 				log.Error("Could not determine server IP: %v", err)
 			}
@@ -103,7 +110,7 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 
 func (api *API) SetupAuth() {
 	newUser := &user.User{Username: "admin"}
-	if newUser.Exists(api.DnsServer.DB) {
+	if newUser.Exists(api.DB) {
 		return
 	}
 
@@ -117,7 +124,7 @@ func (api *API) SetupAuth() {
 		log.Info("Randomly generated admin password: %s", newUser.Password)
 	}
 
-	if err := newUser.Create(api.DnsServer.DB); err != nil {
+	if err := newUser.Create(api.DB); err != nil {
 		log.Error("Unable to create new user: %v", err)
 	}
 }
@@ -129,14 +136,14 @@ func (api *API) setupRoutes() {
 	api.router.GET("/api/dnsMetrics", api.handleMetrics)
 }
 
-func (api *API) setupAuthorizedRoutes(devmode bool) {
-	if api.Config.Authentication {
+func (api *API) setupAuthorizedRoutes() {
+	if api.Authentication {
 		api.SetupAuth()
 		api.routes.Use(authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
 
-		if devmode {
+		if api.Config.DevMode {
 			api.routes.Use(cors.New(cors.Config{
 				AllowOrigins:     []string{"http://localhost:8081"},
 				AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

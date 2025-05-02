@@ -19,11 +19,11 @@ func AsciiArt(config settings.Config, blockedDomains int, version string, disabl
 	const versionSpace = 7
 
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
-	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSServer.Port, Reset)
-	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIServer.Port, Reset)
-	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNSServer.PreferredUpstream, Reset)
+	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSPort, Reset)
+	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIPort, Reset)
+	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
-	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.DNSServer.CacheTTL, Reset)
+	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
 
 	fmt.Printf(`

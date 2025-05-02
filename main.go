@@ -67,7 +67,7 @@ func startServer(config settings.Config) {
 		}()
 	}
 
-	dnsServer, err := server.NewDNSServer(config.DNSServer)
+	dnsServer, err := server.NewDNSServer(config)
 	if err != nil {
 		log.Error("Failed to initialize server: %s", err)
 		os.Exit(1)
@@ -80,9 +80,7 @@ func startServer(config settings.Config) {
 	blockedDomains, serverInstance := dnsServer.Init()
 	currentVersion := setup.GetVersionOrDefault(version)
 
-	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.APIServer.Authentication)
-	dnsServer.UpdateCounters()
-
+	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.Authentication)
 	startServices(dnsServer, serverInstance, config)
 }
 
@@ -105,21 +103,18 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 	go func() {
 		defer wg.Done()
 		apiServer := api.API{
-			Config: &settings.APIServerConfig{
-				Port:           config.APIServer.Port,
-				Authentication: config.APIServer.Authentication,
-			},
-			Version: version,
-			Commit:  commit,
-			Date:    date,
+			Authentication: config.Authentication,
+			Config:         &config,
+			DB:             dnsServer.DB,
+			Blacklist:      dnsServer.Blacklist,
+			WS:             dnsServer.WS,
+			DNSPort:        config.DNSPort,
+			Version:        version,
+			Commit:         commit,
+			Date:           date,
 		}
 
-		serveEmbedded := !config.DevMode
-		if !serveEmbedded {
-			log.Warning("No embedded content found, not serving")
-		}
-
-		apiServer.Start(serveEmbedded, content, dnsServer, errorChannel)
+		apiServer.Start(content, dnsServer, errorChannel)
 	}()
 
 	go func() { wg.Wait() }()

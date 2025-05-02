@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Combobox } from "@/components/combobox";
 import { Card } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { PostRequest, GetRequest, PutRequest } from "@/util";
+import { Switch } from "@/components/ui/switch";
+import { GetRequest, PostRequest, PutRequest } from "@/util";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const SETTINGS_SECTIONS = [
   {
@@ -86,6 +86,32 @@ const SETTINGS_SECTIONS = [
   }
 ];
 
+function parseLogLevel(level: number | string) {
+  if (typeof level === "number") {
+    switch (level) {
+      case 0:
+        return "Debug";
+      case 1:
+        return "Info";
+      case 2:
+        return "Warning";
+      case 3:
+        return "Error";
+    }
+  } else if (typeof level === "string") {
+    switch (level.toUpperCase()) {
+      case "Debug":
+        return 0;
+      case "Info":
+        return 1;
+      case "Warning":
+        return 2;
+      case "Error":
+        return 3;
+    }
+  }
+}
+
 export function Settings() {
   const [preferences, setPreferences] = useState<
     Record<string, string | boolean | number>
@@ -100,10 +126,10 @@ export function Settings() {
       if (status === 200 && response) {
         const updatedPreferences = {
           font: localStorage.getItem("font") || "JetBrains Mono",
-          logLevel: response.dns?.LogLevel || "Info",
-          statisticsRetention: response.dns?.StatisticsRetention || 7,
-          disableLogging: response.dns?.LoggingDisabled || false,
-          cacheTTL: response.dns?.CacheTTL || 60
+          logLevel: parseLogLevel(response.settings?.logLevel) || "Info",
+          statisticsRetention: response.settings?.statisticsRetention || 7,
+          disableLogging: response.settings?.loggingDisabled || false,
+          cacheTTL: 60
         };
 
         setPreferences(updatedPreferences);
@@ -225,21 +251,21 @@ export function Settings() {
                             className: "w-full md:w-40"
                           }
                         : Widget === Switch
-                          ? {
-                              checked: Boolean(preferences[key]),
-                              onCheckedChange: (value: boolean) =>
-                                handleSelect(key, value)
-                            }
-                          : Widget === Input
-                            ? {
-                                value: preferences[key] || "",
-                                onChange: (
-                                  e: React.ChangeEvent<HTMLInputElement>
-                                ) => handleSelect(key, e.target.value),
-                                placeholder: "Enter Value",
-                                className: "w-full md:w-40"
-                              }
-                            : {})}
+                        ? {
+                            checked: Boolean(preferences[key]),
+                            onCheckedChange: (value: boolean) =>
+                              handleSelect(key, value)
+                          }
+                        : Widget === Input
+                        ? {
+                            value: preferences[key] || "",
+                            onChange: (
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => handleSelect(key, e.target.value),
+                            placeholder: "Enter Value",
+                            className: "w-full md:w-40"
+                          }
+                        : {})}
                     />
                   </div>
                 </div>
