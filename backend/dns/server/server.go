@@ -40,6 +40,7 @@ type DNSServer struct {
 	logIntervalSeconds  int
 	lastLogTime         time.Time
 	cache               sync.Map
+	clientCache         sync.Map
 	WebServer           *gin.Engine
 	logEntryChannel     chan model.RequestLogEntry
 	WS                  *websocket.Conn

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/miekg/dns"
 )
 
@@ -36,8 +35,6 @@ var rcodes = map[int]string{
 	dns.RcodeBadTrunc:       "BADTRUNC",
 	dns.RcodeBadCookie:      "BADCOOKIE",
 }
-
-var hostCache, _ = lru.New[string, model.Client](100)
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := strings.TrimSuffix(request.question.Name, ".")
@@ -74,8 +71,8 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	clientIP, _, _ := net.SplitHostPort(remoteAddr)
 
-	if cachedClient, found := hostCache.Get(clientIP); found {
-		return &cachedClient
+	if cachedClient, ok := s.clientCache.Load(clientIP); ok {
+		return cachedClient.(*model.Client)
 	}
 
 	macAddress := arp.GetMacAddress(clientIP)
@@ -113,7 +110,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	}
 
 	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
-	hostCache.Add(clientIP, client)
+	s.clientCache.Store(clientIP, &client)
 	return &client
 }
 
@@ -299,9 +296,7 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 }
 
 func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string) {
-	buf := []byte(domain)
-	buf = strconv.AppendUint(buf, uint64(qtype), 10)
-	cacheKey := string(buf)
+	cacheKey := domain + ":" + strconv.Itoa(int(qtype))
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, rcodes[dns.RcodeSuccess]
