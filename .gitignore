@@ -2,6 +2,7 @@ tmp
 requests.json
 counters.json
 main
+goaway
 *.db**
 .vite
 dist
