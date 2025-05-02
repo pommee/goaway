@@ -35,6 +35,9 @@ Run GoAway in a containerized environment:
 
 ```shell
 docker run pommee/goaway:latest
+
+# Best is to use the compose file in this repository
+docker compose up -d
 ```
 
 Use compose for more customization, example can be found [here](https://github.com/pommee/goaway/blob/main/docker-compose.yml)
@@ -49,6 +52,21 @@ curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev
 
 # Specific version
 curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin 0.40.4
+```
+
+### Option 3: Build from source
+
+Last option is to build from source:
+
+```bash
+# Build the frontend client that will be embedded into the binary
+make build
+
+# Build GoAway binary
+go build -o goaway
+
+# Start
+./goaway
 ```
 
 The installer will:
