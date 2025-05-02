@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const BATCH_SIZE = 100
+const BATCH_SIZE = 500
 
 func (s *DNSServer) ProcessLogEntries() {
 	var batch []model.RequestLogEntry

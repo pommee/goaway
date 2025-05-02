@@ -353,25 +353,28 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 		log.Error("Could not start database transaction %v", err)
 		return
 	}
+
 	defer func() {
-		if err := tx.Commit(); err != nil {
-			log.Warning("DB commit error %v", err)
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			log.Warning("Could not save requests to database, performing rollback. Error: %s", p)
+		} else if err != nil {
+			_ = tx.Rollback()
+		} else if commitErr := tx.Commit(); commitErr != nil {
+			log.Warning("DB commit error %v", commitErr)
 		}
 	}()
 
 	query := "INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	stmt, err := tx.Prepare(query)
-
 	if err != nil {
 		log.Error("Could not create a prepared statement for request logs, reason: %v", err)
 		return
 	}
-	defer func(stmt *sql.Stmt) {
-		_ = stmt.Close()
-	}(stmt)
+	defer stmt.Close()
 
 	for _, entry := range entries {
-		if _, err := stmt.Exec(
+		_, err = stmt.Exec(
 			entry.Timestamp.Unix(),
 			entry.Domain,
 			strings.Join(entry.IP, ","),
@@ -383,7 +386,8 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 			entry.Status,
 			entry.QueryType,
 			entry.ResponseSizeBytes,
-		); err != nil {
+		)
+		if err != nil {
 			log.Error("Could not save request log. Reason: %v", err)
 			return
 		}
