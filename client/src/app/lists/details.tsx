@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/lists";
 import { GetRequest } from "@/util";
 import {
@@ -15,9 +16,8 @@ import {
   ToggleLeft
 } from "@phosphor-icons/react";
 import { useState } from "react";
-import { toast } from "sonner";
 import TimeAgo from "react-timeago";
-import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import BlockedDomainsList from "./blockedDomains";
 
 export function CardDetails(listEntry: ListEntry) {
@@ -111,6 +111,7 @@ export function CardDetails(listEntry: ListEntry) {
           {listEntry.url && (
             <a
               href={listEntry.url}
+              target={"_"}
               className="text-sm text-zinc-500 hover:text-zinc-300"
             >
               {listEntry.url}
