@@ -67,25 +67,36 @@ func (api *API) Start(serveContent bool, content embed.FS, dnsServer *server.DNS
 	}
 
 	go func() {
+		const maxRetries = 10
+		const retryDelay = 10 * time.Second
+
 		addr := fmt.Sprintf(":%d", api.Config.Port)
-		listener, err := net.Listen("tcp", addr)
-		if err != nil {
-			log.Error("Failed to start server: %v", err)
-			errorChannel <- struct{}{}
+
+		for i := 1; i <= maxRetries; i++ {
+			listener, err := net.Listen("tcp", addr)
+			if err != nil {
+				log.Error("Failed to start server (attempt %d/%d): %v", i, maxRetries, err)
+				if i < maxRetries {
+					time.Sleep(retryDelay)
+					continue
+				}
+				errorChannel <- struct{}{}
+				return
+			}
+
+			log.Info("Web server started on port :%d", api.Config.Port)
+
+			if serverIP, err := getServerIP(); err == nil {
+				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
+			} else {
+				log.Error("Could not determine server IP: %v", err)
+			}
+
+			if err := api.router.RunListener(listener); err != nil {
+				log.Error("Server error: %v", err)
+				errorChannel <- struct{}{}
+			}
 			return
-		}
-		log.Info("Web server started on port :%d", api.Config.Port)
-
-		serverIP, err := getServerIP()
-		if err == nil {
-			log.Info("Web interface available at http://%s:%d", serverIP, api.Config.Port)
-		} else {
-			log.Error("Could not determine server IP: %v", err)
-		}
-
-		if err := api.router.RunListener(listener); err != nil {
-			log.Error("Server error: %v", err)
-			errorChannel <- struct{}{}
 		}
 	}()
 }
