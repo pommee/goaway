@@ -11,7 +11,7 @@ check_dns() {
     local type=$1
     echo "Checking $type record for $DOMAIN"
     RESPONSE=$(dig @$dns_server_ip -p $dns_server_port $DOMAIN $type +short)
-    
+
     if [[ -z "$RESPONSE" ]]; then
         echo "[ERROR] No response for $type record"
     else

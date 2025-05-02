@@ -1,7 +1,7 @@
 package api
 
 import (
-	"goaway/internal/user"
+	"goaway/backend/api/user"
 	"net/http"
 	"strings"
 	"time"

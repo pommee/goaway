@@ -2,7 +2,7 @@ package asciiart
 
 import (
 	"fmt"
-	"goaway/internal/settings"
+	"goaway/backend/settings"
 )
 
 const (

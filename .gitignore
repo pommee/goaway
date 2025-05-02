@@ -28,7 +28,7 @@ dist-ssr
 *.sln
 *.sw?
 
-website/pnpm-lock.yaml
-testing/benchmark.new
-testing/benchmark.old
+client/pnpm-lock.yaml
+test/benchmark.new
+test/benchmark.old
 benchmark.prof

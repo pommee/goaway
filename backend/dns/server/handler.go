@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
-	"goaway/internal/arp"
-	"goaway/internal/database"
-	model "goaway/internal/server/models"
+	arp "goaway/backend/dns"
+	"goaway/backend/dns/database"
+	model "goaway/backend/dns/server/models"
 	"net"
 	"os"
 	"strconv"

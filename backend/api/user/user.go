@@ -3,7 +3,7 @@ package user
 import (
 	"database/sql"
 	"errors"
-	"goaway/internal/logging"
+	"goaway/backend/logging"
 
 	"golang.org/x/crypto/bcrypt"
 )

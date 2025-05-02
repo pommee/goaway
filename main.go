@@ -3,18 +3,17 @@ package main
 import (
 	"embed"
 	"fmt"
+	"goaway/backend/api"
+	"goaway/backend/asciiart"
+	arp "goaway/backend/dns"
+	"goaway/backend/dns/server"
+	"goaway/backend/logging"
+	"goaway/backend/settings"
+	"goaway/backend/setup"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-
-	"goaway/internal/api"
-	"goaway/internal/arp"
-	"goaway/internal/asciiart"
-	"goaway/internal/logging"
-	"goaway/internal/server"
-	"goaway/internal/settings"
-	"goaway/internal/setup"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -27,7 +26,7 @@ var (
 	version, commit, date string
 	log                   = logging.GetLogger()
 
-	//go:embed website/dist/*
+	//go:embed client/dist/*
 	content embed.FS
 )
 

@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"goaway/internal/api/models"
-	"goaway/internal/database"
-	"goaway/internal/server"
-	"goaway/internal/settings"
-	"goaway/internal/updater"
-	"goaway/internal/user"
+	"goaway/backend/api/models"
+	"goaway/backend/api/user"
+	"goaway/backend/dns/database"
+	"goaway/backend/dns/server"
+	"goaway/backend/settings"
+	"goaway/backend/updater"
 	"io"
 	"io/fs"
 	"mime"
@@ -40,11 +40,11 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 		return
 	}
 
-	err = fs.WalkDir(content, "website/dist", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(content, "client/dist", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error walking through path %s: %w", path, err)
 		}
-		if d.IsDir() || path == "website/dist/index.html" {
+		if d.IsDir() || path == "client/dist/index.html" {
 			return nil
 		}
 
@@ -59,7 +59,7 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 			mimeType = "application/octet-stream"
 		}
 
-		route := strings.TrimPrefix(path, "website/dist/")
+		route := strings.TrimPrefix(path, "client/dist/")
 		api.router.GET("/"+route, func(c *gin.Context) {
 			c.Data(http.StatusOK, mimeType, fileContent)
 		})
@@ -71,7 +71,7 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 		return
 	}
 
-	indexContent, err := content.ReadFile("website/dist/index.html")
+	indexContent, err := content.ReadFile("client/dist/index.html")
 	if err != nil {
 		log.Error("Error reading index.html: %v", err)
 		return

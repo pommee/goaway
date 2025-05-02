@@ -3,10 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"goaway/internal/api/models"
-	dbModel "goaway/internal/database/models"
-	"goaway/internal/logging"
-	model "goaway/internal/server/models"
+	"goaway/backend/api/models"
+	dbModel "goaway/backend/dns/database/models"
+	model "goaway/backend/dns/server/models"
+	"goaway/backend/logging"
 	"strings"
 	"time"
 )

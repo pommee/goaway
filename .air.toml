@@ -17,10 +17,9 @@ exclude_dir = [
     "assets",
     "tmp",
     "vendor",
-    "website/dist",
-    "website/node_modules",
+    "client/dist",
+    "client/node_modules",
     "test",
-    "testing",
     "resources",
 ]
 include_ext = ["go", "tpl", "tmpl", "html", "css", "js", "jsx", "ts", "tsx"]

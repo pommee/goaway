@@ -3,7 +3,7 @@ package settings
 import (
 	"encoding/json"
 	"fmt"
-	"goaway/internal/logging"
+	"goaway/backend/logging"
 	"io"
 	"net"
 	"net/http"

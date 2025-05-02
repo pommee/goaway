@@ -1,8 +1,8 @@
 package database
 
 import (
-	"goaway/internal/database"
-	model "goaway/internal/server/models"
+	"goaway/backend/dns/database"
+	model "goaway/backend/dns/server/models"
 	"os"
 	"testing"
 	"time"

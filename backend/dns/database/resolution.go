@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"goaway/internal/database/models"
+	"goaway/backend/dns/database/models"
 	"strings"
 )
 

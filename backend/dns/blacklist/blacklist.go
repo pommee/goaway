@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"goaway/internal/logging"
+	"goaway/backend/logging"
 	"io"
 	"net/http"
 	"sort"

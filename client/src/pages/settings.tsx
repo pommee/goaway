@@ -185,10 +185,10 @@ export function Settings() {
 
   return (
     <div
-      className="container mx-auto px-4 py-8 space-y-6 
-      w-full 
-      md:w-4/5 
-      lg:w-3/4 
+      className="container mx-auto px-4 py-8 space-y-6
+      w-full
+      md:w-4/5
+      lg:w-3/4
       xl:w-1/2"
     >
       {SETTINGS_SECTIONS.map(({ title, description, settings }) => (
@@ -203,10 +203,10 @@ export function Settings() {
               ({ label, key, explanation, options, widgetType: Widget }) => (
                 <div
                   key={key}
-                  className="flex flex-col md:flex-row 
-                    justify-between 
-                    items-start md:items-center 
-                    space-y-2 md:space-y-0 
+                  className="flex flex-col md:flex-row
+                    justify-between
+                    items-start md:items-center
+                    space-y-2 md:space-y-0
                     md:space-x-4"
                 >
                   <div className="flex-grow">

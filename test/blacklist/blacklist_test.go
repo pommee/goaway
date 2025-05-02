@@ -1,7 +1,7 @@
 package blacklist
 
 import (
-	"goaway/internal/blacklist"
+	"goaway/backend/dns/blacklist"
 	"strings"
 	"testing"
 
@@ -21,7 +21,7 @@ func TestExtractDomains(t *testing.T) {
 			name: "ignore comments and empty lines",
 			input: `
 			# This and the following lines shall be ignored
-			
+
 
 			`,
 			expected: nil,

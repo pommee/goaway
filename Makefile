@@ -16,34 +16,34 @@ publish:
 	docker buildx rm multiarch-builder
 
 build:
-	pnpm -C website install && pnpm -C website build
+	pnpm -C client install && pnpm -C client build
 
 start:
 	docker compose up -d
 
 lint:
-	pnpm -C website lint && \
+	pnpm -C client lint && \
 	golangci-lint run
 
 format:
-	npx prettier --write "website/**/*.{html,css,js,tsx}"
+	npx prettier --write "client/**/*.{html,css,js,tsx}"
 
 example-queries:
-	@./testing/dig-domains.sh
+	@./test/dig-domains.sh
 
 dev-website:
-	pnpm -C website install && pnpm -C website dev
+	pnpm -C client install && pnpm -C client dev
 
 dev-server:
-	mkdir website/dist ; touch website/dist/.fake
+	mkdir client/dist ; touch client/dist/.fake
 	air .
 
 test:
 	go test -count=1 -bench=. -benchmem ./test/...
 
 bench:
-	go run testing/benchmark.go -test.bench=.
+	go run test/benchmark.go -test.bench=.
 
 bench-profile:
-	go run testing/benchmark.go -test.bench=. & \
+	go run test/benchmark.go -test.bench=. & \
 	go tool pprof http://localhost:6060/debug/pprof/profile\?seconds\=5

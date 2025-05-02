@@ -2,8 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"goaway/internal/database"
-	model "goaway/internal/server/models"
+	"goaway/backend/dns/database"
+	model "goaway/backend/dns/server/models"
 	"time"
 
 	"github.com/gorilla/websocket"

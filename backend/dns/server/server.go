@@ -3,11 +3,11 @@ package server
 import (
 	"database/sql"
 	"fmt"
-	"goaway/internal/blacklist"
-	"goaway/internal/database"
-	"goaway/internal/logging"
-	model "goaway/internal/server/models"
-	"goaway/internal/settings"
+	"goaway/backend/dns/blacklist"
+	"goaway/backend/dns/database"
+	model "goaway/backend/dns/server/models"
+	"goaway/backend/logging"
+	"goaway/backend/settings"
 	"sync"
 	"time"
 

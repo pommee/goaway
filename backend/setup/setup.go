@@ -1,8 +1,8 @@
 package setup
 
 import (
-	"goaway/internal/logging"
-	"goaway/internal/settings"
+	"goaway/backend/logging"
+	"goaway/backend/settings"
 	"os"
 
 	"github.com/Masterminds/semver"
