@@ -54,6 +54,15 @@ curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev
 curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin 0.40.4
 ```
 
+The installer will:
+
+1. Detect your operating system and architecture
+2. Download the appropriate binary
+3. Install it to `~/.local/bin`
+4. Set up necessary permissions
+
+If the installer fails, you can manually download binaries from the [releases page](https://github.com/pommee/goaway/releases).
+
 ### Option 3: Build from source
 
 Last option is to build from source:
@@ -68,15 +77,6 @@ go build -o goaway
 # Start
 ./goaway
 ```
-
-The installer will:
-
-1. Detect your operating system and architecture
-2. Download the appropriate binary
-3. Install it to `~/.local/bin`
-4. Set up necessary permissions
-
-If the installer fails, you can manually download binaries from the [releases page](https://github.com/pommee/goaway/releases).
 
 ## 🚀 Getting Started
 
