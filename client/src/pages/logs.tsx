@@ -453,7 +453,7 @@ export function Logs() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+          <div className="flex w-[120px] items-center justify-center text-sm font-medium">
             Page {pageIndex + 1} of {totalPages || 1}
           </div>
           <div className="flex items-center space-x-2">
