@@ -53,7 +53,7 @@ export function Clients() {
   return (
     <div className="flex flex-col min-h-full">
       {clients.length > 0 ? (
-        <div className="grid lg:grid-cols-3 gap-2">
+        <div className="grid lg:grid-cols-4 gap-2">
           {clients.map((client, index) => (
             <ClientCard
               key={index}
