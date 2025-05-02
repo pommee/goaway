@@ -1,4 +1,8 @@
-# goaway - DNS Sinkhole
+# GoAway - DNS Sinkhole
+
+![GitHub Release](https://img.shields.io/github/v/release/pommee/goaway)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pommee/goaway/release.yml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/pommee/goaway/total?color=cornflowerblue)
 
 A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
@@ -15,6 +19,7 @@ A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 - Customizable blocking rules
 - Real-time statistics
 - Low resource footprint
+- And much more...
 
 ## 📋 Requirements
 
@@ -26,7 +31,7 @@ A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
 ### Option 1: Docker Installation (Recommended)
 
-Run goaway in a containerized environment:
+Run GoAway in a containerized environment:
 
 ```shell
 docker run pommee/goaway:latest
@@ -59,7 +64,7 @@ If the installer fails, you can manually download binaries from the [releases pa
 
 ### Basic Usage
 
-Start the DNS and web servers with default settings:
+Start the DNS and web server with default settings:
 
 ```bash
 goaway
@@ -113,6 +118,11 @@ The dashboard and servers are started separately, reason being hot-reloads and n
 make dev-website
 make dev-server
 ```
+
+## 💫 Contributing
+
+You can start a new [discussion here](https://github.com/pommee/goaway/discussions) if features are wanted.
+Please report any issues encountered [here](https://github.com/pommee/goaway/issues/new).
 
 ## 📜 License
 
