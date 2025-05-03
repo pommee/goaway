@@ -13,6 +13,7 @@ import { Suspense } from "react";
 import { Resolution } from "./resolution";
 import { Upstream } from "./upstream";
 import { AnimatePresence, motion } from "motion/react";
+import { System } from "./system";
 
 function PageLoader() {
   return (
@@ -146,6 +147,14 @@ function App() {
               element={
                 <PageTransition>
                   <Changelog />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/system"
+              element={
+                <PageTransition>
+                  <System />
                 </PageTransition>
               }
             />

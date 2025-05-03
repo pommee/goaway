@@ -25,6 +25,7 @@ import (
 	"time"
 
 	probing "github.com/prometheus-community/pro-bing"
+	"github.com/zcalusic/sysinfo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -1009,6 +1010,12 @@ func (api *API) toggleBlocklist(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", blocklist)})
+}
+
+func (api *API) getSystem(c *gin.Context) {
+	var si sysinfo.SysInfo
+	si.GetSysInfo()
+	c.JSON(http.StatusOK, gin.H{"system": &si})
 }
 
 func getCPUTemperature() (float64, error) {
