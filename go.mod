@@ -9,7 +9,6 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/gorilla/websocket v1.5.3
-	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/miekg/dns v1.1.65
 	github.com/prometheus-community/pro-bing v0.7.0
