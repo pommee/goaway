@@ -88,10 +88,15 @@ export async function PutRequest(url: string, bodyData: unknown) {
       await isAuthenticated(res);
       const data = await res.json();
       showToast(data.error);
-      return [res.status, null];
+      return [res.status, data.error];
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      return [res.status, null];
+    }
     return [res.status, data];
   } catch {
     showToast("Could not reach server, try again later.");

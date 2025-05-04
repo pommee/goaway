@@ -938,7 +938,7 @@ func (api *API) updatePassword(c *gin.Context) {
 	}
 
 	if !api.validateCredentials("admin", request.CurrentPassword) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid current password"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is not valid"})
 		return
 	}
 
@@ -949,7 +949,7 @@ func (api *API) updatePassword(c *gin.Context) {
 	}
 
 	log.Info("Password has been changed!")
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusOK)
 }
 
 func (api *API) updatePreferredUpstream(c *gin.Context) {
