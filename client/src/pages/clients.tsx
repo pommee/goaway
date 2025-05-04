@@ -27,7 +27,10 @@ export function Clients() {
         }
 
         if (Array.isArray(response.clients)) {
-          setClients(response.clients);
+          const clientsSorted = response.clients.sort(
+            (a: { ip: number }, b: { ip: number }) => a.ip > b.ip
+          );
+          setClients(clientsSorted);
         } else {
           console.warn("Unexpected response format:", response);
         }
