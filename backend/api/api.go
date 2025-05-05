@@ -183,6 +183,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.GET("/runUpdate", api.runUpdate)
 	api.routes.GET("/pause", api.getBlocking)
 	api.routes.GET("/toggleBlocklist", api.toggleBlocklist)
+	api.routes.GET("/system", api.getSystem)
 
 	api.routes.PUT("/password", api.updatePassword)
 	api.routes.PUT("/preferredUpstream", api.updatePreferredUpstream)

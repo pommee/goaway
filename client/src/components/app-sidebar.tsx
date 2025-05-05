@@ -12,6 +12,7 @@ import { GenerateQuote } from "@/quotes";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
   CloudArrowUp,
+  ComputerTower,
   Gear,
   House,
   List,
@@ -72,6 +73,11 @@ const data = {
       title: "Changelog",
       url: "/changelog",
       icon: Note
+    },
+    {
+      title: "System",
+      url: "/system",
+      icon: ComputerTower
     }
   ],
   navSecondary: [
