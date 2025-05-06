@@ -73,11 +73,6 @@ func NewDNSServer(config settings.Config) (*DNSServer, error) {
 		log.Error("Failed to initialize blacklist")
 	}
 
-	dnsClient := &dns.Client{
-		Timeout: 3 * time.Second,
-		UDPSize: 4096,
-	}
-
 	server := &DNSServer{
 		Config:             config,
 		Blacklist:          blacklistEntry,
@@ -85,7 +80,7 @@ func NewDNSServer(config settings.Config) (*DNSServer, error) {
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
-		dnsClient:          dnsClient,
+		dnsClient:          new(dns.Client),
 	}
 
 	return server, nil
@@ -105,20 +100,14 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	if len(r.Question) != 1 {
+		r.SetRcode(r, dns.RcodeFormatError)
+		_ = w.WriteMsg(r)
+		return
+	}
+
 	sent := time.Now()
-	msg := new(dns.Msg)
-	msg.SetReply(r)
-	msg.RecursionAvailable = true
-
-	if r.IsEdns0() != nil {
-		msg.SetEdns0(1024, false)
-	}
-
 	client := s.getClientInfo(w.RemoteAddr().String())
-
-	for _, question := range r.Question {
-		entry := s.processQuery(&Request{w, msg, question, sent, client})
-		log.Debug("%+v", entry)
-		s.logEntryChannel <- entry
-	}
+	entry := s.processQuery(&Request{w, r, r.Question[0], sent, client})
+	s.logEntryChannel <- entry
 }
