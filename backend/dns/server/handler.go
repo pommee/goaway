@@ -14,28 +14,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-var rcodes = map[int]string{
-	dns.RcodeSuccess:        "NoError",
-	dns.RcodeFormatError:    "FormErr",
-	dns.RcodeServerFailure:  "ServFail",
-	dns.RcodeNameError:      "NXDomain",
-	dns.RcodeNotImplemented: "NotImp",
-	dns.RcodeRefused:        "Refused",
-	dns.RcodeYXDomain:       "YXDomain",
-	dns.RcodeYXRrset:        "YXRRSet",
-	dns.RcodeNXRrset:        "NXRRSet",
-	dns.RcodeNotAuth:        "NotAuth",
-	dns.RcodeNotZone:        "NotZone",
-	dns.RcodeBadSig:         "BADSIG",
-	dns.RcodeBadKey:         "BADKEY",
-	dns.RcodeBadTime:        "BADTIME",
-	dns.RcodeBadMode:        "BADMODE",
-	dns.RcodeBadName:        "BADNAME",
-	dns.RcodeBadAlg:         "BADALG",
-	dns.RcodeBadTrunc:       "BADTRUNC",
-	dns.RcodeBadCookie:      "BADCOOKIE",
-}
-
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := strings.TrimRight(request.question.Name, ".")
 
@@ -190,7 +168,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	return model.RequestLogEntry{
 		Timestamp:         request.sent,
 		Domain:            request.question.Name,
-		Status:            rcodes[dns.RcodeSuccess],
+		Status:            dns.RcodeToString[dns.RcodeSuccess],
 		IP:                []string{"localhost.lan"},
 		Blocked:           false,
 		Cached:            false,
@@ -217,7 +195,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
-		Status:            rcodes[dns.RcodeSuccess],
+		Status:            dns.RcodeToString[dns.RcodeSuccess],
 		QueryType:         dns.TypeToString[request.question.Qtype],
 		IP:                []string{hostname},
 		ResponseSizeBytes: request.msg.Len(),
@@ -297,7 +275,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 	cacheKey := domain + ":" + strconv.Itoa(int(qtype))
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
-			return ipAddresses, true, rcodes[dns.RcodeSuccess]
+			return ipAddresses, true, dns.RcodeToString[dns.RcodeSuccess]
 		}
 	}
 
@@ -322,13 +300,13 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 	var (
 		records []dns.RR
 		ttl     = uint32(s.Config.CacheTTL.Seconds())
-		status  = rcodes[dns.RcodeSuccess]
+		status  = dns.RcodeToString[dns.RcodeSuccess]
 	)
 
 	ipFound, err := database.FetchResolution(s.DB, domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
-		return nil, 0, rcodes[dns.RcodeServerFailure]
+		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
 
 	if net.ParseIP(ipFound) != nil {
@@ -346,7 +324,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 		}
 		records = append(records, rr)
 	} else {
-		status = rcodes[dns.RcodeNameError]
+		status = dns.RcodeToString[dns.RcodeNameError]
 	}
 
 	return records, ttl, status
@@ -354,7 +332,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 
 func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[string]bool) ([]dns.RR, uint32, string) {
 	if visited[domain] {
-		return nil, 0, rcodes[dns.RcodeServerFailure]
+		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
 	visited[domain] = true
 
@@ -395,8 +373,8 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 
 	select {
 	case in := <-resultCh:
-		status := rcodes[dns.RcodeServerFailure]
-		if statusStr, ok := rcodes[in.Rcode]; ok {
+		status := dns.RcodeToString[dns.RcodeServerFailure]
+		if statusStr, ok := dns.RcodeToString[in.Rcode]; ok {
 			status = statusStr
 		}
 
@@ -414,11 +392,11 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 
 	case err := <-errCh:
 		log.Error("Resolution error for domain (%s): %v", domain, err)
-		return nil, 0, rcodes[dns.RcodeServerFailure]
+		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
 		log.Warning("DNS lookup for %s timed out", domain)
-		return nil, 0, rcodes[dns.RcodeServerFailure]
+		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
 }
 
@@ -449,7 +427,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	return model.RequestLogEntry{
 		Domain:            request.question.Name,
-		Status:            rcodes[dns.RcodeSuccess],
+		Status:            dns.RcodeToString[dns.RcodeSuccess],
 		QueryType:         dns.TypeToString[request.question.Qtype],
 		ResponseSizeBytes: request.msg.Len(),
 		Timestamp:         request.sent,
