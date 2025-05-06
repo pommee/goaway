@@ -37,7 +37,7 @@ var rcodes = map[int]string{
 }
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	domainName := strings.TrimSuffix(request.question.Name, ".")
+	domainName := strings.TrimRight(request.question.Name, ".")
 
 	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
 		return s.handlePTRQuery(request)
