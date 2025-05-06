@@ -91,7 +91,6 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 		Addr:      fmt.Sprintf(":%d", s.Config.DNSPort),
 		Net:       "udp",
 		Handler:   s,
-		UDPSize:   512,
 		ReusePort: true,
 	}
 
