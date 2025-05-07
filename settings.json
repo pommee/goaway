@@ -1,41 +1,11 @@
 {
-  // Port used for the DNS server. Standard DNS uses port 53.
-  // This is the port where the server will listen for incoming DNS queries.
   "dnsPort": 53,
-
-  // Port used for the API/web interface server.
-  // Access the dashboard and management features through this port.
   "apiPort": 8080,
-
-  // Number of days to retain statistics and query logs.
-  // Lower values save disk space but provide less historical data.
   "statisticsRetention": 7,
-
-  // Controls whether login is required to access the dashboard.
-  // Will create an admin account of first startup (password can be seen in the logs).
-  // Set to true for increased security.
   "authentication": true,
-
-  // Completely disables all logging when set to true.
-  // Useful for privacy-focused deployments or reducing disk I/O.
   "loggingDisabled": false,
-
-  // Primary DNS server to forward queries to.
   "preferredUpstream": "8.8.8.8:53",
-
-  // List of available DNS servers to forward queries to.
   "upstreamDNS": ["8.8.8.8:53", "1.1.1.1:53"],
-
-  // Maximum time (in seconds) to keep resolved domains in cache.
-  // The server will use either this value or the DNS response TTL, whichever is smaller.
-  // Lower values can result in lesser amount of cached responses.
   "cacheTTL": 360,
-
-  // Determines which severity of log messages to display.
-  // Each level includes all levels above it in number.
-  // 0 = Debug (most verbose, includes all messages)
-  // 1 = Info (normal operation messages)
-  // 2 = Warning (potential issues that don't affect operation)
-  // 3 = Error (serious problems only)
   "logLevel": 1
 }
