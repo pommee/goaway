@@ -3,6 +3,7 @@ package asciiart
 import (
 	"fmt"
 	"goaway/backend/settings"
+	"time"
 )
 
 const (
@@ -23,7 +24,7 @@ func AsciiArt(config settings.Config, blockedDomains int, version string, disabl
 	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIPort, Reset)
 	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
-	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL, Reset)
+	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL*time.Second, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
 
 	fmt.Printf(`
