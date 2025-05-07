@@ -106,7 +106,7 @@ export const columns: ColumnDef<Queries>[] = [
             ? `cache (forwarded) ${query.status}`
             : `ok (forwarded) ${query.status}`
           : `blacklisted ${query.status}`;
-      const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(2);
+      const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(3);
       const rowText = ` ${wasOK} ${responseTimeMS}ms`;
       return (
         <div className="flex">
