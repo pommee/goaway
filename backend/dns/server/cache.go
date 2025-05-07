@@ -30,8 +30,8 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 		return updatedRecords, true
 	}
 
-	log.Debug("Cached response was expired")
 	if cachedRecord.Key != "" {
+		log.Debug("Cached entry has expired, removing %s from cache", cachedRecord.Key)
 		s.cache.Delete(cachedRecord.Key)
 	}
 
@@ -43,14 +43,18 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 		return
 	}
 
-	// TODO:  Make use of the user set TTL
-	// As of now we are using the DNS sent TTL time
-	// cacheTTL := s.Config.CacheTTL * time.Microsecond
+	cacheTTL := s.Config.CacheTTL * time.Second
+	if ttl > 0 {
+		recordTTL := time.Duration(ttl) * time.Second
+		if recordTTL < cacheTTL {
+			cacheTTL = recordTTL
+		}
+	}
 
 	now := time.Now()
 	s.cache.Store(domain, cachedRecord{
 		IPAddresses: ipAddresses,
-		ExpiresAt:   now.Add(time.Duration(ttl) * time.Second),
+		ExpiresAt:   now.Add(cacheTTL),
 		CachedAt:    now,
 		OriginalTTL: ttl,
 		Key:         domain,
