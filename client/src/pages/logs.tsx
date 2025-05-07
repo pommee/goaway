@@ -56,8 +56,7 @@ import {
   useReactTable,
   VisibilityState
 } from "@tanstack/react-table";
-import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type QueryResponse = {
@@ -82,15 +81,17 @@ async function fetchQueries(
 
     if (response?.details && Array.isArray(response.details)) {
       return {
-        details: response.details.map((item) => ({
-          ...item,
-          client: {
-            ip: item.client?.ip || "",
-            name: item.client?.name || "",
-            mac: item.client?.mac || ""
-          },
-          ip: Array.isArray(item.ip) ? item.ip : []
-        })),
+        details: response.details.map(
+          (item: { client: { ip: any; name: any; mac: any }; ip: any }) => ({
+            ...item,
+            client: {
+              ip: item.client?.ip || "",
+              name: item.client?.name || "",
+              mac: item.client?.mac || ""
+            },
+            ip: Array.isArray(item.ip) ? item.ip : []
+          })
+        ),
         draw: response.draw || "1",
         recordsFiltered: response.recordsFiltered || 0,
         recordsTotal: response.recordsTotal || 0
@@ -117,20 +118,18 @@ export function Logs() {
   const [domainFilter, setDomainFilter] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
-
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
   const totalPages = Math.ceil(totalRecords / pageSize);
 
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return (...args) => {
+  const debounce = (
+    func: { (value: any): void; (arg0: any): void },
+    delay: number | undefined
+  ) => {
+    let timeoutId: string | number | NodeJS.Timeout | undefined;
+    return (...args: any) => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         func(...args);
@@ -138,7 +137,7 @@ export function Logs() {
     };
   };
 
-  const debouncedSetDomainFilter = React.useMemo(
+  const debouncedSetDomainFilter = useMemo(
     () =>
       debounce((value) => {
         setDomainFilter(value);
