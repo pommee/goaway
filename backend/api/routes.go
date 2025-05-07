@@ -148,7 +148,7 @@ func (api *API) handleServer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"portDNS":           api.Config.DNSPort,
+		"portDNS":           api.Config.DNS.Port,
 		"portWebsite":       api.DNSPort,
 		"totalMem":          float64(vMem.Total) / 1024 / 1024 / 1024,
 		"usedMem":           float64(vMem.Used) / 1024 / 1024 / 1024,
@@ -352,15 +352,16 @@ func (api *API) getSettings(c *gin.Context) {
 }
 
 func (api *API) updateSettings(c *gin.Context) {
-	var updatedSettings map[string]interface{}
+	var updatedSettings settings.Config
 	if err := c.BindJSON(&updatedSettings); err != nil {
+		log.Warning("Could not save new settings, reason: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid settings data",
 		})
 		return
 	}
 
-	api.Config.UpdateDNSSettings(updatedSettings)
+	api.Config.UpdateSettings(updatedSettings)
 	log.Info("Updated settings!")
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Debug("%s", string(settingsJson))
@@ -470,7 +471,7 @@ func (api *API) pauseBlocking(c *gin.Context) {
 		return
 	}
 
-	api.Config.DNSStatus = settings.Status{
+	api.Config.DNS.Status = settings.Status{
 		Paused:    true,
 		PausedAt:  time.Now(),
 		PauseTime: blockTime.Time,
@@ -500,15 +501,15 @@ func (api *API) deleteResolution(c *gin.Context) {
 }
 
 func (api *API) clearBlocking(c *gin.Context) {
-	api.Config.DNSStatus = settings.Status{}
+	api.Config.DNS.Status = settings.Status{}
 	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (api *API) getUpstreams(c *gin.Context) {
-	upstreams := api.Config.UpstreamDNS
+	upstreams := api.Config.DNS.UpstreamDNS
 	results := make([]map[string]any, len(upstreams))
 
-	preferredUpstream := api.Config.PreferredUpstream
+	preferredUpstream := api.Config.DNS.PreferredUpstream
 
 	var wg sync.WaitGroup
 	wg.Add(len(upstreams))
@@ -601,12 +602,12 @@ func (api *API) createUpstream(c *gin.Context) {
 		upstream += ":53"
 	}
 
-	if slices.Contains(api.Config.UpstreamDNS, upstream) {
+	if slices.Contains(api.Config.DNS.UpstreamDNS, upstream) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
 		return
 	}
 
-	api.Config.UpstreamDNS = append(api.Config.UpstreamDNS, upstream)
+	api.Config.DNS.UpstreamDNS = append(api.Config.DNS.UpstreamDNS, upstream)
 	api.Config.Save()
 
 	log.Info("Added %s as a new upstream", upstream)
@@ -622,13 +623,13 @@ func (api *API) deleteUpstream(c *gin.Context) {
 	}
 
 	var updatedUpstreams []string
-	for _, upstream := range api.Config.UpstreamDNS {
+	for _, upstream := range api.Config.DNS.UpstreamDNS {
 		if upstream != upstreamToDelete {
 			updatedUpstreams = append(updatedUpstreams, upstream)
 		}
 	}
 
-	api.Config.UpstreamDNS = updatedUpstreams
+	api.Config.DNS.UpstreamDNS = updatedUpstreams
 	api.Config.Save()
 
 	c.JSON(http.StatusOK, gin.H{
@@ -901,9 +902,9 @@ func (api *API) runUpdate(c *gin.Context) {
 }
 
 func (api *API) getBlocking(c *gin.Context) {
-	if api.Config.DNSStatus.Paused {
-		elapsed := time.Since(api.Config.DNSStatus.PausedAt).Seconds()
-		remainingTime := api.Config.DNSStatus.PauseTime - int(elapsed)
+	if api.Config.DNS.Status.Paused {
+		elapsed := time.Since(api.Config.DNS.Status.PausedAt).Seconds()
+		remainingTime := api.Config.DNS.Status.PauseTime - int(elapsed)
 
 		if remainingTime <= 0 {
 			c.JSON(http.StatusOK, gin.H{"paused": false})
@@ -912,7 +913,7 @@ func (api *API) getBlocking(c *gin.Context) {
 		}
 	}
 
-	if !api.Config.DNSStatus.Paused {
+	if !api.Config.DNS.Status.Paused {
 		c.JSON(http.StatusOK, gin.H{"paused": false})
 	}
 }
@@ -975,17 +976,17 @@ func (api *API) updatePreferredUpstream(c *gin.Context) {
 		return
 	}
 
-	if !slices.Contains(api.Config.UpstreamDNS, request.Upstream) {
+	if !slices.Contains(api.Config.DNS.UpstreamDNS, request.Upstream) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Upstream not found"})
 		return
 	}
 
-	if api.Config.PreferredUpstream == request.Upstream {
+	if api.Config.DNS.PreferredUpstream == request.Upstream {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Preferred upstream already set to %s", request.Upstream)})
 		return
 	}
 
-	api.Config.PreferredUpstream = request.Upstream
+	api.Config.DNS.PreferredUpstream = request.Upstream
 	message := fmt.Sprintf("Preferred upstream set to %s", request.Upstream)
 	log.Info("%s", message)
 

@@ -3,7 +3,6 @@ package asciiart
 import (
 	"fmt"
 	"goaway/backend/settings"
-	"time"
 )
 
 const (
@@ -20,11 +19,11 @@ func AsciiArt(config settings.Config, blockedDomains int, version string, disabl
 	const versionSpace = 7
 
 	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
-	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNSPort, Reset)
-	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.APIPort, Reset)
-	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.PreferredUpstream, Reset)
+	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNS.Port, Reset)
+	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.API.Port, Reset)
+	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNS.PreferredUpstream, Reset)
 	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
-	cacheTTLFormatted := fmt.Sprintf("%s%s%s", Blue, config.CacheTTL*time.Second, Reset)
+	cacheTTLFormatted := fmt.Sprintf("%s%d%s", Blue, config.DNS.CacheTTL, Reset)
 	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
 
 	fmt.Printf(`

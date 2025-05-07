@@ -21,11 +21,11 @@ type Flags struct {
 }
 
 func UpdateConfig(config *settings.Config, flags *Flags) {
-	config.DNSPort = flags.DnsPort
-	config.APIPort = flags.WebserverPort
+	config.DNS.Port = flags.DnsPort
+	config.API.Port = flags.WebserverPort
 	config.StatisticsRetention = flags.StatisticsRetention
 
-	config.Authentication = flags.DisableAuth
+	config.API.Authentication = flags.DisableAuth
 	config.DevMode = flags.DevMode
 	config.LoggingDisabled = flags.DisableLogging
 
