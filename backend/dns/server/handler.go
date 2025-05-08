@@ -299,7 +299,7 @@ func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string
 func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
 	var (
 		records []dns.RR
-		ttl     = uint32(s.Config.CacheTTL.Seconds())
+		ttl     = uint32(s.Config.DNS.CacheTTL)
 		status  = dns.RcodeToString[dns.RcodeSuccess]
 	)
 
@@ -363,7 +363,7 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 	errCh := make(chan error, 1)
 
 	go func() {
-		in, _, err := s.dnsClient.Exchange(m, s.Config.PreferredUpstream)
+		in, _, err := s.dnsClient.Exchange(m, s.Config.DNS.PreferredUpstream)
 		if err != nil {
 			errCh <- err
 			return
@@ -407,7 +407,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 			Name:   request.question.Name,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
-			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
+			Ttl:    uint32(s.Config.DNS.CacheTTL),
 		},
 		A: net.ParseIP("0.0.0.0"),
 	}
@@ -417,7 +417,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 			Name:   request.question.Name,
 			Rrtype: dns.TypeAAAA,
 			Class:  dns.ClassINET,
-			Ttl:    uint32(s.Config.CacheTTL.Seconds()),
+			Ttl:    uint32(s.Config.DNS.CacheTTL),
 		},
 		AAAA: net.ParseIP("::"),
 	}

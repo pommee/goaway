@@ -43,7 +43,7 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 		return
 	}
 
-	cacheTTL := s.Config.CacheTTL * time.Second
+	cacheTTL := time.Duration(s.Config.DNS.CacheTTL) * time.Second
 	if ttl > 0 {
 		recordTTL := time.Duration(ttl) * time.Second
 		if recordTTL < cacheTTL {

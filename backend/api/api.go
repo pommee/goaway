@@ -77,7 +77,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 	go func() {
 		const maxRetries = 10
 		const retryDelay = 10 * time.Second
-		addr := fmt.Sprintf(":%d", api.Config.APIPort)
+		addr := fmt.Sprintf(":%d", api.Config.API.Port)
 
 		for i := 1; i <= maxRetries; i++ {
 			listener, err := net.Listen("tcp", addr)
@@ -91,10 +91,10 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 				return
 			}
 
-			log.Info("Web server started on port :%d", api.Config.APIPort)
+			log.Info("Web server started on port :%d", api.Config.API.Port)
 
 			if serverIP, err := getServerIP(); err == nil {
-				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.APIPort)
+				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
 			} else {
 				log.Error("Could not determine server IP: %v", err)
 			}

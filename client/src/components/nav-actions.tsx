@@ -95,7 +95,10 @@ function AboutDialog() {
                     "https://github.com/pommee/goaway/commit/" +
                     responseData?.commit
                   }
-                />
+                  target="_blank"
+                >
+                  {responseData?.commit.substring(0, 8)}
+                </a>
               )) ||
                 "Not available"}
             </span>

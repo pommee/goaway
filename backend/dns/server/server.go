@@ -88,7 +88,7 @@ func NewDNSServer(config settings.Config) (*DNSServer, error) {
 
 func (s *DNSServer) Init() (int, *dns.Server) {
 	server := &dns.Server{
-		Addr:      fmt.Sprintf(":%d", s.Config.DNSPort),
+		Addr:      fmt.Sprintf(":%d", s.Config.DNS.Port),
 		Net:       "udp",
 		Handler:   s,
 		ReusePort: true,

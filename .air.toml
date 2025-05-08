@@ -12,7 +12,7 @@ args_bin = [
     "--statisticsRetention=7",
     "--dev=true",
 ]
-cmd = 'go build -o goaway -ldflags="-X main.version=0.0.0" -o ./tmp/goaway .'
+cmd = 'go build -o goaway -ldflags="-X main.version=0.0.0 -X main.commit=ead2d7830add26d53ecab3c907a290f0cdc1e078 -X main.date=2025-04-11T13:37:56Z" -o ./tmp/goaway .'
 exclude_dir = [
     "assets",
     "tmp",

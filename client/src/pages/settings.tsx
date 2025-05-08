@@ -26,20 +26,6 @@ const SETTINGS_SECTIONS = [
     settings: []
   },
   {
-    title: "Admin Panel",
-    description: "Customize dashboard appearance",
-    settings: [
-      {
-        label: "Font",
-        key: "font",
-        explanation: "Choose your preferred dashboard font",
-        options: ["JetBrains Mono", "Arial", "Times New Roman", "Courier New"],
-        default: "JetBrains Mono",
-        widgetType: Combobox
-      }
-    ]
-  },
-  {
     title: "Logging",
     description: "Configure logging preferences",
     settings: [
@@ -98,7 +84,7 @@ function parseLogLevel(level: number | string) {
         return "Error";
     }
   } else if (typeof level === "string") {
-    switch (level.toUpperCase()) {
+    switch (level) {
       case "Debug":
         return 0;
       case "Info":
@@ -112,9 +98,26 @@ function parseLogLevel(level: number | string) {
 }
 
 export function Settings() {
-  const [preferences, setPreferences] = useState<
-    Record<string, string | boolean | number>
-  >({});
+  const [preferences, setPreferences] = useState<Settings>({
+    dns: {
+      port: 53,
+      cacheTTL: 360,
+      preferredUpstream: "",
+      upstreamDNS: [],
+      status: {
+        paused: false,
+        pausedAt: "",
+        pauseTime: 0
+      }
+    },
+    api: {
+      port: 0,
+      authentication: false
+    },
+    statisticsRetention: 7,
+    loggingDisabled: false,
+    logLevel: 0
+  });
   const [isChanged, setIsChanged] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -124,40 +127,26 @@ export function Settings() {
     confirmPassword: ""
   });
   const [passwordError, setPasswordError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const originalPreferencesRef = useRef<string>("");
   const toastIdRef = useRef<string | number | null>(null);
   const navigate = useNavigate();
 
   const fetchSettings = async () => {
+    setIsLoading(true);
     try {
-      const [status, response] = await GetRequest("settings");
-
-      if (status === 200 && response) {
-        const updatedPreferences = {
-          font: localStorage.getItem("font") || "JetBrains Mono",
-          logLevel: parseLogLevel(response.settings?.logLevel) || "Info",
-          statisticsRetention: response.settings?.statisticsRetention || 7,
-          disableLogging: response.settings?.loggingDisabled || false,
-          cacheTTL: 60
-        };
-
-        setPreferences(updatedPreferences);
-        originalPreferencesRef.current = JSON.stringify(updatedPreferences);
-      } else {
-        console.error("Failed to fetch settings, using defaults");
-        const defaultPreferences = {
-          font: "JetBrains Mono",
-          logLevel: "Info",
-          statisticsRetention: 7,
-          disableLogging: false,
-          cacheTTL: 60
-        };
-        setPreferences(defaultPreferences);
-        originalPreferencesRef.current = JSON.stringify(defaultPreferences);
+      const [status, response]: [number, Root] = await GetRequest("settings");
+      if (status === 200 && response && response.settings) {
+        const settings = response.settings;
+        settings.logLevel = parseLogLevel(settings.logLevel);
+        setPreferences(settings);
+        originalPreferencesRef.current = JSON.stringify(settings);
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
       toast.error("Could not load settings");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -167,6 +156,16 @@ export function Settings() {
 
   const handleSelect = (key: string, value: string | number | boolean) => {
     setPreferences((prev) => {
+      if (key === "cacheTTL") {
+        return {
+          ...prev,
+          dns: {
+            ...prev.dns,
+            cacheTTL: typeof value === "number" ? value : Number(value)
+          }
+        };
+      }
+
       const newPreferences = {
         ...prev,
         [key]: typeof prev[key] === "number" ? Number(value) : value
@@ -182,9 +181,11 @@ export function Settings() {
 
   const handleSaveChanges = async () => {
     try {
-      await PostRequest("settings", preferences);
+      const settings = { ...preferences };
+      settings.logLevel = parseLogLevel(settings.logLevel);
+      await PostRequest("settings", settings);
 
-      originalPreferencesRef.current = JSON.stringify(preferences);
+      originalPreferencesRef.current = JSON.stringify(settings);
 
       setIsChanged(false);
       setToastShown(false);
@@ -286,6 +287,14 @@ export function Settings() {
     }
   }, [isChanged, toastShown]);
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center">
+        <div className="text-center">Loading settings...</div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -331,52 +340,68 @@ export function Settings() {
                 </div>
               )}
               {settings.map(
-                ({ label, key, explanation, options, widgetType: Widget }) => (
-                  <div
-                    key={key}
-                    className="flex flex-col md:flex-row
-                      justify-between
-                      items-start md:items-center
-                      space-y-2 md:space-y-0
-                      md:space-x-4"
-                  >
-                    <div className="flex-grow">
-                      <h3 className="text-base font-medium">{label}</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {explanation}
-                      </p>
-                    </div>
+                ({ label, key, explanation, options, widgetType: Widget }) => {
+                  let currentValue =
+                    key === "cacheTTL"
+                      ? preferences.dns?.cacheTTL
+                      : preferences[key];
 
-                    <div className="flex-shrink-0 w-full md:w-auto">
-                      <Widget
-                        {...(Widget === Combobox
-                          ? {
-                              value: preferences[key] || "",
-                              onChange: (value: string) =>
-                                handleSelect(key, value),
-                              options,
-                              className: "w-full md:w-40"
-                            }
-                          : Widget === Switch
+                  if (key === "disableLogging") {
+                    currentValue = preferences.loggingDisabled;
+                  }
+
+                  return (
+                    <div
+                      key={key}
+                      className="flex flex-col md:flex-row
+                        justify-between
+                        items-start md:items-center
+                        space-y-2 md:space-y-0
+                        md:space-x-4"
+                    >
+                      <div className="flex-grow">
+                        <h3 className="text-base font-medium">{label}</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {explanation}
+                        </p>
+                      </div>
+
+                      <div className="flex-shrink-0 w-full md:w-auto">
+                        <Widget
+                          {...(Widget === Combobox
                             ? {
-                                checked: Boolean(preferences[key]),
+                                value: currentValue?.toString() || "",
+                                onChange: (value: string) =>
+                                  handleSelect(key, value),
+                                options,
+                                className: "w-full md:w-40"
+                              }
+                            : Widget === Switch
+                            ? {
+                                checked: Boolean(currentValue),
                                 onCheckedChange: (value: boolean) =>
-                                  handleSelect(key, value)
+                                  handleSelect(
+                                    key === "disableLogging"
+                                      ? "loggingDisabled"
+                                      : key,
+                                    value
+                                  )
                               }
                             : Widget === Input
-                              ? {
-                                  value: preferences[key] || "",
-                                  onChange: (
-                                    e: React.ChangeEvent<HTMLInputElement>
-                                  ) => handleSelect(key, e.target.value),
-                                  placeholder: "Enter Value",
-                                  className: "w-full md:w-40"
-                                }
-                              : {})}
-                      />
+                            ? {
+                                value: currentValue?.toString() || "",
+                                onChange: (
+                                  e: React.ChangeEvent<HTMLInputElement>
+                                ) => handleSelect(key, e.target.value),
+                                placeholder: "Enter Value",
+                                className: "w-full md:w-40"
+                              }
+                            : {})}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )
+                  );
+                }
               )}
             </div>
           </Card>
@@ -464,4 +489,37 @@ export function Settings() {
       </Dialog>
     </>
   );
+}
+
+export interface Root {
+  settings: Settings;
+}
+
+export interface Settings {
+  font?: string;
+  dns: Dns;
+  api: Api;
+  statisticsRetention: number;
+  loggingDisabled: boolean;
+  logLevel: number | string;
+  [key: string]: any;
+}
+
+export interface Dns {
+  port: number;
+  cacheTTL: number;
+  preferredUpstream: string;
+  upstreamDNS: string[];
+  status: Status;
+}
+
+export interface Status {
+  paused: boolean;
+  pausedAt: string;
+  pauseTime: number;
+}
+
+export interface Api {
+  port: number;
+  authentication: boolean;
 }

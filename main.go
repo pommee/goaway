@@ -80,7 +80,7 @@ func startServer(config settings.Config) {
 	blockedDomains, serverInstance := dnsServer.Init()
 	currentVersion := setup.GetVersionOrDefault(version)
 
-	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.Authentication)
+	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.API.Authentication)
 	startServices(dnsServer, serverInstance, config)
 }
 
@@ -103,12 +103,12 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 	go func() {
 		defer wg.Done()
 		apiServer := api.API{
-			Authentication: config.Authentication,
+			Authentication: config.API.Authentication,
 			Config:         &config,
 			DB:             dnsServer.DB,
 			Blacklist:      dnsServer.Blacklist,
 			WS:             dnsServer.WS,
-			DNSPort:        config.DNSPort,
+			DNSPort:        config.DNS.Port,
 			Version:        version,
 			Commit:         commit,
 			Date:           date,
