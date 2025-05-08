@@ -27,7 +27,6 @@ import (
 	probing "github.com/prometheus-community/pro-bing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 )
@@ -269,19 +268,6 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 		Direction: sortDirection,
 		Offset:    (page - 1) * pageSize,
 	}
-}
-
-func (api *API) liveQueries(c *gin.Context) {
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		return
-	}
-	api.WS = conn
 }
 
 func (api *API) handleUpdateBlockStatus(c *gin.Context) {

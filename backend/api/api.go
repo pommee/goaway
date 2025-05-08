@@ -69,6 +69,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 
 	api.setupRoutes()
 	api.setupAuthorizedRoutes()
+	api.setupWebsocket(dnsServer)
 
 	if !api.Config.DevMode {
 		api.ServeEmbeddedContent(content)
@@ -163,7 +164,6 @@ func (api *API) setupAuthorizedRoutes() {
 
 	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/queries", api.getQueries)
-	api.routes.GET("/liveQueries", api.liveQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
 	api.routes.GET("/queryTypes", api.getQueryTypes)
 	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
@@ -192,6 +192,25 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.DELETE("/list", api.removeList)
 	api.routes.DELETE("/resolution", api.deleteResolution)
 	api.routes.DELETE("/pause", api.clearBlocking)
+}
+
+func (api *API) setupWebsocket(dnsServer *server.DNSServer) {
+	api.router.GET("/api/liveQueries", func(c *gin.Context) {
+		var upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
+
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			return
+		}
+		api.WS = conn
+
+		if dnsServer != nil {
+			dnsServer.WS = conn
+		}
+	})
 }
 
 func generateRandomPassword() string {
