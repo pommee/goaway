@@ -208,7 +208,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 }
 
 func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
-	answers, _, status := s.queryUpstream(request.question.Name, request.question.Qtype)
+	answers, _, status := s.queryUpstream(request)
 	request.msg.Answer = append(request.msg.Answer, answers...)
 	request.msg.Rcode = dns.RcodeNameError
 
@@ -234,7 +234,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 }
 
 func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
-	answers, cached, status := s.resolve(req.question.Name, req.question.Qtype)
+	answers, cached, status := s.resolve(req)
 
 	resolved := make([]string, 0, len(answers))
 	req.msg.Answer = answers
@@ -271,25 +271,25 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	}
 }
 
-func (s *DNSServer) resolve(domain string, qtype uint16) ([]dns.RR, bool, string) {
-	cacheKey := domain + ":" + strconv.Itoa(int(qtype))
+func (s *DNSServer) resolve(req *Request) ([]dns.RR, bool, string) {
+	cacheKey := req.question.Name + ":" + strconv.Itoa(int(req.question.Qtype))
 	if cached, found := s.cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, dns.RcodeToString[dns.RcodeSuccess]
 		}
 	}
 
-	if answers, ttl, status := s.queryUpstream(domain, qtype); len(answers) > 0 {
+	if answers, ttl, status := s.queryUpstream(req); len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 		return answers, false, status
 	}
 
-	if answers, ttl, status := s.resolveResolution(domain); len(answers) > 0 {
+	if answers, ttl, status := s.resolveResolution(req.question.Name); len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 		return answers, false, status
 	}
 
-	answers, ttl, status := s.resolveCNAMEChain(domain, qtype, make(map[string]bool))
+	answers, ttl, status := s.resolveCNAMEChain(req, make(map[string]bool))
 	if len(answers) > 0 {
 		s.cacheRecord(cacheKey, answers, ttl)
 	}
@@ -330,17 +330,17 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 	return records, ttl, status
 }
 
-func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[string]bool) ([]dns.RR, uint32, string) {
-	if visited[domain] {
+func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]dns.RR, uint32, string) {
+	if visited[req.question.Name] {
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
-	visited[domain] = true
+	visited[req.question.Name] = true
 
-	answers, ttl, status := s.queryUpstream(domain, dns.TypeCNAME)
+	answers, ttl, status := s.queryUpstream(req)
 	if len(answers) > 0 {
 		for _, answer := range answers {
-			if cname, ok := answer.(*dns.CNAME); ok {
-				targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(cname.Target, qtype, visited)
+			if _, ok := answer.(*dns.CNAME); ok {
+				targetAnswers, targetTTL, targetStatus := s.resolveCNAMEChain(req, visited)
 				if len(targetAnswers) > 0 {
 					minTTL := min(targetTTL, ttl)
 					return append(answers, targetAnswers...), minTTL, targetStatus
@@ -353,17 +353,12 @@ func (s *DNSServer) resolveCNAMEChain(domain string, qtype uint16, visited map[s
 	return answers, ttl, status
 }
 
-func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32, string) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(domain), qtype)
-	m.RecursionDesired = true
-	m.SetEdns0(4096, false)
-
+func (s *DNSServer) queryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	resultCh := make(chan *dns.Msg, 1)
 	errCh := make(chan error, 1)
 
 	go func() {
-		in, _, err := s.dnsClient.Exchange(m, s.Config.DNS.PreferredUpstream)
+		in, _, err := s.dnsClient.Exchange(req.msg, s.Config.DNS.PreferredUpstream)
 		if err != nil {
 			errCh <- err
 			return
@@ -391,11 +386,11 @@ func (s *DNSServer) queryUpstream(domain string, qtype uint16) ([]dns.RR, uint32
 		return in.Answer, ttl, status
 
 	case err := <-errCh:
-		log.Error("Resolution error for domain (%s): %v", domain, err)
+		log.Error("Resolution error for domain (%s): %v", req.question.Name, err)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
-		log.Warning("DNS lookup for %s timed out", domain)
+		log.Warning("DNS lookup for %s timed out", req.question.Name)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
 }
