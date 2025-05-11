@@ -749,13 +749,13 @@ func (api *API) fetchUpdatedList(c *gin.Context) {
 		return
 	}
 
-	remoteDomains, remoteChecksum, err := api.Blacklist.FetchRemoteHostsList(url, name)
+	remoteDomains, remoteChecksum, err := api.Blacklist.FetchRemoteHostsList(url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	dbDomains, dbChecksum, err := api.Blacklist.FetchDBHostsList(url, name)
+	dbDomains, dbChecksum, err := api.Blacklist.FetchDBHostsList(url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

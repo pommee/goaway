@@ -118,7 +118,7 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 	return blocklistURL, nil
 }
 
-func (b *Blacklist) FetchRemoteHostsList(url, name string) ([]string, string, error) {
+func (b *Blacklist) FetchRemoteHostsList(url string) ([]string, string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
@@ -135,7 +135,7 @@ func (b *Blacklist) FetchRemoteHostsList(url, name string) ([]string, string, er
 	return domains, calculateDomainsChecksum(domains), nil
 }
 
-func (b *Blacklist) FetchDBHostsList(url, name string) ([]string, string, error) {
+func (b *Blacklist) FetchDBHostsList(name string) ([]string, string, error) {
 	domains, err := b.GetDomainsForList(name)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not fetch domains from database")
