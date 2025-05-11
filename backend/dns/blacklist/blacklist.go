@@ -89,8 +89,8 @@ func (b *Blacklist) initializeBlockedDomains() error {
 	return nil
 }
 
-func (s *Blacklist) Vacuum() {
-	_, err := s.DB.Exec("VACUUM")
+func (b *Blacklist) Vacuum() {
+	_, err := b.DB.Exec("VACUUM")
 	if err != nil {
 		log.Warning("Error while vacuuming database: %v", err)
 	}
