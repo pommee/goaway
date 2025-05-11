@@ -755,7 +755,7 @@ func (api *API) fetchUpdatedList(c *gin.Context) {
 		return
 	}
 
-	dbDomains, dbChecksum, err := api.Blacklist.FetchDBHostsList(url)
+	dbDomains, dbChecksum, err := api.Blacklist.FetchDBHostsList(name)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
