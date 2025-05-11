@@ -2,13 +2,14 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"goaway/backend/dns/database/models"
 	"strings"
 )
 
 func FetchResolutions(db *sql.DB) ([]models.Resolution, error) {
-	query := ("SELECT ip, domain FROM resolution")
+	query := "SELECT ip, domain FROM resolution"
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -41,7 +42,7 @@ func FetchResolution(db *sql.DB, domain string) (string, error) {
 
 	var foundDomain string
 	err := db.QueryRow(query, domain).Scan(&foundDomain)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	if err != nil {

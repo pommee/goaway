@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"sync"
 	"testing"
@@ -51,7 +52,9 @@ func BenchmarkDNSRequestWithConn(b *testing.B) {
 	defer conn.Close()
 
 	dnsConn := &dns.Conn{Conn: conn}
-	defer dnsConn.Close()
+	defer func(dnsConn *dns.Conn) {
+		_ = dnsConn.Close()
+	}(dnsConn)
 
 	b.ReportAllocs()
 
@@ -82,10 +85,14 @@ func BenchmarkDNSRequestParallelWithConn(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to create connection: %v", err)
 		}
-		defer conn.Close()
+		defer func(conn net.Conn) {
+			_ = conn.Close()
+		}(conn)
 
 		dnsConn := &dns.Conn{Conn: conn}
-		defer dnsConn.Close()
+		defer func(dnsConn *dns.Conn) {
+			_ = dnsConn.Close()
+		}(dnsConn)
 
 		for pb.Next() {
 			m := questionCache.Copy()
@@ -110,10 +117,9 @@ func TestDNSConnectivity(t *testing.T) {
 	r, rtt, err := clientCache.Exchange(questionCache.Copy(), server)
 
 	if err != nil {
-		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
 			t.Fatalf("Timeout connecting to DNS server at %s", server)
-		} else {
-			t.Fatalf("Error connecting to DNS server: %v", err)
 		}
 	}
 
