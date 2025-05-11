@@ -998,6 +998,47 @@ func (api *API) toggleBlocklist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Toggled status for %s", blocklist)})
 }
 
+func (api *API) exportDatabase(c *gin.Context) {
+	log.Debug("Starting export of database")
+
+	const databaseName = "database.db"
+	if _, err := os.Stat(databaseName); err != nil {
+		if os.IsNotExist(err) {
+			log.Error("Database file not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "Database file not found"})
+		} else {
+			log.Error("Error accessing database file: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+		return
+	}
+
+	file, err := os.Open(databaseName)
+	if err != nil {
+		log.Error("Error opening database file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+	defer func(tx *os.File) {
+		_ = file.Close()
+	}(file)
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Error("Error getting file info: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", "attachment; filename="+databaseName)
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	c.Header("Cache-Control", "no-cache")
+
+	c.DataFromReader(http.StatusOK, fileInfo.Size(), "application/octet-stream", file, nil)
+}
+
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
 	data, err := os.ReadFile(tempFile)

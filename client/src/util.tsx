@@ -2,7 +2,7 @@ import { toast } from "sonner";
 
 let lastToastMessage: string | null = null;
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const fullURL = document.location.origin;
   const newBaseUrl = fullURL.replace(/:\d+$/, ":8080");
   return newBaseUrl;

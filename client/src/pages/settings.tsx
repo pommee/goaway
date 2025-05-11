@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { GetRequest, PostRequest, PutRequest } from "@/util";
+import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -68,6 +68,11 @@ const SETTINGS_SECTIONS = [
         widgetType: Input
       }
     ]
+  },
+  {
+    title: "Database",
+    description: "Database settings",
+    settings: []
   }
 ];
 
@@ -96,6 +101,31 @@ function parseLogLevel(level: number | string) {
     }
   }
 }
+
+const exportDatabase = async () => {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "database.db";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    toast.info("Exported!", { description: `Database has been exported` });
+  } catch (error) {
+    console.error("Failed to export database:", error);
+    toast.error("Could not export database");
+  }
+};
 
 export function Settings() {
   const [preferences, setPreferences] = useState<Settings>({
@@ -339,6 +369,30 @@ export function Settings() {
                   </Button>
                 </div>
               )}
+              {title === "Database" && (
+                <div
+                  key="exportdatabase"
+                  className="flex flex-col md:flex-row
+                  justify-between
+                  items-start md:items-center
+                  space-y-2 md:space-y-0
+                  md:space-x-4"
+                >
+                  <div className="flex-grow">
+                    <h3 className="text-base font-medium">Export database</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Can for example be used when migrating locations
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => exportDatabase()}
+                    variant="outline"
+                    className="w-full md:w-auto"
+                  >
+                    Export
+                  </Button>
+                </div>
+              )}
               {settings.map(
                 ({ label, key, explanation, options, widgetType: Widget }) => {
                   let currentValue =
@@ -377,26 +431,26 @@ export function Settings() {
                                 className: "w-full md:w-40"
                               }
                             : Widget === Switch
-                            ? {
-                                checked: Boolean(currentValue),
-                                onCheckedChange: (value: boolean) =>
-                                  handleSelect(
-                                    key === "disableLogging"
-                                      ? "loggingDisabled"
-                                      : key,
-                                    value
-                                  )
-                              }
-                            : Widget === Input
-                            ? {
-                                value: currentValue?.toString() || "",
-                                onChange: (
-                                  e: React.ChangeEvent<HTMLInputElement>
-                                ) => handleSelect(key, e.target.value),
-                                placeholder: "Enter Value",
-                                className: "w-full md:w-40"
-                              }
-                            : {})}
+                              ? {
+                                  checked: Boolean(currentValue),
+                                  onCheckedChange: (value: boolean) =>
+                                    handleSelect(
+                                      key === "disableLogging"
+                                        ? "loggingDisabled"
+                                        : key,
+                                      value
+                                    )
+                                }
+                              : Widget === Input
+                                ? {
+                                    value: currentValue?.toString() || "",
+                                    onChange: (
+                                      e: React.ChangeEvent<HTMLInputElement>
+                                    ) => handleSelect(key, e.target.value),
+                                    placeholder: "Enter Value",
+                                    className: "w-full md:w-40"
+                                  }
+                                : {})}
                         />
                       </div>
                     </div>
