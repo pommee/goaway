@@ -37,14 +37,19 @@ export async function PostRequest(url: string, bodyData: unknown) {
       credentials: "include"
     });
 
+    const tryParseJson = async () => {
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    };
+
     if (!res.ok) {
       await isAuthenticated(res);
-      const data = await res.json();
-      showToast(data.error);
+      const data = await tryParseJson();
+      showToast(data?.error || "Unknown error occurred.");
       return [res.status, null];
     }
 
-    const data = await res.json();
+    const data = await tryParseJson();
     return [res.status, data];
   } catch {
     showToast("Could not reach server, try again later.");

@@ -134,7 +134,7 @@ export function Resolution() {
         </div>
       </div>
 
-      <Card className="shadow-md border-green-100">
+      <Card className="shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-green-500" />
