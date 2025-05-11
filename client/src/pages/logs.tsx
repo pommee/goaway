@@ -82,7 +82,10 @@ async function fetchQueries(
     if (response?.details && Array.isArray(response.details)) {
       return {
         details: response.details.map(
-          (item: { client: { ip: any; name: any; mac: any }; ip: any }) => ({
+          (item: {
+            client: { ip: string; name: string; mac: string };
+            ip: string;
+          }) => ({
             ...item,
             client: {
               ip: item.client?.ip || "",
@@ -124,12 +127,9 @@ export function Logs() {
   const [rowSelection, setRowSelection] = useState({});
   const totalPages = Math.ceil(totalRecords / pageSize);
 
-  const debounce = (
-    func: { (value: any): void; (arg0: any): void },
-    delay: number | undefined
-  ) => {
+  const debounce = (func: { (value) }, delay: number | undefined) => {
     let timeoutId: string | number | NodeJS.Timeout | undefined;
-    return (...args: any) => {
+    return (...args) => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         func(...args);

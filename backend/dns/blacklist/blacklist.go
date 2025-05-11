@@ -123,7 +123,9 @@ func (b *Blacklist) FetchRemoteHostsList(url, name string) ([]string, string, er
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	domains, err := b.ExtractDomains(resp.Body)
 	if err != nil {
@@ -292,7 +294,9 @@ func (b *Blacklist) GetAllowedAndBlocked() (allowed, blocked int, err error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to query request_log: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	for rows.Next() {
 		var blockedFlag bool

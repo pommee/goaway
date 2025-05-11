@@ -59,7 +59,9 @@ ORDER BY interval_start;
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var summaries []model.RequestLogIntervalSummary
 	for rows.Next() {
@@ -371,7 +373,9 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 		log.Error("Could not create a prepared statement for request logs, reason: %v", err)
 		return
 	}
-	defer stmt.Close()
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
 
 	for _, entry := range entries {
 		_, err = stmt.Exec(
@@ -417,22 +421,4 @@ func DeleteRequestLogsTimebased(vacuum vacuumFunc, db *sql.DB, requestThreshold,
 		}
 		break
 	}
-}
-
-func CountAllowedAndBlockedRequest(db *sql.DB) (int, int, error) {
-	var blockedCount, allowedCount int
-
-	err := db.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 1").Scan(&blockedCount)
-	if err != nil {
-		log.Error("Failed to get blocked requests count: %s", err)
-		return 0, 0, err
-	}
-
-	err = db.QueryRow("SELECT COUNT(*) FROM request_log WHERE blocked = 0").Scan(&allowedCount)
-	if err != nil {
-		log.Error("Failed to get allowed requests count: %s", err)
-		return 0, 0, err
-	}
-
-	return blockedCount, allowedCount, nil
 }

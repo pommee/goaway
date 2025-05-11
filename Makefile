@@ -23,7 +23,7 @@ start:
 
 lint:
 	pnpm -C client lint && \
-	golangci-lint run
+	golangci-lint run ./backend/...
 
 format:
 	npx prettier --write "client/**/*.{html,css,js,tsx}"

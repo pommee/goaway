@@ -52,7 +52,7 @@ export async function PostRequest(url: string, bodyData: unknown) {
   }
 }
 
-export async function GetRequest(url: string): Promise<[number, any]> {
+export async function GetRequest(url: string) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       credentials: "include"

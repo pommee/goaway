@@ -502,7 +502,6 @@ export interface Settings {
   statisticsRetention: number;
   loggingDisabled: boolean;
   logLevel: number | string;
-  [key: string]: any;
 }
 
 export interface Dns {
