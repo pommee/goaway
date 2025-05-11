@@ -26,6 +26,29 @@ func removeTestDB(db *database.Session) {
 	_ = os.Remove("database.db")
 }
 
+func MockClient() *model.Client {
+	return &model.Client{
+		IP:   "192.168.13.37",
+		Name: "mock-client",
+		MAC:  "00:1A:2B:3C:4D:5E",
+	}
+}
+
+func MockRequestLogEntry() model.RequestLogEntry {
+	timestamp := time.Now()
+	return model.RequestLogEntry{
+		Timestamp:    timestamp,
+		Domain:       "example.com",
+		IP:           []string{"192.168.0.1"},
+		Blocked:      false,
+		Cached:       false,
+		ResponseTime: 13371337,
+		ClientInfo:   MockClient(),
+		Status:       "NOERROR",
+		QueryType:    "A",
+	}
+}
+
 func BenchmarkInsertRequestLog(b *testing.B) {
 	db, err := createTestDB()
 	if err != nil {
@@ -35,21 +58,7 @@ func BenchmarkInsertRequestLog(b *testing.B) {
 
 	batch := make([]model.RequestLogEntry, 1000)
 	for i := range batch {
-		batch[i] = model.RequestLogEntry{
-			Timestamp:    time.Now(),
-			Domain:       "example.com",
-			IP:           []string{"192.168.0.1"},
-			Blocked:      false,
-			Cached:       true,
-			ResponseTime: 1000000,
-			ClientInfo: &model.Client{
-				IP:   "192.168.1.2",
-				Name: "client1",
-				MAC:  "00:1A:2B:3C:4D:5E",
-			},
-			Status:    "NOERROR",
-			QueryType: "A",
-		}
+		batch[i] = MockRequestLogEntry()
 	}
 
 	for iteration := 0; b.Loop(); iteration++ {
@@ -66,21 +75,7 @@ func BenchmarkQueryRequestLog(b *testing.B) {
 
 	batch := make([]model.RequestLogEntry, 100000)
 	for i := range batch {
-		batch[i] = model.RequestLogEntry{
-			Timestamp:    time.Now(),
-			Domain:       "example.com",
-			IP:           []string{"192.168.0.1"},
-			Blocked:      false,
-			Cached:       true,
-			ResponseTime: 1000000,
-			ClientInfo: &model.Client{
-				IP:   "192.168.1.2",
-				Name: "client1",
-				MAC:  "00:1A:2B:3C:4D:5E",
-			},
-			Status:    "OK",
-			QueryType: "A",
-		}
+		batch[i] = MockRequestLogEntry()
 	}
 	database.SaveRequestLog(db.Con, batch)
 
