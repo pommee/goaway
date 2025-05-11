@@ -117,7 +117,7 @@ The default settings are defined in `settings.json`. You can customize it by mod
 ## ⚠️ Platform Support
 
 | Platform | Architecture | Support Level |
-| -------- | ------------ | ------------- |
+|----------|--------------|---------------|
 | Linux    | amd64        | Full          |
 | Linux    | arm64        | Full          |
 | Linux    | 386          | Full          |
