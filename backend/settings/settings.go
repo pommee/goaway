@@ -36,7 +36,7 @@ type Config struct {
 
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
 	DevMode             bool             `yaml:"-" json:"-"`
-	LoggingDisabled     bool             `yaml:"loggingDisabled" json:"loggingDisabled"`
+	LoggingEnabled      bool             `yaml:"loggingDisabled" json:"loggingDisabled"`
 	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
 }
 
@@ -120,9 +120,9 @@ func (config *Config) UpdateSettings(updatedSettings Config) {
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
 	config.LogLevel = updatedSettings.LogLevel
 	config.StatisticsRetention = updatedSettings.StatisticsRetention
-	config.LoggingDisabled = updatedSettings.LoggingDisabled
+	config.LoggingEnabled = updatedSettings.LoggingEnabled
 
-	log.ToggleLogging(config.LoggingDisabled)
+	log.ToggleLogging(config.LoggingEnabled)
 	log.SetLevel(config.LogLevel)
 	config.Save()
 }

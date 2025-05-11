@@ -46,11 +46,11 @@ const SETTINGS_SECTIONS = [
         widgetType: Combobox
       },
       {
-        label: "Disable Logging",
-        key: "disableLogging",
-        explanation: "Completely turn off logging",
+        label: "Logging",
+        key: "logging",
+        explanation: "Toggle logging",
         options: [true, false],
-        default: false,
+        default: true,
         widgetType: Switch
       }
     ]
@@ -400,7 +400,7 @@ export function Settings() {
                       ? preferences.dns?.cacheTTL
                       : preferences[key];
 
-                  if (key === "disableLogging") {
+                  if (key === "logging") {
                     currentValue = preferences.loggingDisabled;
                   }
 
@@ -431,26 +431,24 @@ export function Settings() {
                                 className: "w-full md:w-40"
                               }
                             : Widget === Switch
-                              ? {
-                                  checked: Boolean(currentValue),
-                                  onCheckedChange: (value: boolean) =>
-                                    handleSelect(
-                                      key === "disableLogging"
-                                        ? "loggingDisabled"
-                                        : key,
-                                      value
-                                    )
-                                }
-                              : Widget === Input
-                                ? {
-                                    value: currentValue?.toString() || "",
-                                    onChange: (
-                                      e: React.ChangeEvent<HTMLInputElement>
-                                    ) => handleSelect(key, e.target.value),
-                                    placeholder: "Enter Value",
-                                    className: "w-full md:w-40"
-                                  }
-                                : {})}
+                            ? {
+                                checked: Boolean(currentValue),
+                                onCheckedChange: (value: boolean) =>
+                                  handleSelect(
+                                    key === "logging" ? "loggingDisabled" : key,
+                                    value
+                                  )
+                              }
+                            : Widget === Input
+                            ? {
+                                value: currentValue?.toString() || "",
+                                onChange: (
+                                  e: React.ChangeEvent<HTMLInputElement>
+                                ) => handleSelect(key, e.target.value),
+                                placeholder: "Enter Value",
+                                className: "w-full md:w-40"
+                              }
+                            : {})}
                         />
                       </div>
                     </div>

@@ -15,22 +15,24 @@ type Flags struct {
 	WebserverPort       int
 	LogLevel            int
 	StatisticsRetention int
-	DisableLogging      bool
-	DisableAuth         bool
+	LoggingEnabled      bool
+	Authentication      bool
 	DevMode             bool
+	Ansi                bool
 }
 
 func UpdateConfig(config *settings.Config, flags *Flags) {
 	config.DNS.Port = flags.DnsPort
 	config.API.Port = flags.WebserverPort
 	config.StatisticsRetention = flags.StatisticsRetention
-
-	config.API.Authentication = flags.DisableAuth
+	config.API.Authentication = flags.Authentication
 	config.DevMode = flags.DevMode
-	config.LoggingDisabled = flags.DisableLogging
-
+	config.LoggingEnabled = flags.LoggingEnabled
 	config.LogLevel = logging.LogLevel(flags.LogLevel)
+
+	log.Ansi = flags.Ansi
 	log.SetLevel(logging.LogLevel(flags.LogLevel))
+	log.ToggleLogging(config.LoggingEnabled)
 }
 
 func GetVersionOrDefault(ver string) *semver.Version {

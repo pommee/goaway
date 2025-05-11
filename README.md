@@ -97,17 +97,19 @@ You'll see a startup message confirming the services are running:
 ```bash
 goaway --help
 
+GoAway is a DNS sinkhole with a web interface
+
 Usage:
   goaway [flags]
 
 Flags:
-      --auth                      If false, then no authentication is required for the admin dashboard (default true)
-      --disablelogging            If true, then no logs will appear in the container
-      --dnsport int               Port for the DNS server (default 53)
-  -h, --help                      help for goaway
-      --loglevel int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
-      --statisticsRetention int   Number is amount of days to keep statistics (default 1)
-      --webserverport int         Port for the web server (default 8080)
+      --auth                       Disable authentication for admin dashboard (default true)
+      --dns-port int               Port for the DNS server (default 53)
+  -h, --help                       help for goaway
+      --log-level int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
+      --logging                    Toggle logging (default true)
+      --statistics-retention int   Days to keep statistics (default 1)
+      --webserver-port int         Port for the web server (default 8080)
 ```
 
 ### Custom Configuration
@@ -117,7 +119,7 @@ The default settings are defined in `settings.json`. You can customize it by mod
 ## ⚠️ Platform Support
 
 | Platform | Architecture | Support Level |
-|----------|--------------|---------------|
+| -------- | ------------ | ------------- |
 | Linux    | amd64        | Full          |
 | Linux    | arm64        | Full          |
 | Linux    | 386          | Full          |

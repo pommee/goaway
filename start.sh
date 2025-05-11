@@ -3,7 +3,7 @@
 run_goaway() {
     while true; do
         echo "Starting goaway..."
-        /home/appuser/goaway --dnsport=${DNS_PORT} --webserverport=${WEBSITE_PORT}
+        /home/appuser/goaway --dns-port=${DNS_PORT} --webserver-port=${WEBSITE_PORT}
         echo "goaway process exited with code $?. Restarting..."
     done
 }

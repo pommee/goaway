@@ -25,10 +25,10 @@ const (
 )
 
 type Logger struct {
-	mu              sync.Mutex
-	logLevel        LogLevel
-	LoggingDisabled bool
-	logger          *log.Logger
+	logLevel       LogLevel
+	LoggingEnabled bool
+	Ansi           bool
+	logger         *log.Logger
 }
 
 var (
@@ -39,39 +39,37 @@ var (
 func GetLogger() *Logger {
 	once.Do(func() {
 		instance = &Logger{
-			logLevel:        INFO,
-			LoggingDisabled: false,
-			logger:          log.New(os.Stdout, "", log.LstdFlags),
+			logLevel:       INFO,
+			LoggingEnabled: true,
+			logger:         log.New(os.Stdout, "", log.LstdFlags),
 		}
 	})
 	return instance
 }
 
-func (l *Logger) ToggleLogging(disableLogging bool) {
-	if !l.LoggingDisabled && disableLogging {
+func (l *Logger) ToggleLogging(logging bool) {
+	if l.LoggingEnabled && !logging {
 		l.Info("Logging is being disabled. Go to admin panel -> Settings to turn it back on.")
 	}
-	l.mu.Lock()
-	l.LoggingDisabled = disableLogging
-	l.mu.Unlock()
+	l.LoggingEnabled = logging
 }
 
 func (l *Logger) SetLevel(level LogLevel) {
-	l.mu.Lock()
-	if !l.LoggingDisabled {
+	if l.LoggingEnabled {
 		l.logLevel = level
 	}
-	l.mu.Unlock()
 }
 
 func (l *Logger) log(level string, color string, message string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.logger.Printf("%s%s%s%s", color, level, message, ColorReset)
+	if l.Ansi {
+		l.logger.Printf("%s%s%s%s", color, level, message, ColorReset)
+	} else {
+		l.logger.Printf("%s%s", level, message)
+	}
 }
 
 func (l *Logger) verifyLog(level LogLevel) bool {
-	return level >= l.logLevel && !l.LoggingDisabled
+	return level >= l.logLevel && l.LoggingEnabled
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {

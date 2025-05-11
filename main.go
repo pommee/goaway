@@ -48,13 +48,14 @@ func createRootCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntVar(&flags.DnsPort, "dnsport", 53, "Port for the DNS server")
-	cmd.Flags().IntVar(&flags.WebserverPort, "webserverport", 8080, "Port for the web server")
-	cmd.Flags().IntVar(&flags.LogLevel, "loglevel", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
-	cmd.Flags().IntVar(&flags.StatisticsRetention, "statisticsRetention", 1, "Days to keep statistics")
-	cmd.Flags().BoolVar(&flags.DisableLogging, "disablelogging", false, "Disable logging")
-	cmd.Flags().BoolVar(&flags.DisableAuth, "auth", true, "Disable authentication for admin dashboard")
-	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only use while developing goaway")
+	cmd.Flags().IntVar(&flags.DnsPort, "dns-port", 53, "Port for the DNS server")
+	cmd.Flags().IntVar(&flags.WebserverPort, "webserver-port", 8080, "Port for the web server")
+	cmd.Flags().IntVar(&flags.LogLevel, "log-level", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
+	cmd.Flags().IntVar(&flags.StatisticsRetention, "statistics-retention", 7, "Days to keep statistics")
+	cmd.Flags().BoolVar(&flags.LoggingEnabled, "logging", true, "Toggle logging")
+	cmd.Flags().BoolVar(&flags.Authentication, "auth", true, "Toggle authentication for admin dashboard")
+	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only used while developing goaway")
+	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs")
 
 	return cmd
 }
