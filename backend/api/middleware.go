@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	TOKEN_DURATION = 5 * time.Minute
-	SECRET         = "kMNSRwKip7Yet4rb2z8"
+	TokenDuration = 5 * time.Minute
+	Secret        = "kMNSRwKip7Yet4rb2z8"
 )
 
 func authMiddleware() gin.HandlerFunc {
@@ -30,7 +30,7 @@ func authMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(cookie, func(t *jwt.Token) (any, error) {
-			return []byte(SECRET), nil
+			return []byte(Secret), nil
 		})
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
@@ -46,7 +46,7 @@ func authMiddleware() gin.HandlerFunc {
 				return
 			}
 
-			if time.Now().Unix() > expirationTime-int64(TOKEN_DURATION/2) {
+			if time.Now().Unix() > expirationTime-int64(TokenDuration/2) {
 				newToken, err := generateToken(claims["username"].(string))
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
@@ -66,10 +66,10 @@ func authMiddleware() gin.HandlerFunc {
 func generateToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
-		"exp":      time.Now().Add(TOKEN_DURATION).Unix(),
+		"exp":      time.Now().Add(TokenDuration).Unix(),
 		"iat":      time.Now().Unix(),
 	})
-	return token.SignedString([]byte(SECRET))
+	return token.SignedString([]byte(Secret))
 }
 
 func setAuthCookie(w http.ResponseWriter, token string) {
@@ -80,7 +80,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
-		Expires:  time.Now().Add(TOKEN_DURATION),
+		Expires:  time.Now().Add(TokenDuration),
 	})
 }
 

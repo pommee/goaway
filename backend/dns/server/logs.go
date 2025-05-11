@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const BATCH_SIZE = 500
+const BatchSize = 500
 
 func (s *DNSServer) ProcessLogEntries() {
 	var batch []model.RequestLogEntry
@@ -26,7 +26,7 @@ func (s *DNSServer) ProcessLogEntries() {
 			}
 
 			batch = append(batch, entry)
-			if len(batch) >= BATCH_SIZE {
+			if len(batch) >= BatchSize {
 				s.saveBatch(batch)
 				batch = nil
 			}
