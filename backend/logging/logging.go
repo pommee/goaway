@@ -3,6 +3,7 @@ package logging
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 )
@@ -25,10 +26,12 @@ const (
 )
 
 type Logger struct {
-	logLevel       LogLevel
-	LoggingEnabled bool
-	Ansi           bool
-	logger         *log.Logger
+	logLevel           LogLevel
+	LoggingEnabled     bool
+	Ansi               bool
+	logger             *log.Logger
+	JSON               bool
+	JSONLoggerInstance *slog.Logger
 }
 
 var (
@@ -39,9 +42,11 @@ var (
 func GetLogger() *Logger {
 	once.Do(func() {
 		instance = &Logger{
-			logLevel:       INFO,
-			LoggingEnabled: true,
-			logger:         log.New(os.Stdout, "", log.LstdFlags),
+			logLevel:           INFO,
+			LoggingEnabled:     true,
+			logger:             log.New(os.Stdout, "", log.LstdFlags),
+			JSON:               false,
+			JSONLoggerInstance: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 		}
 	})
 	return instance
@@ -60,11 +65,28 @@ func (l *Logger) SetLevel(level LogLevel) {
 	}
 }
 
-func (l *Logger) log(level string, color string, message string) {
-	if l.Ansi {
-		l.logger.Printf("%s%s%s%s", color, level, message, ColorReset)
+func (l *Logger) SetFormat(JSONFormat bool) {
+	l.JSON = JSONFormat
+}
+
+func (l *Logger) log(level string, color string, message string, msgLevel LogLevel) {
+	if !l.JSON {
+		if l.Ansi {
+			l.logger.Printf("%s%s%s%s", color, level, message, ColorReset)
+		} else {
+			l.logger.Printf("%s%s", level, message)
+		}
 	} else {
-		l.logger.Printf("%s%s", level, message)
+		switch msgLevel {
+		case DEBUG:
+			l.JSONLoggerInstance.Debug(message)
+		case INFO:
+			l.JSONLoggerInstance.Info(message)
+		case WARNING:
+			l.JSONLoggerInstance.Warn(message)
+		case ERROR:
+			l.JSONLoggerInstance.Error(message)
+		}
 	}
 }
 
@@ -78,9 +100,9 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[DEBUG] ", ColorGray, message)
+		l.log("[DEBUG] ", ColorGray, message, DEBUG)
 	} else {
-		l.log("[DEBUG] ", ColorGray, format)
+		l.log("[DEBUG] ", ColorGray, format, DEBUG)
 	}
 }
 
@@ -90,9 +112,9 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[INFO] ", ColorWhite, message)
+		l.log("[INFO] ", ColorWhite, message, INFO)
 	} else {
-		l.log("[INFO] ", ColorWhite, format)
+		l.log("[INFO] ", ColorWhite, format, INFO)
 	}
 }
 
@@ -102,9 +124,9 @@ func (l *Logger) Warning(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[WARN] ", ColorYellow, message)
+		l.log("[WARN] ", ColorYellow, message, WARNING)
 	} else {
-		l.log("[WARN] ", ColorYellow, format)
+		l.log("[WARN] ", ColorYellow, format, WARNING)
 	}
 }
 
@@ -114,9 +136,9 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	}
 	if len(args) > 0 {
 		message := fmt.Sprintf(format, args...)
-		l.log("[ERROR] ", ColorRed, message)
+		l.log("[ERROR] ", ColorRed, message, ERROR)
 	} else {
-		l.log("[ERROR] ", ColorRed, format)
+		l.log("[ERROR] ", ColorRed, format, ERROR)
 	}
 }
 

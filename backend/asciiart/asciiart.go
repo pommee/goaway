@@ -15,16 +15,25 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config settings.Config, blockedDomains int, version string, disableAuth bool) {
+func AsciiArt(config settings.Config, blockedDomains int, version string, disableAuth bool, ansi bool) {
 	const versionSpace = 7
 
-	versionFormatted := fmt.Sprintf("%-*s%s%s%-*s%s", (versionSpace-len(version))/2, "", Cyan, version, (versionSpace-len(version)+1)/2, "", Reset)
-	portFormatted := fmt.Sprintf("%s%d%s", Green, config.DNS.Port, Reset)
-	adminPanelFormatted := fmt.Sprintf("%s%d%s", Red, config.API.Port, Reset)
-	upstreamFormatted := fmt.Sprintf("%s%s%s", Cyan, config.DNS.PreferredUpstream, Reset)
-	authFormatted := fmt.Sprintf("%s%v%s", Yellow, disableAuth, Reset)
-	cacheTTLFormatted := fmt.Sprintf("%s%d%s", Blue, config.DNS.CacheTTL, Reset)
-	blockedDomainsFormatted := fmt.Sprintf("%s%d%s", Magenta, blockedDomains, Reset)
+	colorize := func(color, text string) string {
+		if !ansi {
+			return text
+		}
+		return color + text + Reset
+	}
+
+	versionFormatted := fmt.Sprintf("%-*s%s%-*s", (versionSpace-len(version))/2, "",
+		colorize(Cyan, version), (versionSpace-len(version)+1)/2, "")
+
+	portFormatted := colorize(Green, fmt.Sprintf("%d", config.DNS.Port))
+	adminPanelFormatted := colorize(Red, fmt.Sprintf("%d", config.API.Port))
+	upstreamFormatted := colorize(Cyan, config.DNS.PreferredUpstream)
+	authFormatted := colorize(Yellow, fmt.Sprintf("%v", disableAuth))
+	cacheTTLFormatted := colorize(Blue, fmt.Sprintf("%d", config.DNS.CacheTTL))
+	blockedDomainsFormatted := colorize(Magenta, fmt.Sprintf("%d", blockedDomains))
 
 	fmt.Printf(`
    __ _  ___   __ ___      ____ _ _   _   DNS port:         %s

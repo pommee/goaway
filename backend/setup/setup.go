@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"fmt"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
 	"os"
@@ -19,9 +20,19 @@ type Flags struct {
 	Authentication      bool
 	DevMode             bool
 	Ansi                bool
+	JSON                bool
 }
 
 func UpdateConfig(config *settings.Config, flags *Flags) {
+
+	if flags.JSON {
+		flags.Ansi = false
+	}
+	if flags.LogLevel > 3 || flags.LogLevel < 0 {
+		fmt.Println("Flag --log-level can't be greater than 3 or below 0.")
+		os.Exit(1)
+	}
+
 	config.DNS.Port = flags.DnsPort
 	config.API.Port = flags.WebserverPort
 	config.StatisticsRetention = flags.StatisticsRetention
@@ -30,6 +41,7 @@ func UpdateConfig(config *settings.Config, flags *Flags) {
 	config.LoggingEnabled = flags.LoggingEnabled
 	config.LogLevel = logging.LogLevel(flags.LogLevel)
 
+	log.JSON = flags.JSON
 	log.Ansi = flags.Ansi
 	log.SetLevel(logging.LogLevel(flags.LogLevel))
 	log.ToggleLogging(config.LoggingEnabled)

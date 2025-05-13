@@ -44,7 +44,7 @@ func createRootCommand() *cobra.Command {
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			startServer(setup.InitializeSettings(&flags))
+			startServer(setup.InitializeSettings(&flags), flags.Ansi)
 		},
 	}
 
@@ -55,12 +55,13 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.LoggingEnabled, "logging", true, "Toggle logging")
 	cmd.Flags().BoolVar(&flags.Authentication, "auth", true, "Toggle authentication for admin dashboard")
 	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only used while developing goaway")
-	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs")
+	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs. Only available in non-json formatted logs")
+	cmd.Flags().BoolVar(&flags.JSON, "json", false, "Toggle JSON formatted logs")
 
 	return cmd
 }
 
-func startServer(config settings.Config) {
+func startServer(config settings.Config, ansi bool) {
 	if os.Getenv("GOAWAY_PROFILE") == "true" {
 		log.Warning("GOAWAY_PROFILE was set, starting profiler...")
 		go func() {
@@ -81,7 +82,7 @@ func startServer(config settings.Config) {
 	blockedDomains, serverInstance := dnsServer.Init()
 	currentVersion := setup.GetVersionOrDefault(version)
 
-	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.API.Authentication)
+	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.API.Authentication, ansi)
 	startServices(dnsServer, serverInstance, config)
 }
 
