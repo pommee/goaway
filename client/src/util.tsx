@@ -26,7 +26,11 @@ async function isAuthenticated(res: Response) {
   }
 }
 
-export async function PostRequest(url: string, bodyData: unknown) {
+export async function PostRequest(
+  url: string,
+  bodyData: unknown,
+  ignoreAuth = false
+) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "POST",
@@ -43,7 +47,9 @@ export async function PostRequest(url: string, bodyData: unknown) {
     };
 
     if (!res.ok) {
-      await isAuthenticated(res);
+      if (!ignoreAuth) {
+        await isAuthenticated(res);
+      }
       const data = await tryParseJson();
       showToast(data?.error || "Unknown error occurred.");
       return [res.status, null];

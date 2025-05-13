@@ -72,15 +72,17 @@ export function Login({
     }
 
     try {
-      const [statusCode] = await PostRequest("login", {
-        username,
-        password
-      });
+      const [statusCode] = await PostRequest(
+        "login",
+        {
+          username,
+          password
+        },
+        true
+      );
 
       if (statusCode === 200) {
         navigate("/");
-      } else {
-        toast.error("Invalid username or password.");
       }
     } catch (error) {
       console.error("Login error:", error);
