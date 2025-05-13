@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { PostRequest } from "@/util";
+import { GetRequest, PostRequest } from "@/util";
 import {
   Eye,
   EyeClosed,
@@ -16,6 +16,7 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { Metrics } from "@/components/server-statistics";
 import { type ISourceOptions } from "@tsparticles/engine";
 import { loadStarsPreset } from "@tsparticles/preset-stars";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
@@ -59,6 +60,7 @@ export function Login({
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [responseData, setResponseData] = useState<Metrics>();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +93,19 @@ export function Login({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [, data] = await GetRequest("server");
+        setResponseData(data);
+      } catch {
+        return;
+      }
+    }
+
+    fetchData();
+  }, []);
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
@@ -196,6 +211,27 @@ export function Login({
               </form>
             </CardContent>
           </Card>
+
+          <div className="mt-6 text-zinc-500 text-sm z-10">
+            <p>
+              Version {responseData?.version} - Last updated{" "}
+              {new Date(responseData?.date).toLocaleString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric"
+              })}
+            </p>
+            <p className="mt-1">
+              <a
+                href="https://github.com/pommee/goaway"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300 hover:underline transition-all duration-200"
+              >
+                View on GitHub
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
