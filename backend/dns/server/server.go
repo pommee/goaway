@@ -100,6 +100,7 @@ func (s *DNSServer) Init() (int, *dns.Server) {
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	if len(r.Question) != 1 {
+		log.Warning("Query container more than one question, ignoring!")
 		r.SetRcode(r, dns.RcodeFormatError)
 		_ = w.WriteMsg(r)
 		return
