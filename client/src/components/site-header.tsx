@@ -2,6 +2,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "react-router-dom";
 import { NavActions } from "./nav-actions";
+import Notifications from "./notifications";
 
 export function SiteHeader() {
   const location = useLocation();
@@ -31,6 +32,7 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">{title}</h1>
       </div>
+      <Notifications />
       <NavActions />
     </header>
   );

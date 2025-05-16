@@ -115,11 +115,12 @@ export async function PutRequest(url: string, bodyData: unknown) {
   }
 }
 
-export async function DeleteRequest(url: string) {
+export async function DeleteRequest(url: string, body) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",
-      credentials: "include"
+      credentials: "include",
+      body: JSON.stringify(body)
     });
 
     if (!res.ok) {

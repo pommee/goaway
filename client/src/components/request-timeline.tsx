@@ -316,7 +316,6 @@ export default function RequestTimeline() {
                     content={
                       <ChartTooltipContent
                         labelFormatter={(value) => {
-                          console.log(value);
                           return new Date(value).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",

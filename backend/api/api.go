@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
+	notification "goaway/backend"
 	"goaway/backend/api/key"
 	api "goaway/backend/api/key"
 	"goaway/backend/api/user"
@@ -45,6 +46,7 @@ type API struct {
 	Version        string
 	Commit         string
 	Date           string
+	Notifications  *notification.NotificationManager
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
@@ -171,6 +173,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.GET("/apiKey", api.getAPIKeys)
 	api.routes.GET("/deleteApiKey", api.deleteAPIKey)
 
+	api.routes.GET("/notifications", api.fetchNotifications)
 	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
@@ -202,6 +205,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.DELETE("/list", api.removeList)
 	api.routes.DELETE("/resolution", api.deleteResolution)
 	api.routes.DELETE("/pause", api.clearBlocking)
+	api.routes.DELETE("/notification", api.markNotificationAsRead)
 }
 
 func (api *API) setupWebsocket(dnsServer *server.DNSServer) {
