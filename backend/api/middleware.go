@@ -15,11 +15,17 @@ const (
 	Secret        = "kMNSRwKip7Yet4rb2z8"
 )
 
-func authMiddleware() gin.HandlerFunc {
+func (api *API) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/server") {
 			c.Next()
 			return
+		}
+
+		apiKey := c.GetHeader("api-key")
+		if apiKey != "" {
+			api.KeyManager.VerifyApiKey(apiKey)
+			c.Next()
 		}
 
 		cookie, err := c.Cookie("jwt")

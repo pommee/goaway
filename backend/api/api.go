@@ -6,6 +6,8 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
+	"goaway/backend/api/key"
+	api "goaway/backend/api/key"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/server"
@@ -37,6 +39,7 @@ type API struct {
 	routes         *gin.RouterGroup
 	DB             *sql.DB
 	Blacklist      *blacklist.Blacklist
+	KeyManager     *api.ApiKeyManager
 	WS             *websocket.Conn
 	DNSPort        int
 	Version        string
@@ -66,6 +69,8 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	api.KeyManager = key.NewApiKeyManager(api.DB)
 
 	api.setupRoutes()
 	api.setupAuthorizedRoutes()
@@ -140,7 +145,7 @@ func (api *API) setupRoutes() {
 func (api *API) setupAuthorizedRoutes() {
 	if api.Authentication {
 		api.SetupAuth()
-		api.routes.Use(authMiddleware())
+		api.routes.Use(api.authMiddleware())
 	} else {
 		log.Info("Authentication is disabled.")
 
@@ -161,6 +166,10 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.POST("/custom", api.updateCustom)
 	api.routes.POST("/resolution", api.createResolution)
 	api.routes.POST("/pause", api.pauseBlocking)
+
+	api.routes.POST("/apiKey", api.createAPIKey)
+	api.routes.GET("/apiKey", api.getAPIKeys)
+	api.routes.DELETE("/apiKey", api.deleteAPIKey)
 
 	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/queries", api.getQueries)

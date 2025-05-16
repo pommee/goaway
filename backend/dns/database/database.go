@@ -43,6 +43,11 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create user table: %w", err)
 	}
 
+	err = NewAPIKeyDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user table: %w", err)
+	}
+
 	return &Session{Con: db}, nil
 }
 
@@ -99,6 +104,18 @@ func NewUserDatabase(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
 		username TEXT PRIMARY KEY,
 		password TEXT
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewAPIKeyDatabase(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS apikey (
+		key TEXT PRIMARY KEY,
+		created_at DATETIME NOT NULL
 	)`)
 	if err != nil {
 		return err

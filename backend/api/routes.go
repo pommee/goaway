@@ -1039,6 +1039,36 @@ func (api *API) exportDatabase(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, fileInfo.Size(), "application/octet-stream", file, nil)
 }
 
+func (api *API) createAPIKey(c *gin.Context) {
+	apiKey, err := api.KeyManager.CreateApiKey()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": apiKey})
+}
+
+func (api *API) getAPIKeys(c *gin.Context) {
+	apiKeys, err := api.KeyManager.GetAllApiKeys()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": apiKeys})
+}
+
+func (api *API) deleteAPIKey(c *gin.Context) {
+	keyToDelete := c.Query("key")
+
+	err := api.KeyManager.DeleteApiKey(keyToDelete)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
 	data, err := os.ReadFile(tempFile)
