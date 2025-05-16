@@ -169,7 +169,7 @@ func (api *API) setupAuthorizedRoutes() {
 
 	api.routes.POST("/apiKey", api.createAPIKey)
 	api.routes.GET("/apiKey", api.getAPIKeys)
-	api.routes.DELETE("/apiKey", api.deleteAPIKey)
+	api.routes.GET("/deleteApiKey", api.deleteAPIKey)
 
 	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/queries", api.getQueries)

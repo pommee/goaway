@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"goaway/backend/logging"
 	"sort"
 	"sync"
@@ -11,8 +12,9 @@ import (
 )
 
 type ApiKey struct {
-	Key       string
-	CreatedAt time.Time
+	Name      string    `json:"name"`
+	Key       string    `json:"key"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type ApiKeyManager struct {
@@ -48,7 +50,7 @@ func (m *ApiKeyManager) refreshCache() error {
 		return nil
 	}
 
-	rows, err := m.db.Query(`SELECT key, created_at FROM apikey`)
+	rows, err := m.db.Query(`SELECT name, key, created_at FROM apikey`)
 	if err != nil {
 		return err
 	}
@@ -56,12 +58,13 @@ func (m *ApiKeyManager) refreshCache() error {
 
 	newCache := make(map[string]ApiKey)
 	for rows.Next() {
+		var name string
 		var key string
 		var createdAt time.Time
-		if err := rows.Scan(&key, &createdAt); err != nil {
+		if err := rows.Scan(&name, &key, &createdAt); err != nil {
 			return err
 		}
-		newCache[key] = ApiKey{Key: key, CreatedAt: createdAt}
+		newCache[key] = ApiKey{Name: name, Key: key, CreatedAt: createdAt}
 	}
 
 	if err := rows.Err(); err != nil {
@@ -100,20 +103,20 @@ func generateApiKey() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func (m *ApiKeyManager) CreateApiKey() (string, error) {
+func (m *ApiKeyManager) CreateApiKey(name string) (string, error) {
 	apiKey, err := generateApiKey()
 	if err != nil {
 		return "", err
 	}
 
 	createdAt := time.Now()
-	_, err = m.db.Exec(`INSERT INTO apikey (key, created_at) VALUES (?, ?)`, apiKey, createdAt)
+	_, err = m.db.Exec(`INSERT INTO apikey (name, key, created_at) VALUES (?, ?, ?)`, name, apiKey, createdAt)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("key with name '%s' already exists", name)
 	}
 
 	m.cacheMu.Lock()
-	m.keyCache[apiKey] = ApiKey{Key: apiKey, CreatedAt: createdAt}
+	m.keyCache[apiKey] = ApiKey{Name: name, Key: apiKey, CreatedAt: createdAt}
 	m.cacheMu.Unlock()
 
 	return apiKey, nil

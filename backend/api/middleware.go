@@ -25,7 +25,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 		apiKey := c.GetHeader("api-key")
 		if apiKey != "" {
 			api.KeyManager.VerifyApiKey(apiKey)
-			c.Next()
+			return
 		}
 
 		cookie, err := c.Cookie("jwt")

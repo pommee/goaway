@@ -114,7 +114,8 @@ func NewUserDatabase(db *sql.DB) error {
 
 func NewAPIKeyDatabase(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS apikey (
-		key TEXT PRIMARY KEY,
+		name TEXT PRIMARY KEY,
+		key TEXT,
 		created_at DATETIME NOT NULL
 	)`)
 	if err != nil {

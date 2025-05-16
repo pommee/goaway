@@ -1,14 +1,9 @@
 "use client";
 
+import { APIKeyDialog } from "@/components/APIKeyDialog";
 import { Combobox } from "@/components/combobox";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +12,13 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
 import { Warning } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const SETTINGS_SECTIONS = [
   {
@@ -151,6 +152,7 @@ export function Settings() {
   const [isChanged, setIsChanged] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -346,27 +348,52 @@ export function Settings() {
 
             <div className="space-y-4">
               {title === "Security" && (
-                <div
-                  key="changepassword"
-                  className="flex flex-col md:flex-row
-                  justify-between
+                <div>
+                  <div
+                    key="changepassword"
+                    className="flex flex-col md:flex-row
+                  justify-between mb-4
                   items-start md:items-center
                   space-y-2 md:space-y-0
                   md:space-x-4"
-                >
-                  <div className="flex-grow">
-                    <h3 className="text-base font-medium">Change password</h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Change password used to authenticate with the dashboard
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => setIsPasswordModalOpen(true)}
-                    variant="outline"
-                    className="w-full md:w-auto"
                   >
-                    Change Password
-                  </Button>
+                    <div className="flex-grow">
+                      <h3 className="text-base font-medium">Change password</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Change password used to authenticate with the dashboard
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsPasswordModalOpen(true)}
+                      variant="outline"
+                      className="w-full md:w-auto"
+                    >
+                      Change Password
+                    </Button>
+                  </div>
+
+                  <div
+                    key="apikey"
+                    className="flex flex-col md:flex-row
+                    justify-between
+                    items-start md:items-center
+                    space-y-2 md:space-y-0
+                    md:space-x-4"
+                  >
+                    <div className="flex-grow">
+                      <h3 className="text-base font-medium">API Keys</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Manage API keys for programmatic access to the system
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsApiKeyModalOpen(true)}
+                      variant="outline"
+                      className="w-full md:w-auto"
+                    >
+                      Manage Keys
+                    </Button>
+                  </div>
                 </div>
               )}
               {title === "Database" && (
@@ -431,24 +458,26 @@ export function Settings() {
                                 className: "w-full md:w-40"
                               }
                             : Widget === Switch
-                            ? {
-                                checked: Boolean(currentValue),
-                                onCheckedChange: (value: boolean) =>
-                                  handleSelect(
-                                    key === "logging" ? "loggingDisabled" : key,
-                                    value
-                                  )
-                              }
-                            : Widget === Input
-                            ? {
-                                value: currentValue?.toString() || "",
-                                onChange: (
-                                  e: React.ChangeEvent<HTMLInputElement>
-                                ) => handleSelect(key, e.target.value),
-                                placeholder: "Enter Value",
-                                className: "w-full md:w-40"
-                              }
-                            : {})}
+                              ? {
+                                  checked: Boolean(currentValue),
+                                  onCheckedChange: (value: boolean) =>
+                                    handleSelect(
+                                      key === "logging"
+                                        ? "loggingDisabled"
+                                        : key,
+                                      value
+                                    )
+                                }
+                              : Widget === Input
+                                ? {
+                                    value: currentValue?.toString() || "",
+                                    onChange: (
+                                      e: React.ChangeEvent<HTMLInputElement>
+                                    ) => handleSelect(key, e.target.value),
+                                    placeholder: "Enter Value",
+                                    className: "w-full md:w-40"
+                                  }
+                                : {})}
                         />
                       </div>
                     </div>
@@ -539,6 +568,11 @@ export function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <APIKeyDialog
+        open={isApiKeyModalOpen}
+        onOpenChange={setIsApiKeyModalOpen}
+      />
     </>
   );
 }

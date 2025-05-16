@@ -1040,12 +1040,30 @@ func (api *API) exportDatabase(c *gin.Context) {
 }
 
 func (api *API) createAPIKey(c *gin.Context) {
-	apiKey, err := api.KeyManager.CreateApiKey()
+	type NewApiKeyName struct {
+		Name string `json:"name"`
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var request NewApiKeyName
+	if err := json.Unmarshal(body, &request); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	apiKey, err := api.KeyManager.CreateApiKey(request.Name)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": apiKey})
+	c.JSON(http.StatusOK, gin.H{"key": apiKey})
 }
 
 func (api *API) getAPIKeys(c *gin.Context) {
@@ -1054,7 +1072,7 @@ func (api *API) getAPIKeys(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": apiKeys})
+	c.JSON(http.StatusOK, gin.H{"keys": apiKeys})
 }
 
 func (api *API) deleteAPIKey(c *gin.Context) {
@@ -1066,7 +1084,7 @@ func (api *API) deleteAPIKey(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted api key!"})
 }
 
 func getCPUTemperature() (float64, error) {
