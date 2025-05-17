@@ -23,27 +23,32 @@ func Initialize() (*Session, error) {
 		log.Warning("failed to set journal_mode to WAL")
 	}
 
-	err = NewRequestLogDatabase(db)
+	err = NewRequestLogTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
 	}
 
-	err = NewResolutionDatabase(db)
+	err = NewResolutionTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resolution table: %w", err)
 	}
 
-	err = NewMacDatabase(db)
+	err = NewMacTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mac_addresses table: %w", err)
 	}
 
-	err = NewUserDatabase(db)
+	err = NewUserTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user table: %w", err)
 	}
 
-	err = NewAPIKeyDatabase(db)
+	err = NewAPIKeyTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user table: %w", err)
+	}
+
+	err = NewNotificationsTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user table: %w", err)
 	}
@@ -51,7 +56,7 @@ func Initialize() (*Session, error) {
 	return &Session{Con: db}, nil
 }
 
-func NewRequestLogDatabase(db *sql.DB) error {
+func NewRequestLogTable(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS request_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +80,7 @@ func NewRequestLogDatabase(db *sql.DB) error {
 	return nil
 }
 
-func NewResolutionDatabase(db *sql.DB) error {
+func NewResolutionTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS resolution (
 		ip TEXT PRIMARY KEY,
 		domain TEXT NOT NULL
@@ -87,7 +92,7 @@ func NewResolutionDatabase(db *sql.DB) error {
 	return nil
 }
 
-func NewMacDatabase(db *sql.DB) error {
+func NewMacTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS mac_addresses (
 		mac TEXT PRIMARY KEY,
 		ip TEXT,
@@ -100,7 +105,7 @@ func NewMacDatabase(db *sql.DB) error {
 	return nil
 }
 
-func NewUserDatabase(db *sql.DB) error {
+func NewUserTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
 		username TEXT PRIMARY KEY,
 		password TEXT
@@ -112,10 +117,26 @@ func NewUserDatabase(db *sql.DB) error {
 	return nil
 }
 
-func NewAPIKeyDatabase(db *sql.DB) error {
+func NewAPIKeyTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS apikey (
 		name TEXT PRIMARY KEY,
 		key TEXT,
+		created_at DATETIME NOT NULL
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewNotificationsTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS notifications (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		severity TEXT,
+		category TEXT,
+		text TEXT,
+		read BOOLEAN,
 		created_at DATETIME NOT NULL
 	)`)
 	if err != nil {

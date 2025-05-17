@@ -3,9 +3,11 @@ package main
 import (
 	"embed"
 	"fmt"
+	notification "goaway/backend"
 	"goaway/backend/api"
 	"goaway/backend/asciiart"
 	arp "goaway/backend/dns"
+	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
@@ -69,7 +71,15 @@ func startServer(config settings.Config, ansi bool) {
 		}()
 	}
 
-	dnsServer, err := server.NewDNSServer(config)
+	db, err := database.Initialize()
+	if err != nil {
+		log.Error("failed while initilizing database: %v", err)
+		os.Exit(1)
+	}
+
+	notificationManager := notification.NewNotificationManager(db.Con)
+
+	dnsServer, err := server.NewDNSServer(config, db.Con, notificationManager)
 	if err != nil {
 		log.Error("Failed to initialize server: %s", err)
 		os.Exit(1)
@@ -114,6 +124,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 			Version:        version,
 			Commit:         commit,
 			Date:           date,
+			Notifications:  dnsServer.Notifications,
 		}
 
 		apiServer.Start(content, dnsServer, errorChannel)

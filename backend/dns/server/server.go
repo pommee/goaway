@@ -3,8 +3,8 @@ package server
 import (
 	"database/sql"
 	"fmt"
+	notification "goaway/backend"
 	"goaway/backend/dns/blacklist"
-	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
@@ -38,6 +38,7 @@ type DNSServer struct {
 	WS                 *websocket.Conn
 	dnsClient          *dns.Client
 	Status             settings.Status
+	Notifications      *notification.NotificationManager
 }
 
 type QueryResponse struct {
@@ -62,13 +63,8 @@ type Request struct {
 	client   *model.Client
 }
 
-func NewDNSServer(config settings.Config) (*DNSServer, error) {
-	db, err := database.Initialize()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tables: %w", err)
-	}
-
-	blacklistEntry, err := blacklist.Initialize(db.Con)
+func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.NotificationManager) (*DNSServer, error) {
+	blacklistEntry, err := blacklist.Initialize(dbConnection)
 	if err != nil {
 		log.Error("Failed to initialize blacklist")
 	}
@@ -76,11 +72,12 @@ func NewDNSServer(config settings.Config) (*DNSServer, error) {
 	server := &DNSServer{
 		Config:             config,
 		Blacklist:          blacklistEntry,
-		DB:                 db.Con,
+		DB:                 dbConnection,
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
 		dnsClient:          new(dns.Client),
+		Notifications:      notificationsManager,
 	}
 
 	return server, nil

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	notification "goaway/backend"
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
@@ -386,7 +387,12 @@ func (s *DNSServer) queryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		return in.Answer, ttl, status
 
 	case err := <-errCh:
-		log.Error("Resolution error for domain (%s): %v", req.question.Name, err)
+		log.Warning("Resolution error for domain (%s): %v", req.question.Name, err)
+		s.Notifications.CreateNotification(&notification.Notification{
+			Severity: notification.SeverityWarning,
+			Category: notification.CategoryDNS,
+			Text:     fmt.Sprintf("Resolution error for domain (%s)", req.question.Name),
+		})
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
