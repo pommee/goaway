@@ -8,7 +8,7 @@ publish:
 	docker buildx create --name multiarch-builder --use
 
 	docker buildx build \
-	--platform linux/amd64 \
+	--platform linux/amd64,linux/arm64/v8 \
 	--tag pommee/goaway:${VERSION} \
 	--push \
 	.
