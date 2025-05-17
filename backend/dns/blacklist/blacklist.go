@@ -13,8 +13,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slices"
 )
 
 var log = logging.GetLogger()
@@ -178,6 +176,7 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 
 func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(body)
+	domainSet := make(map[string]struct{})
 	var domains []string
 
 	for scanner.Scan() {
@@ -187,7 +186,7 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 		}
 
 		domain := fields[0]
-		if fields[0] == "0.0.0.0" || fields[0] == "127.0.0.1" && len(fields) > 1 {
+		if (domain == "0.0.0.0" || domain == "127.0.0.1") && len(fields) > 1 {
 			domain = fields[1]
 			switch domain {
 			case "localhost", "localhost.localdomain", "broadcasthost", "local", "0.0.0.0":
@@ -197,7 +196,10 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 			continue
 		}
 
-		domains = append(domains, domain)
+		if _, exists := domainSet[domain]; !exists {
+			domainSet[domain] = struct{}{}
+			domains = append(domains, domain)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -207,7 +209,7 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 		return nil, errors.New("zero results when parsing")
 	}
 
-	return slices.Compact(domains), nil
+	return domains, nil
 }
 
 func (b *Blacklist) AddDomain(domain string) error {
