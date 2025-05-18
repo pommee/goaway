@@ -60,7 +60,8 @@ export default function RequestTimeline() {
       setIsRefreshing(true);
       const [, responseData] = await GetRequest("queryTimestamps");
       const data = responseData.queries.map((q: Query) => ({
-        interval: new Date(q.start),
+        interval: q.start,
+        timestamp: new Date(q.start).toISOString(),
         blocked: q.blocked,
         cached: q.cached,
         allowed: q.allowed
@@ -316,13 +317,26 @@ export default function RequestTimeline() {
                     content={
                       <ChartTooltipContent
                         labelFormatter={(value) => {
-                          return new Date(value).toLocaleString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false
-                          });
+                          try {
+                            const item = filteredData.find(
+                              (d) => d.interval === value
+                            );
+                            if (item && item.timestamp) {
+                              return new Date(item.timestamp).toLocaleString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false
+                                }
+                              );
+                            }
+                            return "N/A";
+                          } catch {
+                            return "N/A";
+                          }
                         }}
                       />
                     }
