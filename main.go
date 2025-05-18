@@ -86,8 +86,6 @@ func startServer(config settings.Config, ansi bool) {
 	}
 
 	go dnsServer.ProcessLogEntries()
-	go arp.ProcessARPTable()
-	go dnsServer.ClearOldEntries()
 
 	blockedDomains, serverInstance := dnsServer.Init()
 	currentVersion := setup.GetVersionOrDefault(version)
@@ -129,6 +127,9 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 
 		apiServer.Start(content, dnsServer, errorChannel)
 	}()
+
+	go arp.ProcessARPTable()
+	go dnsServer.ClearOldEntries()
 
 	go func() { wg.Wait() }()
 
