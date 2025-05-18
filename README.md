@@ -3,6 +3,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/pommee/goaway)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pommee/goaway/release.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/pommee/goaway/total?color=cornflowerblue)
+![Docker pulls](https://img.shields.io/docker/pulls/pommee/goaway)
 
 A lightweight DNS sinkhole for blocking unwanted domains, inspired by Pi-hole.
 
