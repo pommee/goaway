@@ -24,7 +24,13 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 
 		apiKey := c.GetHeader("api-key")
 		if apiKey != "" {
-			api.KeyManager.VerifyApiKey(apiKey)
+			if validApiKey := api.KeyManager.VerifyApiKey(apiKey); validApiKey {
+				c.Next()
+				return
+			}
+
+			c.Status(http.StatusUnauthorized)
+			c.Abort()
 			return
 		}
 
