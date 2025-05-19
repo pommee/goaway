@@ -71,8 +71,7 @@ export default function RequestTimeline() {
       setZoomedData(data);
       setIsLoading(false);
       setIsRefreshing(false);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch {
       setIsLoading(false);
       setIsRefreshing(false);
     }
