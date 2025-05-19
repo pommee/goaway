@@ -8,7 +8,6 @@ import (
 	"fmt"
 	notification "goaway/backend"
 	"goaway/backend/api/key"
-	api "goaway/backend/api/key"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/server"
@@ -40,7 +39,7 @@ type API struct {
 	routes         *gin.RouterGroup
 	DB             *sql.DB
 	Blacklist      *blacklist.Blacklist
-	KeyManager     *api.ApiKeyManager
+	KeyManager     *key.ApiKeyManager
 	WS             *websocket.Conn
 	DNSPort        int
 	Version        string

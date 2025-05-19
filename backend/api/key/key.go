@@ -54,7 +54,9 @@ func (m *ApiKeyManager) refreshCache() error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	newCache := make(map[string]ApiKey)
 	for rows.Next() {

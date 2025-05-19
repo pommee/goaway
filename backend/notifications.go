@@ -62,7 +62,9 @@ func (nm *NotificationManager) ReadNotifications() ([]Notification, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	var notifications = make([]Notification, 0)
 	for rows.Next() {
