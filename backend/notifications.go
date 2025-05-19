@@ -8,46 +8,46 @@ import (
 	"time"
 )
 
-type NotificationManager struct {
+type Manager struct {
 	db *sql.DB
 }
 
-type NotificationSeverity string
-type NotificationCategory string
+type Severity string
+type Category string
 
 // Severity level of notification
 // SeverityInfo: 	Server was upgraded, password changed...
-// SeverityWarning: An error occured on startup, database lock...
+// SeverityWarning: An error occurred on startup, database lock...
 // SeverityError:   Server cant start, requests cant be handled...
 const (
-	SeverityInfo    NotificationSeverity = "info"
-	SeverityWarning NotificationSeverity = "warning"
-	SeverityError   NotificationSeverity = "error"
+	SeverityInfo    Severity = "info"
+	SeverityWarning Severity = "warning"
+	SeverityError   Severity = "error"
 )
 
 // Categories to describe what area the notification covers
 const (
-	CategoryServer NotificationCategory = "server"
-	CategoryDNS    NotificationCategory = "dns"
-	CategoryAPI    NotificationCategory = "api"
+	CategoryServer Category = "server"
+	CategoryDNS    Category = "dns"
+	CategoryAPI    Category = "api"
 )
 
 type Notification struct {
-	Id        int                  `json:"id"`
-	Severity  NotificationSeverity `json:"severity"`
-	Category  NotificationCategory `json:"category"`
-	Text      string               `json:"text"`
-	Read      bool                 `json:"read"`
-	CreatedAt time.Time            `json:"createdAt"`
+	Id        int       `json:"id"`
+	Severity  Severity  `json:"severity"`
+	Category  Category  `json:"category"`
+	Text      string    `json:"text"`
+	Read      bool      `json:"read"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 var logger = logging.GetLogger()
 
-func NewNotificationManager(db *sql.DB) *NotificationManager {
-	return &NotificationManager{db}
+func NewNotificationManager(db *sql.DB) *Manager {
+	return &Manager{db}
 }
 
-func (nm *NotificationManager) CreateNotification(newNotification *Notification) {
+func (nm *Manager) CreateNotification(newNotification *Notification) {
 	createdAt := time.Now()
 	_, err := nm.db.Exec(`INSERT INTO notifications (severity, category, text, read, created_at) VALUES (?, ?, ?, ?, ?)`, newNotification.Severity, newNotification.Category, newNotification.Text, false, createdAt)
 	if err != nil {
@@ -57,7 +57,7 @@ func (nm *NotificationManager) CreateNotification(newNotification *Notification)
 	logger.Debug("Created new notification, %+v", newNotification)
 }
 
-func (nm *NotificationManager) ReadNotifications() ([]Notification, error) {
+func (nm *Manager) ReadNotifications() ([]Notification, error) {
 	rows, err := nm.db.Query(`SELECT id, severity, category, text, read, created_at FROM notifications WHERE read = 0`)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func (nm *NotificationManager) ReadNotifications() ([]Notification, error) {
 	var notifications = make([]Notification, 0)
 	for rows.Next() {
 		var id int
-		var severity NotificationSeverity
-		var category NotificationCategory
+		var severity Severity
+		var category Category
 		var text string
 		var read bool
 		var createdAt time.Time
@@ -83,7 +83,7 @@ func (nm *NotificationManager) ReadNotifications() ([]Notification, error) {
 	return notifications, nil
 }
 
-func (nm *NotificationManager) MarkNotificationsAsRead(notificationIDs []int) error {
+func (nm *Manager) MarkNotificationsAsRead(notificationIDs []int) error {
 	if len(notificationIDs) == 0 {
 		return nil
 	}

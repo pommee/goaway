@@ -38,7 +38,7 @@ type DNSServer struct {
 	WS                 *websocket.Conn
 	dnsClient          *dns.Client
 	Status             settings.Status
-	Notifications      *notification.NotificationManager
+	Notifications      *notification.Manager
 }
 
 type QueryResponse struct {
@@ -63,7 +63,7 @@ type Request struct {
 	client   *model.Client
 }
 
-func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.NotificationManager) (*DNSServer, error) {
+func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.Manager) (*DNSServer, error) {
 	blacklistEntry, err := blacklist.Initialize(dbConnection)
 	if err != nil {
 		log.Error("Failed to initialize blacklist")

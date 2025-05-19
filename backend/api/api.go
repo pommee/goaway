@@ -45,7 +45,7 @@ type API struct {
 	Version        string
 	Commit         string
 	Date           string
-	Notifications  *notification.NotificationManager
+	Notifications  *notification.Manager
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
