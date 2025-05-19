@@ -84,6 +84,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
       const [status, message] = await GetRequest(`deleteApiKey?key=${key}`);
       if (status === 200) {
         toast.success(message.message);
+        await fetchAPIKeys();
       }
     } catch (error) {
       console.error("Failed to delete API key:", error);
