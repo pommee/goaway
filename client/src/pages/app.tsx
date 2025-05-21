@@ -13,6 +13,7 @@ import { Suspense } from "react";
 import { Resolution } from "./resolution";
 import { Upstream } from "./upstream";
 import { AnimatePresence, motion } from "motion/react";
+import { Prefetch } from "./prefetch";
 
 function PageLoader() {
   return (
@@ -114,6 +115,14 @@ function App() {
               element={
                 <PageTransition>
                   <Resolution />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/prefetch"
+              element={
+                <PageTransition>
+                  <Prefetch />
                 </PageTransition>
               }
             />

@@ -16,9 +16,9 @@ import (
 )
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	domainName := strings.TrimRight(request.question.Name, ".")
+	domainName := strings.TrimRight(request.Question.Name, ".")
 
-	if request.question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
+	if request.Question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
 		return s.handlePTRQuery(request)
 	}
 
@@ -111,7 +111,7 @@ func getLocalIP() (string, error) {
 }
 
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
-	ipParts := strings.TrimSuffix(request.question.Name, ".in-addr.arpa.")
+	ipParts := strings.TrimSuffix(request.Question.Name, ".in-addr.arpa.")
 	parts := strings.Split(ipParts, ".")
 
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
@@ -155,7 +155,7 @@ func isPrivateIP(ipStr string) bool {
 func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry {
 	ptr := &dns.PTR{
 		Hdr: dns.RR_Header{
-			Name:   request.question.Name,
+			Name:   request.Question.Name,
 			Rrtype: dns.TypePTR,
 			Class:  dns.ClassINET,
 			Ttl:    3600,
@@ -163,27 +163,27 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		Ptr: "localhost.lan.",
 	}
 
-	request.msg.Answer = append(request.msg.Answer, ptr)
-	_ = request.w.WriteMsg(request.msg)
+	request.Msg.Answer = append(request.Msg.Answer, ptr)
+	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Timestamp:         request.sent,
-		Domain:            request.question.Name,
+		Timestamp:         request.Sent,
+		Domain:            request.Question.Name,
 		Status:            dns.RcodeToString[dns.RcodeSuccess],
 		IP:                []string{"localhost.lan"},
 		Blocked:           false,
 		Cached:            false,
-		ResponseTime:      time.Since(request.sent),
-		ClientInfo:        request.client,
+		ResponseTime:      time.Since(request.Sent),
+		ClientInfo:        request.Client,
 		QueryType:         "PTR",
-		ResponseSizeBytes: request.msg.Len(),
+		ResponseSizeBytes: request.Msg.Len(),
 	}
 }
 
 func (s *DNSServer) respondWithHostname(request *Request, hostname string) model.RequestLogEntry {
 	ptr := &dns.PTR{
 		Hdr: dns.RR_Header{
-			Name:   request.question.Name,
+			Name:   request.Question.Name,
 			Rrtype: dns.TypePTR,
 			Class:  dns.ClassINET,
 			Ttl:    3600,
@@ -191,27 +191,27 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Ptr: hostname + ".",
 	}
 
-	request.msg.Answer = append(request.msg.Answer, ptr)
-	_ = request.w.WriteMsg(request.msg)
+	request.Msg.Answer = append(request.Msg.Answer, ptr)
+	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Domain:            request.question.Name,
+		Domain:            request.Question.Name,
 		Status:            dns.RcodeToString[dns.RcodeSuccess],
-		QueryType:         dns.TypeToString[request.question.Qtype],
+		QueryType:         dns.TypeToString[request.Question.Qtype],
 		IP:                []string{hostname},
-		ResponseSizeBytes: request.msg.Len(),
-		Timestamp:         request.sent,
-		ResponseTime:      time.Since(request.sent),
+		ResponseSizeBytes: request.Msg.Len(),
+		Timestamp:         request.Sent,
+		ResponseTime:      time.Since(request.Sent),
 		Blocked:           false,
 		Cached:            false,
-		ClientInfo:        request.client,
+		ClientInfo:        request.Client,
 	}
 }
 
 func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
-	answers, _, status := s.queryUpstream(request)
-	request.msg.Answer = append(request.msg.Answer, answers...)
-	request.msg.Rcode = dns.RcodeNameError
+	answers, _, status := s.QueryUpstream(request)
+	request.Msg.Answer = append(request.Msg.Answer, answers...)
+	request.Msg.Rcode = dns.RcodeNameError
 
 	var resolvedHostnames []string
 	for _, answer := range answers {
@@ -220,25 +220,25 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		}
 	}
 
-	_ = request.w.WriteMsg(request.msg)
+	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Domain:            request.question.Name,
+		Domain:            request.Question.Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[request.question.Qclass],
+		QueryType:         dns.TypeToString[request.Question.Qclass],
 		IP:                resolvedHostnames,
-		ResponseSizeBytes: request.msg.Len(),
-		Timestamp:         request.sent,
-		ResponseTime:      time.Since(request.sent),
-		ClientInfo:        request.client,
+		ResponseSizeBytes: request.Msg.Len(),
+		Timestamp:         request.Sent,
+		ResponseTime:      time.Since(request.Sent),
+		ClientInfo:        request.Client,
 	}
 }
 
 func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
-	answers, cached, status := s.resolve(req)
+	answers, cached, status := s.Resolve(req)
 
 	resolved := make([]string, 0, len(answers))
-	req.msg.Answer = answers
+	req.Msg.Answer = answers
 
 	for _, a := range answers {
 		switch rr := a.(type) {
@@ -254,45 +254,45 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	}
 
 	if len(answers) == 0 {
-		req.msg.Rcode = dns.RcodeServerFailure
+		req.Msg.Rcode = dns.RcodeServerFailure
 	}
 
-	_ = req.w.WriteMsg(req.msg)
+	_ = req.W.WriteMsg(req.Msg)
 
 	return model.RequestLogEntry{
-		Domain:            req.question.Name,
+		Domain:            req.Question.Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[req.question.Qtype],
+		QueryType:         dns.TypeToString[req.Question.Qtype],
 		IP:                resolved,
-		ResponseSizeBytes: req.msg.Len(),
-		Timestamp:         req.sent,
-		ResponseTime:      time.Since(req.sent),
+		ResponseSizeBytes: req.Msg.Len(),
+		Timestamp:         req.Sent,
+		ResponseTime:      time.Since(req.Sent),
 		Cached:            cached,
-		ClientInfo:        req.client,
+		ClientInfo:        req.Client,
 	}
 }
 
-func (s *DNSServer) resolve(req *Request) ([]dns.RR, bool, string) {
-	cacheKey := req.question.Name + ":" + strconv.Itoa(int(req.question.Qtype))
-	if cached, found := s.cache.Load(cacheKey); found {
+func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
+	cacheKey := req.Question.Name + ":" + strconv.Itoa(int(req.Question.Qtype))
+	if cached, found := s.Cache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, dns.RcodeToString[dns.RcodeSuccess]
 		}
 	}
 
-	if answers, ttl, status := s.queryUpstream(req); len(answers) > 0 {
-		s.cacheRecord(cacheKey, answers, ttl)
+	if answers, ttl, status := s.QueryUpstream(req); len(answers) > 0 {
+		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
 		return answers, false, status
 	}
 
-	if answers, ttl, status := s.resolveResolution(req.question.Name); len(answers) > 0 {
-		s.cacheRecord(cacheKey, answers, ttl)
+	if answers, ttl, status := s.resolveResolution(req.Question.Name); len(answers) > 0 {
+		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
 		return answers, false, status
 	}
 
 	answers, ttl, status := s.resolveCNAMEChain(req, make(map[string]bool))
 	if len(answers) > 0 {
-		s.cacheRecord(cacheKey, answers, ttl)
+		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
 	}
 	return answers, false, status
 }
@@ -332,12 +332,12 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 }
 
 func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]dns.RR, uint32, string) {
-	if visited[req.question.Name] {
+	if visited[req.Question.Name] {
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
-	visited[req.question.Name] = true
+	visited[req.Question.Name] = true
 
-	answers, ttl, status := s.queryUpstream(req)
+	answers, ttl, status := s.QueryUpstream(req)
 	if len(answers) > 0 {
 		for _, answer := range answers {
 			if _, ok := answer.(*dns.CNAME); ok {
@@ -354,12 +354,12 @@ func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]
 	return answers, ttl, status
 }
 
-func (s *DNSServer) queryUpstream(req *Request) ([]dns.RR, uint32, string) {
+func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	resultCh := make(chan *dns.Msg, 1)
 	errCh := make(chan error, 1)
 
 	go func() {
-		in, _, err := s.dnsClient.Exchange(req.msg, s.Config.DNS.PreferredUpstream)
+		in, _, err := s.dnsClient.Exchange(req.Msg, s.Config.DNS.PreferredUpstream)
 		if err != nil {
 			errCh <- err
 			return
@@ -387,25 +387,25 @@ func (s *DNSServer) queryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		return in.Answer, ttl, status
 
 	case err := <-errCh:
-		log.Warning("Resolution error for domain (%s): %v", req.question.Name, err)
+		log.Warning("Resolution error for domain (%s): %v", req.Question.Name, err)
 		s.Notifications.CreateNotification(&notification.Notification{
 			Severity: notification.SeverityWarning,
 			Category: notification.CategoryDNS,
-			Text:     fmt.Sprintf("Resolution error for domain (%s)", req.question.Name),
+			Text:     fmt.Sprintf("Resolution error for domain (%s)", req.Question.Name),
 		})
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
-		log.Warning("DNS lookup for %s timed out", req.question.Name)
+		log.Warning("DNS lookup for %s timed out", req.Question.Name)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
 }
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
-	request.msg.Rcode = dns.RcodeSuccess
+	request.Msg.Rcode = dns.RcodeSuccess
 	rr4 := &dns.A{
 		Hdr: dns.RR_Header{
-			Name:   request.question.Name,
+			Name:   request.Question.Name,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
 			Ttl:    uint32(s.Config.DNS.CacheTTL),
@@ -415,7 +415,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	rr6 := &dns.AAAA{
 		Hdr: dns.RR_Header{
-			Name:   request.question.Name,
+			Name:   request.Question.Name,
 			Rrtype: dns.TypeAAAA,
 			Class:  dns.ClassINET,
 			Ttl:    uint32(s.Config.DNS.CacheTTL),
@@ -423,17 +423,17 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		AAAA: net.ParseIP("::"),
 	}
 
-	request.msg.Answer = append(request.msg.Answer, rr4, rr6)
-	_ = request.w.WriteMsg(request.msg)
+	request.Msg.Answer = append(request.Msg.Answer, rr4, rr6)
+	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Domain:            request.question.Name,
+		Domain:            request.Question.Name,
 		Status:            dns.RcodeToString[dns.RcodeSuccess],
-		QueryType:         dns.TypeToString[request.question.Qtype],
-		ResponseSizeBytes: request.msg.Len(),
-		Timestamp:         request.sent,
-		ResponseTime:      time.Since(request.sent),
+		QueryType:         dns.TypeToString[request.Question.Qtype],
+		ResponseSizeBytes: request.Msg.Len(),
+		Timestamp:         request.Sent,
+		ResponseTime:      time.Since(request.Sent),
 		Blocked:           true,
-		ClientInfo:        request.client,
+		ClientInfo:        request.Client,
 	}
 }

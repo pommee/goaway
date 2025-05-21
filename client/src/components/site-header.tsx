@@ -14,6 +14,7 @@ export function SiteHeader() {
     "/domains": "Domains",
     "/lists": "Lists",
     "/resolution": "Resolution",
+    "/prefetch": "Resolution",
     "/upstream": "Upstream",
     "/clients": "Clients",
     "/settings": "Settings",

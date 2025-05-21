@@ -11,6 +11,7 @@ import (
 	"goaway/backend/api/user"
 	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/server"
+	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
 	"net"
@@ -33,19 +34,20 @@ type Credentials struct {
 }
 
 type API struct {
-	Authentication bool
-	Config         *settings.Config
-	router         *gin.Engine
-	routes         *gin.RouterGroup
-	DB             *sql.DB
-	Blacklist      *blacklist.Blacklist
-	KeyManager     *key.ApiKeyManager
-	WS             *websocket.Conn
-	DNSPort        int
-	Version        string
-	Commit         string
-	Date           string
-	Notifications  *notification.Manager
+	Authentication           bool
+	Config                   *settings.Config
+	router                   *gin.Engine
+	routes                   *gin.RouterGroup
+	DB                       *sql.DB
+	Blacklist                *blacklist.Blacklist
+	KeyManager               *key.ApiKeyManager
+	PrefetchedDomainsManager *prefetch.Manager
+	WS                       *websocket.Conn
+	DNSPort                  int
+	Version                  string
+	Commit                   string
+	Date                     string
+	Notifications            *notification.Manager
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
@@ -171,6 +173,10 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.POST("/apiKey", api.createAPIKey)
 	api.routes.GET("/apiKey", api.getAPIKeys)
 	api.routes.GET("/deleteApiKey", api.deleteAPIKey)
+
+	api.routes.POST("/prefetch", api.createPrefetchedDomain)
+	api.routes.GET("/prefetch", api.fetchPrefetchedDomains)
+	api.routes.DELETE("/prefetch", api.deletePrefetchedDomain)
 
 	api.routes.GET("/notifications", api.fetchNotifications)
 	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)

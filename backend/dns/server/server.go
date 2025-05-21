@@ -31,7 +31,7 @@ type DNSServer struct {
 	DB                 *sql.DB
 	logIntervalSeconds int
 	lastLogTime        time.Time
-	cache              sync.Map
+	Cache              sync.Map
 	clientCache        sync.Map
 	WebServer          *gin.Engine
 	logEntryChannel    chan model.RequestLogEntry
@@ -47,20 +47,22 @@ type QueryResponse struct {
 	Status      int
 }
 
-type cachedRecord struct {
+type CachedRecord struct {
 	IPAddresses []dns.RR
 	ExpiresAt   time.Time
 	CachedAt    time.Time
 	OriginalTTL uint32
 	Key         string
+	Domain      string
 }
 
 type Request struct {
-	w        dns.ResponseWriter
-	msg      *dns.Msg
-	question dns.Question
-	sent     time.Time
-	client   *model.Client
+	W        dns.ResponseWriter
+	Msg      *dns.Msg
+	Question dns.Question
+	Sent     time.Time
+	Client   *model.Client
+	Prefetch bool
 }
 
 func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.Manager) (*DNSServer, error) {
@@ -105,6 +107,6 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	sent := time.Now()
 	client := s.getClientInfo(w.RemoteAddr().String())
-	entry := s.processQuery(&Request{w, r, r.Question[0], sent, client})
+	entry := s.processQuery(&Request{w, r, r.Question[0], sent, client, false})
 	s.logEntryChannel <- entry
 }
