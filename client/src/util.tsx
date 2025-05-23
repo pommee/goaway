@@ -130,7 +130,12 @@ export async function DeleteRequest(url: string, body) {
       return [res.status, null];
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      return [res.status, null];
+    }
     return [res.status, data];
   } catch {
     showToast("Could not reach server, try again later.");

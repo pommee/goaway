@@ -17,6 +17,7 @@ import {
   List,
   Note,
   Notebook,
+  PersonSimpleThrow,
   SignOut,
   TrafficSign,
   Users
@@ -52,6 +53,11 @@ const data = {
       title: "Resolution",
       url: "/resolution",
       icon: TrafficSign
+    },
+    {
+      title: "Prefetch",
+      url: "/prefetch",
+      icon: PersonSimpleThrow
     },
     {
       title: "Upstream",

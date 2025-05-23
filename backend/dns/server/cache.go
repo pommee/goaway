@@ -7,7 +7,7 @@ import (
 )
 
 func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
-	cachedRecord, ok := cached.(cachedRecord)
+	cachedRecord, ok := cached.(CachedRecord)
 	if !ok {
 		return nil, false
 	}
@@ -32,13 +32,13 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 
 	if cachedRecord.Key != "" {
 		log.Debug("Cached entry has expired, removing %s from cache", cachedRecord.Key)
-		s.cache.Delete(cachedRecord.Key)
+		s.Cache.Delete(cachedRecord.Key)
 	}
 
 	return nil, false
 }
 
-func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32) {
+func (s *DNSServer) CacheRecord(cacheKey, domain string, ipAddresses []dns.RR, ttl uint32) {
 	if len(ipAddresses) == 0 {
 		return
 	}
@@ -52,11 +52,12 @@ func (s *DNSServer) cacheRecord(domain string, ipAddresses []dns.RR, ttl uint32)
 	}
 
 	now := time.Now()
-	s.cache.Store(domain, cachedRecord{
+	s.Cache.Store(cacheKey, CachedRecord{
 		IPAddresses: ipAddresses,
 		ExpiresAt:   now.Add(cacheTTL),
 		CachedAt:    now,
 		OriginalTTL: ttl,
-		Key:         domain,
+		Key:         cacheKey,
+		Domain:      domain,
 	})
 }

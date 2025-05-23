@@ -9,6 +9,7 @@ import (
 	"goaway/backend/api/models"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/database"
+	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/settings"
 	"goaway/backend/updater"
 	"io"
@@ -726,6 +727,61 @@ func (api *API) updateCustom(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+}
+
+func (api *API) createPrefetchedDomain(c *gin.Context) {
+	type NewPrefetch struct {
+		Domain  string `json:"domain"`
+		Refresh int    `json:"refresh"`
+		QType   int    `json:"qtype"`
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var prefetchedDomain NewPrefetch
+	if err := json.Unmarshal(body, &prefetchedDomain); err != nil {
+		log.Error("Failed to parse JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	err = api.PrefetchedDomainsManager.AddPrefetchedDomain(prefetchedDomain.Domain, prefetchedDomain.Refresh, prefetchedDomain.QType)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+func (api *API) fetchPrefetchedDomains(c *gin.Context) {
+	prefetchedDomains := make([]prefetch.PrefetchedDomain, 0)
+	for _, b := range api.PrefetchedDomainsManager.Domains {
+		prefetchedDomains = append(prefetchedDomains, b)
+	}
+	c.JSON(http.StatusOK, gin.H{"domains": prefetchedDomains})
+}
+
+func (api *API) deletePrefetchedDomain(c *gin.Context) {
+	domainPrefetchToDelete := c.Query("domain")
+
+	domain := api.PrefetchedDomainsManager.Domains[domainPrefetchToDelete]
+	if (domain == prefetch.PrefetchedDomain{}) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s does not exist", domainPrefetchToDelete)})
+		return
+	}
+
+	err := api.PrefetchedDomainsManager.RemovePrefetchedDomain(domainPrefetchToDelete)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (api *API) fetchNotifications(c *gin.Context) {

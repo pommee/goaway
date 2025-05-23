@@ -9,6 +9,7 @@ import (
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
+	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
 	"goaway/backend/setup"
@@ -110,19 +111,22 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 		}
 	}()
 
+	prefetcher := prefetch.New(dnsServer)
+
 	go func() {
 		defer wg.Done()
 		apiServer := api.API{
-			Authentication: config.API.Authentication,
-			Config:         &config,
-			DB:             dnsServer.DB,
-			Blacklist:      dnsServer.Blacklist,
-			WS:             dnsServer.WS,
-			DNSPort:        config.DNS.Port,
-			Version:        version,
-			Commit:         commit,
-			Date:           date,
-			Notifications:  dnsServer.Notifications,
+			Authentication:           config.API.Authentication,
+			Config:                   &config,
+			DB:                       dnsServer.DB,
+			Blacklist:                dnsServer.Blacklist,
+			WS:                       dnsServer.WS,
+			DNSPort:                  config.DNS.Port,
+			Version:                  version,
+			Commit:                   commit,
+			Date:                     date,
+			Notifications:            dnsServer.Notifications,
+			PrefetchedDomainsManager: &prefetcher,
 		}
 
 		apiServer.Start(content, dnsServer, errorChannel)
@@ -130,6 +134,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 
 	go arp.ProcessARPTable()
 	go dnsServer.ClearOldEntries()
+	go prefetcher.Run()
 
 	go func() { wg.Wait() }()
 

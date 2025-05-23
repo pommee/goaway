@@ -45,12 +45,17 @@ func Initialize() (*Session, error) {
 
 	err = NewAPIKeyTable(db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user table: %w", err)
+		return nil, fmt.Errorf("failed to create api key table: %w", err)
 	}
 
 	err = NewNotificationsTable(db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user table: %w", err)
+		return nil, fmt.Errorf("failed to create notifications table: %w", err)
+	}
+
+	err = NewPrefetchTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create prefetch table: %w", err)
 	}
 
 	return &Session{Con: db}, nil
@@ -138,6 +143,19 @@ func NewNotificationsTable(db *sql.DB) error {
 		text TEXT,
 		read BOOLEAN,
 		created_at DATETIME NOT NULL
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewPrefetchTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS prefetch (
+		domain TEXT PRIMARY KEY,
+		refresh INTEGER,
+		qtype INTEGER
 	)`)
 	if err != nil {
 		return err
