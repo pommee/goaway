@@ -1,3 +1,10 @@
+## [0.48.6](https://github.com/pommee/goaway/compare/v0.48.5...v0.48.6) (2025-05-24)
+
+
+### Bug Fixes
+
+* respect set api port ([fc2dd02](https://github.com/pommee/goaway/commit/fc2dd02402fb940fe3a3dbfa60979a477f338e1c))
+
 ## [0.48.5](https://github.com/pommee/goaway/compare/v0.48.4...v0.48.5) (2025-05-24)
 
 
