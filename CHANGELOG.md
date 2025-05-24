@@ -1,3 +1,10 @@
+## [0.48.3](https://github.com/pommee/goaway/compare/v0.48.2...v0.48.3) (2025-05-24)
+
+
+### Bug Fixes
+
+* handle queries with no response from upstream ([57d7544](https://github.com/pommee/goaway/commit/57d75441a3f429557cebdd43202182f024907fcf))
+
 ## [0.48.2](https://github.com/pommee/goaway/compare/v0.48.1...v0.48.2) (2025-05-24)
 
 
