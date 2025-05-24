@@ -7,6 +7,7 @@ import (
 	dbModel "goaway/backend/dns/database/models"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -130,16 +131,22 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 	for rows.Next() {
 		var query model.RequestLogEntry
 		var ipString string
+		var timestamp string
 		query.ClientInfo = &model.Client{}
 
 		if err := rows.Scan(
-			&query.Timestamp, &query.Domain, &ipString,
+			&timestamp, &query.Domain, &ipString,
 			&query.Blocked, &query.Cached, &query.ResponseTime,
 			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType, &query.ResponseSizeBytes,
 		); err != nil {
 			return nil, err
 		}
 
+		parsedTime, err := strconv.ParseInt(timestamp, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("error: %v", err)
+		}
+		query.Timestamp = time.Unix(parsedTime, 0)
 		query.IP = strings.Split(ipString, ",")
 		queries = append(queries, query)
 	}
