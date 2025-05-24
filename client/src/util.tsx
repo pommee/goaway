@@ -3,9 +3,11 @@ import { toast } from "sonner";
 let lastToastMessage: string | null = null;
 
 export const getApiBaseUrl = () => {
-  const fullURL = document.location.origin;
-  const newBaseUrl = fullURL.replace(/:\d+$/, ":8080");
-  return newBaseUrl;
+  if (typeof window !== "undefined" && window.SERVER_CONFIG) {
+    return window.SERVER_CONFIG.apiBaseURL;
+  }
+
+  return "http://localhost:8080";
 };
 
 const showToast = (message: string) => {
@@ -20,7 +22,6 @@ const showToast = (message: string) => {
 };
 
 async function isAuthenticated(res: Response) {
-  console.log(res.status);
   if (res.status === 401) {
     document.location.href = "/login";
   }

@@ -76,7 +76,7 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 		return
 	}
 
-	indexWithConfig := injectServerConfig(string(indexContent), ipAddress)
+	indexWithConfig := injectServerConfig(string(indexContent), ipAddress, api.Config.API.Port)
 	handleIndexHTML := func(c *gin.Context) {
 		c.Header("Content-Type", "text/html")
 		c.Data(http.StatusOK, "text/html", []byte(indexWithConfig))
@@ -86,11 +86,12 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 	api.router.NoRoute(handleIndexHTML)
 }
 
-func injectServerConfig(htmlContent, serverIP string) string {
+func injectServerConfig(htmlContent, serverIP string, port int) string {
+	apiBaseURL := fmt.Sprintf("http://%s:%d", serverIP, port)
 	serverConfigScript := `<script>
 	window.SERVER_CONFIG = {
 		serverIP: "` + serverIP + `",
-		apiBaseURL: "http:\//` + serverIP + `:8080\/api"
+		apiBaseURL: "` + apiBaseURL + `"
 	};
 	</script>`
 
