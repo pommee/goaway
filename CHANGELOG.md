@@ -1,3 +1,10 @@
+## [0.48.7](https://github.com/pommee/goaway/compare/v0.48.6...v0.48.7) (2025-05-24)
+
+
+### Bug Fixes
+
+* respect requested dashboard server ip ([1396c11](https://github.com/pommee/goaway/commit/1396c11bad798ec4ac1a8a4d869f932fda933b04))
+
 ## [0.48.6](https://github.com/pommee/goaway/compare/v0.48.5...v0.48.6) (2025-05-24)
 
 
