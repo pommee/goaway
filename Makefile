@@ -2,15 +2,15 @@
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
-VERSION = $(or $(GOAWAY_VERSION),latest)
+
 
 publish:
 	docker buildx create --name multiarch-builder --use
 
 	docker buildx build \
 	--platform linux/amd64,linux/arm64/v8 \
+	--tag pommee/goaway:latest \
 	--tag pommee/goaway:${VERSION} \
-	--push \
 	.
 
 	docker buildx rm multiarch-builder

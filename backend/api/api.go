@@ -22,8 +22,6 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var log = logging.GetLogger()

@@ -2,10 +2,9 @@ package database
 
 import (
 	"database/sql"
-
-	_ "github.com/mattn/go-sqlite3"
-
 	"fmt"
+
+	_ "modernc.org/sqlite"
 )
 
 type Session struct {
@@ -13,7 +12,7 @@ type Session struct {
 }
 
 func Initialize() (*Session, error) {
-	db, err := sql.Open("sqlite3", "database.db")
+	db, err := sql.Open("sqlite", "database.db")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
