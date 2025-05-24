@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 ARG DNS_PORT=53
 ARG WEBSITE_PORT=8080
+ARG GOAWAY_VERSION=""
 
 ENV DNS_PORT=${DNS_PORT}
 ENV WEBSITE_PORT=${WEBSITE_PORT}
@@ -18,7 +19,7 @@ WORKDIR /home/appuser
 COPY updater.sh /home/appuser/updater.sh
 RUN chmod +x /home/appuser/updater.sh
 
-RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin && \
+RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin $GOAWAY_VERSION && \
     mv /root/.local/bin/goaway /home/appuser/goaway && \
     chmod +x /home/appuser/goaway
 

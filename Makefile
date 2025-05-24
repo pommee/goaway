@@ -11,6 +11,7 @@ publish:
 	--platform linux/amd64,linux/arm64/v8 \
 	--tag pommee/goaway:${VERSION} \
 	--tag pommee/goaway:latest \
+	--build-arg GOAWAY_VERSION=${VERSION}
 	--push \
 	.
 
