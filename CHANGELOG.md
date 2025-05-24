@@ -1,3 +1,10 @@
+## [0.48.4](https://github.com/pommee/goaway/compare/v0.48.3...v0.48.4) (2025-05-24)
+
+
+### Bug Fixes
+
+* versioned docker images ([8fe5c7d](https://github.com/pommee/goaway/commit/8fe5c7dd6b1fc2ab6d7e859490c76a113c07f588))
+
 ## [0.48.3](https://github.com/pommee/goaway/compare/v0.48.2...v0.48.3) (2025-05-24)
 
 
