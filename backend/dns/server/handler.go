@@ -280,7 +280,7 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 		}
 	}
 
-	if answers, ttl, status := s.QueryUpstream(req); len(answers) > 0 {
+	if answers, ttl, status := s.QueryUpstream(req); status != dns.RcodeToString[dns.RcodeServerFailure] {
 		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
 		return answers, false, status
 	}
@@ -382,7 +382,12 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 					ttl = a.Header().Ttl
 				}
 			}
+		} else if len(in.Ns) > 0 {
+			ttl = in.Ns[0].Header().Ttl
 		}
+
+		req.Msg.Ns = append(req.Msg.Ns, in.Ns...)
+		req.Msg.Extra = append(req.Msg.Extra, in.Extra...)
 
 		return in.Answer, ttl, status
 
