@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"goaway/backend/logging"
 	"io"
 	"net/http"
 	"os/exec"
@@ -11,6 +12,8 @@ import (
 	"sync"
 	"time"
 )
+
+var log = logging.GetLogger()
 
 type vendorResponse struct {
 	Success bool   `json:"success"`
@@ -29,7 +32,7 @@ var (
 )
 
 func ProcessARPTable() {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	// Update on first startup
@@ -41,13 +44,13 @@ func ProcessARPTable() {
 }
 
 func updateARPTable() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "arp", "-a")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Println("Error running ARP command:", err)
+		log.Warning("Error running ARP command: %v", err)
 		return
 	}
 
