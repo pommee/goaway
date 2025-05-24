@@ -55,4 +55,4 @@ jobs:
         if: success()
         run: |
           LATEST_VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-          VERSION=LATEST_VERSION make publish
+          VERSION=$LATEST_VERSION make publish
