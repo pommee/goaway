@@ -3,8 +3,14 @@ import { toast } from "sonner";
 let lastToastMessage: string | null = null;
 
 export const getApiBaseUrl = () => {
+  const serverIP = document.location.origin;
+
   if (typeof window !== "undefined" && window.SERVER_CONFIG) {
-    return window.SERVER_CONFIG.apiBaseURL;
+    const newBaseUrl = serverIP.replace(
+      /:\d+$/,
+      ":" + window.SERVER_CONFIG.port
+    );
+    return newBaseUrl;
   }
 
   return "http://localhost:8080";

@@ -87,11 +87,10 @@ func (api *API) ServeEmbeddedContent(content embed.FS) {
 }
 
 func injectServerConfig(htmlContent, serverIP string, port int) string {
-	apiBaseURL := fmt.Sprintf("http://%s:%d", serverIP, port)
 	serverConfigScript := `<script>
 	window.SERVER_CONFIG = {
-		serverIP: "` + serverIP + `",
-		apiBaseURL: "` + apiBaseURL + `"
+		ip: "` + serverIP + `",
+		port: "` + strconv.Itoa(port) + `"
 	};
 	</script>`
 
