@@ -115,7 +115,7 @@ Flags:
 
 ### Custom Configuration
 
-The default settings are defined in `settings.json`. You can customize it by modifying the values as needed.
+The default settings are defined in `settings.yaml`. You can customize it by modifying the values as needed.
 
 ## ⚠️ Platform Support
 
