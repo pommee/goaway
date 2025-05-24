@@ -55,36 +55,58 @@ const Changelog = () => {
     if (!body) return [];
 
     const sections = [];
-    const sectionRegex = /####\s*(.*?)\s*\n([\s\S]*?)(?=\n####|\n$)/g;
+    const sectionRegex = /###\s*(.*?)\s*\n([\s\S]*?)(?=\n###|\n##|$)/g;
     let match;
 
     while ((match = sectionRegex.exec(body)) !== null) {
       const header = match[1];
-      const commits = match[2]
-        .trim()
-        .split("\n")
-        .map((commit) => commit.trim())
-        .filter((commit) => commit.length > 0)
-        .map((commit) => {
-          const hashMatch = commit.match(/\(([a-f0-9]{7,40})\)$/);
+      const content = match[2].trim();
 
-          if (hashMatch) {
-            const hash = hashMatch[1];
-            const message = commit
-              .substring(0, commit.lastIndexOf(`(${hash})`))
-              .trim();
+      if (!content) continue;
+
+      const commits = content
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && line.startsWith("*"))
+        .map((commit) => {
+          const linkMatch = commit.match(
+            /\*\s*(.*?)\s*\(\[([a-f0-9]{7,40})\]\((.*?)\)\)/
+          );
+
+          if (linkMatch) {
+            const message = linkMatch[1].trim();
+            const hash = linkMatch[2];
+            const url = linkMatch[3];
 
             return {
               hash,
-              message: message.replace(/^\*\s*/, ""),
+              message,
+              url
+            };
+          }
+
+          const hashMatch = commit.match(/\*\s*(.*?)\s*\(([a-f0-9]{7,40})\)$/);
+          if (hashMatch) {
+            const message = hashMatch[1].trim();
+            const hash = hashMatch[2];
+
+            return {
+              hash,
+              message,
               url: `https://github.com/pommee/goaway/commit/${hash}`
             };
           }
 
-          return { message: commit, hash: null, url: null };
+          return {
+            message: commit.replace(/^\*\s*/, "").trim(),
+            hash: null,
+            url: null
+          };
         });
 
-      sections.push({ header, commits });
+      if (commits.length > 0) {
+        sections.push({ header, commits });
+      }
     }
 
     return sections;
