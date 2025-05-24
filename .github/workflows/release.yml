@@ -9,7 +9,8 @@ jobs:
     permissions:
       contents: write
 
-    if: "!contains(github.event.head_commit.message, 'chore:')" # Skip if "chore:" is in the commit message
+    # Only run pipeline on 'feat' & 'fix' commits
+    if: contains(github.event.head_commit.message, 'feat:') || contains(github.event.head_commit.message, 'fix:')
 
     steps:
       - name: Checkout code
