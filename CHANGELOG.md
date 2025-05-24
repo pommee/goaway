@@ -1,3 +1,10 @@
+## [0.48.1](https://github.com/pommee/goaway/compare/v0.48.0...v0.48.1) (2025-05-24)
+
+
+### Bug Fixes
+
+* correct order for release ([0c19ddd](https://github.com/pommee/goaway/commit/0c19ddd55dba66b2776872e04cd6e142f8a92901))
+
 # [0.48.0](https://github.com/pommee/goaway/compare/v0.47.0...v0.48.0) (2025-05-24)
 
 
