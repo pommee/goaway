@@ -1,3 +1,10 @@
+## [0.48.2](https://github.com/pommee/goaway/compare/v0.48.1...v0.48.2) (2025-05-24)
+
+
+### Bug Fixes
+
+* parsing fix for timestamp ([27b5822](https://github.com/pommee/goaway/commit/27b58222a230028df159e60486229b405caba0b1))
+
 ## [0.48.1](https://github.com/pommee/goaway/compare/v0.48.0...v0.48.1) (2025-05-24)
 
 
