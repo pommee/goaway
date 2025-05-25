@@ -15,6 +15,13 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { GetRequest } from "@/util";
 import {
   ArrowsClockwise,
@@ -54,11 +61,14 @@ export default function RequestTimeline() {
   const [refAreaRight, setRefAreaRight] = useState("");
   const [zoomedData, setZoomedData] = useState([]);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [timelineInterval, setTimelineInterval] = useState("2");
 
   const fetchData = async () => {
     try {
       setIsRefreshing(true);
-      const [, responseData] = await GetRequest("queryTimestamps");
+      const [, responseData] = await GetRequest(
+        `queryTimestamps?interval=${timelineInterval}`
+      );
       const data = responseData.queries.map((q: Query) => ({
         interval: q.start,
         timestamp: new Date(q.start).toISOString(),
@@ -81,7 +91,7 @@ export default function RequestTimeline() {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timelineInterval]);
 
   const getFilteredData = () => {
     if (!chartData.length) return [];
@@ -165,7 +175,7 @@ export default function RequestTimeline() {
           <div className="grid flex-1 sm:text-left">
             <CardTitle className="text-xl">Request Timeline</CardTitle>
             <p className="text-sm text-muted-foreground">
-              2-Minute Intervals,{" "}
+              {timelineInterval}-Minute Intervals,{" "}
               {filteredData.length > 0
                 ? "Last Updated: " +
                   new Date().toLocaleString("en-US", {
@@ -189,6 +199,25 @@ export default function RequestTimeline() {
                 Reset Zoom
               </Button>
             )}
+            <div>
+              <Select
+                value={timelineInterval}
+                onValueChange={(value) => setTimelineInterval(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="2" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 minute</SelectItem>
+                  <SelectItem value="2">2 minutes</SelectItem>
+                  <SelectItem value="5">5 minutes</SelectItem>
+                  <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="20">20 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="60">1 hour</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               className="bg-transparent border-1 text-white hover:bg-stone-800"
               onClick={fetchData}

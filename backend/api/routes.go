@@ -191,7 +191,14 @@ func (api *API) handleMetrics(c *gin.Context) {
 }
 
 func (api *API) getQueryTimestamps(c *gin.Context) {
-	timestamps, err := database.GetRequestSummaryByInterval(api.DB)
+	intervalParam := c.Query("interval")
+	interval, err := strconv.Atoi(intervalParam)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
+	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DB)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

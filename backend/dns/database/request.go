@@ -43,18 +43,20 @@ func GetDistinctRequestIP(db *sql.DB) int {
 	return clientCount
 }
 
-func GetRequestSummaryByInterval(db *sql.DB) ([]model.RequestLogIntervalSummary, error) {
-	query := `
-SELECT
-  (timestamp / 120) * 120 AS interval_start,
-  SUM(CASE WHEN blocked = 1 THEN 1 ELSE 0 END) AS blocked_count,
-  SUM(CASE WHEN cached = 1 THEN 1 ELSE 0 END) AS cached_count,
-  SUM(CASE WHEN blocked = 0 AND cached = 0 THEN 1 ELSE 0 END) AS allowed_count
-FROM request_log
-WHERE timestamp >= strftime('%s', 'now', '-24 hours')
-GROUP BY interval_start
-ORDER BY interval_start;
-`
+func GetRequestSummaryByInterval(interval int, db *sql.DB) ([]model.RequestLogIntervalSummary, error) {
+	minutes := strconv.Itoa(interval * 60)
+	query := fmt.Sprintf(`
+	SELECT
+	(timestamp / %s) * %s AS interval_start,
+	SUM(CASE WHEN blocked = 1 THEN 1 ELSE 0 END) AS blocked_count,
+	SUM(CASE WHEN cached = 1 THEN 1 ELSE 0 END) AS cached_count,
+	SUM(CASE WHEN blocked = 0 AND cached = 0 THEN 1 ELSE 0 END) AS allowed_count
+	FROM request_log
+	WHERE timestamp >= strftime('%%s', 'now', '-24 hours')
+	GROUP BY interval_start
+	ORDER BY interval_start;`,
+		minutes, minutes,
+	)
 
 	rows, err := db.Query(query)
 	if err != nil {
