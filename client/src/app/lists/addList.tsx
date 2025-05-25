@@ -14,16 +14,18 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
-async function CreateNewList(listName: string, url: string) {
-  const [code] = await GetRequest(`addList?name=${listName}&url=${url}`);
-  if (code === 200) {
-    toast.success(`${listName} has been added!`);
-  }
-}
-
 export function AddList() {
   const [listName, setListName] = useState("");
   const [url, setUrl] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+
+  async function CreateNewList(listName: string, url: string) {
+    const [code] = await GetRequest(`addList?name=${listName}&url=${url}`);
+    if (code === 200) {
+      toast.success(`${listName} has been added!`);
+      setModalOpen(false);
+    }
+  }
 
   const handleSave = () => {
     CreateNewList(listName, url);
@@ -31,7 +33,7 @@ export function AddList() {
 
   return (
     <div className="mb-5">
-      <Dialog>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogTrigger asChild>
           <Button
             variant="outline"
