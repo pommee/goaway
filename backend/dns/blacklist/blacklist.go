@@ -23,6 +23,13 @@ type Blacklist struct {
 	BlacklistCache map[string]bool
 }
 
+type SourceStats struct {
+	URL          string `json:"url"`
+	BlockedCount int    `json:"blockedCount"`
+	LastUpdated  int64  `json:"lastUpdated"`
+	Active       bool   `json:"active"`
+}
+
 func Initialize(db *sql.DB) (*Blacklist, error) {
 	b := &Blacklist{
 		DB: db,
@@ -30,10 +37,6 @@ func Initialize(db *sql.DB) (*Blacklist, error) {
 			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
 		},
 		BlacklistCache: map[string]bool{},
-	}
-
-	if err := b.createBlacklistTable(); err != nil {
-		return nil, fmt.Errorf("failed to initialize blacklist table: %w", err)
 	}
 
 	if count, _ := b.CountDomains(); count == 0 {
@@ -54,25 +57,6 @@ func Initialize(db *sql.DB) (*Blacklist, error) {
 	}
 
 	return b, nil
-}
-
-func (b *Blacklist) createBlacklistTable() error {
-	_, err := b.DB.Exec(`
-        CREATE TABLE IF NOT EXISTS sources (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            url TEXT,
-			active INTEGER,
-            lastUpdated INTEGER
-        );
-        CREATE TABLE IF NOT EXISTS blacklist (
-            domain TEXT,
-            source_id INTEGER,
-            PRIMARY KEY (domain, source_id),
-            FOREIGN KEY (source_id) REFERENCES sources(id)
-        )
-    `)
-	return err
 }
 
 func (b *Blacklist) initializeBlockedDomains() error {
@@ -490,7 +474,7 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 	return nil
 }
 
-func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, error) {
+func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 	query := `
 		SELECT s.name, s.url, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
 		FROM sources s
@@ -506,20 +490,22 @@ func (b *Blacklist) GetSourceStatistics() (map[string]map[string]interface{}, er
 		_ = rows.Close()
 	}(rows)
 
-	stats := make(map[string]map[string]interface{})
+	stats := make(map[string]SourceStats)
 	for rows.Next() {
 		var name, url string
 		var blockedCount int
 		var lastUpdated int64
 		var active bool
+
 		if err := rows.Scan(&name, &url, &blockedCount, &lastUpdated, &active); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		stats[name] = map[string]any{
-			"url":          url,
-			"blockedCount": blockedCount,
-			"lastUpdated":  lastUpdated,
-			"active":       active,
+
+		stats[name] = SourceStats{
+			URL:          url,
+			BlockedCount: blockedCount,
+			LastUpdated:  lastUpdated,
+			Active:       active,
 		}
 	}
 

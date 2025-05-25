@@ -22,6 +22,16 @@ func Initialize() (*Session, error) {
 		log.Warning("failed to set journal_mode to WAL")
 	}
 
+	err = NewBlacklistTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create blacklist table: %w", err)
+	}
+
+	err = NewSourcesTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sources table: %w", err)
+	}
+
 	err = NewRequestLogTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request_log table: %w", err)
@@ -58,6 +68,39 @@ func Initialize() (*Session, error) {
 	}
 
 	return &Session{Con: db}, nil
+}
+
+func NewBlacklistTable(db *sql.DB) error {
+	_, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS blacklist (
+            domain TEXT,
+            source_id INTEGER,
+            PRIMARY KEY (domain, source_id),
+            FOREIGN KEY (source_id) REFERENCES sources(id)
+        )
+    `)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewSourcesTable(db *sql.DB) error {
+	_, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS sources (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            url TEXT,
+			active INTEGER,
+            lastUpdated INTEGER
+        )
+	`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewRequestLogTable(db *sql.DB) error {
