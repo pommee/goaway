@@ -1,17 +1,12 @@
-import { useEffect, useState } from "react";
-import { GetRequest } from "@/util";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogFooter
+  DialogTitle
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { DialogDescription } from "@radix-ui/react-dialog";
-import { compare } from "compare-versions";
-import confetti from "canvas-confetti";
+import { GetRequest } from "@/util";
 import {
   CaretLineUp,
   Cpu,
@@ -20,6 +15,11 @@ import {
   Memory,
   Thermometer
 } from "@phosphor-icons/react";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import confetti from "canvas-confetti";
+import { compare } from "compare-versions";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export type Metrics = {
   cpuTemp: number;
@@ -253,7 +253,7 @@ export function ServerStatistics() {
               isLoading ? "0MB" : `${formatNumber(metrics?.dbSize || 0)}MB`
             }
             icon={Database}
-            color={getColor(metrics?.dbSize || 0, 50)}
+            color={getColor(metrics?.dbSize || 0, 200)}
             isLoading={isLoading}
           />
         </div>
