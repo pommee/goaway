@@ -20,9 +20,9 @@ func (s *DNSServer) ProcessLogEntries() {
 		select {
 		case entry := <-s.logEntryChannel:
 			log.Debug("%+v", entry)
-			if s.WS != nil {
+			if s.WSQueries != nil {
 				entryWSJson, _ := json.Marshal(entry)
-				_ = s.WS.WriteMessage(websocket.TextMessage, entryWSJson)
+				_ = s.WSQueries.WriteMessage(websocket.TextMessage, entryWSJson)
 			}
 
 			batch = append(batch, entry)

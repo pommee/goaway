@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	notification "goaway/backend"
 	"goaway/backend/dns/blacklist"
@@ -26,19 +27,21 @@ type MacVendor struct {
 }
 
 type DNSServer struct {
-	Config             settings.Config
-	Blacklist          *blacklist.Blacklist
-	DB                 *sql.DB
-	logIntervalSeconds int
-	lastLogTime        time.Time
-	Cache              sync.Map
-	clientCache        sync.Map
-	WebServer          *gin.Engine
-	logEntryChannel    chan model.RequestLogEntry
-	WS                 *websocket.Conn
-	dnsClient          *dns.Client
-	Status             settings.Status
-	Notifications      *notification.Manager
+	Config              settings.Config
+	Blacklist           *blacklist.Blacklist
+	DB                  *sql.DB
+	logIntervalSeconds  int
+	lastLogTime         time.Time
+	Cache               sync.Map
+	clientCache         sync.Map
+	WebServer           *gin.Engine
+	logEntryChannel     chan model.RequestLogEntry
+	WSQueries           *websocket.Conn
+	WSCommunication     *websocket.Conn
+	WSCommunicationLock sync.Mutex
+	dnsClient           *dns.Client
+	Status              settings.Status
+	Notifications       *notification.Manager
 }
 
 type QueryResponse struct {
@@ -63,6 +66,13 @@ type Request struct {
 	Sent     time.Time
 	Client   *model.Client
 	Prefetch bool
+}
+
+type communicationMessage struct {
+	Client   bool   `json:"client"`
+	Upstream bool   `json:"upstream"`
+	DNS      bool   `json:"dns"`
+	Ip       string `json:"ip"`
 }
 
 func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.Manager) (*DNSServer, error) {
@@ -107,6 +117,19 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	sent := time.Now()
 	client := s.getClientInfo(w.RemoteAddr().String())
+	go s.WSCom(communicationMessage{true, false, false, client.IP})
+
 	entry := s.processQuery(&Request{w, r, r.Question[0], sent, client, false})
+
+	go s.WSCom(communicationMessage{false, false, true, client.IP})
 	s.logEntryChannel <- entry
+}
+
+func (s *DNSServer) WSCom(message communicationMessage) {
+	if s.WSCommunication != nil {
+		entryWSJson, _ := json.Marshal(message)
+		s.WSCommunicationLock.Lock()
+		_ = s.WSCommunication.WriteMessage(websocket.TextMessage, entryWSJson)
+		s.WSCommunicationLock.Unlock()
+	}
 }

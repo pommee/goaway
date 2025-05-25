@@ -359,6 +359,8 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	errCh := make(chan error, 1)
 
 	go func() {
+		go s.WSCom(communicationMessage{false, true, false, ""})
+
 		in, _, err := s.dnsClient.Exchange(req.Msg, s.Config.DNS.PreferredUpstream)
 		if err != nil {
 			errCh <- err
@@ -369,6 +371,8 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 
 	select {
 	case in := <-resultCh:
+		go s.WSCom(communicationMessage{false, false, true, ""})
+
 		status := dns.RcodeToString[dns.RcodeServerFailure]
 		if statusStr, ok := dns.RcodeToString[in.Rcode]; ok {
 			status = statusStr

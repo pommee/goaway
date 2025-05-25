@@ -1,7 +1,7 @@
-import { ClientCard } from "@/app/clients/card";
+import DNSServerVisualizer from "@/app/clients/map";
 import { GetRequest } from "@/util";
 import { Info } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export type ClientEntry = {
@@ -10,40 +10,57 @@ export type ClientEntry = {
   mac: string;
   name: string;
   vendor: string;
+  x: number;
+  y: number;
+};
+
+const sortClientsByIP = (clients: ClientEntry[]): ClientEntry[] => {
+  return [...clients].sort((a, b) => {
+    const aNum = a.ip.split(".").map((num) => parseInt(num, 10));
+    const bNum = b.ip.split(".").map((num) => parseInt(num, 10));
+
+    for (let i = 0; i < 4; i++) {
+      if (aNum[i] !== bNum[i]) {
+        return aNum[i] - bNum[i];
+      }
+    }
+    return 0;
+  });
 };
 
 export function Clients() {
   const [clients, setClients] = useState<ClientEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchClients() {
-      try {
-        setLoading(true);
-        const [code, response] = await GetRequest("clients");
-        if (code !== 200) {
-          toast.warning(response.error);
-          return;
-        }
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [code, response] = await GetRequest("clients");
 
-        if (Array.isArray(response.clients)) {
-          const clientsSorted = response.clients.sort(
-            (a: { ip: number }, b: { ip: number }) => a.ip > b.ip
-          );
-          setClients(clientsSorted);
-        } else {
-          console.warn("Unexpected response format:", response);
-        }
-      } catch (error) {
-        console.error("Error fetching clients:", error);
-        toast.error("Failed to fetch clients");
-      } finally {
-        setLoading(false);
+      if (code !== 200) {
+        toast.warning(response.error);
+        return;
       }
-    }
 
-    fetchClients();
+      if (Array.isArray(response.clients)) {
+        const clientsSorted = sortClientsByIP(response.clients);
+        setClients(clientsSorted);
+      } else {
+        console.warn("Unexpected response format:", response);
+        setClients([]);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      toast.error("Failed to fetch clients");
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   if (loading) {
     return (
@@ -54,20 +71,9 @@ export function Clients() {
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div>
       {clients.length > 0 ? (
-        <div className="grid lg:grid-cols-4 gap-2">
-          {clients.map((client, index) => (
-            <ClientCard
-              key={index}
-              ip={client.ip}
-              lastSeen={client.lastSeen}
-              mac={client.mac}
-              name={client.name}
-              vendor={client.vendor}
-            />
-          ))}
-        </div>
+        <DNSServerVisualizer clients={clients} />
       ) : (
         <div className="flex justify-center items-center py-32">
           <div className="border rounded-lg p-6 max-w-md w-full">

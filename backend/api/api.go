@@ -40,7 +40,8 @@ type API struct {
 	Blacklist                *blacklist.Blacklist
 	KeyManager               *key.ApiKeyManager
 	PrefetchedDomainsManager *prefetch.Manager
-	WS                       *websocket.Conn
+	WSQueries                *websocket.Conn
+	WSCommunication          *websocket.Conn
 	DNSPort                  int
 	Version                  string
 	Commit                   string
@@ -75,7 +76,8 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 
 	api.setupRoutes()
 	api.setupAuthorizedRoutes()
-	api.setupWebsocket(dnsServer)
+	api.setupWSLiveQueries(dnsServer)
+	api.setupWSLiveCommunication(dnsServer)
 
 	if !api.Config.DevMode {
 		api.ServeEmbeddedContent(content)
@@ -211,7 +213,7 @@ func (api *API) setupAuthorizedRoutes() {
 	api.routes.DELETE("/notification", api.markNotificationAsRead)
 }
 
-func (api *API) setupWebsocket(dnsServer *server.DNSServer) {
+func (api *API) setupWSLiveQueries(dnsServer *server.DNSServer) {
 	api.router.GET("/api/liveQueries", func(c *gin.Context) {
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -222,10 +224,29 @@ func (api *API) setupWebsocket(dnsServer *server.DNSServer) {
 		if err != nil {
 			return
 		}
-		api.WS = conn
+		api.WSQueries = conn
 
 		if dnsServer != nil {
-			dnsServer.WS = conn
+			dnsServer.WSQueries = conn
+		}
+	})
+}
+
+func (api *API) setupWSLiveCommunication(dnsServer *server.DNSServer) {
+	api.router.GET("/api/liveCommunication", func(c *gin.Context) {
+		var upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
+
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			return
+		}
+		api.WSCommunication = conn
+
+		if dnsServer != nil {
+			dnsServer.WSCommunication = conn
 		}
 	})
 }
