@@ -1,3 +1,11 @@
+## [0.48.9](https://github.com/pommee/goaway/compare/v0.48.8...v0.48.9) (2025-05-25)
+
+
+### Bug Fixes
+
+* added ability to delete list ([832c5f7](https://github.com/pommee/goaway/commit/832c5f741a4666ac013c666e97777162947e4f43))
+* populate blocklist cache once new list is added ([da4a614](https://github.com/pommee/goaway/commit/da4a614bf252d90d53305b4cc187fa2d3ebc979f))
+
 ## [0.48.8](https://github.com/pommee/goaway/compare/v0.48.7...v0.48.8) (2025-05-25)
 
 
