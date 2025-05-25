@@ -1,3 +1,10 @@
+# [0.49.0](https://github.com/pommee/goaway/compare/v0.48.10...v0.49.0) (2025-05-25)
+
+
+### Features
+
+* redesign of clients page to show live communication ([e58234c](https://github.com/pommee/goaway/commit/e58234c1ba335f233a7952faf2a1e16dc126f48b))
+
 ## [0.48.10](https://github.com/pommee/goaway/compare/v0.48.9...v0.48.10) (2025-05-25)
 
 
