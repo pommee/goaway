@@ -171,10 +171,10 @@ func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
 
 	for rows.Next() {
 		var ip, name string
-		var timestamp time.Time
+		var dbTimestamp int
 		var mac, vendor sql.NullString
 
-		if err := rows.Scan(&ip, &name, &timestamp, &mac, &vendor); err != nil {
+		if err := rows.Scan(&ip, &name, &dbTimestamp, &mac, &vendor); err != nil {
 			return nil, err
 		}
 
@@ -187,6 +187,7 @@ func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
 			vendorStr = vendor.String
 		}
 
+		timestamp := time.Unix(int64(dbTimestamp), 0)
 		if existing, exists := uniqueClients[ip]; !exists || timestamp.After(existing.LastSeen) {
 			uniqueClients[ip] = dbModel.Client{
 				Name:     name,

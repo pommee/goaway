@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { GetRequest } from "@/util";
-import { toast } from "sonner";
 import { ClientCard } from "@/app/clients/card";
+import { GetRequest } from "@/util";
 import { Info } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export type ClientEntry = {
   ip: string;
@@ -22,7 +22,7 @@ export function Clients() {
         setLoading(true);
         const [code, response] = await GetRequest("clients");
         if (code !== 200) {
-          toast.warning(`Unable to fetch clients`);
+          toast.warning(response.error);
           return;
         }
 
