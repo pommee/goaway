@@ -104,7 +104,7 @@ export function CardDetails(listEntry: ListEntry) {
       if (code === 200) {
         setDialogOpen(false);
         setShowDiff(false);
-        toast.info(`Updated ${listEntry.name}`);
+        toast.info(`Deleted ${listEntry.name}`);
       } else {
         toast.error(response.error);
         setShowDiff(false);
