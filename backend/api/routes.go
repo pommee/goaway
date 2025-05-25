@@ -831,7 +831,15 @@ func (api *API) addList(c *gin.Context) {
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
+
+	err = api.Blacklist.PopulateBlocklistCache()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
 	api.Blacklist.BlocklistURL[name] = url
 
 	c.JSON(http.StatusOK, nil)
@@ -939,7 +947,7 @@ func (api *API) removeList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 	delete(api.Blacklist.BlocklistURL, name)
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusOK)
 }
 
 func (api *API) getDomainsForList(c *gin.Context) {
