@@ -1,3 +1,10 @@
+## [0.49.1](https://github.com/pommee/goaway/compare/v0.49.0...v0.49.1) (2025-05-25)
+
+
+### Bug Fixes
+
+* added interval selection to request timeline ([9ae7b26](https://github.com/pommee/goaway/commit/9ae7b267f5eb4299af6ce851c44a57ae9244a932))
+
 # [0.49.0](https://github.com/pommee/goaway/compare/v0.48.10...v0.49.0) (2025-05-25)
 
 
