@@ -574,19 +574,28 @@ func getDNSDetails(host string) (string, string) {
 
 func getICMPPing(host string) string {
 	pinger, err := probing.NewPinger(host)
-	if err != nil {
-		return "Error: " + err.Error()
-	}
-	pinger.Count = 3
-	pinger.Timeout = 2 * time.Second
+	if err == nil {
+		pinger.Count = 3
+		pinger.Timeout = 2 * time.Second
+		pinger.SetPrivileged(false)
 
-	err = pinger.Run()
-	if err != nil {
-		log.Warning("Could not get ICMP ping from host: %s", host)
-		panic(err)
+		err = pinger.Run()
+		if err == nil {
+			stats := pinger.Statistics()
+			return stats.AvgRtt.String()
+		}
 	}
-	stats := pinger.Statistics()
-	return stats.AvgRtt.String()
+
+	start := time.Now()
+	conn, err := net.DialTimeout("tcp", host+":53", 2*time.Second)
+	if err != nil {
+		log.Warning("Could not ping host %s via ICMP or TCP: %s", host, err.Error())
+		return "Unreachable"
+	}
+	defer conn.Close()
+
+	duration := time.Since(start)
+	return duration.String()
 }
 
 func (api *API) createUpstream(c *gin.Context) {
