@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,12 +6,13 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { DialogDescription } from "@radix-ui/react-dialog";
+import { Label } from "@/components/ui/label";
 import { GetRequest } from "@/util";
-import { toast } from "sonner";
 import { Plus } from "@phosphor-icons/react";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { useState } from "react";
+import { toast } from "sonner";
 
 async function CreateNewList(listName: string, url: string) {
   const [code] = await GetRequest(`addList?name=${listName}&url=${url}`);
@@ -41,7 +41,7 @@ export function AddList() {
             Add list
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-2/3 max-w-none">
           <DialogHeader>
             <DialogTitle>New List</DialogTitle>
           </DialogHeader>
