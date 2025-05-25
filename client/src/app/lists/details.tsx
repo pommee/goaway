@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/lists";
-import { GetRequest } from "@/util";
+import { DeleteRequest, GetRequest } from "@/util";
 import {
   ArrowsClockwise,
   Eraser,
@@ -77,6 +77,28 @@ export function CardDetails(listEntry: ListEntry) {
         `runUpdateList?name=${encodeURIComponent(listEntry.name)}&url=${
           listEntry.url || ""
         }`
+      );
+
+      if (code === 200) {
+        setDialogOpen(false);
+        setShowDiff(false);
+        toast.info(`Updated ${listEntry.name}`);
+      } else {
+        toast.error(response.error);
+        setShowDiff(false);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error checking for updates");
+      setShowDiff(false);
+    }
+  };
+
+  const deleteList = async () => {
+    try {
+      const [code, response] = await DeleteRequest(
+        `list?name=${encodeURIComponent(listEntry.name)}`,
+        null
       );
 
       if (code === 200) {
@@ -165,6 +187,7 @@ export function CardDetails(listEntry: ListEntry) {
                 Update
               </Button>
               <Button
+                onClick={deleteList}
                 variant="outline"
                 className="bg-red-600 border-none hover:bg-red-500 text-white flex-1 text-sm"
               >
