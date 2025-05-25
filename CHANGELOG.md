@@ -1,3 +1,11 @@
+## [0.48.8](https://github.com/pommee/goaway/compare/v0.48.7...v0.48.8) (2025-05-25)
+
+
+### Bug Fixes
+
+* better error handling for upstreams page and upstream pinger ([96f4b02](https://github.com/pommee/goaway/commit/96f4b02580803f7a02f5002bd2e3f913a4b0ca68))
+* parse client last seen timestamp correctly ([ca39629](https://github.com/pommee/goaway/commit/ca39629ba04a0fede0ea89330525eb956afa8b71))
+
 ## [0.48.7](https://github.com/pommee/goaway/compare/v0.48.6...v0.48.7) (2025-05-24)
 
 
