@@ -1,3 +1,10 @@
+## [0.48.10](https://github.com/pommee/goaway/compare/v0.48.9...v0.48.10) (2025-05-25)
+
+
+### Bug Fixes
+
+* fix docker build command to fix pipeline ([e00c393](https://github.com/pommee/goaway/commit/e00c39348a67fda41b1261b4eebf408050d59350))
+
 ## [0.48.9](https://github.com/pommee/goaway/compare/v0.48.8...v0.48.9) (2025-05-25)
 
 
