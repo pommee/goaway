@@ -34,17 +34,17 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 }
 
 func (s *DNSServer) GetVendor(mac string) (string, error) {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
-	return database.FindVendor(s.DB, mac)
+	s.DBManager.Mutex.Lock()
+	defer s.DBManager.Mutex.Unlock()
+	return database.FindVendor(s.DBManager.Conn, mac)
 }
 
 func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
+	s.DBManager.Mutex.Lock()
+	defer s.DBManager.Mutex.Unlock()
 
 	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	database.SaveMacEntry(s.DB, clientIP, mac, vendor)
+	database.SaveMacEntry(s.DBManager.Conn, clientIP, mac, vendor)
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
@@ -127,7 +127,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 		return s.forwardPTRQueryUpstream(request)
 	}
 
-	hostname := database.GetClientNameFromRequestLog(s.DB, ipStr)
+	hostname := database.GetClientNameFromRequestLog(s.DBManager.Conn, ipStr)
 	if hostname == "unknown" {
 		if names, err := net.LookupAddr(ipStr); err == nil && len(names) > 0 {
 			hostname = strings.TrimSuffix(names[0], ".")
@@ -304,7 +304,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 		status  = dns.RcodeToString[dns.RcodeSuccess]
 	)
 
-	ipFound, err := database.FetchResolution(s.DB, domain)
+	ipFound, err := database.FetchResolution(s.DBManager.Conn, domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]

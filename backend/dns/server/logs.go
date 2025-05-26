@@ -9,11 +9,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const BatchSize = 500
+const BatchSize = 1000
 
 func (s *DNSServer) ProcessLogEntries() {
 	var batch []model.RequestLogEntry
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -40,16 +40,19 @@ func (s *DNSServer) ProcessLogEntries() {
 }
 
 func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
-	dbMutex.Lock()
-	database.SaveRequestLog(s.DB, entries)
-	dbMutex.Unlock()
+	s.DBManager.Mutex.Lock()
+	err := database.SaveRequestLog(s.DBManager.Conn, entries)
+	s.DBManager.Mutex.Unlock()
+	if err != nil {
+		log.Warning("Error while saving logs, reason: %v", err)
+	}
 }
 
 func (s *DNSServer) ClearOldEntries() {
 	const (
 		maxRetries      = 10
 		retryDelay      = 150 * time.Millisecond
-		cleanupInterval = 1 * time.Minute
+		cleanupInterval = 5 * time.Minute
 	)
 
 	for {
@@ -57,6 +60,6 @@ func (s *DNSServer) ClearOldEntries() {
 		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
 		time.Sleep(cleanupInterval)
 
-		database.DeleteRequestLogsTimebased(s.Blacklist.Vacuum, s.DB, requestThreshold, maxRetries, retryDelay)
+		database.DeleteRequestLogsTimebased(s.Blacklist.Vacuum, s.DBManager.Conn, requestThreshold, maxRetries, retryDelay)
 	}
 }

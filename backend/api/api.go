@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"embed"
 	"encoding/base64"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"goaway/backend/api/key"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/blacklist"
+	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
 	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
@@ -36,7 +36,7 @@ type API struct {
 	Config                   *settings.Config
 	router                   *gin.Engine
 	routes                   *gin.RouterGroup
-	DB                       *sql.DB
+	DBManager                *database.DatabaseManager
 	Blacklist                *blacklist.Blacklist
 	KeyManager               *key.ApiKeyManager
 	PrefetchedDomainsManager *prefetch.Manager
@@ -72,7 +72,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 		MaxAge:           12 * time.Hour,
 	}))
 
-	api.KeyManager = key.NewApiKeyManager(api.DB)
+	api.KeyManager = key.NewApiKeyManager(dnsServer.DBManager)
 
 	api.setupRoutes()
 	api.setupAuthorizedRoutes()
@@ -119,7 +119,7 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 
 func (api *API) SetupAuth() {
 	newUser := &user.User{Username: "admin"}
-	if newUser.Exists(api.DB) {
+	if newUser.Exists(api.DBManager.Conn) {
 		return
 	}
 
@@ -133,7 +133,7 @@ func (api *API) SetupAuth() {
 		log.Info("Randomly generated admin password: %s", newUser.Password)
 	}
 
-	if err := newUser.Create(api.DB); err != nil {
+	if err := newUser.Create(api.DBManager.Conn); err != nil {
 		log.Error("Unable to create new user: %v", err)
 	}
 }

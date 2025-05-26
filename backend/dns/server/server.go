@@ -1,11 +1,11 @@
 package server
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	notification "goaway/backend"
 	"goaway/backend/dns/blacklist"
+	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
 	"goaway/backend/settings"
@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	log     = logging.GetLogger()
-	dbMutex sync.Mutex
+	log = logging.GetLogger()
 )
 
 type MacVendor struct {
@@ -29,7 +28,7 @@ type MacVendor struct {
 type DNSServer struct {
 	Config              settings.Config
 	Blacklist           *blacklist.Blacklist
-	DB                  *sql.DB
+	DBManager           *database.DatabaseManager
 	logIntervalSeconds  int
 	lastLogTime         time.Time
 	Cache               sync.Map
@@ -75,8 +74,8 @@ type communicationMessage struct {
 	Ip       string `json:"ip"`
 }
 
-func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsManager *notification.Manager) (*DNSServer, error) {
-	blacklistEntry, err := blacklist.Initialize(dbConnection)
+func NewDNSServer(config settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
+	blacklistEntry, err := blacklist.Initialize(dbManager)
 	if err != nil {
 		log.Error("Failed to initialize blacklist")
 	}
@@ -84,7 +83,7 @@ func NewDNSServer(config settings.Config, dbConnection *sql.DB, notificationsMan
 	server := &DNSServer{
 		Config:             config,
 		Blacklist:          blacklistEntry,
-		DB:                 dbConnection,
+		DBManager:          dbManager,
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),

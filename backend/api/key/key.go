@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"goaway/backend/dns/database"
 	"goaway/backend/logging"
 	"sort"
 	"sync"
@@ -18,7 +19,7 @@ type ApiKey struct {
 }
 
 type ApiKeyManager struct {
-	db        *sql.DB
+	dbManager *database.DatabaseManager
 	keyCache  map[string]ApiKey
 	cacheMu   sync.RWMutex
 	cacheTime time.Time
@@ -27,11 +28,11 @@ type ApiKeyManager struct {
 
 var log = logging.GetLogger()
 
-func NewApiKeyManager(db *sql.DB) *ApiKeyManager {
+func NewApiKeyManager(dbManager *database.DatabaseManager) *ApiKeyManager {
 	return &ApiKeyManager{
-		db:       db,
-		keyCache: make(map[string]ApiKey),
-		cacheTTL: 1 * time.Hour,
+		dbManager: dbManager,
+		keyCache:  make(map[string]ApiKey),
+		cacheTTL:  1 * time.Hour,
 	}
 }
 
@@ -50,7 +51,7 @@ func (m *ApiKeyManager) refreshCache() error {
 		return nil
 	}
 
-	rows, err := m.db.Query(`SELECT name, key, created_at FROM apikey`)
+	rows, err := m.dbManager.Conn.Query(`SELECT name, key, created_at FROM apikey`)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (m *ApiKeyManager) VerifyApiKey(apiKey string) bool {
 		log.Warning("Failed to refresh API key cache: %v", err)
 
 		var exists bool
-		err := m.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM apikey WHERE key = ?)`, apiKey).Scan(&exists)
+		err := m.dbManager.Conn.QueryRow(`SELECT EXISTS(SELECT 1 FROM apikey WHERE key = ?)`, apiKey).Scan(&exists)
 		if err != nil {
 			log.Warning("Failed to verify API key in database: %v", err)
 			return false
@@ -112,7 +113,7 @@ func (m *ApiKeyManager) CreateApiKey(name string) (string, error) {
 	}
 
 	createdAt := time.Now()
-	_, err = m.db.Exec(`INSERT INTO apikey (name, key, created_at) VALUES (?, ?, ?)`, name, apiKey, createdAt)
+	_, err = m.dbManager.Conn.Exec(`INSERT INTO apikey (name, key, created_at) VALUES (?, ?, ?)`, name, apiKey, createdAt)
 	if err != nil {
 		return "", fmt.Errorf("key with name '%s' already exists", name)
 	}
@@ -125,7 +126,7 @@ func (m *ApiKeyManager) CreateApiKey(name string) (string, error) {
 }
 
 func (m *ApiKeyManager) DeleteApiKey(apiKey string) error {
-	_, err := m.db.Exec(`DELETE FROM apikey WHERE key = ?`, apiKey)
+	_, err := m.dbManager.Conn.Exec(`DELETE FROM apikey WHERE key = ?`, apiKey)
 	if err != nil {
 		return err
 	}

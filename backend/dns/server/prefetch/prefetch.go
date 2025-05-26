@@ -3,6 +3,7 @@ package prefetch
 import (
 	"database/sql"
 	"fmt"
+	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
 	"goaway/backend/logging"
 	"strconv"
@@ -14,9 +15,9 @@ import (
 var log = logging.GetLogger()
 
 type Manager struct {
-	db      *sql.DB
-	DNS     *server.DNSServer
-	Domains map[string]PrefetchedDomain
+	dbManager *database.DatabaseManager
+	DNS       *server.DNSServer
+	Domains   map[string]PrefetchedDomain
 }
 
 type PrefetchedDomain struct {
@@ -26,7 +27,7 @@ type PrefetchedDomain struct {
 }
 
 func (manager *Manager) LoadPrefetchedDomains() {
-	rows, err := manager.db.Query("SELECT domain, refresh, qtype FROM prefetch")
+	rows, err := manager.dbManager.Conn.Query("SELECT domain, refresh, qtype FROM prefetch")
 	if err != nil {
 		log.Warning("Failed to query prefetch table")
 	}
@@ -53,9 +54,9 @@ func (manager *Manager) LoadPrefetchedDomains() {
 }
 
 func (manager *Manager) AddPrefetchedDomain(domain string, refresh, qtype int) error {
-	result, err := manager.db.Exec(`INSERT OR IGNORE INTO prefetch (domain, refresh, qtype) VALUES (?, ?, ?)`, domain, refresh, qtype)
+	result, err := manager.dbManager.Conn.Exec(`INSERT OR IGNORE INTO prefetch (domain, refresh, qtype) VALUES (?, ?, ?)`, domain, refresh, qtype)
 	if err != nil {
-		return fmt.Errorf("Failed to add new domain to prefetch table")
+		return fmt.Errorf("failed to add new domain to prefetch table")
 	}
 
 	affected, _ := result.RowsAffected()
@@ -74,9 +75,9 @@ func (manager *Manager) AddPrefetchedDomain(domain string, refresh, qtype int) e
 }
 
 func (manager *Manager) RemovePrefetchedDomain(domain string) error {
-	result, err := manager.db.Exec(`DELETE FROM prefetch WHERE domain = ?`, domain)
+	result, err := manager.dbManager.Conn.Exec(`DELETE FROM prefetch WHERE domain = ?`, domain)
 	if err != nil {
-		return fmt.Errorf("Failed to remove %s from prefetch table", domain)
+		return fmt.Errorf("failed to remove %s from prefetch table", domain)
 	}
 
 	affected, _ := result.RowsAffected()
@@ -91,9 +92,9 @@ func (manager *Manager) RemovePrefetchedDomain(domain string) error {
 
 func New(dnsServer *server.DNSServer) Manager {
 	manager := Manager{
-		db:      dnsServer.DB,
-		DNS:     dnsServer,
-		Domains: make(map[string]PrefetchedDomain),
+		dbManager: dnsServer.DBManager,
+		DNS:       dnsServer,
+		Domains:   make(map[string]PrefetchedDomain),
 	}
 
 	manager.LoadPrefetchedDomains()

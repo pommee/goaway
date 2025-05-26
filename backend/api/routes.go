@@ -186,7 +186,7 @@ func (api *API) handleMetrics(c *gin.Context) {
 		"total":             total,
 		"percentageBlocked": percentageBlocked,
 		"domainBlockLen":    domainsLength,
-		"clients":           database.GetDistinctRequestIP(api.DB),
+		"clients":           database.GetDistinctRequestIP(api.DBManager.Conn),
 	})
 }
 
@@ -198,7 +198,7 @@ func (api *API) getQueryTimestamps(c *gin.Context) {
 		return
 	}
 
-	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DB)
+	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DBManager.Conn)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -211,7 +211,7 @@ func (api *API) getQueryTimestamps(c *gin.Context) {
 }
 
 func (api *API) getQueryTypes(c *gin.Context) {
-	queries, err := database.GetUniqueQueryTypes(api.DB)
+	queries, err := database.GetUniqueQueryTypes(api.DBManager.Conn)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -225,13 +225,13 @@ func (api *API) getQueryTypes(c *gin.Context) {
 
 func (api *API) getQueries(c *gin.Context) {
 	query := parseQueryParams(c)
-	queries, err := database.FetchQueries(api.DB, query)
+	queries, err := database.FetchQueries(api.DBManager.Conn, query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	total, err := database.CountQueries(api.DB, query.Search)
+	total, err := database.CountQueries(api.DBManager.Conn, query.Search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -366,7 +366,7 @@ func (api *API) updateSettings(c *gin.Context) {
 }
 
 func (api *API) getClients(c *gin.Context) {
-	uniqueClients, err := database.FetchAllClients(api.DB)
+	uniqueClients, err := database.FetchAllClients(api.DBManager.Conn)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -388,19 +388,19 @@ func (api *API) getClients(c *gin.Context) {
 
 func (api *API) getClientDetails(c *gin.Context) {
 	clientIP := c.DefaultQuery("clientIP", "")
-	clientRequestDetails, err := database.GetClientRequestDetails(api.DB, clientIP)
+	clientRequestDetails, err := database.GetClientRequestDetails(api.DBManager.Conn, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(api.DB, clientIP)
+	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(api.DBManager.Conn, clientIP)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	queriedDomains, err := database.GetAllQueriedDomainsByIP(api.DB, clientIP)
+	queriedDomains, err := database.GetAllQueriedDomainsByIP(api.DBManager.Conn, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -422,7 +422,7 @@ func (api *API) getClientDetails(c *gin.Context) {
 }
 
 func (api *API) getResolutions(c *gin.Context) {
-	resolutions, err := database.FetchResolutions(api.DB)
+	resolutions, err := database.FetchResolutions(api.DBManager.Conn)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -445,7 +445,7 @@ func (api *API) createResolution(c *gin.Context) {
 		return
 	}
 
-	err := database.CreateNewResolution(api.DB, newResolution.IP, newResolution.Domain)
+	err := database.CreateNewResolution(api.DBManager.Conn, newResolution.IP, newResolution.Domain)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -478,7 +478,7 @@ func (api *API) deleteResolution(c *gin.Context) {
 	domain := c.Query("domain")
 	ip := c.Query("ip")
 
-	rowsAffected, err := database.DeleteResolution(api.DB, ip, domain)
+	rowsAffected, err := database.DeleteResolution(api.DBManager.Conn, ip, domain)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -599,7 +599,9 @@ func getICMPPing(host string) string {
 		log.Warning("Could not ping host %s via ICMP or TCP: %s", host, err.Error())
 		return "Unreachable"
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	duration := time.Since(start)
 	return duration.String()
@@ -670,7 +672,7 @@ func (api *API) deleteUpstream(c *gin.Context) {
 }
 
 func (api *API) clearQueries(c *gin.Context) {
-	result, err := api.DB.Exec("DELETE FROM request_log")
+	result, err := api.DBManager.Conn.Exec("DELETE FROM request_log")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
 		return
@@ -686,7 +688,7 @@ func (api *API) clearQueries(c *gin.Context) {
 
 func (api *API) getTopBlockedDomains(c *gin.Context) {
 	_, blocked, _ := api.Blacklist.GetAllowedAndBlocked()
-	topBlockedDomains, err := database.GetTopBlockedDomains(api.DB, blocked)
+	topBlockedDomains, err := database.GetTopBlockedDomains(api.DBManager.Conn, blocked)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -697,7 +699,7 @@ func (api *API) getTopBlockedDomains(c *gin.Context) {
 }
 
 func (api *API) getTopClients(c *gin.Context) {
-	topClients, err := database.GetTopClients(api.DB)
+	topClients, err := database.GetTopClients(api.DBManager.Conn)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1047,7 +1049,7 @@ func (api *API) updatePassword(c *gin.Context) {
 	}
 
 	existingUser := user.User{Username: "admin", Password: request.NewPassword}
-	if err = existingUser.UpdatePassword(api.DB); err != nil {
+	if err = existingUser.UpdatePassword(api.DBManager.Conn); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to update password"})
 		return
 	}

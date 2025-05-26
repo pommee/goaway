@@ -72,15 +72,15 @@ func startServer(config settings.Config, ansi bool) {
 		}()
 	}
 
-	db, err := database.Initialize()
+	dbManager, err := database.Initialize()
 	if err != nil {
 		log.Error("failed while initilizing database: %v", err)
 		os.Exit(1)
 	}
 
-	notificationManager := notification.NewNotificationManager(db.Con)
+	notificationManager := notification.NewNotificationManager(dbManager)
 
-	dnsServer, err := server.NewDNSServer(config, db.Con, notificationManager)
+	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager)
 	if err != nil {
 		log.Error("Failed to initialize server: %s", err)
 		os.Exit(1)
@@ -118,7 +118,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 		apiServer := api.API{
 			Authentication:           config.API.Authentication,
 			Config:                   &config,
-			DB:                       dnsServer.DB,
+			DBManager:                dnsServer.DBManager,
 			Blacklist:                dnsServer.Blacklist,
 			WSQueries:                dnsServer.WSQueries,
 			WSCommunication:          dnsServer.WSCommunication,

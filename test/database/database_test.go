@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func createTestDB() (*database.Session, error) {
+func createTestDB() (*database.DatabaseManager, error) {
 	_ = os.Remove("database.db")
 
 	db, err := database.Initialize()
@@ -19,8 +19,8 @@ func createTestDB() (*database.Session, error) {
 	return db, nil
 }
 
-func removeTestDB(db *database.Session) {
-	_ = db.Con.Close()
+func removeTestDB(db *database.DatabaseManager) {
+	_ = db.Conn.Close()
 	_ = os.Remove("database.db")
 }
 
@@ -48,11 +48,11 @@ func MockRequestLogEntry() model.RequestLogEntry {
 }
 
 func BenchmarkInsertRequestLog(b *testing.B) {
-	db, err := createTestDB()
+	dbManager, err := createTestDB()
 	if err != nil {
 		b.Fatalf("Failed to create test database: %v", err)
 	}
-	defer removeTestDB(db)
+	defer removeTestDB(dbManager)
 
 	batch := make([]model.RequestLogEntry, 1000)
 	for i := range batch {
@@ -60,25 +60,25 @@ func BenchmarkInsertRequestLog(b *testing.B) {
 	}
 
 	for iteration := 0; b.Loop(); iteration++ {
-		database.SaveRequestLog(db.Con, batch)
+		database.SaveRequestLog(dbManager.Conn, batch)
 	}
 }
 
 func BenchmarkQueryRequestLog(b *testing.B) {
-	db, err := createTestDB()
+	dbManager, err := createTestDB()
 	if err != nil {
 		b.Fatalf("Failed to create test database: %v", err)
 	}
-	defer removeTestDB(db)
+	defer removeTestDB(dbManager)
 
 	batch := make([]model.RequestLogEntry, 100000)
 	for i := range batch {
 		batch[i] = MockRequestLogEntry()
 	}
-	database.SaveRequestLog(db.Con, batch)
+	database.SaveRequestLog(dbManager.Conn, batch)
 
 	for b.Loop() {
-		rows, err := db.Con.Query("SELECT * FROM request_log WHERE domain = ?", "example.com")
+		rows, err := dbManager.Conn.Query("SELECT * FROM request_log WHERE domain = ?", "example.com")
 		if err != nil {
 			b.Fatalf("Failed to query request log: %v", err)
 		}

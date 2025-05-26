@@ -359,36 +359,29 @@ func CountQueries(db *sql.DB, search string) (int, error) {
 	return total, err
 }
 
-func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
+func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 	tx, err := db.Begin()
 	if err != nil {
-		log.Error("Could not start database transaction %v", err)
-		return
+		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
-			log.Warning("Could not save requests to database, performing rollback. Error: %s", p)
+			log.Warning("Could not save request log, performing rollback. Error: %s", p)
 		} else if err != nil {
 			_ = tx.Rollback()
 		} else if commitErr := tx.Commit(); commitErr != nil {
-			log.Warning("DB commit error %v", commitErr)
+			log.Warning("Commit error: %v", commitErr)
 		}
 	}()
 
-	query := "INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		log.Error("Could not create a prepared statement for request logs, reason: %v", err)
-		return
-	}
-	defer func(stmt *sql.Stmt) {
-		_ = stmt.Close()
-	}(stmt)
+	valueStrings := make([]string, 0, len(entries))
+	valueArgs := make([]interface{}, 0, len(entries)*11)
 
 	for _, entry := range entries {
-		_, err = stmt.Exec(
+		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		valueArgs = append(valueArgs,
 			entry.Timestamp.Unix(),
 			entry.Domain,
 			strings.Join(entry.IP, ","),
@@ -401,11 +394,17 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) {
 			entry.QueryType,
 			entry.ResponseSizeBytes,
 		)
-		if err != nil {
-			log.Error("Could not save request log. Reason: %v", err)
-			return
-		}
 	}
+
+	query := fmt.Sprintf("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes) VALUES %s",
+		strings.Join(valueStrings, ","))
+
+	_, err = tx.Exec(query, valueArgs...)
+	if err != nil {
+		return fmt.Errorf("could not save request log. Reason: %v", err)
+	}
+
+	return nil
 }
 
 type vacuumFunc func()

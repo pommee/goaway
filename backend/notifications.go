@@ -3,13 +3,14 @@ package notification
 import (
 	"database/sql"
 	"fmt"
+	"goaway/backend/dns/database"
 	"goaway/backend/logging"
 	"strings"
 	"time"
 )
 
 type Manager struct {
-	db *sql.DB
+	dbManager *database.DatabaseManager
 }
 
 type Severity string
@@ -43,13 +44,13 @@ type Notification struct {
 
 var logger = logging.GetLogger()
 
-func NewNotificationManager(db *sql.DB) *Manager {
-	return &Manager{db}
+func NewNotificationManager(dbManager *database.DatabaseManager) *Manager {
+	return &Manager{dbManager: dbManager}
 }
 
 func (nm *Manager) CreateNotification(newNotification *Notification) {
 	createdAt := time.Now()
-	_, err := nm.db.Exec(`INSERT INTO notifications (severity, category, text, read, created_at) VALUES (?, ?, ?, ?, ?)`, newNotification.Severity, newNotification.Category, newNotification.Text, false, createdAt)
+	_, err := nm.dbManager.Conn.Exec(`INSERT INTO notifications (severity, category, text, read, created_at) VALUES (?, ?, ?, ?, ?)`, newNotification.Severity, newNotification.Category, newNotification.Text, false, createdAt)
 	if err != nil {
 		logger.Warning("Unable to create new notification, error: %v", err)
 	}
@@ -58,7 +59,7 @@ func (nm *Manager) CreateNotification(newNotification *Notification) {
 }
 
 func (nm *Manager) ReadNotifications() ([]Notification, error) {
-	rows, err := nm.db.Query(`SELECT id, severity, category, text, read, created_at FROM notifications WHERE read = 0`)
+	rows, err := nm.dbManager.Conn.Query(`SELECT id, severity, category, text, read, created_at FROM notifications WHERE read = 0`)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func (nm *Manager) MarkNotificationsAsRead(notificationIDs []int) error {
 	query := fmt.Sprintf(`UPDATE notifications SET read = true WHERE id IN (%s)`,
 		strings.Join(placeholders, ","))
 
-	_, err := nm.db.Exec(query, args...)
+	_, err := nm.dbManager.Conn.Exec(query, args...)
 	if err != nil {
 		return err
 	}

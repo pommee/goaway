@@ -3,15 +3,17 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	_ "modernc.org/sqlite"
 )
 
-type Session struct {
-	Con *sql.DB
+type DatabaseManager struct {
+	Conn  *sql.DB
+	Mutex sync.Mutex
 }
 
-func Initialize() (*Session, error) {
+func Initialize() (*DatabaseManager, error) {
 	db, err := sql.Open("sqlite", "database.db")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -67,7 +69,7 @@ func Initialize() (*Session, error) {
 		return nil, fmt.Errorf("failed to create prefetch table: %w", err)
 	}
 
-	return &Session{Con: db}, nil
+	return &DatabaseManager{Conn: db, Mutex: sync.Mutex{}}, nil
 }
 
 func NewBlacklistTable(db *sql.DB) error {

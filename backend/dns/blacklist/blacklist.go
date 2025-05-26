@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"goaway/backend/dns/database"
 	"goaway/backend/logging"
 	"io"
 	"net/http"
@@ -18,7 +19,7 @@ import (
 var log = logging.GetLogger()
 
 type Blacklist struct {
-	DB             *sql.DB
+	DBManager      *database.DatabaseManager
 	BlocklistURL   map[string]string
 	BlacklistCache map[string]bool
 }
@@ -30,9 +31,9 @@ type SourceStats struct {
 	Active       bool   `json:"active"`
 }
 
-func Initialize(db *sql.DB) (*Blacklist, error) {
+func Initialize(dbManager *database.DatabaseManager) (*Blacklist, error) {
 	b := &Blacklist{
-		DB: db,
+		DBManager: dbManager,
 		BlocklistURL: map[string]string{
 			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
 		},
@@ -72,14 +73,16 @@ func (b *Blacklist) initializeBlockedDomains() error {
 }
 
 func (b *Blacklist) Vacuum() {
-	_, err := b.DB.Exec("VACUUM")
+	b.DBManager.Mutex.Lock()
+	_, err := b.DBManager.Conn.Exec("VACUUM")
+	b.DBManager.Mutex.Unlock()
 	if err != nil {
 		log.Warning("Error while vacuuming database: %v", err)
 	}
 }
 
 func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
-	rows, err := b.DB.Query(`SELECT name, url FROM sources WHERE name != 'Custom'`)
+	rows, err := b.DBManager.Conn.Query(`SELECT name, url FROM sources WHERE name != 'Custom'`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sources: %w", err)
 	}
@@ -197,7 +200,7 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 }
 
 func (b *Blacklist) AddDomain(domain string) error {
-	result, err := b.DB.Exec(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`, domain)
+	result, err := b.DBManager.Conn.Exec(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`, domain)
 	if err != nil {
 		return fmt.Errorf("failed to add domain to blacklist: %w", err)
 	}
@@ -211,7 +214,7 @@ func (b *Blacklist) AddDomain(domain string) error {
 }
 
 func (b *Blacklist) AddDomains(domains []string, url string) error {
-	tx, err := b.DB.Begin()
+	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
@@ -246,7 +249,7 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 func (b *Blacklist) PopulateBlocklistCache() error {
 	b.BlacklistCache = map[string]bool{}
 
-	rows, err := b.DB.Query("SELECT domain FROM blacklist")
+	rows, err := b.DBManager.Conn.Query("SELECT domain FROM blacklist")
 	if err != nil {
 		return fmt.Errorf("failed to query blacklist: %w", err)
 	}
@@ -268,7 +271,7 @@ func (b *Blacklist) PopulateBlocklistCache() error {
 
 func (b *Blacklist) CountDomains() (int, error) {
 	var count int
-	err := b.DB.QueryRow(`SELECT COUNT(*) FROM blacklist`).Scan(&count)
+	err := b.DBManager.Conn.QueryRow(`SELECT COUNT(*) FROM blacklist`).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count domains: %w", err)
 	}
@@ -276,7 +279,7 @@ func (b *Blacklist) CountDomains() (int, error) {
 }
 
 func (b *Blacklist) GetAllowedAndBlocked() (allowed, blocked int, err error) {
-	rows, err := b.DB.Query(`SELECT blocked, COUNT(*) FROM request_log GROUP BY blocked`)
+	rows, err := b.DBManager.Conn.Query(`SELECT blocked, COUNT(*) FROM request_log GROUP BY blocked`)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to query request_log: %w", err)
 	}
@@ -305,7 +308,7 @@ func (b *Blacklist) GetAllowedAndBlocked() (allowed, blocked int, err error) {
 }
 
 func (b *Blacklist) RemoveDomain(domain string) error {
-	result, err := b.DB.Exec(`DELETE FROM blacklist WHERE domain = ?`, domain)
+	result, err := b.DBManager.Conn.Exec(`DELETE FROM blacklist WHERE domain = ?`, domain)
 	if err != nil {
 		return fmt.Errorf("failed to remove domain from blacklist: %w", err)
 	}
@@ -333,7 +336,7 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 	searchPattern := "%" + search + "%"
 	offset := (page - 1) * pageSize
 
-	rows, err := b.DB.Query(query, searchPattern, pageSize, offset)
+	rows, err := b.DBManager.Conn.Query(query, searchPattern, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query blacklist: %w", err)
 	}
@@ -352,7 +355,7 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 
 	countQuery := `SELECT COUNT(*) FROM blacklist WHERE domain LIKE ?`
 	var total int
-	err = b.DB.QueryRow(countQuery, searchPattern).Scan(&total)
+	err = b.DBManager.Conn.QueryRow(countQuery, searchPattern).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count domains: %w", err)
 	}
@@ -361,7 +364,7 @@ func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([
 }
 
 func (b *Blacklist) InitializeBlocklist(name, url string) error {
-	tx, err := b.DB.Begin()
+	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
@@ -379,7 +382,7 @@ func (b *Blacklist) InitializeBlocklist(name, url string) error {
 }
 
 func (b *Blacklist) AddCustomDomains(domains []string) error {
-	tx, err := b.DB.Begin()
+	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
@@ -426,7 +429,7 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 }
 
 func (b *Blacklist) RemoveCustomDomain(domain string) error {
-	tx, err := b.DB.Begin()
+	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
@@ -482,7 +485,7 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 		GROUP BY s.name, s.lastUpdated, s.active
 	`
 
-	rows, err := b.DB.Query(query)
+	rows, err := b.DBManager.Conn.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query source statistics: %w", err)
 	}
@@ -519,7 +522,7 @@ func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 		JOIN sources ON blacklist.source_id = sources.id
 		WHERE sources.name = ?
 	`
-	rows, err := b.DB.Query(query, list)
+	rows, err := b.DBManager.Conn.Query(query, list)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query domains for list: %w", err)
 	}
@@ -542,7 +545,7 @@ func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 func (b *Blacklist) ToggleBlocklistStatus(name string) error {
 	query := `UPDATE sources SET active = NOT active WHERE name = ?`
 
-	_, err := b.DB.Exec(query, name)
+	_, err := b.DBManager.Conn.Exec(query, name)
 	if err != nil {
 		return fmt.Errorf("failed to toggle status for %s: %w", name, err)
 	}
@@ -551,7 +554,7 @@ func (b *Blacklist) ToggleBlocklistStatus(name string) error {
 }
 
 func (b *Blacklist) RemoveSourceAndDomains(source string) error {
-	tx, err := b.DB.Begin()
+	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
