@@ -1,3 +1,11 @@
+## [0.49.2](https://github.com/pommee/goaway/compare/v0.49.1...v0.49.2) (2025-05-26)
+
+
+### Bug Fixes
+
+* **deps:** bump client dependencies ([c347f8b](https://github.com/pommee/goaway/commit/c347f8b9c1b16612b84d05b90f07af4aba07c779))
+* new db manager and tweaks to log saving process ([6f3cc6d](https://github.com/pommee/goaway/commit/6f3cc6d25ef468d4115cf2e69a52b40c6184ceab))
+
 ## [0.49.1](https://github.com/pommee/goaway/compare/v0.49.0...v0.49.1) (2025-05-25)
 
 
