@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dns_server_ip=${GOAWAY_IP}
+dns_server_ip=${GOAWAY_IP:-localhost}
 dns_server_port=${GOAWAY_PORT:-53}
 DOMAIN="example.com"
 EXPECTED_RESPONSE="127.0.0.1"
