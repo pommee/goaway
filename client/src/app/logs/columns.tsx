@@ -49,22 +49,16 @@ export const columns: ColumnDef<Queries>[] = [
     cell: ({ row }) => {
       try {
         const timestamp = row.original.timestamp;
-        const date = new Date(timestamp);
+        const date = new Date(timestamp).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        });
 
-        if (isNaN(date.getTime())) {
-          return <div>{timestamp}</div>;
-        }
-
-        const formattedDate = `${date.getFullYear()}/${String(
-          date.getMonth() + 1
-        ).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(
-          date.getHours()
-        ).padStart(2, "0")}:${String(date.getMinutes()).padStart(
-          2,
-          "0"
-        )}:${String(date.getSeconds()).padStart(2, "0")}`;
-
-        return <div>{formattedDate}</div>;
+        return <div className="text-muted-foreground">{date}</div>;
       } catch {
         return <div>{row.original.timestamp}</div>;
       }
@@ -103,11 +97,14 @@ export const columns: ColumnDef<Queries>[] = [
       const wasOK =
         query.blocked === false
           ? query.cached
-            ? `cache (forwarded) ${query.status}`
-            : `ok (forwarded) ${query.status}`
-          : `blacklisted ${query.status}`;
-      const responseTimeMS = (query.responseTimeNS / 1_000_000).toFixed(3);
-      const rowText = ` ${wasOK} ${responseTimeMS}ms`;
+            ? `cache (forwarded)`
+            : `ok (forwarded)`
+          : `blacklisted`;
+      const ns = query.responseTimeNS;
+      const ms = ns / 1_000_000;
+      const rowText =
+        ms < 10 ? `${Math.round(ns / 1_000)}µs` : `${ms.toFixed(2)}ms`;
+
       return (
         <div className="flex">
           {query.blocked === false ? (
@@ -119,7 +116,12 @@ export const columns: ColumnDef<Queries>[] = [
           ) : (
             <ShieldSlash size={14} color="red" className="mt-1 mr-1" />
           )}
-          {rowText}
+          <div className="border-1 px-1 border-stone-800 rounded-sm mr-1">
+            {wasOK}
+          </div>
+          <div>
+            {query.status} {rowText}
+          </div>
         </div>
       );
     }

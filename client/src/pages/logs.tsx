@@ -400,7 +400,7 @@ export function Logs() {
                               )}
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent className="bg-stone-800 border-1 border-stone-700 text-white p-3">
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
@@ -440,11 +440,11 @@ export function Logs() {
                 setPageIndex(0);
               }}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger className="h-8 fit-content">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[5, 10, 20, 30, 50].map((size) => (
+                {[5, 10, 20, 30, 50, 100, 250].map((size) => (
                   <SelectItem key={size} value={`${size}`}>
                     {size}
                   </SelectItem>
