@@ -1,21 +1,47 @@
-import { ClientEntry } from "@/pages/clients";
-import { Info } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GetRequest } from "@/util";
+import { useEffect, useRef, useState } from "react";
+import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import { CardDetails } from "./details";
 
-interface DNSServerVisualizerProps {
-  clients: ClientEntry[];
+interface ClientEntry {
+  ip: string;
+  lastSeen: string;
+  mac: string;
+  name: string;
+  vendor: string;
+}
+
+interface NetworkNode {
+  id: string;
+  name: string;
+  type: "server" | "client";
+  ip?: string;
+  lastSeen?: string;
+  mac?: string;
+  vendor?: string;
+  color?: string;
+  size?: number;
+}
+
+interface NetworkLink {
+  source: string;
+  target: string;
+  color?: string;
+  width?: number;
+}
+
+interface NetworkData {
+  nodes: NetworkNode[];
+  links: NetworkLink[];
 }
 
 interface Pulse {
-  id: number;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
+  id: string;
+  sourceId: string;
+  targetId: string;
   progress: number;
-  type: "request" | "response";
-  clientName: string;
+  color: string;
+  type: "client" | "dns" | "upstream";
 }
 
 interface CommunicationEvent {
@@ -39,72 +65,77 @@ function timeAgo(timestamp: string) {
     : `${minutes}m ${seconds}s ago`;
 }
 
-export function DNSServerVisualizer({ clients }: DNSServerVisualizerProps) {
-  const [pulses, setPulses] = useState<Pulse[]>([]);
-  const [stats, setStats] = useState({ requests: 0, responses: 0 });
-  const pulseIdRef = useRef(0);
-  const [wsConnected, setWsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
+export default function DNSServerVisualizer() {
+  const [clients, setClients] = useState<ClientEntry[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientEntry | null>(
     null
   );
-  const [windowWidth] = useState(window.innerWidth - 400);
-  const [windowHeight] = useState(window.innerHeight - 300);
+  const [selectedPosition, setSelectedPosition] = useState({ x: 0, y: 0 });
+  const [networkData, setNetworkData] = useState<NetworkData>({
+    nodes: [],
+    links: []
+  });
+  const [pulses, setPulses] = useState<Pulse[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions] = useState({
+    width: window.innerWidth - 300,
+    height: window.innerHeight - 300
+  });
+  const fgRef = useRef<ForceGraphMethods | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const centerX = windowWidth / 2;
-  const centerY = windowHeight / 2;
-  const radius = 140;
+  const createPulse = (
+    sourceId: string,
+    targetId: string,
+    type: "client" | "dns" | "upstream"
+  ) => {
+    const colors = {
+      client: "#22c55e",
+      dns: "#3b82f6",
+      upstream: "#f59e0b"
+    };
 
-  const serverPos = useMemo(
-    () => ({ x: centerX, y: centerY }),
-    [centerX, centerY]
-  );
-  const upstreamPos = useMemo(
-    () => ({ x: centerX - 80, y: centerY - 200 }),
-    [centerX, centerY]
-  );
+    const newPulse: Pulse = {
+      id: `${sourceId}-${targetId}-${Date.now()}-${Math.random()}`,
+      sourceId,
+      targetId,
+      progress: 0,
+      color: colors[type],
+      type
+    };
 
-  const clientsWithPositions = useMemo(() => {
-    return clients.map((client, index) => {
-      const angle = (index * 360) / clients.length - 90;
-      const angleRad = (angle * Math.PI) / 180;
-      return {
-        ...client,
-        x: serverPos.x + radius * Math.cos(angleRad),
-        y: serverPos.y + radius * Math.sin(angleRad)
-      };
-    });
-  }, [clients, serverPos, radius]);
+    setPulses((prev) => [...prev, newPulse]);
+  };
 
-  const createPulse = useCallback(
-    (
-      startX: number,
-      startY: number,
-      endX: number,
-      endY: number,
-      type: "request" | "response",
-      clientName: string
-    ) => {
-      const newPulse: Pulse = {
-        id: pulseIdRef.current++,
-        startX: startX,
-        startY: startY,
-        endX: endX,
-        endY: endY,
-        progress: 0,
-        type: type,
-        clientName: clientName
-      };
+  useEffect(() => {
+    if (fgRef.current) {
+      fgRef.current.d3Force("charge")?.strength(-20);
+      fgRef.current.d3Force("link")?.distance(80);
+    }
+  }, [networkData]);
 
-      setPulses((prev) => [...prev, newPulse]);
-      setStats((prev) => ({
-        ...prev,
-        [type === "request" ? "requests" : "responses"]:
-          prev[type === "request" ? "requests" : "responses"] + 1
-      }));
-    },
-    []
-  );
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setError(null);
+        const [code, response] = await GetRequest("clients");
+
+        if (code !== 200) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        setClients(response.clients);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch clients"
+        );
+        console.error("Error fetching clients:", err);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -112,74 +143,30 @@ export function DNSServerVisualizer({ clients }: DNSServerVisualizerProps) {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    ws.onopen = () => setWsConnected(true);
-    ws.onerror = () => setWsConnected(false);
-    ws.onclose = () => setWsConnected(false);
-
     ws.onmessage = (event) => {
       try {
         const communicationEvent: CommunicationEvent = JSON.parse(event.data);
-        const matchingClient = clientsWithPositions.find(
-          (client) => client.ip === communicationEvent.ip
-        );
 
         if (communicationEvent.client) {
-          if (matchingClient) {
-            createPulse(
-              matchingClient.x,
-              matchingClient.y,
-              serverPos.x,
-              serverPos.y,
-              "request",
-              matchingClient.name || matchingClient.ip
-            );
-          }
+          createPulse(communicationEvent.ip, "dns-server", "client");
         }
 
         if (communicationEvent.dns && communicationEvent.ip !== "") {
-          createPulse(
-            serverPos.x,
-            serverPos.y,
-            matchingClient.x,
-            matchingClient.y,
-            "response",
-            "DNS Server"
-          );
+          createPulse("dns-server", communicationEvent.ip, "dns");
         } else if (communicationEvent.dns) {
-          createPulse(
-            serverPos.x,
-            serverPos.y,
-            upstreamPos.x,
-            upstreamPos.y,
-            "request",
-            "DNS Server"
-          );
+          createPulse("dns-server", "upstream", "dns");
         }
 
         if (communicationEvent.upstream) {
-          createPulse(
-            upstreamPos.x,
-            upstreamPos.y,
-            serverPos.x,
-            serverPos.y,
-            "response",
-            "Upstream"
-          );
+          createPulse("upstream", "dns-server", "upstream");
 
-          const matchingClient = clientsWithPositions.find(
+          const matchingClient = clients.find(
             (client) => client.ip === communicationEvent.ip
           );
 
           if (matchingClient) {
             setTimeout(() => {
-              createPulse(
-                serverPos.x,
-                serverPos.y,
-                matchingClient.x,
-                matchingClient.y,
-                "response",
-                "DNS Server"
-              );
+              createPulse("dns-server", communicationEvent.ip, "dns");
             }, 300);
           }
         }
@@ -192,13 +179,13 @@ export function DNSServerVisualizer({ clients }: DNSServerVisualizerProps) {
       if (ws.readyState === WebSocket.OPEN) ws.close();
       wsRef.current = null;
     };
-  }, [clientsWithPositions, createPulse, serverPos, upstreamPos]);
+  }, [clients]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setPulses((prev) => {
         return prev
-          .map((pulse) => ({ ...pulse, progress: pulse.progress + 1 / 25 }))
+          .map((pulse) => ({ ...pulse, progress: pulse.progress + 1 / 12 }))
           .filter((pulse) => pulse.progress < 1);
       });
     }, 16);
@@ -206,253 +193,216 @@ export function DNSServerVisualizer({ clients }: DNSServerVisualizerProps) {
     return () => clearInterval(interval);
   }, []);
 
-  return (
-    <div className="flex flex-col ">
-      <div className="p-4">
-        <h1 className="text-xl font-bold text-white">
-          DNS Server Communication Monitor
-        </h1>
-        <p className="text-muted-foreground mb-2">
-          Visualizes live traffic between GoAway, upstream server and clients
-        </p>
-        <div className="flex gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                wsConnected ? "bg-green-400 animate-pulse" : "bg-red-400"
-              }`}
-            ></div>
-            <span className={wsConnected ? "text-green-400" : "text-red-400"}>
-              WebSocket: {wsConnected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-            <span className="text-blue-400">Requests: {stats.requests}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-green-400">Responses: {stats.responses}</span>
+  useEffect(() => {
+    if (clients.length === 0) return;
+
+    const nodes: NetworkNode[] = [
+      {
+        id: "dns-server",
+        name: "DNS Server",
+        type: "server",
+        color: "#3b82f6",
+        size: 8
+      },
+      {
+        id: "upstream",
+        name: "Upstream",
+        type: "server",
+        color: "#008000",
+        size: 8
+      }
+    ];
+
+    const links: NetworkLink[] = [];
+
+    links.push({
+      source: "upstream",
+      target: "dns-server",
+      color: "#313131",
+      width: 1
+    });
+
+    clients.forEach((client) => {
+      const nodeColor = "#ef4444";
+      const linkColor = "#313131";
+
+      nodes.push({
+        id: client.ip,
+        name: client.name || client.ip,
+        type: "client",
+        ip: client.ip,
+        lastSeen: client.lastSeen,
+        mac: client.mac,
+        vendor: client.vendor,
+        color: nodeColor,
+        size: 5
+      });
+
+      links.push({
+        source: client.ip,
+        target: "dns-server",
+        color: linkColor,
+        width: 1
+      });
+    });
+
+    setNetworkData({ nodes, links });
+  }, [clients]);
+
+  const handleNodeClick = (node: NetworkNode, event: MouseEvent) => {
+    if (node.type === "client") {
+      const client = clients.find((c) => c.ip === node.id);
+      if (client) {
+        setSelectedClient(client);
+        setSelectedPosition({ x: event.clientX, y: event.clientY });
+      }
+    }
+  };
+
+  const renderCustomLink = (
+    link: NetworkLink & {
+      source: NetworkNode & { x: number; y: number };
+      target: NetworkNode & { x: number; y: number };
+    },
+    ctx: CanvasRenderingContext2D
+  ) => {
+    const { source, target } = link;
+
+    ctx.strokeStyle = link.color || "#313131";
+    ctx.lineWidth = link.width || 0.5;
+    ctx.beginPath();
+    ctx.moveTo(source.x, source.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+
+    const linkPulses = pulses.filter(
+      (pulse) =>
+        (pulse.sourceId === source.id && pulse.targetId === target.id) ||
+        (pulse.sourceId === target.id && pulse.targetId === source.id)
+    );
+
+    linkPulses.forEach((pulse) => {
+      const isReverse =
+        pulse.sourceId === target.id && pulse.targetId === source.id;
+      const progress = isReverse ? 1 - pulse.progress : pulse.progress;
+
+      const x1 = source.x + (target.x - source.x) * (progress - 0.1);
+      const y1 = source.y + (target.y - source.y) * (progress - 0.1);
+      const x2 = source.x + (target.x - source.x) * (progress + 0.1);
+      const y2 = source.y + (target.y - source.y) * (progress + 0.1);
+
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+      grad.addColorStop(0, pulse.color + "00");
+      grad.addColorStop(0.5, pulse.color);
+      grad.addColorStop(1, pulse.color + "00");
+
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    });
+  };
+
+  if (error) {
+    return (
+      <div className="p-4 min-h-screen text-white">
+        <div className="text-center">
+          <h1 className="text-xl font-bold mb-4">DNS Server Network Map</h1>
+          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 max-w-md mx-auto">
+            <p className="text-red-400 mb-2">Failed to connect to API:</p>
+            <p className="text-sm text-gray-300">{error}</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Could not load network map!
+            </p>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="w-full flex-1 flex items-center justify-center p-4">
-        <div className="rounded-2xl border border-white/10 p-4 shadow-2xl">
-          <p className="text-sm text-muted-foreground flex">
-            <Info className="mr-2 mt-0.5 text-blue-400" />
-            Click client nodes to show more information
-          </p>
-          <svg width={windowWidth} height={windowHeight} className="block">
-            <defs>
-              {/* Request pulse gradients */}
-              {pulses
-                .filter((pulse) => pulse.type === "request")
-                .map((pulse) => {
-                  const gradientId = `request-gradient-${pulse.id}`;
-                  const offset = pulse.progress * 100;
+  return (
+    <div className="text-white">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold">DNS Server Network Map</h1>
+        <p className="text-sm text-muted-foreground">
+          Live visualization of connected clients
+        </p>
+      </div>
 
-                  return (
-                    <linearGradient
-                      key={gradientId}
-                      id={gradientId}
-                      x1={pulse.startX}
-                      y1={pulse.startY}
-                      x2={pulse.endX}
-                      y2={pulse.endY}
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop
-                        offset={`${Math.max(0, offset - 15)}%`}
-                        stopColor="rgba(128, 128, 128, 0.2)"
-                      />
-                      <stop
-                        offset={`${Math.max(0, offset - 8)}%`}
-                        stopColor="rgba(59, 130, 246, 0.8)"
-                      />
-                      <stop
-                        offset={`${offset}%`}
-                        stopColor="rgba(59, 130, 246, 1)"
-                      />
-                      <stop
-                        offset={`${Math.min(100, offset + 8)}%`}
-                        stopColor="rgba(59, 130, 246, 0.8)"
-                      />
-                      <stop
-                        offset={`${Math.min(100, offset + 15)}%`}
-                        stopColor="rgba(128, 128, 128, 0.2)"
-                      />
-                    </linearGradient>
-                  );
-                })}
-
-              {/* Response pulse gradients */}
-              {pulses
-                .filter((pulse) => pulse.type === "response")
-                .map((pulse) => {
-                  const gradientId = `response-gradient-${pulse.id}`;
-                  const offset = pulse.progress * 100;
-
-                  return (
-                    <linearGradient
-                      key={gradientId}
-                      id={gradientId}
-                      x1={pulse.startX}
-                      y1={pulse.startY}
-                      x2={pulse.endX}
-                      y2={pulse.endY}
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop
-                        offset={`${Math.max(0, offset - 15)}%`}
-                        stopColor="rgba(128, 128, 128, 0.2)"
-                      />
-                      <stop
-                        offset={`${Math.max(0, offset - 8)}%`}
-                        stopColor="rgba(34, 197, 94, 0.8)"
-                      />
-                      <stop
-                        offset={`${offset}%`}
-                        stopColor="rgba(34, 197, 94, 1)"
-                      />
-                      <stop
-                        offset={`${Math.min(100, offset + 8)}%`}
-                        stopColor="rgba(34, 197, 94, 0.8)"
-                      />
-                      <stop
-                        offset={`${Math.min(100, offset + 15)}%`}
-                        stopColor="rgba(128, 128, 128, 0.2)"
-                      />
-                    </linearGradient>
-                  );
-                })}
-            </defs>
-
-            {/* Static connection lines */}
-            {clientsWithPositions.map((client, index) => (
-              <line
-                key={`static-${client.ip}-${index}`}
-                x1={client.x}
-                y1={client.y}
-                x2={serverPos.x}
-                y2={serverPos.y}
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="1"
-                strokeDasharray="4,2"
-              />
-            ))}
-
-            {/* Server to upstream line */}
-            <line
-              x1={serverPos.x}
-              y1={serverPos.y}
-              x2={upstreamPos.x}
-              y2={upstreamPos.y}
-              stroke="rgba(255,255,255,0.3)"
-              strokeWidth="2"
-              strokeDasharray="6,3"
-            />
-
-            {/* Animated pulse lines */}
-            {pulses.map((pulse) => {
-              const gradientId = `${pulse.type}-gradient-${pulse.id}`;
-              return (
-                <line
-                  key={`pulse-${pulse.id}`}
-                  x1={pulse.startX}
-                  y1={pulse.startY}
-                  x2={pulse.endX}
-                  y2={pulse.endY}
-                  stroke={`url(#${gradientId})`}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-
-            {/* Client nodes */}
-            {clientsWithPositions.map((client, index) => {
-              const bubbleRadius =
-                clients.length > 20 ? 18 : clients.length > 10 ? 22 : 25;
-              const fontSize = clients.length > 20 ? "10px" : "12px";
-
-              return (
-                <g key={`${client.ip}-${index}`}>
-                  <circle
-                    onClick={() => setSelectedClient(client)}
-                    cx={client.x}
-                    cy={client.y}
-                    r={bubbleRadius}
-                    fill="rgba(59, 130, 246, 0.9)"
-                    className="cursor-pointer hover:fill-opacity-100 transition-all"
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth="1"
-                  />
-                  <text
-                    onClick={() => setSelectedClient(client)}
-                    x={client.x}
-                    y={client.y + 2}
-                    textAnchor="middle"
-                    className="fill-white font-medium cursor-pointer pointer-events-none"
-                    style={{ fontSize }}
-                  >
-                    {client.name
-                      ? client.name.substring(0, clients.length > 20 ? 4 : 6)
-                      : client.ip.split(".").pop()}
-                  </text>
-                  {clients.length <= 15 && (
-                    <text
-                      onClick={() => setSelectedClient(client)}
-                      x={client.x}
-                      y={client.y + bubbleRadius + 12}
-                      textAnchor="middle"
-                      className="fill-white/70 cursor-pointer pointer-events-none"
-                      style={{ fontSize: "10px" }}
-                    >
-                      {client.ip}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-
-            {/* DNS Server */}
-            <g>
-              <circle
-                cx={serverPos.x}
-                cy={serverPos.y}
-                r="35"
-                fill="rgba(249, 115, 22, 0.9)"
-              />
-              <text
-                x={serverPos.x}
-                y={serverPos.y + 3}
-                textAnchor="middle"
-                className="fill-white text-sm font-bold"
-              >
-                GoAway
-              </text>
-            </g>
-
-            {/* Upstream */}
-            <g>
-              <circle
-                cx={upstreamPos.x}
-                cy={upstreamPos.y}
-                r="35"
-                fill="rgba(0, 180, 0, 0.8)"
-              />
-              <text
-                x={upstreamPos.x}
-                y={upstreamPos.y + 3}
-                textAnchor="middle"
-                className="fill-white text-sm font-bold"
-              >
-                Upstream
-              </text>
-            </g>
-          </svg>
+      <div
+        ref={containerRef}
+        className="rounded-xl border border-stone-800 bg-stone-950 shadow-md px-2"
+      >
+        <div className="grid grid-cols-3 gap-2 text-sm mt-2">
+          {[
+            { label: "client", plural: "clients", value: clients.length },
+            { label: "node", plural: "nodes", value: networkData.nodes.length },
+            { label: "link", plural: "links", value: networkData.links.length }
+          ].map(({ label, plural, value }) => (
+            <div
+              key={label}
+              className="rounded-lg bg-stone-900/80 border border-stone-800 py-0.5 text-center shadow-sm"
+            >
+              <p className="text-sm font-medium text-white">{value}</p>
+              <p className="text-xs text-muted-foreground">
+                {value === 1 ? label : plural}
+              </p>
+            </div>
+          ))}
         </div>
+
+        <p className="flex mt-4 ml-1 text-muted-foreground text-sm">
+          Client nodes can be clicked for more information.
+        </p>
+        <p className="flex ml-1 text-muted-foreground text-sm">
+          Nodes can be dragged around.
+        </p>
+
+        {networkData.nodes.length > 0 && (
+          <div className="rounded-md cursor-move">
+            <ForceGraph2D
+              ref={fgRef}
+              graphData={networkData}
+              width={dimensions.width}
+              height={dimensions.height}
+              nodeColor={(node: NetworkNode) => node.color || "#ffffff"}
+              nodeVal={(node: NetworkNode) => node.size || 1}
+              nodeLabel={(node: NetworkNode) => node.ip || ""}
+              linkColor={(link: NetworkLink) => link.color || "#313131"}
+              linkWidth={(link: NetworkLink) => link.width || 1}
+              onNodeClick={handleNodeClick}
+              nodeCanvasObjectMode={() => "after"}
+              nodeCanvasObject={(
+                node: NetworkNode & { x: number; y: number },
+                ctx,
+                globalScale
+              ) => {
+                const label = node.name;
+                const fontSize = 12 / globalScale;
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "white";
+                ctx.fillText(
+                  label,
+                  node.x,
+                  node.y + 2 + ((node.size || 5) + fontSize)
+                );
+              }}
+              linkCanvasObjectMode={() => "replace"}
+              linkCanvasObject={renderCustomLink}
+              cooldownTicks={100}
+              d3AlphaDecay={0.0228}
+              d3VelocityDecay={0.4}
+            />
+          </div>
+        )}
+
+        <p className="text-right text-xs text-muted-foreground italic mb-2">
+          use mouse to move and zoom
+        </p>
       </div>
 
       {selectedClient && (
@@ -461,15 +411,13 @@ export function DNSServerVisualizer({ clients }: DNSServerVisualizerProps) {
           ip={selectedClient.ip}
           lastSeen={timeAgo(selectedClient.lastSeen)}
           mac={selectedClient.mac}
-          name={selectedClient.name || ""}
+          name={selectedClient.name}
           vendor={selectedClient.vendor}
-          x={0}
-          y={0}
+          x={selectedPosition.x}
+          y={selectedPosition.y}
           onClose={() => setSelectedClient(null)}
         />
       )}
     </div>
   );
 }
-
-export default DNSServerVisualizer;

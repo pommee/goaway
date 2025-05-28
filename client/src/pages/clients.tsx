@@ -65,7 +65,9 @@ export function Clients() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse text-gray-500">Loading clients...</div>
+        <div className="animate-pulse text-gray-500">
+          Loading network map...
+        </div>
       </div>
     );
   }
