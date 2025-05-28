@@ -1,3 +1,10 @@
+## [0.49.3](https://github.com/pommee/goaway/compare/v0.49.2...v0.49.3) (2025-05-28)
+
+
+### Bug Fixes
+
+* fully working network map in clients page ([b0ccc83](https://github.com/pommee/goaway/commit/b0ccc8331f788b50b1606bc33a9754d277762cca))
+
 ## [0.49.2](https://github.com/pommee/goaway/compare/v0.49.1...v0.49.2) (2025-05-26)
 
 
