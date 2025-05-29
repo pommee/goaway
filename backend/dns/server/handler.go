@@ -153,6 +153,11 @@ func isPrivateIP(ipStr string) bool {
 }
 
 func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry {
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = true
+	request.Msg.Rcode = dns.RcodeSuccess
+
 	ptr := &dns.PTR{
 		Hdr: dns.RR_Header{
 			Name:   request.Question.Name,
@@ -163,7 +168,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		Ptr: "localhost.lan.",
 	}
 
-	request.Msg.Answer = append(request.Msg.Answer, ptr)
+	request.Msg.Answer = []dns.RR{ptr}
 	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
@@ -181,6 +186,11 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 }
 
 func (s *DNSServer) respondWithHostname(request *Request, hostname string) model.RequestLogEntry {
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = true
+	request.Msg.Rcode = dns.RcodeSuccess
+
 	ptr := &dns.PTR{
 		Hdr: dns.RR_Header{
 			Name:   request.Question.Name,
@@ -191,7 +201,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Ptr: hostname + ".",
 	}
 
-	request.Msg.Answer = append(request.Msg.Answer, ptr)
+	request.Msg.Answer = []dns.RR{ptr}
 	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
@@ -211,7 +221,16 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEntry {
 	answers, _, status := s.QueryUpstream(request)
 	request.Msg.Answer = append(request.Msg.Answer, answers...)
-	request.Msg.Rcode = dns.RcodeNameError
+
+	if rcode, ok := dns.StringToRcode[status]; ok {
+		request.Msg.Rcode = rcode
+	} else {
+		request.Msg.Rcode = dns.RcodeServerFailure
+	}
+
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = true
 
 	var resolvedHostnames []string
 	for _, answer := range answers {
@@ -225,7 +244,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	return model.RequestLogEntry{
 		Domain:            request.Question.Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[request.Question.Qclass],
+		QueryType:         dns.TypeToString[request.Question.Qtype],
 		IP:                resolvedHostnames,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
@@ -239,6 +258,10 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 
 	resolved := make([]string, 0, len(answers))
 	req.Msg.Answer = answers
+
+	if req.Msg.RecursionDesired {
+		req.Msg.RecursionAvailable = true
+	}
 
 	for _, a := range answers {
 		switch rr := a.(type) {
@@ -256,6 +279,9 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	if len(answers) == 0 {
 		req.Msg.Rcode = dns.RcodeServerFailure
 	}
+
+	req.Msg.Response = true
+	req.Msg.Authoritative = false
 
 	_ = req.W.WriteMsg(req.Msg)
 
@@ -361,11 +387,22 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	go func() {
 		go s.WSCom(communicationMessage{false, true, false, ""})
 
-		in, _, err := s.dnsClient.Exchange(req.Msg, s.Config.DNS.PreferredUpstream)
+		upstreamMsg := &dns.Msg{}
+		upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
+		upstreamMsg.RecursionDesired = true
+		upstreamMsg.Id = dns.Id()
+
+		in, _, err := s.dnsClient.Exchange(upstreamMsg, s.Config.DNS.PreferredUpstream)
 		if err != nil {
 			errCh <- err
 			return
 		}
+
+		if in == nil {
+			errCh <- fmt.Errorf("nil response from upstream")
+			return
+		}
+
 		resultCh <- in
 	}()
 
@@ -390,8 +427,14 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 			ttl = in.Ns[0].Header().Ttl
 		}
 
-		req.Msg.Ns = append(req.Msg.Ns, in.Ns...)
-		req.Msg.Extra = append(req.Msg.Extra, in.Extra...)
+		if len(in.Ns) > 0 {
+			req.Msg.Ns = make([]dns.RR, len(in.Ns))
+			copy(req.Msg.Ns, in.Ns)
+		}
+		if len(in.Extra) > 0 {
+			req.Msg.Extra = make([]dns.RR, len(in.Extra))
+			copy(req.Msg.Extra, in.Extra)
+		}
 
 		return in.Answer, ttl, status
 
@@ -411,34 +454,83 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 }
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = true
 	request.Msg.Rcode = dns.RcodeSuccess
-	rr4 := &dns.A{
-		Hdr: dns.RR_Header{
-			Name:   request.Question.Name,
-			Rrtype: dns.TypeA,
-			Class:  dns.ClassINET,
-			Ttl:    uint32(s.Config.DNS.CacheTTL),
-		},
-		A: net.ParseIP("0.0.0.0"),
+
+	switch request.Question.Qtype {
+	case dns.TypeA:
+		rr4 := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(s.Config.DNS.CacheTTL),
+			},
+			A: net.ParseIP("0.0.0.0"),
+		}
+		request.Msg.Answer = []dns.RR{rr4}
+
+	case dns.TypeAAAA:
+		rr6 := &dns.AAAA{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(s.Config.DNS.CacheTTL),
+			},
+			AAAA: net.ParseIP("::"),
+		}
+		request.Msg.Answer = []dns.RR{rr6}
+
+	case dns.TypeANY:
+		rr4 := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(s.Config.DNS.CacheTTL),
+			},
+			A: net.ParseIP("0.0.0.0"),
+		}
+		rr6 := &dns.AAAA{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(s.Config.DNS.CacheTTL),
+			},
+			AAAA: net.ParseIP("::"),
+		}
+		request.Msg.Answer = []dns.RR{rr4, rr6}
+
+	default:
+		request.Msg.Rcode = dns.RcodeNameError
+		request.Msg.Answer = nil
 	}
 
-	rr6 := &dns.AAAA{
-		Hdr: dns.RR_Header{
-			Name:   request.Question.Name,
-			Rrtype: dns.TypeAAAA,
-			Class:  dns.ClassINET,
-			Ttl:    uint32(s.Config.DNS.CacheTTL),
-		},
-		AAAA: net.ParseIP("::"),
+	if len(request.Msg.Question) == 0 {
+		request.Msg.Question = []dns.Question{request.Question}
 	}
 
-	request.Msg.Answer = append(request.Msg.Answer, rr4, rr6)
 	_ = request.W.WriteMsg(request.Msg)
+
+	resolved := make([]string, 0, len(request.Msg.Answer))
+	for _, rr := range request.Msg.Answer {
+		switch record := rr.(type) {
+		case *dns.A:
+			resolved = append(resolved, record.A.String())
+		case *dns.AAAA:
+			resolved = append(resolved, record.AAAA.String())
+		}
+	}
 
 	return model.RequestLogEntry{
 		Domain:            request.Question.Name,
-		Status:            dns.RcodeToString[dns.RcodeSuccess],
+		Status:            dns.RcodeToString[request.Msg.Rcode],
 		QueryType:         dns.TypeToString[request.Question.Qtype],
+		IP:                resolved,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
 		ResponseTime:      time.Since(request.Sent),
