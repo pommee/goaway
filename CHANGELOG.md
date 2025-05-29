@@ -1,3 +1,10 @@
+## [0.49.6](https://github.com/pommee/goaway/compare/v0.49.5...v0.49.6) (2025-05-29)
+
+
+### Bug Fixes
+
+* shared pointer to config, fixes paused blocking ([a15acaa](https://github.com/pommee/goaway/commit/a15acaa9c456a72a71e349d6cd79f13cce4e9f1f))
+
 ## [0.49.5](https://github.com/pommee/goaway/compare/v0.49.4...v0.49.5) (2025-05-29)
 
 
