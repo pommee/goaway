@@ -23,9 +23,9 @@ import {
   Users
 } from "@phosphor-icons/react";
 import * as React from "react";
-import { ServerStatistics } from "./server-statistics";
 import { Separator } from "./ui/separator";
 import { TextAnimate } from "./ui/text-animate";
+import { ServerStatistics } from "./server-statistics";
 
 const data = {
   navMain: [

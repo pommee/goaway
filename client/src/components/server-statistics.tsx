@@ -8,12 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { GetRequest } from "@/util";
 import {
-  CaretLineUp,
-  Cpu,
-  Database,
-  Download,
-  Memory,
-  Thermometer
+  CaretLineUpIcon,
+  CpuIcon,
+  DatabaseIcon,
+  DownloadIcon,
+  HardDriveIcon,
+  ThermometerIcon
 } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import confetti from "canvas-confetti";
@@ -39,36 +39,6 @@ const getColor = (value: number, max: number) => {
   const hue = Math.max(0, 120 - (value / max) * 120);
   return `hsl(${hue}, 100%, 50%)`;
 };
-
-function MetricItem({
-  label,
-  value,
-  icon: Icon,
-  color,
-  isLoading = false
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  color: string;
-  isLoading?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between p-1 text-sm rounded-md">
-      <div className="flex items-center">
-        <Icon size={16} className="mr-3" />
-        <span>{label}</span>
-      </div>
-      {isLoading ? (
-        <div className="bg-gray-700 rounded w-10 h-4 animate-pulse"></div>
-      ) : (
-        <span className="font-mono font-medium" style={{ color }}>
-          {value}
-        </span>
-      )}
-    </div>
-  );
-}
 
 async function checkForUpdate() {
   try {
@@ -122,7 +92,6 @@ export function ServerStatistics() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateLogs, setUpdateLogs] = useState<string[]>([]);
   const [newVersion, setNewVersion] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (shouldCheckForUpdate()) {
@@ -143,7 +112,6 @@ export function ServerStatistics() {
       try {
         const [, data] = await GetRequest("server");
         setMetrics(data);
-        setIsLoading(false);
 
         const latestVersion = localStorage.getItem("latestVersion");
         const installedVersion = data.version;
@@ -198,64 +166,100 @@ export function ServerStatistics() {
     };
   }
 
-  const formatNumber = (num: number) => num.toFixed(1);
+  const formatNumber = (num: number | undefined) => {
+    if (num === undefined || num === null || isNaN(num)) {
+      return "0.0";
+    }
+    return num.toFixed(1);
+  };
+
+  const MetricBar = ({
+    label,
+    value,
+    max,
+    unit,
+    icon: Icon,
+    showIcon = true
+  }: {
+    label: string;
+    value: number | undefined;
+    max: number;
+    unit: string;
+    icon: React.ElementType;
+    showIcon?: boolean;
+  }) => {
+    const safeValue = value ?? 0;
+    const percentage = Math.min((safeValue / max) * 100, 100);
+    const color = getColor(safeValue, max);
+
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        {showIcon && <Icon size={12} className="text-gray-400 flex-shrink-0" />}
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-gray-300 truncate">{label}</span>
+            <span className="font-mono text-gray-100" style={{ color }}>
+              {formatNumber(value)}
+              {unit}
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-1">
+            <div
+              className="h-1 rounded-full transition-all duration-300"
+              style={{
+                width: `${percentage}%`,
+                backgroundColor: color
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
-      <div className="bg-gray-800 rounded-lg m-2 overflow-hidden shadow-lg">
-        <div className="border-b border-gray-700 px-4 py-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-400">
-            Server Status
-          </span>
-          {isLoading ? (
-            <div className="bg-gray-700 rounded-full h-4 w-12 animate-pulse"></div>
-          ) : (
-            <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300 font-mono">
+      <div className="bg-gray-800 rounded-lg mx-2 mt-4 overflow-hidden shadow-lg">
+        <div className="bg-gray-800 rounded-lg p-3 space-y-3 border border-gray-700">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-400">
+              Server Status
+            </span>
+            <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 font-mono">
               v{metrics?.version}
             </span>
-          )}
-        </div>
+          </div>
 
-        <div className="p-3 space-y-1">
-          <MetricItem
-            label="CPU"
-            value={
-              isLoading ? "0%" : `${formatNumber(metrics?.cpuUsage || 0)}%`
-            }
-            icon={Cpu}
-            color={getColor(metrics?.cpuUsage || 0, 100)}
-            isLoading={isLoading}
-          />
-
-          <MetricItem
-            label="CPU temp"
-            value={isLoading ? "0°" : `${formatNumber(metrics?.cpuTemp || 0)}°`}
-            icon={Thermometer}
-            color={getColor(metrics?.cpuTemp || 0, 80)}
-            isLoading={isLoading}
-          />
-
-          <MetricItem
-            label="Memory"
-            value={
-              isLoading
-                ? "0%"
-                : `${formatNumber(metrics?.usedMemPercentage || 0)}%`
-            }
-            icon={Memory}
-            color={getColor(metrics?.usedMemPercentage || 0, 100)}
-            isLoading={isLoading}
-          />
-
-          <MetricItem
-            label="DB Size"
-            value={
-              isLoading ? "0MB" : `${formatNumber(metrics?.dbSize || 0)}MB`
-            }
-            icon={Database}
-            color={getColor(metrics?.dbSize || 0, 200)}
-            isLoading={isLoading}
-          />
+          <div className="space-y-2">
+            <MetricBar
+              label="CPU"
+              value={metrics?.cpuUsage}
+              max={100}
+              unit="%"
+              icon={CpuIcon}
+            />
+            <MetricBar
+              label="Temp"
+              value={metrics?.cpuTemp}
+              max={80}
+              unit="°"
+              icon={ThermometerIcon}
+            />
+            <MetricBar
+              label="Memory"
+              value={metrics?.usedMemPercentage}
+              max={100}
+              unit="%"
+              icon={HardDriveIcon}
+            />
+            <MetricBar
+              label="DB"
+              value={metrics?.dbSize}
+              max={200}
+              unit="MB"
+              icon={DatabaseIcon}
+            />
+          </div>
         </div>
       </div>
 
@@ -289,7 +293,7 @@ export function ServerStatistics() {
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-400">
                   <div className="text-center">
-                    <CaretLineUp className="h-8 w-8 animate-pulse mx-auto mb-2" />
+                    <CaretLineUpIcon className="h-8 w-8 animate-pulse mx-auto mb-2" />
                     <p>Waiting for update to start...</p>
                   </div>
                 </div>
@@ -314,7 +318,7 @@ export function ServerStatistics() {
               onClick={startUpdate}
               className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
             >
-              <Download className="h-4 w-4" />
+              <DownloadIcon className="h-4 w-4" />
               Start Update
             </Button>
           </DialogFooter>
