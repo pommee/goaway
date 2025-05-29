@@ -1,3 +1,10 @@
+## [0.49.4](https://github.com/pommee/goaway/compare/v0.49.3...v0.49.4) (2025-05-29)
+
+
+### Bug Fixes
+
+* overall improvements to the query process ([3a29192](https://github.com/pommee/goaway/commit/3a2919293fe25b7c0ddf4f45004aca934d07c15c))
+
 ## [0.49.3](https://github.com/pommee/goaway/compare/v0.49.2...v0.49.3) (2025-05-28)
 
 
