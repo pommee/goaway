@@ -22,11 +22,11 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		return s.handlePTRQuery(request)
 	}
 
-	if s.Status.Paused && time.Since(s.Status.PausedAt).Seconds() >= float64(s.Status.PauseTime) {
-		s.Status.Paused = false
+	if s.Config.DNS.Status.Paused && time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
+		s.Config.DNS.Status.Paused = false
 	}
 
-	if !s.Status.Paused && s.Blacklist.IsBlacklisted(domainName) {
+	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) {
 		return s.handleBlacklisted(request)
 	}
 

@@ -15,7 +15,7 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config settings.Config, blockedDomains int, version string, disableAuth bool, ansi bool) {
+func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool, ansi bool) {
 	const versionSpace = 7
 
 	colorize := func(color, text string) string {

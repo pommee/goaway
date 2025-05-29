@@ -471,7 +471,8 @@ func (api *API) pauseBlocking(c *gin.Context) {
 		PauseTime: blockTime.Time,
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	log.Info("DNS blocking paused for %d seconds", blockTime.Time)
+	c.Status(http.StatusOK)
 }
 
 func (api *API) deleteResolution(c *gin.Context) {

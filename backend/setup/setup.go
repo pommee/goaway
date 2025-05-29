@@ -55,7 +55,7 @@ func GetVersionOrDefault(ver string) *semver.Version {
 	return versionObj
 }
 
-func InitializeSettings(flags *Flags) settings.Config {
+func InitializeSettings(flags *Flags) *settings.Config {
 	config, err := settings.LoadSettings()
 	if err != nil {
 		log.Error("Failed to load settings: %s", err)
@@ -65,5 +65,5 @@ func InitializeSettings(flags *Flags) settings.Config {
 	UpdateConfig(&config, flags)
 	config.Save()
 
-	return config
+	return &config
 }

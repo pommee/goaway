@@ -26,7 +26,7 @@ type MacVendor struct {
 }
 
 type DNSServer struct {
-	Config              settings.Config
+	Config              *settings.Config
 	Blacklist           *blacklist.Blacklist
 	DBManager           *database.DatabaseManager
 	logIntervalSeconds  int
@@ -39,7 +39,6 @@ type DNSServer struct {
 	WSCommunication     *websocket.Conn
 	WSCommunicationLock sync.Mutex
 	dnsClient           *dns.Client
-	Status              settings.Status
 	Notifications       *notification.Manager
 }
 
@@ -74,7 +73,7 @@ type communicationMessage struct {
 	Ip       string `json:"ip"`
 }
 
-func NewDNSServer(config settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
+func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
 	blacklistEntry, err := blacklist.Initialize(dbManager)
 	if err != nil {
 		log.Error("Failed to initialize blacklist")

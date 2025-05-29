@@ -47,7 +47,8 @@ func createRootCommand() *cobra.Command {
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			startServer(setup.InitializeSettings(&flags), flags.Ansi)
+			config := setup.InitializeSettings(&flags)
+			startServer(config, flags.Ansi)
 		},
 	}
 
@@ -64,7 +65,7 @@ func createRootCommand() *cobra.Command {
 	return cmd
 }
 
-func startServer(config settings.Config, ansi bool) {
+func startServer(config *settings.Config, ansi bool) {
 	if os.Getenv("GOAWAY_PROFILE") == "true" {
 		log.Warning("GOAWAY_PROFILE was set, starting profiler...")
 		go func() {
@@ -95,7 +96,7 @@ func startServer(config settings.Config, ansi bool) {
 	startServices(dnsServer, serverInstance, config)
 }
 
-func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config settings.Config) {
+func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config *settings.Config) {
 	var wg sync.WaitGroup
 	errorChannel := make(chan struct{}, 1)
 	sigChannel := make(chan os.Signal, 1)
@@ -117,7 +118,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 		defer wg.Done()
 		apiServer := api.API{
 			Authentication:           config.API.Authentication,
-			Config:                   &config,
+			Config:                   config,
 			DBManager:                dnsServer.DBManager,
 			Blacklist:                dnsServer.Blacklist,
 			WSQueries:                dnsServer.WSQueries,
