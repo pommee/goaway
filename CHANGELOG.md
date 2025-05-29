@@ -1,3 +1,10 @@
+## [0.49.5](https://github.com/pommee/goaway/compare/v0.49.4...v0.49.5) (2025-05-29)
+
+
+### Bug Fixes
+
+* correctly report used memory percentage ([bac6874](https://github.com/pommee/goaway/commit/bac687408bf5582dfe170a20694f34d9660e7003))
+
 ## [0.49.4](https://github.com/pommee/goaway/compare/v0.49.3...v0.49.4) (2025-05-29)
 
 
