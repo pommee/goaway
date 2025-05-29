@@ -152,7 +152,7 @@ func (api *API) handleServer(c *gin.Context) {
 		"portWebsite":       api.DNSPort,
 		"totalMem":          float64(vMem.Total) / 1024 / 1024 / 1024,
 		"usedMem":           float64(vMem.Used) / 1024 / 1024 / 1024,
-		"usedMemPercentage": float64(vMem.Free) / 1024 / 1024 / 1024,
+		"usedMemPercentage": float64(vMem.Used) / 1024 / 1024 / 1024,
 		"cpuUsage":          cpuUsage[0],
 		"cpuTemp":           temp,
 		"dbSize":            dbSize,
