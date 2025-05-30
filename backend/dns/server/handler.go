@@ -15,6 +15,15 @@ import (
 	"github.com/miekg/dns"
 )
 
+var (
+	blackholeIPv4 = net.ParseIP("0.0.0.0")
+	blackholeIPv6 = net.ParseIP("::")
+
+	resolvedIPv4 = []string{"0.0.0.0"}
+	resolvedIPv6 = []string{"::"}
+	resolvedBoth = []string{"0.0.0.0", "::"}
+)
+
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := strings.TrimRight(request.Question.Name, ".")
 
@@ -459,55 +468,74 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	request.Msg.RecursionAvailable = true
 	request.Msg.Rcode = dns.RcodeSuccess
 
+	var resolved []string
+	cacheTTL := uint32(s.Config.DNS.CacheTTL)
+
 	switch request.Question.Qtype {
 	case dns.TypeA:
-		rr4 := &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(s.Config.DNS.CacheTTL),
-			},
-			A: net.ParseIP("0.0.0.0"),
+		if len(request.Msg.Answer) == 1 {
+			if a, ok := request.Msg.Answer[0].(*dns.A); ok {
+				a.Hdr.Name = request.Question.Name
+				a.Hdr.Ttl = cacheTTL
+				a.A = blackholeIPv4
+			} else {
+				request.Msg.Answer[0] = &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   request.Question.Name,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    cacheTTL,
+					},
+					A: blackholeIPv4,
+				}
+			}
+		} else {
+			request.Msg.Answer = []dns.RR{&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   request.Question.Name,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    cacheTTL,
+				},
+				A: blackholeIPv4,
+			}}
 		}
-		request.Msg.Answer = []dns.RR{rr4}
+		resolved = resolvedIPv4
 
 	case dns.TypeAAAA:
-		rr6 := &dns.AAAA{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeAAAA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(s.Config.DNS.CacheTTL),
-			},
-			AAAA: net.ParseIP("::"),
+		if len(request.Msg.Answer) == 1 {
+			if aaaa, ok := request.Msg.Answer[0].(*dns.AAAA); ok {
+				aaaa.Hdr.Name = request.Question.Name
+				aaaa.Hdr.Ttl = cacheTTL
+				aaaa.AAAA = blackholeIPv6
+			} else {
+				request.Msg.Answer[0] = &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   request.Question.Name,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    cacheTTL,
+					},
+					AAAA: blackholeIPv6,
+				}
+			}
+		} else {
+			request.Msg.Answer = []dns.RR{&dns.AAAA{
+				Hdr: dns.RR_Header{
+					Name:   request.Question.Name,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    cacheTTL,
+				},
+				AAAA: blackholeIPv6,
+			}}
 		}
-		request.Msg.Answer = []dns.RR{rr6}
-
-	case dns.TypeANY:
-		rr4 := &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(s.Config.DNS.CacheTTL),
-			},
-			A: net.ParseIP("0.0.0.0"),
-		}
-		rr6 := &dns.AAAA{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeAAAA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(s.Config.DNS.CacheTTL),
-			},
-			AAAA: net.ParseIP("::"),
-		}
-		request.Msg.Answer = []dns.RR{rr4, rr6}
+		resolved = resolvedIPv6
 
 	default:
 		request.Msg.Rcode = dns.RcodeNameError
 		request.Msg.Answer = nil
+		resolved = nil
 	}
 
 	if len(request.Msg.Question) == 0 {
@@ -515,16 +543,6 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	}
 
 	_ = request.W.WriteMsg(request.Msg)
-
-	resolved := make([]string, 0, len(request.Msg.Answer))
-	for _, rr := range request.Msg.Answer {
-		switch record := rr.(type) {
-		case *dns.A:
-			resolved = append(resolved, record.A.String())
-		case *dns.AAAA:
-			resolved = append(resolved, record.AAAA.String())
-		}
-	}
 
 	return model.RequestLogEntry{
 		Domain:            request.Question.Name,
