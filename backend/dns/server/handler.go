@@ -24,8 +24,15 @@ var (
 	resolvedBoth = []string{"0.0.0.0", "::"}
 )
 
+func trimDomainDot(name string) string {
+	if len(name) > 0 && name[len(name)-1] == '.' {
+		return name[:len(name)-1]
+	}
+	return name
+}
+
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	domainName := strings.TrimRight(request.Question.Name, ".")
+	domainName := trimDomainDot(request.Question.Name)
 
 	if request.Question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
 		return s.handlePTRQuery(request)
@@ -292,7 +299,15 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	req.Msg.Response = true
 	req.Msg.Authoritative = false
 
-	_ = req.W.WriteMsg(req.Msg)
+	err := req.W.WriteMsg(req.Msg)
+	if err != nil {
+		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", req.Client.IP, req.Msg.Answer, err.Error())
+		s.Notifications.CreateNotification(&notification.Notification{
+			Severity: notification.SeverityWarning,
+			Category: notification.CategoryDNS,
+			Text:     fmt.Sprintf("Could not write query response. Client: %s, err: %v", req.Client.IP, err.Error()),
+		})
+	}
 
 	return model.RequestLogEntry{
 		Domain:            req.Question.Name,
