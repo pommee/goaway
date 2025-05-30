@@ -113,11 +113,10 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	sent := time.Now()
 	client := s.getClientInfo(w.RemoteAddr().String())
 	go s.WSCom(communicationMessage{true, false, false, client.IP})
 
-	entry := s.processQuery(&Request{w, r, r.Question[0], sent, client, false})
+	entry := s.processQuery(&Request{w, r, r.Question[0], time.Now(), client, false})
 
 	go s.WSCom(communicationMessage{false, false, true, client.IP})
 	s.logEntryChannel <- entry
