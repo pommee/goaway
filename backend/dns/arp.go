@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -55,7 +56,41 @@ func updateARPTable() {
 	}
 
 	newTable := make(map[string]string)
-	for line := range strings.SplitSeq(string(out), "\n") {
+
+	if runtime.GOOS != "windows" {
+		parseUnixARP(string(out), newTable)
+	} else {
+		parseWindowsARP(string(out), newTable)
+	}
+
+	cache.mu.Lock()
+	cache.table = newTable
+	cache.mu.Unlock()
+}
+
+func parseWindowsARP(output string, table map[string]string) {
+	lines := strings.SplitSeq(output, "\n")
+	for line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "Interface:") {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			ip := fields[0]
+			mac := strings.ToLower(strings.ReplaceAll(fields[1], "-", ":"))
+
+			if isValidMAC(mac) {
+				table[ip] = mac
+			}
+		}
+	}
+}
+
+func parseUnixARP(output string, table map[string]string) {
+	lines := strings.SplitSeq(output, "\n")
+	for line := range lines {
 		line = strings.Trim(line, " \t\r")
 		if line == "" {
 			continue
@@ -69,14 +104,10 @@ func updateARPTable() {
 			ip := fields[1]
 			mac := strings.ToLower(fields[3])
 			if isValidMAC(mac) {
-				newTable[ip] = mac
+				table[ip] = mac
 			}
 		}
 	}
-
-	cache.mu.Lock()
-	cache.table = newTable
-	cache.mu.Unlock()
 }
 
 func GetMacAddress(ip string) string {
