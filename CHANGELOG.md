@@ -1,3 +1,16 @@
+## [0.49.7](https://github.com/pommee/goaway/compare/v0.49.6...v0.49.7) (2025-06-02)
+
+
+### Bug Fixes
+
+* fixed arp parsing for windows ([1784a8a](https://github.com/pommee/goaway/commit/1784a8aaa0439e82a6065942625125845e447956))
+
+
+### Performance Improvements
+
+* faster parsing of domain name ([b9aeb18](https://github.com/pommee/goaway/commit/b9aeb18473a474801c8d6b6001bfcf076297a4d1))
+* more efficient blacklist processing ([6b004ca](https://github.com/pommee/goaway/commit/6b004ca4b138d9733e18f31b48b95744b77f16a6))
+
 ## [0.49.6](https://github.com/pommee/goaway/compare/v0.49.5...v0.49.6) (2025-05-29)
 
 
