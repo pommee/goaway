@@ -1,3 +1,10 @@
+# [0.50.0](https://github.com/pommee/goaway/compare/v0.49.10...v0.50.0) (2025-06-06)
+
+
+### Features
+
+* switch to alpine and add arm32 image ([26f8d00](https://github.com/pommee/goaway/commit/26f8d0045503d034f911d3df797e2cc341e05646))
+
 ## [0.49.10](https://github.com/pommee/goaway/compare/v0.49.9...v0.49.10) (2025-06-06)
 
 
