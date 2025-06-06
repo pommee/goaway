@@ -482,18 +482,18 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 		SELECT s.name, s.url, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
 		FROM sources s
 		LEFT JOIN blacklist b ON s.id = b.source_id
-		GROUP BY s.name, s.lastUpdated, s.active
+		GROUP BY s.id, s.name, s.url, s.lastUpdated, s.active
+		ORDER BY s.name
 	`
 
 	rows, err := b.DBManager.Conn.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query source statistics: %w", err)
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	defer rows.Close()
 
-	stats := make(map[string]SourceStats)
+	stats := make(map[string]SourceStats, 5)
+
 	for rows.Next() {
 		var name, url string
 		var blockedCount int
