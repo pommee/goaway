@@ -86,12 +86,55 @@ function celebrateUpdate() {
   });
 }
 
+function calculateProgress(logs: string[]): {
+  progress: number;
+  currentStep: string;
+} {
+  const steps = [
+    { keywords: ["Starting"], label: "Initializing update..." },
+    { keywords: ["Loading"], label: "Loading update script..." },
+    { keywords: ["Executing"], label: "Executing update script..." },
+    { keywords: ["Downloading", "Fetching"], label: "Downloading update..." },
+    { keywords: ["Installing", "Extracting"], label: "Installing update..." },
+    { keywords: ["Configuring", "Setting up"], label: "Configuring..." },
+    { keywords: ["Restarting", "Restart"], label: "Restarting services..." },
+    { keywords: ["Update successful", "Complete"], label: "Update complete!" }
+  ];
+
+  let currentStepIndex = 0;
+  let currentStep = "No update in progress";
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const hasStepKeyword = logs.some((log) =>
+      step.keywords.some((keyword) =>
+        log.toLowerCase().includes(keyword.toLowerCase())
+      )
+    );
+
+    if (hasStepKeyword) {
+      currentStepIndex = i;
+      currentStep = step.label;
+    }
+  }
+
+  const progress =
+    logs.length === 0
+      ? 0
+      : Math.min(((currentStepIndex + 1) / steps.length) * 100, 100);
+
+  return { progress, currentStep };
+}
+
 export function ServerStatistics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [updateNotified, setUpdateNotified] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateLogs, setUpdateLogs] = useState<string[]>([]);
   const [newVersion, setNewVersion] = useState<string>("");
+  const [updateStarted, setUpdateStarted] = useState<boolean>(false);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState<string>("Preparing update...");
 
   useEffect(() => {
     if (shouldCheckForUpdate()) {
@@ -143,9 +186,16 @@ export function ServerStatistics() {
     return () => clearInterval(interval);
   }, [updateNotified]);
 
-  function startUpdate() {
-    setUpdateLogs(["Starting update..."]);
+  useEffect(() => {
+    const { progress, currentStep } = calculateProgress(updateLogs);
+    setUpdateProgress(progress);
+    setCurrentStep(currentStep);
+  }, [updateLogs]);
 
+  function startUpdate() {
+    setUpdateStarted(true);
+    setUpdateProgress(0);
+    setCurrentStep("Starting update...");
     const eventSource = new EventSource("api/runUpdate");
 
     eventSource.onmessage = (event) => {
@@ -154,14 +204,19 @@ export function ServerStatistics() {
       if (event.data.includes("Update successful")) {
         toast.info("Updated!", { description: `Now running v${newVersion}` });
         localStorage.setItem("installedVersion", newVersion);
-        setShowUpdateModal(false);
         eventSource.close();
         celebrateUpdate();
       }
     };
 
-    eventSource.onerror = () => {
-      setUpdateLogs((logs) => [...logs, "Closing event stream..."]);
+    eventSource.onerror = (e) => {
+      const errorMsg =
+        e.data ||
+        e.message ||
+        `EventSource error: ${e.type}` ||
+        "Unknown EventSource error";
+      setUpdateLogs((logs) => [...logs, `[error] ${errorMsg}`]);
+      setUpdateLogs((logs) => [...logs, "[info] Closing event stream..."]);
       eventSource.close();
     };
   }
@@ -264,12 +319,12 @@ export function ServerStatistics() {
       </div>
 
       <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-        <DialogContent className="sm:max-w-4xl rounded-lg border border-gray-200 shadow-lg dark:border-gray-800">
-          <DialogHeader className="space-y-2">
+        <DialogContent className="sm:max-w-6xl rounded-lg border border-gray-800">
+          <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
               Update Available: v{newVersion}
             </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-300">
+            <DialogDescription className="text-muted-foreground">
               A new version is available for installation. View the full{" "}
               <a
                 href="/changelog"
@@ -283,11 +338,36 @@ export function ServerStatistics() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="h-64 overflow-auto bg-gray-900 text-green-400 p-4 font-mono text-sm rounded-md border border-gray-700 shadow-inner">
+            <div className="space-y-3 p-4 bg-gray-900 rounded-md">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-300">{currentStep}</span>
+                <span className="text-gray-400 font-mono">
+                  {Math.round(updateProgress)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="h-2 rounded-full transition-all duration-500 ease-out bg-blue-500"
+                  style={{ width: `${updateProgress}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="h-96 overflow-auto bg-stone-900 p-4 font-mono text-sm rounded-md">
               {updateLogs.length > 0 ? (
                 updateLogs.map((log, index) => (
                   <div key={index} className="leading-relaxed">
-                    {log}
+                    <p
+                      className={
+                        log.includes("[info]")
+                          ? "text-green-400"
+                          : log.includes("[error]")
+                          ? "text-red-400"
+                          : ""
+                      }
+                    >
+                      {log}
+                    </p>
                   </div>
                 ))
               ) : (
@@ -300,26 +380,30 @@ export function ServerStatistics() {
               )}
             </div>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+            <div className="text-sm text-muted-foreground italic">
               You are recommended to backup your data before proceeding with the
               update.
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-between sm:justify-end gap-2 pt-2">
+          <DialogFooter className="flex items-center justify-between sm:justify-end gap-6 pt-2">
             <Button
-              variant="outline"
+              disabled={updateStarted}
               onClick={() => setShowUpdateModal(false)}
-              className="border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="bg-stone-800 text-white border-1 border-gray-600 hover:bg-gray-600"
             >
               Remind Me Later
             </Button>
             <Button
-              onClick={startUpdate}
+              onClick={
+                updateStarted === false
+                  ? startUpdate
+                  : () => setShowUpdateModal(false)
+              }
               className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
             >
               <DownloadIcon className="h-4 w-4" />
-              Start Update
+              {updateStarted ? <p>Close</p> : <p>Start Update</p>}
             </Button>
           </DialogFooter>
         </DialogContent>

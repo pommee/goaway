@@ -33,9 +33,12 @@ type Config struct {
 	} `yaml:"api" json:"api"`
 
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
-	DevMode             bool             `yaml:"-" json:"-"`
 	LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
 	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
+
+	// settings not visible in config file
+	DevMode    bool   `yaml:"-" json:"-"`
+	BinaryPath string `yaml:"-" json:"-"`
 }
 
 func LoadSettings() (Config, error) {
@@ -63,6 +66,12 @@ func LoadSettings() (Config, error) {
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return Config{}, fmt.Errorf("invalid settings format: %w", err)
 	}
+
+	binaryPath, err := os.Executable()
+	if err != nil {
+		log.Warning("Unable to find installed binary path, err: %v", err)
+	}
+	config.BinaryPath = binaryPath
 
 	return config, nil
 }

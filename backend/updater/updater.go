@@ -9,12 +9,12 @@ import (
 
 type sendSSE func(string)
 
-func SelfUpdate(sse sendSSE) error {
-	sse("[i] Loading update script")
+func SelfUpdate(sse sendSSE, binaryPath string) error {
+	sse("[info] Loading update script")
 	scriptPath := "./updater.sh"
 
-	sse("[i] Executing update script")
-	cmd := exec.Command("bash", scriptPath)
+	sse("[info] Executing update script")
+	cmd := exec.Command("bash", scriptPath, binaryPath)
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
