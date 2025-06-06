@@ -3,7 +3,6 @@ package main
 import (
 	"embed"
 	"fmt"
-	notification "goaway/backend"
 	"goaway/backend/api"
 	"goaway/backend/asciiart"
 	arp "goaway/backend/dns"
@@ -11,6 +10,7 @@ import (
 	"goaway/backend/dns/server"
 	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
+	notification "goaway/backend/notifications"
 	"goaway/backend/settings"
 	"goaway/backend/setup"
 	"os"
@@ -33,6 +33,18 @@ var (
 	content embed.FS
 )
 
+type Flags struct {
+	DnsPort             int
+	WebserverPort       int
+	LogLevel            int
+	StatisticsRetention int
+	LoggingEnabled      bool
+	Authentication      bool
+	DevMode             bool
+	Ansi                bool
+	JSON                bool
+}
+
 func main() {
 	if err := createRootCommand().Execute(); err != nil {
 		log.Error("Command execution failed: %s", err)
@@ -41,13 +53,15 @@ func main() {
 }
 
 func createRootCommand() *cobra.Command {
-	flags := setup.Flags{}
+	flags := Flags{}
 
 	cmd := &cobra.Command{
 		Use:   "goaway",
 		Short: "GoAway is a DNS sinkhole with a web interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			config := setup.InitializeSettings(&flags)
+			setFlags := getSetFlags(cmd, &flags)
+			config := setup.InitializeSettings(setFlags)
+
 			startServer(config, flags.Ansi)
 		},
 	}
@@ -63,6 +77,40 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.JSON, "json", false, "Toggle JSON formatted logs")
 
 	return cmd
+}
+
+func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
+	setFlags := &setup.SetFlags{}
+
+	if cmd.Flags().Changed("dns-port") {
+		setFlags.DnsPort = &flags.DnsPort
+	}
+	if cmd.Flags().Changed("webserver-port") {
+		setFlags.WebserverPort = &flags.WebserverPort
+	}
+	if cmd.Flags().Changed("log-level") {
+		setFlags.LogLevel = &flags.LogLevel
+	}
+	if cmd.Flags().Changed("statistics-retention") {
+		setFlags.StatisticsRetention = &flags.StatisticsRetention
+	}
+	if cmd.Flags().Changed("logging") {
+		setFlags.LoggingEnabled = &flags.LoggingEnabled
+	}
+	if cmd.Flags().Changed("auth") {
+		setFlags.Authentication = &flags.Authentication
+	}
+	if cmd.Flags().Changed("dev") {
+		setFlags.DevMode = &flags.DevMode
+	}
+	if cmd.Flags().Changed("ansi") {
+		setFlags.Ansi = &flags.Ansi
+	}
+	if cmd.Flags().Changed("json") {
+		setFlags.JSON = &flags.JSON
+	}
+
+	return setFlags
 }
 
 func startServer(config *settings.Config, ansi bool) {

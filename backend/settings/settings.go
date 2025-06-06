@@ -3,8 +3,6 @@ package settings
 import (
 	"fmt"
 	"goaway/backend/logging"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -36,7 +34,7 @@ type Config struct {
 
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
 	DevMode             bool             `yaml:"-" json:"-"`
-	LoggingEnabled      bool             `yaml:"loggingDisabled" json:"loggingDisabled"`
+	LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
 	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
 }
 
@@ -50,9 +48,10 @@ func LoadSettings() (Config, error) {
 	path = filepath.Join(path, "settings.yaml")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Info("Settings file not found. Fetching from remote source...")
-		if err := fetchAndSaveSettings(path); err != nil {
-			return Config{}, fmt.Errorf("failed to fetch settings: %w", err)
+		log.Info("Settings file not found, creating from defaults...")
+		config, err = createDefaultSettings(path)
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to create default settings: %w", err)
 		}
 	}
 
@@ -68,39 +67,40 @@ func LoadSettings() (Config, error) {
 	return config, nil
 }
 
-func fetchAndSaveSettings(filePath string) error {
-	url := "https://raw.githubusercontent.com/pommee/goaway/refs/heads/main/settings.yaml"
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("failed to fetch settings.yaml: %w", err)
+func createDefaultSettings(filePath string) (Config, error) {
+	defaultConfig := Config{
+		StatisticsRetention: 7,
+		LoggingEnabled:      true,
+		LogLevel:            logging.INFO,
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch settings.yaml: HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	defaultConfig.DNS.Port = 53
+	defaultConfig.DNS.CacheTTL = 3600
+	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
+	defaultConfig.DNS.UpstreamDNS = []string{
+		"1.1.1.1:53",
+		"8.8.8.8:53",
+	}
+
+	defaultConfig.API.Port = 8080
+	defaultConfig.API.Authentication = true
+
+	data, err := yaml.Marshal(&defaultConfig)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to marshal default config: %w", err)
 	}
 
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		return Config{}, fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
-	out, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create settings file: %w", err)
-	}
-	defer func(out *os.File) {
-		_ = out.Close()
-	}(out)
-
-	if _, err = io.Copy(out, resp.Body); err != nil {
-		return fmt.Errorf("failed to save settings file: %w", err)
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return Config{}, fmt.Errorf("failed to create default settings file: %w", err)
 	}
 
-	return nil
+	log.Info("Default settings file created at: %s", filePath)
+	return defaultConfig, nil
 }
 
 func (config *Config) Save() {
@@ -116,7 +116,6 @@ func (config *Config) Save() {
 }
 
 func (config *Config) UpdateSettings(updatedSettings Config) {
-
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
 	config.LogLevel = updatedSettings.LogLevel
 	config.StatisticsRetention = updatedSettings.StatisticsRetention

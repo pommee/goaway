@@ -3,11 +3,11 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	notification "goaway/backend"
 	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
+	notification "goaway/backend/notifications"
 	"goaway/backend/settings"
 	"sync"
 	"time"

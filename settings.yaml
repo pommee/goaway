@@ -30,9 +30,9 @@ api:
 # Lower values save disk space but provide less historical data.
 statisticsRetention: 7
 
-# Completely disables all logging when set to true.
-# Useful for privacy-focused deployments or reducing disk I/O.
-loggingDisabled: false
+# Toggles all logging when set.
+# Useful for privacy-focused deployments or reducing disk I/O when disabled.
+loggingEnabled: true
 
 # Determines which severity of log messages to display.
 # Each level includes all levels above it in number.

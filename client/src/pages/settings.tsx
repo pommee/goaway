@@ -146,7 +146,7 @@ export function Settings() {
       authentication: false
     },
     statisticsRetention: 7,
-    loggingDisabled: false,
+    loggingEnabled: true,
     logLevel: 0
   });
   const [isChanged, setIsChanged] = useState(false);
@@ -428,7 +428,7 @@ export function Settings() {
                       : preferences[key];
 
                   if (key === "logging") {
-                    currentValue = preferences.loggingDisabled;
+                    currentValue = preferences.loggingEnabled;
                   }
 
                   return (
@@ -463,7 +463,7 @@ export function Settings() {
                                   onCheckedChange: (value: boolean) =>
                                     handleSelect(
                                       key === "logging"
-                                        ? "loggingDisabled"
+                                        ? "loggingEnabled"
                                         : key,
                                       value
                                     )
@@ -586,7 +586,7 @@ export interface Settings {
   dns: Dns;
   api: Api;
   statisticsRetention: number;
-  loggingDisabled: boolean;
+  loggingEnabled: boolean;
   logLevel: number | string;
 }
 

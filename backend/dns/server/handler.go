@@ -2,10 +2,10 @@ package server
 
 import (
 	"fmt"
-	notification "goaway/backend"
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
+	notification "goaway/backend/notifications"
 	"net"
 	"os"
 	"strconv"
@@ -21,7 +21,6 @@ var (
 
 	resolvedIPv4 = []string{"0.0.0.0"}
 	resolvedIPv6 = []string{"::"}
-	resolvedBoth = []string{"0.0.0.0", "::"}
 )
 
 func trimDomainDot(name string) string {
