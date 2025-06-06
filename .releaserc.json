@@ -17,6 +17,10 @@
               "section": "Bug Fixes"
             },
             {
+              "type": "ui",
+              "section": "Dashboard"
+            },
+            {
               "type": "chore",
               "section": "Maintenance",
               "hidden": false
