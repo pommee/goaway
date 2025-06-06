@@ -1,3 +1,10 @@
+## [0.50.2](https://github.com/pommee/goaway/compare/v0.50.1...v0.50.2) (2025-06-06)
+
+
+### Bug Fixes
+
+* query resolution before upstream ([79eb17e](https://github.com/pommee/goaway/commit/79eb17e822731f21f7b9887acf7d8b8c964c4a3d))
+
 ## [0.50.1](https://github.com/pommee/goaway/compare/v0.50.0...v0.50.1) (2025-06-06)
 
 
