@@ -1,3 +1,10 @@
+## [0.50.3](https://github.com/pommee/goaway/compare/v0.50.2...v0.50.3) (2025-06-06)
+
+
+### Performance Improvements
+
+* improve loading times of lists ([473dd23](https://github.com/pommee/goaway/commit/473dd2321861ffe90ee3c7b28b0edf31b89ea4a5))
+
 ## [0.50.2](https://github.com/pommee/goaway/compare/v0.50.1...v0.50.2) (2025-06-06)
 
 
