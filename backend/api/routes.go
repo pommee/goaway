@@ -996,13 +996,13 @@ func (api *API) runUpdate(c *gin.Context) {
 		flusher.Flush()
 	}
 
-	sendSSE("[i] Starting update process...")
-	err := updater.SelfUpdate(sendSSE)
+	sendSSE("[info] Starting update process...")
+	err := updater.SelfUpdate(sendSSE, api.Config.BinaryPath)
 	if err != nil {
-		sendSSE(fmt.Sprintf("[ERROR] Update failed: %s", err.Error()))
+		sendSSE(fmt.Sprintf("[error] %s", err.Error()))
 		c.Status(http.StatusBadRequest)
 	} else {
-		sendSSE("[i] Update successful!")
+		sendSSE("[info] Update successful!")
 		c.Status(http.StatusOK)
 	}
 }
