@@ -78,9 +78,9 @@ export default function DNSServerVisualizer() {
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions] = useState({
-    width: window.innerWidth - 300,
-    height: window.innerHeight - 300
+  const [dimensions, setDimensions] = useState({
+    width: 800,
+    height: 600
   });
   const fgRef = useRef<ForceGraphMethods | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -107,6 +107,23 @@ export default function DNSServerVisualizer() {
 
     setPulses((prev) => [...prev, newPulse]);
   };
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({
+          width: rect.width - 32,
+          height: Math.max(600, window.innerHeight - 400)
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
 
   useEffect(() => {
     if (fgRef.current) {
@@ -323,7 +340,7 @@ export default function DNSServerVisualizer() {
   }
 
   return (
-    <div className="text-white">
+    <div className="text-white max-w-7xl mx-auto">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">DNS Server Network Map</h1>
         <p className="text-sm text-muted-foreground">
@@ -333,9 +350,9 @@ export default function DNSServerVisualizer() {
 
       <div
         ref={containerRef}
-        className="rounded-xl border border-stone-800 bg-stone-950 shadow-md px-2"
+        className="rounded-xl border border-stone-800 bg-stone-950 shadow-md p-4 w-full"
       >
-        <div className="grid grid-cols-3 gap-2 text-sm mt-2">
+        <div className="grid grid-cols-3 gap-2 text-sm mb-4">
           {[
             { label: "client", plural: "clients", value: clients.length },
             { label: "node", plural: "nodes", value: networkData.nodes.length },
@@ -353,15 +370,15 @@ export default function DNSServerVisualizer() {
           ))}
         </div>
 
-        <p className="flex mt-4 ml-1 text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm mb-1">
           Client nodes can be clicked for more information.
         </p>
-        <p className="flex ml-1 text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm mb-4">
           Nodes can be dragged around.
         </p>
 
         {networkData.nodes.length > 0 && (
-          <div className="rounded-md cursor-move">
+          <div className="rounded-md cursor-move overflow-hidden">
             <ForceGraph2D
               ref={fgRef}
               graphData={networkData}
@@ -400,7 +417,7 @@ export default function DNSServerVisualizer() {
           </div>
         )}
 
-        <p className="text-right text-xs text-muted-foreground italic mb-2">
+        <p className="text-right text-xs text-muted-foreground italic mt-2">
           use mouse to move and zoom
         </p>
       </div>
