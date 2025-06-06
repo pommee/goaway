@@ -1,3 +1,10 @@
+## [0.49.9](https://github.com/pommee/goaway/compare/v0.49.8...v0.49.9) (2025-06-06)
+
+
+### Bug Fixes
+
+* improve update process ([c15085d](https://github.com/pommee/goaway/commit/c15085d8f62745db647c61291d5f548cc6525073))
+
 ## [0.49.8](https://github.com/pommee/goaway/compare/v0.49.7...v0.49.8) (2025-06-06)
 
 
