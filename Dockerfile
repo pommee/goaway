@@ -1,34 +1,26 @@
-FROM ubuntu:22.04
+FROM alpine:3.22
 
+ARG GOAWAY_VERSION=""
 ARG DNS_PORT=53
 ARG WEBSITE_PORT=8080
-ARG GOAWAY_VERSION=""
 
-ENV DNS_PORT=${DNS_PORT}
-ENV WEBSITE_PORT=${WEBSITE_PORT}
+ENV DNS_PORT=${DNS_PORT} WEBSITE_PORT=${WEBSITE_PORT}
 
-RUN apt-get update && \
-    apt-get install -y curl passwd jq sudo net-tools && \
-    rm -rf /var/lib/apt/lists/*
+COPY installer.sh ./
 
-RUN useradd -m -s /bin/bash -G sudo appuser && \
-    echo "appuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN apk add --no-cache curl jq bash ca-certificates && \
+    adduser -D -s /bin/bash appuser && \
+    ./installer.sh $GOAWAY_VERSION && \
+    mv /root/.local/bin/goaway /home/appuser/goaway && \
+    chown -R appuser:appuser /home/appuser && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /root/.cache /root/.local installer.sh
 
 WORKDIR /home/appuser
 
-COPY updater.sh /home/appuser/updater.sh
-RUN chmod +x /home/appuser/updater.sh
-
-RUN curl https://raw.githubusercontent.com/pommee/goaway/main/installer.sh | sh /dev/stdin $GOAWAY_VERSION && \
-    mv /root/.local/bin/goaway /home/appuser/goaway && \
-    chmod +x /home/appuser/goaway
-
-COPY start.sh /home/appuser/start.sh
-RUN chmod +x /home/appuser/start.sh
-RUN chown -R appuser:appuser /home/appuser
+COPY updater.sh start.sh ./
 
 EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
 
 USER appuser
 
-CMD ["/home/appuser/start.sh"]
+CMD ["./start.sh"]

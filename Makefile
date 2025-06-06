@@ -2,16 +2,16 @@
 
 DNS_PORT = $(or $(GOAWAY_PORT),53)
 WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
-
+LATEST_VERSION = $(shell git describe --tags --abbrev=0 | sed 's/^v//')
 
 publish:
 	docker buildx create --name multiarch-builder --use
 
 	docker buildx build \
-	--platform linux/amd64,linux/arm64/v8 \
-	--tag pommee/goaway:${VERSION} \
+	--platform linux/amd64,linux/arm64/v8,linux/arm/v7 \
+	--tag pommee/goaway:${LATEST_VERSION} \
 	--tag pommee/goaway:latest \
-	--build-arg GOAWAY_VERSION=${VERSION} \
+	--build-arg GOAWAY_VERSION=${LATEST_VERSION} \
 	--push \
 	.
 

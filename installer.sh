@@ -7,10 +7,13 @@ githubUrl="https://github.com"
 executable_folder=$(eval echo "~/.local/bin")
 
 get_arch() {
-    case $(uname -m) in
+    ARCH=$(uname -m)
+    echo "Parsing architecture: $ARCH" >&2
+    case $ARCH in
         "x86_64" | "amd64" ) echo "amd64" ;;
         "i386" | "i486" | "i586") echo "386" ;;
-        "aarch64" | "arm64" | "arm") echo "arm64" ;;
+        "aarch64" | "arm64") echo "arm64" ;;
+        "armv7l") echo "armv7" ;;
         "mips64el") echo "mips64el" ;;
         "mips64") echo "mips64" ;;
         "mips") echo "mips" ;;
