@@ -1,3 +1,10 @@
+## [0.50.1](https://github.com/pommee/goaway/compare/v0.50.0...v0.50.1) (2025-06-06)
+
+
+### Bug Fixes
+
+* authentication turned on by default ([f56bb6e](https://github.com/pommee/goaway/commit/f56bb6e8db27e5e907594fe586ed510a3561b1ab))
+
 # [0.50.0](https://github.com/pommee/goaway/compare/v0.49.10...v0.50.0) (2025-06-06)
 
 
