@@ -5,6 +5,20 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
+	"io/fs"
+	"mime"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+
 	"goaway/backend/api/key"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/blacklist"
@@ -14,46 +28,58 @@ import (
 	"goaway/backend/logging"
 	notification "goaway/backend/notifications"
 	"goaway/backend/settings"
-	"net"
-	"os"
-	"time"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
 var log = logging.GetLogger()
 
-type Credentials struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
+const (
+	maxRetries = 10
+	retryDelay = 10 * time.Second
+)
 
 type API struct {
-	Authentication           bool
-	Config                   *settings.Config
-	router                   *gin.Engine
-	routes                   *gin.RouterGroup
+	Authentication bool
+	Config         *settings.Config
+	DNSPort        int
+
+	Version string
+	Commit  string
+	Date    string
+
+	router *gin.Engine
+	routes *gin.RouterGroup
+
 	DBManager                *database.DatabaseManager
 	Blacklist                *blacklist.Blacklist
 	KeyManager               *key.ApiKeyManager
 	PrefetchedDomainsManager *prefetch.Manager
-	WSQueries                *websocket.Conn
-	WSCommunication          *websocket.Conn
-	DNSPort                  int
-	Version                  string
-	Commit                   string
-	Date                     string
 	Notifications            *notification.Manager
+
+	WSQueries       *websocket.Conn
+	WSCommunication *websocket.Conn
 }
 
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
+	api.initializeRouter()
+	api.configureCORS()
+	api.KeyManager = key.NewApiKeyManager(dnsServer.DBManager)
+	api.setupRoutes()
+
+	if !api.Config.DevMode {
+		api.ServeEmbeddedContent(content)
+	}
+
+	api.startServer(errorChannel)
+}
+
+func (api *API) initializeRouter() {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
 	api.router.Use(gzip.Gzip(gzip.DefaultCompression))
 	api.routes = api.router.Group("/api")
+}
+
+func (api *API) configureCORS() {
 	var allowedOrigins []string
 
 	if !api.Config.DevMode {
@@ -72,49 +98,43 @@ func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChanne
 		MaxAge:           12 * time.Hour,
 	}))
 
-	api.KeyManager = key.NewApiKeyManager(dnsServer.DBManager)
+	api.setupAuthAndMiddleware()
+}
 
-	api.setupRoutes()
-	api.setupAuthorizedRoutes()
-	api.setupWSLiveQueries(dnsServer)
-	api.setupWSLiveCommunication(dnsServer)
+func (api *API) setupRoutes() {
+	api.registerServerRoutes()
+	api.registerAuthRoutes()
+	api.registerBlacklistRoutes()
+	api.registerClientRoutes()
+	api.registerDNSRoutes()
+	api.registerUpstreamRoutes()
+	api.registerListsRoutes()
+	api.registerResolutionRoutes()
+	api.registerSettingsRoutes()
+	api.registerNotificationRoutes()
+}
 
-	if !api.Config.DevMode {
-		api.ServeEmbeddedContent(content)
+func (api *API) setupAuthAndMiddleware() {
+	if api.Authentication {
+		api.SetupAuth()
+		api.routes.Use(api.authMiddleware())
+	} else {
+		log.Info("Authentication is disabled.")
+		api.setupDevModeCORS()
 	}
+}
 
-	go func() {
-		const maxRetries = 10
-		const retryDelay = 10 * time.Second
-		addr := fmt.Sprintf(":%d", api.Config.API.Port)
-
-		for i := 1; i <= maxRetries; i++ {
-			listener, err := net.Listen("tcp", addr)
-			if err != nil {
-				log.Error("Failed to start server (attempt %d/%d): %v", i, maxRetries, err)
-				if i < maxRetries {
-					time.Sleep(retryDelay)
-					continue
-				}
-				errorChannel <- struct{}{}
-				return
-			}
-
-			log.Info("Web server started on port :%d", api.Config.API.Port)
-
-			if serverIP, err := getServerIP(); err == nil {
-				log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
-			} else {
-				log.Error("Could not determine server IP: %v", err)
-			}
-
-			if err := api.router.RunListener(listener); err != nil {
-				log.Error("Server error: %v", err)
-				errorChannel <- struct{}{}
-			}
-			return
-		}
-	}()
+func (api *API) setupDevModeCORS() {
+	if api.Config.DevMode {
+		api.routes.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost:8081"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
+			ExposeHeaders:    []string{"Set-Cookie"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
+	}
 }
 
 func (api *API) SetupAuth() {
@@ -125,130 +145,170 @@ func (api *API) SetupAuth() {
 
 	log.Info("Creating a new admin user")
 
-	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
-		newUser.Password = password
-		log.Info("Using custom password: [hidden]")
-	} else {
-		newUser.Password = generateRandomPassword()
-		log.Info("Randomly generated admin password: %s", newUser.Password)
-	}
+	password := api.getOrGeneratePassword()
+	newUser.Password = password
 
 	if err := newUser.Create(api.DBManager.Conn); err != nil {
 		log.Error("Unable to create new user: %v", err)
 	}
 }
 
-func (api *API) setupRoutes() {
-	api.router.POST("/api/login", api.handleLogin)
-	api.router.GET("/api/server", api.handleServer)
-	api.router.GET("/api/authentication", api.getAuthentication)
-	api.router.GET("/api/dnsMetrics", api.handleMetrics)
+func (api *API) getOrGeneratePassword() string {
+	if password, exists := os.LookupEnv("GOAWAY_PASSWORD"); exists {
+		log.Info("Using custom password: [hidden]")
+		return password
+	}
+
+	password := generateRandomPassword()
+	log.Info("Randomly generated admin password: %s", password)
+	return password
 }
 
-func (api *API) setupAuthorizedRoutes() {
-	if api.Authentication {
-		api.SetupAuth()
-		api.routes.Use(api.authMiddleware())
-	} else {
-		log.Info("Authentication is disabled.")
+func (api *API) startServer(errorChannel chan struct{}) {
+	go func() {
+		addr := fmt.Sprintf(":%d", api.Config.API.Port)
 
-		if api.Config.DevMode {
-			api.routes.Use(cors.New(cors.Config{
-				AllowOrigins:     []string{"http://localhost:8081"},
-				AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-				AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
-				ExposeHeaders:    []string{"Set-Cookie"},
-				AllowCredentials: true,
-				MaxAge:           12 * time.Hour,
-			}))
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			if api.attemptServerStart(addr, attempt, errorChannel) {
+				return
+			}
+
+			if attempt < maxRetries {
+				time.Sleep(retryDelay)
+			}
+		}
+
+		log.Error("Failed to start server after %d attempts", maxRetries)
+		errorChannel <- struct{}{}
+	}()
+}
+
+func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan struct{}) bool {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Error("Failed to start server (attempt %d/%d): %v", attempt, maxRetries, err)
+		return false
+	}
+
+	log.Info("Web server started on port :%d", api.Config.API.Port)
+	api.logServerURL()
+
+	if err := api.router.RunListener(listener); err != nil {
+		log.Error("Server error: %v", err)
+		errorChannel <- struct{}{}
+	}
+
+	return true
+}
+
+func (api *API) logServerURL() {
+	if serverIP, err := getServerIP(); err == nil {
+		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
+	} else {
+		log.Error("Could not determine server IP: %v", err)
+	}
+}
+
+func (api *API) ServeEmbeddedContent(content embed.FS) {
+	ipAddress, err := getServerIP()
+	if err != nil {
+		log.Error("Error getting IP address: %v", err)
+		return
+	}
+
+	if err := api.serveStaticFiles(content); err != nil {
+		log.Error("Error serving embedded content: %v", err)
+		return
+	}
+
+	api.serveIndexHTML(content, ipAddress)
+}
+
+func (api *API) serveStaticFiles(content embed.FS) error {
+	return fs.WalkDir(content, "client/dist", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("error walking through path %s: %w", path, err)
+		}
+
+		if d.IsDir() || path == "client/dist/index.html" {
+			return nil
+		}
+
+		return api.registerStaticFile(content, path)
+	})
+}
+
+func (api *API) registerStaticFile(content embed.FS, path string) error {
+	fileContent, err := content.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("error reading file %s: %w", path, err)
+	}
+
+	mimeType := api.getMimeType(path)
+	route := strings.TrimPrefix(path, "client/dist/")
+
+	api.router.GET("/"+route, func(c *gin.Context) {
+		c.Data(http.StatusOK, mimeType, fileContent)
+	})
+
+	return nil
+}
+
+func (api *API) getMimeType(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	return mimeType
+}
+
+func (api *API) serveIndexHTML(content embed.FS, ipAddress string) {
+	indexContent, err := content.ReadFile("client/dist/index.html")
+	if err != nil {
+		log.Error("Error reading index.html: %v", err)
+		return
+	}
+
+	indexWithConfig := injectServerConfig(string(indexContent), ipAddress, api.Config.API.Port)
+	handleIndexHTML := func(c *gin.Context) {
+		c.Header("Content-Type", "text/html")
+		c.Data(http.StatusOK, "text/html", []byte(indexWithConfig))
+	}
+
+	api.router.GET("/", handleIndexHTML)
+	api.router.NoRoute(handleIndexHTML)
+}
+
+func injectServerConfig(htmlContent, serverIP string, port int) string {
+	serverConfigScript := fmt.Sprintf(`<script>
+	window.SERVER_CONFIG = {
+		ip: "%s",
+		port: "%d"
+	};
+	</script>`, serverIP, port)
+
+	return strings.Replace(
+		htmlContent,
+		"<head>",
+		"<head>\n  "+serverConfigScript,
+		1,
+	)
+}
+
+func getServerIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			return ipnet.IP.String(), nil
 		}
 	}
 
-	api.routes.POST("/upstream", api.createUpstream)
-	api.routes.POST("/settings", api.updateSettings)
-	api.routes.POST("/custom", api.updateCustom)
-	api.routes.POST("/resolution", api.createResolution)
-	api.routes.POST("/pause", api.pauseBlocking)
-
-	api.routes.POST("/apiKey", api.createAPIKey)
-	api.routes.GET("/apiKey", api.getAPIKeys)
-	api.routes.GET("/deleteApiKey", api.deleteAPIKey)
-
-	api.routes.POST("/prefetch", api.createPrefetchedDomain)
-	api.routes.GET("/prefetch", api.fetchPrefetchedDomains)
-	api.routes.DELETE("/prefetch", api.deletePrefetchedDomain)
-
-	api.routes.GET("/notifications", api.fetchNotifications)
-	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
-	api.routes.GET("/queries", api.getQueries)
-	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
-	api.routes.GET("/queryTypes", api.getQueryTypes)
-	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
-	api.routes.GET("/domains", api.getDomains)
-	api.routes.GET("/settings", api.getSettings)
-	api.routes.GET("/clients", api.getClients)
-	api.routes.GET("/clientDetails", api.getClientDetails)
-	api.routes.GET("/resolutions", api.getResolutions)
-	api.routes.GET("/upstreams", api.getUpstreams)
-	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)
-	api.routes.GET("/topClients", api.getTopClients)
-	api.routes.GET("/lists", api.getLists)
-	api.routes.GET("/addList", api.addList)
-	api.routes.GET("/fetchUpdatedList", api.fetchUpdatedList)
-	api.routes.GET("/runUpdateList", api.runUpdateList)
-	api.routes.GET("/getDomainsForList", api.getDomainsForList)
-	api.routes.GET("/runUpdate", api.runUpdate)
-	api.routes.GET("/pause", api.getBlocking)
-	api.routes.GET("/toggleBlocklist", api.toggleBlocklist)
-	api.routes.GET("/exportDatabase", api.exportDatabase)
-
-	api.routes.PUT("/password", api.updatePassword)
-	api.routes.PUT("/preferredUpstream", api.updatePreferredUpstream)
-
-	api.routes.DELETE("/upstream", api.deleteUpstream)
-	api.routes.DELETE("/queries", api.clearQueries)
-	api.routes.DELETE("/list", api.removeList)
-	api.routes.DELETE("/resolution", api.deleteResolution)
-	api.routes.DELETE("/pause", api.clearBlocking)
-	api.routes.DELETE("/notification", api.markNotificationAsRead)
-}
-
-func (api *API) setupWSLiveQueries(dnsServer *server.DNSServer) {
-	api.router.GET("/api/liveQueries", func(c *gin.Context) {
-		var upgrader = websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		}
-
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			return
-		}
-		api.WSQueries = conn
-
-		if dnsServer != nil {
-			dnsServer.WSQueries = conn
-		}
-	})
-}
-
-func (api *API) setupWSLiveCommunication(dnsServer *server.DNSServer) {
-	api.router.GET("/api/liveCommunication", func(c *gin.Context) {
-		var upgrader = websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		}
-
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			return
-		}
-		api.WSCommunication = conn
-
-		if dnsServer != nil {
-			dnsServer.WSCommunication = conn
-		}
-	})
+	return "", fmt.Errorf("server IP not found")
 }
 
 func generateRandomPassword() string {
