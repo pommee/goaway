@@ -24,7 +24,7 @@ api:
   # Controls whether login is required to access the dashboard.
   # Will create an admin account of first startup (password can be seen in the logs).
   # Set to true for increased security.
-  authentication: false
+  authentication: true
 
 # Number of days to retain statistics and query logs.
 # Lower values save disk space but provide less historical data.
