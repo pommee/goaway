@@ -1,7 +1,6 @@
 package api
 
 import (
-	"goaway/backend/api/user"
 	"net/http"
 	"strings"
 	"time"
@@ -22,65 +21,84 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		apiKey := c.GetHeader("api-key")
-		if apiKey != "" {
-			if validApiKey := api.KeyManager.VerifyApiKey(apiKey); validApiKey {
+		if apiKey := c.GetHeader("api-key"); apiKey != "" {
+			if api.KeyManager.VerifyApiKey(apiKey) {
 				c.Next()
 				return
 			}
-
-			c.Status(http.StatusUnauthorized)
-			c.Abort()
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		cookie, err := c.Cookie("jwt")
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization cookie required"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization cookie"})
 			return
 		}
 
-		token, err := jwt.Parse(cookie, func(t *jwt.Token) (any, error) {
-			return []byte(Secret), nil
-		})
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
+		claims, err := parseToken(cookie)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			expirationTime := int64(claims["exp"].(float64))
-			if time.Now().Unix() > expirationTime {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
-				c.Abort()
+		username, ok := claims["username"].(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			return
+		}
+
+		now := time.Now().Unix()
+		exp, ok := claims["exp"].(float64)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token expiration"})
+			return
+		}
+		expiration := int64(exp)
+
+		if now > expiration {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+			return
+		}
+
+		if now > expiration-int64(TokenDuration/2) {
+			newToken, err := generateToken(username)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
 				return
 			}
-
-			if time.Now().Unix() > expirationTime-int64(TokenDuration/2) {
-				newToken, err := generateToken(claims["username"].(string))
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
-					c.Abort()
-					return
-				}
-				setAuthCookie(c.Writer, newToken)
-			}
-
-			c.Set("username", claims["username"])
+			setAuthCookie(c.Writer, newToken)
 		}
 
+		c.Set("username", username)
 		c.Next()
 	}
 }
 
-func generateToken(username string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
-		"exp":      time.Now().Add(TokenDuration).Unix(),
-		"iat":      time.Now().Unix(),
+func parseToken(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return []byte(Secret), nil
 	})
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
+func generateToken(username string) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"username": username,
+		"exp":      now.Add(TokenDuration).Unix(),
+		"iat":      now.Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(Secret))
 }
 
@@ -88,15 +106,10 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
 		Value:    token,
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
-		Path:     "/",
 		Expires:  time.Now().Add(TokenDuration),
 	})
-}
-
-func (api *API) validateCredentials(username, password string) bool {
-	existingUser := &user.User{Username: username, Password: password}
-	return existingUser.Authenticate(api.DBManager.Conn)
 }
