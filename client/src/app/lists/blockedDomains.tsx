@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { GetRequest } from "@/util";
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 async function removeDomain(domain: string) {
   const [status, response] = await GetRequest(
@@ -66,7 +66,7 @@ export default function BlockedDomainsList({ listName }) {
 
       <div className="flex gap-2 mb-4 flex-col md:flex-row">
         <div className="relative flex-1">
-          <MagnifyingGlass className="absolute left-2 top-2 h-4 w-4 text-zinc-400" />
+          <MagnifyingGlassIcon className="absolute left-2 top-2 h-4 w-4 text-zinc-400" />
           <Input
             placeholder="Search domains..."
             value={searchTerm}
@@ -101,7 +101,7 @@ export default function BlockedDomainsList({ listName }) {
                     onClick={() => deleteDomain(domain)}
                     className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
                   >
-                    <X className="h-4 w-4" />
+                    <XIcon className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
