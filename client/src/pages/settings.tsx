@@ -330,10 +330,8 @@ export function Settings() {
   return (
     <>
       <div
-        className="container mx-auto px-4 py-8 space-y-6
+        className="container mx-auto space-y-6
         w-full
-        md:w-4/5
-        lg:w-3/4
         xl:w-1/2"
       >
         {SETTINGS_SECTIONS.map(({ title, description, settings }) => (
