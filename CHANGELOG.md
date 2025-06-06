@@ -1,3 +1,10 @@
+## [0.49.8](https://github.com/pommee/goaway/compare/v0.49.7...v0.49.8) (2025-06-06)
+
+
+### Bug Fixes
+
+* rework flags and remove remote pull of config as it is now created with defaults locally ([7c502da](https://github.com/pommee/goaway/commit/7c502daca18d2bafd7fe3026ebcf5048598a050c))
+
 ## [0.49.7](https://github.com/pommee/goaway/compare/v0.49.6...v0.49.7) (2025-06-02)
 
 
