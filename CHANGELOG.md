@@ -1,3 +1,11 @@
+## [0.49.10](https://github.com/pommee/goaway/compare/v0.49.9...v0.49.10) (2025-06-06)
+
+
+### Bug Fixes
+
+* bump client dependencies ([aac1800](https://github.com/pommee/goaway/commit/aac18008107a8807713a72397dd7feadbf8844ef))
+* bump go version and dependencies ([030735c](https://github.com/pommee/goaway/commit/030735c09e8dc29cb06e78adc9785f47f0e7ec1c))
+
 ## [0.49.9](https://github.com/pommee/goaway/compare/v0.49.8...v0.49.9) (2025-06-06)
 
 
