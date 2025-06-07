@@ -9,19 +9,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
+  CheckCircleIcon,
   DatabaseIcon,
   GlobeIcon,
   InfoIcon,
+  MagnifyingGlassIcon,
+  NetworkIcon,
   PlusIcon,
   TrashIcon
 } from "@phosphor-icons/react";
@@ -131,7 +126,7 @@ export function Resolution() {
           <h1 className="text-2xl font-bold tracking-tight">
             Custom DNS Resolutions
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Map custom domains to specific IP addresses
           </p>
         </div>
@@ -152,13 +147,13 @@ export function Resolution() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="domain" className="font-medium">
                 Domain name
               </Label>
               <div className="relative">
-                <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="domain"
                   placeholder="example.local"
@@ -166,52 +161,9 @@ export function Resolution() {
                   value={domainName}
                   onChange={(e) => setDomainName(e.target.value)}
                 />
-              </div>
-
-              <div className="bg-stone-900 border rounded-lg p-2 w-fit">
-                <div className="flex items-start gap-3">
-                  <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-muted-foreground text-sm">
-                        Use wildcards to match multiple subdomains with a single
-                        rule
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="bg-stone-950 rounded-md p-3 border">
-                        <div className="flex items-center justify-between mb-1">
-                          <code className="text-sm font-mono bg-stone-800 px-2 py-1 rounded text-white">
-                            *.example.local
-                          </code>
-                          <span className="text-xs text-green-600 font-medium">
-                            ✓ Matches
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div>
-                            • <code>app.example.local</code>
-                          </div>
-                          <div>
-                            • <code>api.example.local</code>
-                          </div>
-                          <div>
-                            • <code>test.example.local</code>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                      <p className="text-xs text-amber-300">
-                        <strong>Note:</strong> Wildcards match only one
-                        subdomain level. Use separate rules for nested
-                        subdomains.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Domain name to use, supports wildcard.
+                </p>
               </div>
             </div>
 
@@ -225,45 +177,105 @@ export function Resolution() {
                 value={ip}
                 onChange={(e) => setIP(e.target.value)}
               />
-              <p className="text-sm text-gray-500 mt-2">
-                IPv4 address where matching domains will resolve
+              <p className="text-sm text-muted-foreground mt-1">
+                IPv4 / IPv6 address where domains will resolve
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-medium text-transparent">Action</Label>
+              <Button
+                variant="default"
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleSave}
+                disabled={submitting || !domainName || !ip}
+              >
+                {submitting ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Resolution"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-gradient-to-br from-blue-900/20 to-blue-800/30 border rounded-xl p-3">
+            <div className="flex items-start gap-3">
+              <InfoIcon className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div>
+                  <h4 className="text-white font-medium mb-1">
+                    Wildcard Matching
+                  </h4>
+                  <p className="text-stone-300 text-sm leading-relaxed">
+                    Use wildcards to match multiple subdomains with a single
+                    rule
+                  </p>
+                </div>
+
+                <div className="bg-stone-950/50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <code className="text-sm font-mono bg-stone-800/80 px-2 py-1 rounded text-blue-300 font-medium">
+                      *.example.local
+                    </code>
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircleIcon className="h-3 w-3" />
+                      <span className="text-xs font-medium">Matches</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+                    {[
+                      "app.example.local",
+                      "my.app.example.local",
+                      "sub1.sub2.sub3.example.local"
+                    ].map((domain, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                      >
+                        <div className="w-1 h-1 bg-stone-500 rounded-full"></div>
+                        <code className="text-stone-300 font-mono truncate">
+                          {domain}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
-        <div className="flex justify-end px-6">
-          <Button
-            variant="default"
-            className="bg-green-600 hover:bg-green-700 text-white"
-            onClick={handleSave}
-            disabled={submitting || !domainName || !ip}
-          >
-            {submitting ? (
-              <>
-                <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Resolution"
-            )}
-          </Button>
-        </div>
       </Card>
 
-      <Card className="shadow-md">
-        <CardHeader className="pb-2">
+      <Card>
+        <CardHeader className="pb-2 border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <DatabaseIcon className="h-5 w-5 text-blue-500" />
-              Current Resolutions
+            <CardTitle className="flex items-center gap-3">
+              <div className="bg-blue-500/20 p-2 rounded-lg">
+                <DatabaseIcon className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <span className="text-white">Current Resolutions</span>
+                <p className="text-sm text-muted-foreground font-normal mt-0.5">
+                  {resolutions.length} active{" "}
+                  {resolutions.length === 1 ? "mapping" : "mappings"}
+                </p>
+              </div>
             </CardTitle>
-            <div className="w-64">
-              <Input
-                placeholder="Search domains or IPs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="text-sm"
-              />
+            <div className="w-72">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search domains or IPs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 text-white"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -271,63 +283,77 @@ export function Resolution() {
           {loading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-4 bg-stone-800/30 rounded-lg border border-stone"
+                >
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-48 bg-stone-600/50" />
+                    <Skeleton className="h-4 w-24 bg-stone-600/50" />
                   </div>
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-8 w-8 rounded-full bg-stone-600/50" />
                 </div>
               ))}
             </div>
           ) : filteredResolutions.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Domain</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredResolutions.map((resolution) => (
-                  <TableRow
-                    key={resolution.domain}
-                    className="hover:bg-stone-800"
-                  >
-                    <TableCell className="font-medium text-white">
-                      {resolution.domain}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {resolution.ip}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-stone-700"
-                        onClick={() =>
-                          handleDelete(resolution.domain, resolution.ip)
-                        }
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="divide-y divide-stone">
+              {filteredResolutions.map((resolution) => (
+                <div
+                  key={resolution.domain}
+                  className="group flex items-center justify-between p-2 hover:bg-stone-900/40 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="flex-shrink-0">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <GlobeIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                        <span className="font-medium text-white truncate">
+                          {resolution.domain}
+                        </span>
+                        {resolution.domain.includes("*") && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                            Wildcard
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <NetworkIcon />
+                        <code className="font-mono text-white bg-stone-800/50 px-2 py-0.5 rounded">
+                          {resolution.ip}
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() =>
+                        handleDelete(resolution.domain, resolution.ip)
+                      }
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <DatabaseIcon className="h-12 w-12 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-400">
+            <div className="flex flex-col items-center justify-center py-4 text-center">
+              <div className="bg-stone-800/50 p-4 rounded-full mb-4">
+                <DatabaseIcon className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium text-stone-300 mb-2">
                 No resolutions found
               </h3>
-              <p className="text-gray-500 mt-1">
+              <p className="text-muted-foreground max-w-sm">
                 {searchTerm
-                  ? "No matching entries for your search"
-                  : "Add a new resolution to get started"}
+                  ? "No matching entries for your search term. Try a different keyword."
+                  : "Get started by adding your first custom DNS resolution above."}
               </p>
             </div>
           )}
