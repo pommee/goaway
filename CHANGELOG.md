@@ -1,3 +1,10 @@
+## [0.50.4](https://github.com/pommee/goaway/compare/v0.50.3...v0.50.4) (2025-06-07)
+
+
+### Bug Fixes
+
+* add wildcard for resolution ([c7e9558](https://github.com/pommee/goaway/commit/c7e9558eb4de2244f5c13137b88d3afa52dea2b2))
+
 ## [0.50.3](https://github.com/pommee/goaway/compare/v0.50.2...v0.50.3) (2025-06-06)
 
 
