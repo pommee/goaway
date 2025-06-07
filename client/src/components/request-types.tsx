@@ -14,7 +14,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { GetRequest } from "@/util";
-import { useEffect, useState } from "react";
+import { SetStateAction, useEffect, useState } from "react";
 import {
   Pie,
   PieChart,
@@ -38,7 +38,7 @@ type QueryType = {
 };
 
 export default function RequestTypeChart() {
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<QueryType[]>([]);
   const [chartType, setChartType] = useState("radar");
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function RequestTypeChart() {
         const formattedData = data.queries.map(
           (request: QueryType, index: number) => ({
             count: request.count,
-            requestType: request.queryType,
+            queryType: request.queryType,
             fill: colors[index % colors.length]
           })
         );
@@ -68,7 +68,7 @@ export default function RequestTypeChart() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleChartTypeChange = (value) => {
+  const handleChartTypeChange = (value: SetStateAction<string>) => {
     setChartType(value);
   };
 
@@ -88,6 +88,27 @@ export default function RequestTypeChart() {
           </Select>
         </div>
       </CardHeader>
+      {chartData.length > 0 && (
+        <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-1 px-4">
+          {chartData.map((item: QueryType) => (
+            <div
+              key={item.queryType}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+            >
+              <div
+                className="w-3 h-3 rounded-full shadow-sm"
+                style={{ backgroundColor: item.fill }}
+              />
+              <span className="text-xs font-medium text-foreground">
+                {item.queryType}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ({item.count})
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {chartData.length > 0 ? (
         <CardContent className="flex-1 pb-0">
           {chartType === "radar" ? (

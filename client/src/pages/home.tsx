@@ -1,7 +1,7 @@
 import FrequencyChartBlockedDomains from "@/components/FrequencyChartBlockedDomains";
 import FrequencyChartTopBlockedClients from "@/components/FrequencyChartTopBlockedClients";
 import MetricsCards from "@/components/metrics-card";
-import PieChartRequestType from "@/components/pie-chart";
+import PieChartRequestType from "@/components/request-types";
 import RequestTimeline from "@/components/request-timeline";
 
 export function Home() {
