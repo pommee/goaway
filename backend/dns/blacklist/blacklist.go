@@ -490,7 +490,9 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query source statistics: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	stats := make(map[string]SourceStats, 5)
 
