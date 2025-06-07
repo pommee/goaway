@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { Button } from "./ui/button";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 type TopBlockedDomains = {
   frequency: number;
@@ -112,28 +112,25 @@ export default function FrequencyChartBlockedDomains() {
           <CardTitle className="text-xl font-bold">
             Top Blocked Domains
           </CardTitle>
-          <div className="flex space-x-2">
-            <Button
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                sortBy === "frequency"
-                  ? "bg-stone-800 text-white"
-                  : "bg-stone-500 text-white"
-              }`}
-              onClick={() => setSortBy("frequency")}
-            >
-              Frequency
-            </Button>
-            <Button
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                sortBy === "hits"
-                  ? "bg-stone-800 text-white"
-                  : "bg-stone-500 text-white"
-              }`}
-              onClick={() => setSortBy("hits")}
-            >
-              Hits
-            </Button>
-          </div>
+          <Tabs
+            value={sortBy}
+            onValueChange={(value) => setSortBy(value as "frequency" | "hits")}
+          >
+            <TabsList>
+              <TabsTrigger
+                value="frequency"
+                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+              >
+                Frequency
+              </TabsTrigger>
+              <TabsTrigger
+                value="hits"
+                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+              >
+                Hits
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">

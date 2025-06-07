@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GetRequest } from "@/util";
 import { Warning } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
@@ -113,28 +113,27 @@ export default function FrequencyChartTopBlockedClients() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl font-bold">Top Clients</CardTitle>
-          <div className="flex space-x-2">
-            <Button
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                sortBy === "frequency"
-                  ? "bg-stone-800 text-white"
-                  : "bg-stone-500 text-white"
-              }`}
-              onClick={() => setSortBy("frequency")}
-            >
-              Frequency
-            </Button>
-            <Button
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                sortBy === "requestCount"
-                  ? "bg-stone-800 text-white"
-                  : "bg-stone-500 text-white"
-              }`}
-              onClick={() => setSortBy("requestCount")}
-            >
-              Requests
-            </Button>
-          </div>
+          <Tabs
+            value={sortBy}
+            onValueChange={(value) =>
+              setSortBy(value as "frequency" | "requestCount")
+            }
+          >
+            <TabsList>
+              <TabsTrigger
+                value="frequency"
+                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+              >
+                Frequency
+              </TabsTrigger>
+              <TabsTrigger
+                value="requestCount"
+                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+              >
+                Requests
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
