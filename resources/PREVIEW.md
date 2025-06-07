@@ -14,9 +14,17 @@ Here are some preview images of the `goaway` dashboard.
 
 <img src="./lists.png" alt="Lists Preview" width="100%">
 
-## resolution
+## Resolution
 
 <img src="./resolution.png" alt="resolution Preview" width="100%">
+
+## Prefetch
+
+<img src="./prefetch.png" alt="Prefetch Preview" width="100%">
+
+## Upstream
+
+<img src="./upstream.png" alt="Upstream Preview" width="100%">
 
 ## Clients
 
