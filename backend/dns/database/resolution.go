@@ -37,10 +37,10 @@ func FetchResolutions(db *sql.DB) ([]models.Resolution, error) {
 }
 
 func FetchResolution(db *sql.DB, domain string) (string, error) {
+	var foundDomain string
 	domain = strings.TrimSuffix(domain, ".")
 
 	query := "SELECT ip FROM resolution WHERE domain = ?"
-	var foundDomain string
 	err := db.QueryRow(query, domain).Scan(&foundDomain)
 	if err == nil {
 		return foundDomain, nil
@@ -50,10 +50,10 @@ func FetchResolution(db *sql.DB, domain string) (string, error) {
 	}
 
 	parts := strings.Split(domain, ".")
-	if len(parts) > 1 {
-		baseDomain := "*." + strings.Join(parts[1:], ".")
+	for i := 1; i < len(parts); i++ {
+		wildcardDomain := "*." + strings.Join(parts[i:], ".")
 
-		err = db.QueryRow(query, baseDomain).Scan(&foundDomain)
+		err = db.QueryRow(query, wildcardDomain).Scan(&foundDomain)
 		if err == nil {
 			return foundDomain, nil
 		}

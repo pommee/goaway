@@ -93,14 +93,21 @@ func TestFetchResolution(t *testing.T) {
 	}
 	defer removeTestDB(dbManager)
 
-	_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", "192.168.1.1", "example.com")
-	if err != nil {
-		t.Fatalf("Failed to insert exact domain: %v", err)
+	testData := []struct {
+		ip     string
+		domain string
+	}{
+		{"192.168.1.1", "example.com"},
+		{"127.0.0.1", "*.google.com"},
+		{"10.0.0.1", "*.sub1.example.com"},
+		{"172.16.0.1", "*.example.com"},
 	}
 
-	_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", "127.0.0.1", "*.google.com")
-	if err != nil {
-		t.Fatalf("Failed to insert wildcard domain: %v", err)
+	for _, data := range testData {
+		_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", data.ip, data.domain)
+		if err != nil {
+			t.Fatalf("Failed to insert domain %s: %v", data.domain, err)
+		}
 	}
 
 	tests := []struct {
@@ -114,9 +121,24 @@ func TestFetchResolution(t *testing.T) {
 			expected: "192.168.1.1",
 		},
 		{
-			name:     "Wildcard match",
+			name:     "Single level wildcard",
 			domain:   "somethingrandom.google.com",
 			expected: "127.0.0.1",
+		},
+		{
+			name:     "Multi-level subdomain",
+			domain:   "sub2.sub1.example.com",
+			expected: "10.0.0.1",
+		},
+		{
+			name:     "Multi-level subdomain",
+			domain:   "sub3.sub2.example.com",
+			expected: "172.16.0.1",
+		},
+		{
+			name:     "Deep nesting",
+			domain:   "a.b.c.sub1.example.com",
+			expected: "10.0.0.1",
 		},
 		{
 			name:     "No match",
