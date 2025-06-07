@@ -12,7 +12,7 @@ import {
   Spinner,
   UserCircle
 } from "@phosphor-icons/react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -61,6 +61,7 @@ export function Login({
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [responseData, setResponseData] = useState<Metrics>();
+  const passwordRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,6 +85,10 @@ export function Login({
       );
 
       if (statusCode === 200) {
+        if (rememberMe) {
+          localStorage.setItem("loginUsername", username);
+        }
+
         navigate("/");
       }
     } catch (error) {
@@ -102,6 +107,16 @@ export function Login({
       } catch {
         return;
       }
+    }
+
+    const rememberedLoginUsername = localStorage.getItem("loginUsername");
+    if (rememberedLoginUsername) {
+      setUsername(rememberedLoginUsername);
+      setRememberMe(true);
+
+      setTimeout(() => {
+        passwordRef.current?.focus();
+      }, 0);
     }
 
     fetchData();
@@ -155,6 +170,7 @@ export function Login({
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
                       <Input
                         id="password"
+                        ref={passwordRef}
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         required
@@ -180,14 +196,19 @@ export function Login({
                     <Checkbox
                       id="remember"
                       checked={rememberMe}
-                      onCheckedChange={(checked) =>
-                        setRememberMe(checked as boolean)
-                      }
-                      className="border-zinc-700 text-indigo-500 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 transition-colors duration-200"
+                      onCheckedChange={(checked) => {
+                        const isChecked = checked === true;
+                        setRememberMe(isChecked);
+                        if (!isChecked) {
+                          localStorage.removeItem("loginUsername");
+                        }
+                      }}
+                      className="data-[state=checked]:!bg-green-600 !border-stone-500 transition-colors duration-200 cursor-pointer !text-white"
                     />
+
                     <Label
                       htmlFor="remember"
-                      className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-sm font-medium leading-none text-white cursor-pointer"
                     >
                       Remember me
                     </Label>
