@@ -2,48 +2,7 @@
   "branches": ["main"],
   "plugins": [
     "@semantic-release/commit-analyzer",
-    [
-      "@semantic-release/release-notes-generator",
-      {
-        "preset": "conventionalcommits",
-        "presetConfig": {
-          "types": [
-            {
-              "type": "feat",
-              "section": "Features"
-            },
-            {
-              "type": "fix",
-              "section": "Bug Fixes"
-            },
-            {
-              "type": "ui",
-              "section": "Dashboard"
-            },
-            {
-              "type": "chore",
-              "section": "Maintenance",
-              "hidden": false
-            },
-            {
-              "type": "docs",
-              "section": "Documentation",
-              "hidden": false
-            },
-            {
-              "type": "perf",
-              "section": "Performance Improvements",
-              "hidden": false
-            },
-            {
-              "type": "build",
-              "section": "Build System",
-              "hidden": false
-            }
-          ]
-        }
-      }
-    ],
+    "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
     "@semantic-release/github",
     [
