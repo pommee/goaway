@@ -85,3 +85,61 @@ func BenchmarkQueryRequestLog(b *testing.B) {
 		_ = rows.Close()
 	}
 }
+
+func TestFetchResolution(t *testing.T) {
+	dbManager, err := createTestDB()
+	if err != nil {
+		t.Fatalf("Failed to create test database: %v", err)
+	}
+	defer removeTestDB(dbManager)
+
+	_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", "192.168.1.1", "example.com")
+	if err != nil {
+		t.Fatalf("Failed to insert exact domain: %v", err)
+	}
+
+	_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", "127.0.0.1", "*.google.com")
+	if err != nil {
+		t.Fatalf("Failed to insert wildcard domain: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		domain   string
+		expected string
+	}{
+		{
+			name:     "Exact match",
+			domain:   "example.com",
+			expected: "192.168.1.1",
+		},
+		{
+			name:     "Wildcard match",
+			domain:   "somethingrandom.google.com",
+			expected: "127.0.0.1",
+		},
+		{
+			name:     "No match",
+			domain:   "nonexistent.com",
+			expected: "",
+		},
+		{
+			name:     "Trailing dot removed",
+			domain:   "example.com.",
+			expected: "192.168.1.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := database.FetchResolution(dbManager.Conn, tt.domain)
+			if err != nil {
+				t.Fatalf("FetchResolution failed: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
