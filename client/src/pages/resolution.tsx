@@ -18,7 +18,13 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
-import { Database, Globe, Plus, Spinner, Trash } from "@phosphor-icons/react";
+import {
+  DatabaseIcon,
+  GlobeIcon,
+  InfoIcon,
+  PlusIcon,
+  TrashIcon
+} from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -43,10 +49,11 @@ async function CreateResolution(domain: string, ip: string) {
 
 async function DeleteResolution(domain: string, ip: string) {
   const [code, response] = await DeleteRequest(
-    `resolution?domain=${domain}&ip=${ip}`
+    `resolution?domain=${domain}&ip=${ip}`,
+    null
   );
   if (code === 200) {
-    toast.success(`${domain} has been deleted!`);
+    toast.success(`${domain} was deleted!`);
     return true;
   } else {
     toast.error(response.error);
@@ -129,7 +136,7 @@ export function Resolution() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Database className="h-3 w-3" />
+          <DatabaseIcon className="h-3 w-3" />
           {resolutions.length} {resolutions.length === 1 ? "Entry" : "Entries"}
         </div>
       </div>
@@ -137,7 +144,7 @@ export function Resolution() {
       <Card className="shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-green-500" />
+            <PlusIcon className="h-5 w-5 text-green-500" />
             Add New Resolution
           </CardTitle>
           <CardDescription>
@@ -145,13 +152,13 @@ export function Resolution() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="domain" className="font-medium">
                 Domain name
               </Label>
               <div className="relative">
-                <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="domain"
                   placeholder="example.local"
@@ -160,7 +167,54 @@ export function Resolution() {
                   onChange={(e) => setDomainName(e.target.value)}
                 />
               </div>
+
+              <div className="bg-stone-900 border rounded-lg p-2 w-fit">
+                <div className="flex items-start gap-3">
+                  <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-muted-foreground text-sm">
+                        Use wildcards to match multiple subdomains with a single
+                        rule
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="bg-stone-950 rounded-md p-3 border">
+                        <div className="flex items-center justify-between mb-1">
+                          <code className="text-sm font-mono bg-stone-800 px-2 py-1 rounded text-white">
+                            *.example.local
+                          </code>
+                          <span className="text-xs text-green-600 font-medium">
+                            ✓ Matches
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>
+                            • <code>app.example.local</code>
+                          </div>
+                          <div>
+                            • <code>api.example.local</code>
+                          </div>
+                          <div>
+                            • <code>test.example.local</code>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                      <p className="text-xs text-amber-300">
+                        <strong>Note:</strong> Wildcards match only one
+                        subdomain level. Use separate rules for nested
+                        subdomains.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="ip" className="font-medium">
                 IP Address
@@ -171,19 +225,22 @@ export function Resolution() {
                 value={ip}
                 onChange={(e) => setIP(e.target.value)}
               />
+              <p className="text-sm text-gray-500 mt-2">
+                IPv4 address where matching domains will resolve
+              </p>
             </div>
           </div>
         </CardContent>
-        <div className="flex justify-end items-end">
+        <div className="flex justify-end px-6">
           <Button
             variant="default"
-            className="mr-5 bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleSave}
             disabled={submitting || !domainName || !ip}
           >
             {submitting ? (
               <>
-                <Spinner className="h-4 w-4 mr-2 animate-spin" />
+                <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Saving...
               </>
             ) : (
@@ -197,7 +254,7 @@ export function Resolution() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-blue-500" />
+              <DatabaseIcon className="h-5 w-5 text-blue-500" />
               Current Resolutions
             </CardTitle>
             <div className="w-64">
@@ -253,7 +310,7 @@ export function Resolution() {
                           handleDelete(resolution.domain, resolution.ip)
                         }
                       >
-                        <Trash className="h-4 w-4" />
+                        <TrashIcon className="h-4 w-4" />
                         <span className="sr-only">Delete</span>
                       </Button>
                     </TableCell>
@@ -263,7 +320,7 @@ export function Resolution() {
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Database className="h-12 w-12 text-gray-300 mb-4" />
+              <DatabaseIcon className="h-12 w-12 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-400">
                 No resolutions found
               </h3>
