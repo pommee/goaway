@@ -25,35 +25,36 @@ import {
 } from "@/components/ui/sidebar";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
-  Clock,
-  DotsThreeOutline,
-  Info,
-  Pause,
-  PlayCircle,
-  Rss
+  ClockIcon,
+  CloudArrowUpIcon,
+  DotsThreeOutlineIcon,
+  InfoIcon,
+  PauseIcon,
+  PlayCircleIcon
 } from "@phosphor-icons/react";
 import { JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Metrics } from "./server-statistics";
 import { Input } from "./ui/input";
+import { compare } from "compare-versions";
 
 const data = [
   [
     {
       label: "About",
-      icon: Info,
+      icon: InfoIcon,
       dialog: AboutDialog
     },
     {
-      label: "[WIP] Check for update",
-      icon: Rss,
+      label: "Check for update",
+      icon: CloudArrowUpIcon,
       dialog: UpdateDialog
     }
   ],
   [
     {
       label: "Blocking",
-      icon: Pause,
+      icon: PauseIcon,
       dialog: PauseBlockingDialog
     }
   ]
@@ -115,14 +116,30 @@ function AboutDialog() {
 }
 
 function UpdateDialog() {
-  return (
-    <DialogContent className="w-1/2">
-      <DialogHeader>
-        <DialogTitle>Check for Updates</DialogTitle>
-        <DialogDescription>Checking for a new version...</DialogDescription>
-      </DialogHeader>
-    </DialogContent>
-  );
+  useEffect(() => {
+    const installedVersion = localStorage.getItem("installedVersion");
+
+    async function lookForUpdate() {
+      try {
+        localStorage.setItem("lastUpdateCheck", Date.now().toString());
+        const response = await fetch(
+          "https://api.github.com/repos/pommee/goaway/tags"
+        );
+        const data = await response.json();
+        const latestVersion = data[0].name.replace("v", "");
+        localStorage.setItem("latestVersion", latestVersion);
+
+        if (compare(latestVersion, installedVersion, "<=")) {
+          toast.info("No new version found!");
+        }
+      } catch (error) {
+        console.error("Failed to check for updates:", error);
+        return null;
+      }
+    }
+
+    lookForUpdate();
+  });
 }
 
 export default function PauseBlockingDialog() {
@@ -198,7 +215,7 @@ export default function PauseBlockingDialog() {
   const handleRemovePause = async () => {
     setIsLoading(true);
     try {
-      const [status] = await DeleteRequest("pause");
+      const [status] = await DeleteRequest("pause", null);
 
       if (status === 200) {
         toast.success("Blocking resumed");
@@ -220,7 +237,7 @@ export default function PauseBlockingDialog() {
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <Clock className="text-blue-400" />
+          <ClockIcon className="text-blue-400" />
           {pauseStatus?.paused ? "Blocking Paused" : "Pause Blocking"}
         </DialogTitle>
         <DialogDescription className="text-sm text-gray-500">
@@ -269,7 +286,7 @@ export default function PauseBlockingDialog() {
             disabled={isLoading}
             className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
           >
-            <PlayCircle size={18} />
+            <PlayCircleIcon size={18} />
             {isLoading ? "Resuming..." : "Resume Blocking Now"}
           </Button>
         </DialogFooter>
@@ -293,7 +310,7 @@ export function NavActions() {
             size="icon"
             className="h-7 w-7 data-[state=open]:bg-accent"
           >
-            <DotsThreeOutline />
+            <DotsThreeOutlineIcon />
           </Button>
         </PopoverTrigger>
         <PopoverContent

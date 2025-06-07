@@ -1,4 +1,4 @@
-import { GithubLogo } from "@phosphor-icons/react";
+import { GithubLogo, WarningCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -129,17 +129,7 @@ const Changelog = () => {
     return (
       <div className="p-6 text-red-500 bg-red-900 bg-opacity-20 rounded-md border border-red-700 flex items-center justify-center">
         <div className="flex flex-col items-center">
-          <svg
-            className="w-12 h-12 mb-2"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <WarningCircleIcon size={48} />
           <div className="text-lg font-semibold">Failed to load changelog</div>
           <div className="text-sm mt-1">{error}</div>
           <button
