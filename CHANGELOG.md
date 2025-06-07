@@ -1,3 +1,10 @@
+## [0.50.5](https://github.com/pommee/goaway/compare/v0.50.4...v0.50.5) (2025-06-07)
+
+
+### Bug Fixes
+
+* support deeply nested subdomains in wildcard resolution ([1ca3140](https://github.com/pommee/goaway/commit/1ca3140fadcab16733808b8ea5261446966f1638))
+
 ## [0.50.4](https://github.com/pommee/goaway/compare/v0.50.3...v0.50.4) (2025-06-07)
 
 
