@@ -133,17 +133,18 @@ export default function FrequencyChartBlockedDomains() {
           </Tabs>
         </div>
       </CardHeader>
-      <CardContent className="h-[calc(100%-80px)]">
+      <CardContent className="h-[calc(100%)]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
           </div>
         ) : sortedData.length > 0 ? (
-          <ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={sortedData}
               layout="vertical"
-              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              margin={{ right: 50 }}
+              barCategoryGap="10%"
               barSize={16}
             >
               <XAxis
@@ -156,7 +157,7 @@ export default function FrequencyChartBlockedDomains() {
               <YAxis
                 dataKey="name"
                 type="category"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, textAnchor: "end" }}
                 tickLine={false}
                 axisLine={false}
                 width={150}
@@ -167,18 +168,23 @@ export default function FrequencyChartBlockedDomains() {
                 content={<CustomTooltip />}
                 cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
               />
-              <Bar dataKey={sortBy} radius={[0, 4, 4, 0]}>
+              <Bar dataKey={sortBy} radius={[0, 6, 6, 0]} maxBarSize={24}>
                 {sortedData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill="cornflowerblue" />
                 ))}
                 <LabelList
                   dataKey={sortBy}
+                  position="right"
+                  offset={8}
                   formatter={(value: number) =>
                     sortBy === "frequency"
                       ? `${value.toFixed(1)}%`
                       : value.toLocaleString()
                   }
-                  style={{ fontSize: "14px", fill: "white" }}
+                  style={{
+                    fontSize: "12px",
+                    fill: "#616161"
+                  }}
                 />
               </Bar>
             </BarChart>
