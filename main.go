@@ -169,6 +169,7 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 			Config:                   config,
 			DBManager:                dnsServer.DBManager,
 			Blacklist:                dnsServer.Blacklist,
+			Whitelist:                dnsServer.Whitelist,
 			WSQueries:                dnsServer.WSQueries,
 			WSCommunication:          dnsServer.WSCommunication,
 			DNSPort:                  config.DNS.Port,

@@ -21,8 +21,8 @@ import (
 
 	"goaway/backend/api/key"
 	"goaway/backend/api/user"
-	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/database"
+	"goaway/backend/dns/lists"
 	"goaway/backend/dns/server"
 	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
@@ -50,7 +50,8 @@ type API struct {
 	routes *gin.RouterGroup
 
 	DBManager                *database.DatabaseManager
-	Blacklist                *blacklist.Blacklist
+	Blacklist                *lists.Blacklist
+	Whitelist                *lists.Whitelist
 	KeyManager               *key.ApiKeyManager
 	PrefetchedDomainsManager *prefetch.Manager
 	Notifications            *notification.Manager
@@ -105,6 +106,7 @@ func (api *API) setupRoutes() {
 	api.registerServerRoutes()
 	api.registerAuthRoutes()
 	api.registerBlacklistRoutes()
+	api.registerWhitelistRoutes()
 	api.registerClientRoutes()
 	api.registerDNSRoutes()
 	api.registerUpstreamRoutes()

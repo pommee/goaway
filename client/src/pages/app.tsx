@@ -4,7 +4,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import Changelog from "./changelog";
 import { Clients } from "./clients";
-import { Lists } from "./lists";
+import { Blacklist } from "./blacklist";
 import { Login } from "./login";
 import { Home } from "./home";
 import { Logs } from "./logs";
@@ -14,6 +14,7 @@ import { Resolution } from "./resolution";
 import { Upstream } from "./upstream";
 import { AnimatePresence, motion } from "motion/react";
 import { Prefetch } from "./prefetch";
+import { Whitelist } from "./whitelist";
 
 function PageLoader() {
   return (
@@ -103,10 +104,18 @@ function App() {
               }
             />
             <Route
-              path="/lists"
+              path="/blacklist"
               element={
                 <PageTransition>
-                  <Lists />
+                  <Blacklist />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/whitelist"
+              element={
+                <PageTransition>
+                  <Whitelist />
                 </PageTransition>
               }
             />

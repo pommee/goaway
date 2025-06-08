@@ -7,7 +7,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { ListEntry } from "@/pages/lists";
+import { ListEntry } from "@/pages/blacklist";
 import { DeleteRequest, GetRequest } from "@/util";
 import {
   ArrowsClockwise,

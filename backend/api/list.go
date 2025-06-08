@@ -202,7 +202,7 @@ func (api *API) handleUpdateBlockStatus(c *gin.Context) {
 	}
 
 	action := map[string]func(string) error{
-		"true":  api.Blacklist.AddDomain,
+		"true":  api.Blacklist.AddBlacklistedDomain,
 		"false": api.Blacklist.RemoveDomain,
 	}[blocked]
 

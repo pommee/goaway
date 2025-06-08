@@ -13,7 +13,7 @@ export type ListEntry = {
   lastUpdated: number;
 };
 
-export function Lists() {
+export function Blacklist() {
   const [lists, setLists] = useState<ListEntry[]>([]);
 
   useEffect(() => {

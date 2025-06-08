@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ListEntry } from "@/pages/lists";
+import { ListEntry } from "@/pages/blacklist";
 import { CardDetails } from "./details";
 import { Clock, ShieldSlash } from "@phosphor-icons/react";
 

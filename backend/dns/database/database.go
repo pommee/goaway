@@ -29,6 +29,11 @@ func Initialize() (*DatabaseManager, error) {
 		return nil, fmt.Errorf("failed to create blacklist table: %w", err)
 	}
 
+	err = NewWhitelistTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create whitelist table: %w", err)
+	}
+
 	err = NewSourcesTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sources table: %w", err)
@@ -79,6 +84,19 @@ func NewBlacklistTable(db *sql.DB) error {
             source_id INTEGER,
             PRIMARY KEY (domain, source_id),
             FOREIGN KEY (source_id) REFERENCES sources(id)
+        )
+    `)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewWhitelistTable(db *sql.DB) error {
+	_, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS whitelist (
+            domain TEXT PRIMARY KEY
         )
     `)
 	if err != nil {

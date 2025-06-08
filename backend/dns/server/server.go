@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"goaway/backend/dns/blacklist"
 	"goaway/backend/dns/database"
+	"goaway/backend/dns/lists"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
 	notification "goaway/backend/notifications"
@@ -27,7 +27,8 @@ type MacVendor struct {
 
 type DNSServer struct {
 	Config              *settings.Config
-	Blacklist           *blacklist.Blacklist
+	Blacklist           *lists.Blacklist
+	Whitelist           *lists.Whitelist
 	DBManager           *database.DatabaseManager
 	logIntervalSeconds  int
 	lastLogTime         time.Time
@@ -74,14 +75,20 @@ type communicationMessage struct {
 }
 
 func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
-	blacklistEntry, err := blacklist.Initialize(dbManager)
+	blacklistEntry, err := lists.InitializeBlacklist(dbManager)
 	if err != nil {
 		log.Error("Failed to initialize blacklist")
+	}
+
+	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
+	if err != nil {
+		log.Error("Failed to initialize whitelist")
 	}
 
 	server := &DNSServer{
 		Config:             config,
 		Blacklist:          blacklistEntry,
+		Whitelist:          whitelistEntry,
 		DBManager:          dbManager,
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),

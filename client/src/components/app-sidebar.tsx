@@ -11,16 +11,16 @@ import {
 import { GenerateQuote } from "@/quotes";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
-  CloudArrowUp,
-  Gear,
-  House,
-  List,
-  Note,
-  Notebook,
-  PersonSimpleThrow,
-  SignOut,
-  TrafficSign,
-  Users
+  CloudArrowUpIcon,
+  GearIcon,
+  HouseIcon,
+  ListIcon,
+  NoteIcon,
+  NotebookIcon,
+  PersonSimpleThrowIcon,
+  SignOutIcon,
+  TrafficSignIcon,
+  UsersIcon
 } from "@phosphor-icons/react";
 import * as React from "react";
 import { Separator } from "./ui/separator";
@@ -32,12 +32,12 @@ const data = {
     {
       title: "Home",
       url: "/home",
-      icon: House
+      icon: HouseIcon
     },
     {
       title: "Logs",
       url: "/logs",
-      icon: Notebook
+      icon: NotebookIcon
     },
     //    {
     //      title: "Domains",
@@ -46,38 +46,48 @@ const data = {
     //    },
     {
       title: "Lists",
-      url: "/lists",
-      icon: List
+      url: "/blacklist",
+      icon: ListIcon,
+      items: [
+        {
+          title: "Blacklist",
+          url: "/blacklist"
+        },
+        {
+          title: "Whitelist",
+          url: "/whitelist"
+        }
+      ]
     },
     {
       title: "Resolution",
       url: "/resolution",
-      icon: TrafficSign
+      icon: TrafficSignIcon
     },
     {
       title: "Prefetch",
       url: "/prefetch",
-      icon: PersonSimpleThrow
+      icon: PersonSimpleThrowIcon
     },
     {
       title: "Upstream",
       url: "/upstream",
-      icon: CloudArrowUp
+      icon: CloudArrowUpIcon
     },
     {
       title: "Clients",
       url: "/clients",
-      icon: Users
+      icon: UsersIcon
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Gear
+      icon: GearIcon
     },
     {
       title: "Changelog",
       url: "/changelog",
-      icon: Note
+      icon: NoteIcon
     }
   ],
   navSecondary: [
@@ -90,7 +100,7 @@ const data = {
     {
       title: "Logout",
       url: "/login",
-      icon: SignOut,
+      icon: SignOutIcon,
       blank: ""
     }
   ]

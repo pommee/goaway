@@ -1,4 +1,4 @@
-package blacklist
+package lists
 
 import (
 	"bufio"
@@ -31,7 +31,7 @@ type SourceStats struct {
 	Active       bool   `json:"active"`
 }
 
-func Initialize(dbManager *database.DatabaseManager) (*Blacklist, error) {
+func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error) {
 	b := &Blacklist{
 		DBManager: dbManager,
 		BlocklistURL: map[string]string{
@@ -199,7 +199,7 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 	return domains, nil
 }
 
-func (b *Blacklist) AddDomain(domain string) error {
+func (b *Blacklist) AddBlacklistedDomain(domain string) error {
 	result, err := b.DBManager.Conn.Exec(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`, domain)
 	if err != nil {
 		return fmt.Errorf("failed to add domain to blacklist: %w", err)

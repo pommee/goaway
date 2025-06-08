@@ -41,7 +41,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		s.Config.DNS.Status.Paused = false
 	}
 
-	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) {
+	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) && !s.Whitelist.IsWhitelisted(domainName) {
 		return s.handleBlacklisted(request)
 	}
 
