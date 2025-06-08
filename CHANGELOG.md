@@ -1,3 +1,10 @@
+# [0.51.0](https://github.com/pommee/goaway/compare/v0.50.5...v0.51.0) (2025-06-08)
+
+
+### Features
+
+* added whitelist page ([d91ea7c](https://github.com/pommee/goaway/commit/d91ea7c0d4870cdb22562a20c0cd111204115035))
+
 ## [0.50.5](https://github.com/pommee/goaway/compare/v0.50.4...v0.50.5) (2025-06-07)
 
 
