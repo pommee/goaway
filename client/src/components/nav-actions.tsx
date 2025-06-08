@@ -79,7 +79,9 @@ function AboutDialog() {
   return (
     <DialogContent className="w-fit">
       <DialogHeader>
-        <DialogTitle>About</DialogTitle>
+        <DialogTitle className="flex">
+          <InfoIcon className="mr-2 text-blue-500" /> About
+        </DialogTitle>
         <DialogDescription />
         <div className="mt-2 text-sm text-muted-foreground">
           <div className="grid grid-cols-[auto_1fr] gap-y-1 items-center">
@@ -89,7 +91,7 @@ function AboutDialog() {
             </span>
 
             <span className="pr-2">Commit:</span>
-            <span className="text-white">
+            <span className="text-blue-400 underline cursor-pointer">
               {(responseData?.commit && (
                 <a
                   href={
@@ -98,7 +100,7 @@ function AboutDialog() {
                   }
                   target="_blank"
                 >
-                  {responseData?.commit.substring(0, 8)}
+                  {responseData?.commit}
                 </a>
               )) ||
                 "Not available"}
