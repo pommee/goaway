@@ -163,7 +163,7 @@ export function Whitelist() {
                         Adding...
                       </>
                     ) : (
-                      "Add whitelisted domain"
+                      "Add"
                     )}
                   </Button>
                 </div>
