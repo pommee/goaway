@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -56,18 +57,22 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 		}
 		expiration := int64(exp)
 
-		if now > expiration {
+		if now >= expiration {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
 			return
 		}
 
-		if now > expiration-int64(TokenDuration/2) {
+		halfDurationSeconds := int64(TokenDuration.Seconds() / 2)
+		timeUntilExpiration := expiration - now
+
+		if timeUntilExpiration <= halfDurationSeconds {
 			newToken, err := generateToken(username)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
 				return
 			}
 			setAuthCookie(c.Writer, newToken)
+			log.Debug("New token generated and cookie set")
 		}
 
 		c.Set("username", username)
@@ -77,6 +82,9 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 
 func parseToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return []byte(Secret), nil
 	})
 	if err != nil || !token.Valid {
@@ -85,7 +93,7 @@ func parseToken(tokenString string) (jwt.MapClaims, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, err
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
 	return claims, nil
@@ -111,5 +119,6 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(TokenDuration),
+		MaxAge:   int(TokenDuration.Seconds()),
 	})
 }
