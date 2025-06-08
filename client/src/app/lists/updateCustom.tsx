@@ -37,6 +37,7 @@ export function UpdateCustom() {
       .filter((line) => line !== "");
 
     SendDomains(domains);
+    setTextareaValue("");
     setDialogOpen(false);
   };
 
