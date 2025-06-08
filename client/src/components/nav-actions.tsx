@@ -43,19 +43,22 @@ const data = [
     {
       label: "About",
       icon: InfoIcon,
-      dialog: AboutDialog
+      dialog: AboutDialog,
+      color: "text-blue-600"
     },
     {
       label: "Check for update",
       icon: CloudArrowUpIcon,
-      dialog: UpdateDialog
+      dialog: UpdateDialog,
+      color: "text-yellow-600"
     }
   ],
   [
     {
       label: "Blocking",
       icon: PauseIcon,
-      dialog: PauseBlockingDialog
+      dialog: PauseBlockingDialog,
+      color: "text-red-600"
     }
   ]
 ];
@@ -304,9 +307,9 @@ export function NavActions() {
   >(null);
 
   return (
-    <div className="text-sm mr-4">
+    <div>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild className="cursor-pointer">
           <Button
             variant="ghost"
             size="icon"
@@ -328,12 +331,14 @@ export function NavActions() {
                       {group.map((item, index) => (
                         <SidebarMenuItem key={index}>
                           <SidebarMenuButton
+                            className="cursor-pointer"
                             onClick={() => {
                               setIsOpen(false);
                               setDialogComponent(() => item.dialog);
                             }}
                           >
-                            <item.icon /> <span>{item.label}</span>
+                            <item.icon className={item.color} />{" "}
+                            <span>{item.label}</span>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       ))}
