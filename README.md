@@ -188,8 +188,8 @@ make dev-server
 
 Contributions are welcomed! Here's how you can help:
 
-1. **Report Issues:** Found a bug? [Create an issue](https://github.com/pommee/goaway/issues/new)
-2. **Request Features:** Have an idea? [Start a discussion](https://github.com/pommee/goaway/discussions) or create a [feature request](https://github.com/pommee/goaway/issues/new/choose)
+1. **Report Issues:** Found a bug? [Create an issue](https://github.com/pommee/goaway/issues/new?template=bug_report.md)
+2. **Request Features:** Have an idea? [Start a discussion](https://github.com/pommee/goaway/discussions) or create a [feature request](https://github.com/pommee/goaway/issues/new?template=feature_request.md)
 3. **Submit PRs:** Fork the repo, make changes, and submit a pull request
 
 ## ⚠️ Platform Support
