@@ -1,3 +1,10 @@
+## [0.51.1](https://github.com/pommee/goaway/compare/v0.51.0...v0.51.1) (2025-06-08)
+
+
+### Bug Fixes
+
+* token improvements, dont refresh upon each request ([72dc0f2](https://github.com/pommee/goaway/commit/72dc0f20c1cba39c3896d05ee484893bffc49cc6))
+
 # [0.51.0](https://github.com/pommee/goaway/compare/v0.50.5...v0.51.0) (2025-06-08)
 
 
