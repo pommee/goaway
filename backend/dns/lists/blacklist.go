@@ -51,8 +51,11 @@ func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
 	}
 
-	_, _ = b.GetBlocklistUrls()
-	err := b.PopulateBlocklistCache()
+	_, err := b.GetBlocklistUrls()
+	if err != nil {
+		log.Error("Failed to fetch blocklist URLs: %v", err)
+	}
+	err = b.PopulateBlocklistCache()
 	if err != nil {
 		log.Error("Failed to initialize blocklist cache")
 	}
@@ -271,6 +274,7 @@ func (b *Blacklist) PopulateBlocklistCache() error {
 
 func (b *Blacklist) CountDomains() (int, error) {
 	var count int
+
 	err := b.DBManager.Conn.QueryRow(`SELECT COUNT(*) FROM blacklist`).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count domains: %w", err)
