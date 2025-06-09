@@ -62,6 +62,11 @@ func (api *API) handleServer(c *gin.Context) {
 
 func getCPUTemperature() (float64, error) {
 	tempFile := "/sys/class/thermal/thermal_zone0/temp"
+
+	if _, err := os.Stat(tempFile); os.IsNotExist(err) {
+		return 0, nil // Temperature file does not exist, return 0
+	}
+
 	data, err := os.ReadFile(tempFile)
 	if err != nil {
 		return 0, err

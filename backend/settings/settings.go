@@ -20,6 +20,7 @@ type Status struct {
 
 type Config struct {
 	DNS struct {
+		Address           string   `yaml:"address" json:"address"`
 		Port              int      `yaml:"port" json:"port"`
 		CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
 		PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
@@ -83,6 +84,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 		LogLevel:            logging.INFO,
 	}
 
+	defaultConfig.DNS.Address = "0.0.0.0"
 	defaultConfig.DNS.Port = 53
 	defaultConfig.DNS.CacheTTL = 3600
 	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"

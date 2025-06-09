@@ -33,7 +33,9 @@ func (api *API) createResolution(c *gin.Context) {
 	err := database.CreateNewResolution(api.DBManager.Conn, newResolution.IP, newResolution.Domain)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
+	api.DNSServer.RemoveCachedDomain(newResolution.Domain)
 	c.Status(http.StatusOK)
 }
 
@@ -64,5 +66,6 @@ func (api *API) deleteResolution(c *gin.Context) {
 		return
 	}
 
+	api.DNSServer.RemoveCachedDomain(domain)
 	c.JSON(http.StatusOK, gin.H{"deleted": rowsAffected})
 }
