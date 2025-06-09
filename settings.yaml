@@ -1,4 +1,6 @@
 dns:
+  # Address for the DNS server to bind to. Default all IPv4 addresses.
+  address: 0.0.0.0
   # Port used for the DNS server. Standard DNS uses port 53.
   # This is the port where the server will listen for incoming DNS queries.
   port: 53
