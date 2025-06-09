@@ -149,8 +149,8 @@ func NewRequestLogTable(db *sql.DB) error {
 
 func NewResolutionTable(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS resolution (
-		domain TEXT NOT NULL PRIMARY KEY,
-		ip TEXT
+		ip TEXT,
+		domain TEXT NOT NULL PRIMARY KEY
 	)`)
 	if err != nil {
 		return err
