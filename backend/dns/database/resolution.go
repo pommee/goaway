@@ -89,8 +89,8 @@ func CreateNewResolution(db *sql.DB, ip, domain string) error {
 
 	if _, err := stmt.Exec(ip, domain); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			log.Error("IP already exists. Reason: %v", err)
-			return fmt.Errorf("ip already exists, must me unique")
+			log.Error("Domain already exists. Reason: %v", err)
+			return fmt.Errorf("domain already exists, must me unique")
 		}
 		log.Error("Could not save resolution. Reason: %v", err)
 		return fmt.Errorf("could not create new resolution")

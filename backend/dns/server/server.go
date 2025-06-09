@@ -77,7 +77,7 @@ type communicationMessage struct {
 func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
 	blacklistEntry, err := lists.InitializeBlacklist(dbManager)
 	if err != nil {
-		log.Error("Failed to initialize blacklist")
+		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
@@ -100,16 +100,19 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 	return server, nil
 }
 
-func (s *DNSServer) Init() (int, *dns.Server) {
+func (s *DNSServer) Init() (int, *dns.Server, error) {
 	server := &dns.Server{
-		Addr:      fmt.Sprintf(":%d", s.Config.DNS.Port),
+		Addr:      fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
 		Net:       "udp",
 		Handler:   s,
 		ReusePort: true,
 	}
 
-	domains, _ := s.Blacklist.CountDomains()
-	return domains, server
+	domains, err := s.Blacklist.CountDomains()
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to count blacklisted domains: %w", err)
+	}
+	return domains, server, nil
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
