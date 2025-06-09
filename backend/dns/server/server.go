@@ -110,7 +110,7 @@ func (s *DNSServer) Init() (int, *dns.Server, error) {
 
 	domains, err := s.Blacklist.CountDomains()
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to count blacklist domains: %w", err)
+		return 0, nil, fmt.Errorf("failed to count blacklisted domains: %w", err)
 	}
 	return domains, server, nil
 }
