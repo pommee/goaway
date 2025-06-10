@@ -38,6 +38,23 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 	return nil, false
 }
 
+func (s *DNSServer) RemoveCachedDomain(domain string) {
+	if domain == "" {
+		return
+	}
+
+	s.Cache.Range(func(key, value interface{}) bool {
+		cachedRecord, ok := value.(CachedRecord)
+		if !ok || cachedRecord.Domain != domain+"." {
+			return true
+		}
+
+		log.Debug("Removing cached record for domain %s", domain)
+		s.Cache.Delete(key)
+		return true
+	})
+}
+
 func (s *DNSServer) CacheRecord(cacheKey, domain string, ipAddresses []dns.RR, ttl uint32) {
 	if len(ipAddresses) == 0 {
 		return
