@@ -1,3 +1,18 @@
+# [0.52.0](https://github.com/pommee/goaway/compare/v0.51.1...v0.52.0) (2025-06-10)
+
+
+### Bug Fixes
+
+* increase arp lookup time since this can take longer on a bigger network ([9cf0e97](https://github.com/pommee/goaway/commit/9cf0e976d2a1bb4c5b8111e838e23e3ba6018f7e))
+* log and return an error when loading a blacklist or whitelist fails. ([1943c51](https://github.com/pommee/goaway/commit/1943c51858ca3f4abd27f5b0490acca06e8f26c1))
+* make domain unique instead of IP and clear cache (issue 23) ([002569c](https://github.com/pommee/goaway/commit/002569c489cf764d0e6fcb7f6323ffb75dca0d26))
+* return 0 if temperature can't be read to reduce error logs ([6a71a30](https://github.com/pommee/goaway/commit/6a71a3035101c51fdb07e9f5b9a40e5ca7678d36))
+
+
+### Features
+
+* allow binding to a specific IP ([10bab26](https://github.com/pommee/goaway/commit/10bab2642be84d82ca817c8cdac0fb23a33a8c77))
+
 ## [0.51.1](https://github.com/pommee/goaway/compare/v0.51.0...v0.51.1) (2025-06-08)
 
 
