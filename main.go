@@ -123,7 +123,7 @@ func startServer(config *settings.Config, ansi bool) {
 
 	dbManager, err := database.Initialize()
 	if err != nil {
-		log.Error("failed while initilizing database: %v", err)
+		log.Error("failed while initializing database: %v", err)
 		os.Exit(1)
 	}
 
@@ -137,7 +137,11 @@ func startServer(config *settings.Config, ansi bool) {
 
 	go dnsServer.ProcessLogEntries()
 
-	blockedDomains, serverInstance := dnsServer.Init()
+	blockedDomains, serverInstance, err := dnsServer.Init()
+	if err != nil {
+		log.Error("Failed to initialize DNS server: %s", err)
+		os.Exit(1)
+	}
 	currentVersion := setup.GetVersionOrDefault(version)
 
 	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.API.Authentication, ansi)
