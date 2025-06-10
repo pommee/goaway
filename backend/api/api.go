@@ -49,6 +49,7 @@ type API struct {
 	router *gin.Engine
 	routes *gin.RouterGroup
 
+	DNSServer                *server.DNSServer
 	DBManager                *database.DatabaseManager
 	Blacklist                *lists.Blacklist
 	Whitelist                *lists.Whitelist
@@ -63,6 +64,7 @@ type API struct {
 func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
 	api.initializeRouter()
 	api.configureCORS()
+	api.DNSServer = dnsServer
 	api.KeyManager = key.NewApiKeyManager(dnsServer.DBManager)
 	api.setupRoutes()
 
