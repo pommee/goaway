@@ -2,9 +2,10 @@ services:
   goaway:
     image: pommee/goaway:latest
     container_name: goaway
-    build: .
-    volumes:
-      - goaway_data:/home/appuser
+    restart: unless-stopped
+    # volumes:
+    #   - /path/to/config:/app/config    # Custom settings.yaml configuration
+    #   - /path/to/data:/app/data        # Database storage location
     environment:
       - DNS_PORT=${DNS_PORT:-53}
       - WEBSITE_PORT=${WEBSITE_PORT:-8080}
@@ -15,7 +16,3 @@ services:
     cap_add:
       - NET_BIND_SERVICE
       - NET_RAW
-
-volumes:
-  goaway_data:
-    name: goaway_data

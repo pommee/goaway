@@ -49,13 +49,13 @@ func LoadSettings() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("could not determine current directory: %w", err)
 	}
-	path = filepath.Join(path, "settings.yaml")
+	path = filepath.Join(path, "config", "settings.yaml")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		log.Info("Settings file not found, creating from defaults...")
 		config, err = createDefaultSettings(path)
 		if err != nil {
-			return Config{}, fmt.Errorf("failed to create default settings: %w", err)
+			return Config{}, err
 		}
 	}
 
@@ -121,7 +121,7 @@ func (config *Config) Save() {
 		return
 	}
 
-	if err := os.WriteFile("./settings.yaml", data, 0644); err != nil {
+	if err := os.WriteFile("./config/settings.yaml", data, 0644); err != nil {
 		log.Error("Could not save settings %v", err)
 	}
 }
