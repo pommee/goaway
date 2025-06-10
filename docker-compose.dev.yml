@@ -1,0 +1,17 @@
+services:
+  goaway:
+    container_name: goaway
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      - DNS_PORT=6121
+      - WEBSITE_PORT=8080
+    ports:
+      - "6121:6121/udp"
+      - "6121:6121/tcp"
+      - "8080:8080/tcp"
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_RAW

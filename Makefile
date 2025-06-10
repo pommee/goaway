@@ -23,6 +23,9 @@ start: ; docker compose up -d
 lint: 		   ; pnpm -C client lint && golangci-lint run ./backend/...
 format:		   ; npx prettier --write "client/**/*.{html,css,js,tsx}"
 
+dev: build
+	docker compose -f docker-compose.dev.yml up -d
+
 dev-website:   ; pnpm -C client install && pnpm -C client dev
 dev-server:    ; mkdir client/dist ; touch client/dist/.fake ; air .
 

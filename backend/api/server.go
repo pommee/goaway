@@ -7,6 +7,7 @@ import (
 	"goaway/backend/updater"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -40,7 +41,7 @@ func (api *API) handleServer(c *gin.Context) {
 		log.Error("%s", err)
 	}
 
-	dbSize, err := getDBSize()
+	dbSize, err := getDBSizeMB()
 	if err != nil {
 		log.Error("%s", err)
 	}
@@ -81,9 +82,15 @@ func getCPUTemperature() (float64, error) {
 	return temp / 1000, nil
 }
 
-func getDBSize() (float64, error) {
-	files := []string{"database.db", "database.db-wal", "database.db-shm"}
+func getDBSizeMB() (float64, error) {
 	var totalSize int64
+
+	basePath := "data"
+	files := []string{
+		filepath.Join(basePath, "database.db"),
+		filepath.Join(basePath, "database.db-wal"),
+		filepath.Join(basePath, "database.db-shm"),
+	}
 
 	for _, filename := range files {
 		info, err := os.Stat(filename)
@@ -98,7 +105,7 @@ func getDBSize() (float64, error) {
 		totalSize += info.Size()
 	}
 
-	return float64(totalSize) / (1024 * 1024), nil // Return size in MB
+	return float64(totalSize) / (1024 * 1024), nil
 }
 
 func (api *API) handleMetrics(c *gin.Context) {

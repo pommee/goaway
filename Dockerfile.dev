@@ -1,0 +1,39 @@
+FROM golang:1.24-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build -o goaway .
+
+FROM alpine:3.22
+
+ARG DNS_PORT=6121
+ARG WEBSITE_PORT=8080
+
+ENV DNS_PORT=${DNS_PORT} WEBSITE_PORT=${WEBSITE_PORT}
+
+RUN apk add --no-cache bash ca-certificates && \
+    adduser -D -s /bin/bash appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+WORKDIR /app
+
+COPY --from=builder /src/goaway ./goaway
+RUN chown appuser:appuser goaway
+
+COPY updater.sh ./
+RUN chown appuser:appuser updater.sh
+
+EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
+
+USER appuser
+
+ENTRYPOINT [ "./goaway" ]
