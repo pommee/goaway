@@ -46,26 +46,32 @@ func (api *API) getSettings(c *gin.Context) {
 func (api *API) exportDatabase(c *gin.Context) {
 	log.Debug("Starting export of database")
 
-	const databaseName = "database.db"
-	if _, err := os.Stat(databaseName); err != nil {
-		if os.IsNotExist(err) {
-			log.Error("Database file not found")
-			c.JSON(http.StatusNotFound, gin.H{"error": "Database file not found"})
-		} else {
-			log.Error("Error accessing database file: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		}
+	// Temporary filename for export the database into
+	tempExport := "export_temp.db"
+
+	// remove in case it already exists, otherwise VACUUM INTO will fail
+	_ = os.Remove(tempExport)
+
+	// Create a new connection to a temp file and vacuum into it
+	_, err := api.DBManager.Conn.Exec(fmt.Sprintf("VACUUM INTO '%s';", tempExport))
+	if err != nil {
+		log.Error("Failed to write WAL to temp export: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare database for export"})
 		return
 	}
 
-	file, err := os.Open(databaseName)
+	file, err := os.Open(tempExport)
 	if err != nil {
-		log.Error("Error opening database file: %v", err)
+		log.Error("Error opening database export file: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
+
 	defer func(tx *os.File) {
 		_ = file.Close()
+
+		// remove the temporary export file after sending it
+		_ = os.Remove(tempExport)
 	}(file)
 
 	fileInfo, err := file.Stat()
@@ -76,7 +82,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 	}
 
 	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", "attachment; filename="+databaseName)
+	c.Header("Content-Disposition", "attachment; filename=database.db")
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	c.Header("Cache-Control", "no-cache")

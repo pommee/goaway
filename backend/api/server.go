@@ -82,11 +82,23 @@ func getCPUTemperature() (float64, error) {
 }
 
 func getDBSize() (float64, error) {
-	file, err := os.Stat("database.db")
-	if err != nil {
-		return 0, err
+	files := []string{"database.db", "database.db-wal", "database.db-shm"}
+	var totalSize int64
+
+	for _, filename := range files {
+		info, err := os.Stat(filename)
+		if err != nil {
+			// Only return error if the main DB file is missing.
+			if filename == "database.db" {
+				return 0, err
+			}
+			// WAL/SHM files may not exist temporarily — that's fine.
+			continue
+		}
+		totalSize += info.Size()
 	}
-	return float64(file.Size()) / (1024 * 1024), nil
+
+	return float64(totalSize) / (1024 * 1024), nil // Return size in MB
 }
 
 func (api *API) handleMetrics(c *gin.Context) {
