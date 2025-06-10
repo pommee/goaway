@@ -77,7 +77,7 @@ type communicationMessage struct {
 func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
 	blacklistEntry, err := lists.InitializeBlacklist(dbManager)
 	if err != nil {
-		log.Error("Failed to initialize blacklist")
+		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
 	}
 
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)

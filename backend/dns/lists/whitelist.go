@@ -22,7 +22,7 @@ func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error
 		log.Error("Failed to initialize whitelist cache")
 	}
 
-	return w, nil
+	return w, err
 }
 
 func (w *Whitelist) AddDomain(domain string) error {
