@@ -51,10 +51,15 @@ func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error
 		return nil, fmt.Errorf("failed to initialize custom blocklist: %w", err)
 	}
 
-	_, _ = b.GetBlocklistUrls()
-	err := b.PopulateBlocklistCache()
+	_, err := b.GetBlocklistUrls()
+	if err != nil {
+		log.Error("Failed to fetch blocklist URLs: %v", err)
+		return nil, fmt.Errorf("failed to fetch blocklist URLs: %w", err)
+	}
+	err = b.PopulateBlocklistCache()
 	if err != nil {
 		log.Error("Failed to initialize blocklist cache")
+		return nil, fmt.Errorf("failed to initialize blocklist cache: %w", err)
 	}
 
 	return b, nil
