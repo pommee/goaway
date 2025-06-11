@@ -44,3 +44,13 @@ loggingEnabled: true
 # 2 = Warning (potential issues that don't affect operation)
 # 3 = Error (serious problems only)
 logLevel: 1
+
+# Enables or disables in-app update functionality.
+# Behavior depends on the deployment method (Docker vs standalone binary):
+# Docker:
+#   - inAppUpdate: false → Updates require stopping, removing, and pulling a new image manually.
+#   - inAppUpdate: true  → The dashboard's built-in updater will fetch the latest binary and restart the container automatically.
+# Standalone:
+#   - inAppUpdate: false → Update manually via installer or `updater.sh`.
+#   - inAppUpdate: true  → The dashboard's updater will install the new binary, but you'll need to restart the app manually.
+inAppUpdate: false
