@@ -19,21 +19,15 @@ ARG WEBSITE_PORT=8080
 ENV DNS_PORT=${DNS_PORT} WEBSITE_PORT=${WEBSITE_PORT}
 
 RUN apk add --no-cache bash ca-certificates && \
-    adduser -D -s /bin/bash appuser && \
     mkdir -p /app && \
-    chown -R appuser:appuser /app && \
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
 COPY --from=builder /src/goaway ./goaway
-RUN chown appuser:appuser goaway
 
 COPY updater.sh ./
-RUN chown appuser:appuser updater.sh
 
 EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
-
-USER appuser
 
 ENTRYPOINT [ "./goaway" ]
