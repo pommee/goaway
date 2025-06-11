@@ -29,6 +29,9 @@ dist-ssr
 *.sln
 *.sw?
 
+config
+data
+
 client/pnpm-lock.yaml
 test/benchmark.new
 test/benchmark.old
