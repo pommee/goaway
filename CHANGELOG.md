@@ -1,3 +1,10 @@
+## [0.52.1](https://github.com/pommee/goaway/compare/v0.52.0...v0.52.1) (2025-06-11)
+
+
+### Bug Fixes
+
+* take SQLite WAL mode into consideration when calculating DB size and exporting backup file ([16b56cf](https://github.com/pommee/goaway/commit/16b56cfa20e7868a2dca08493ad574423904a0a9))
+
 # [0.52.0](https://github.com/pommee/goaway/compare/v0.51.1...v0.52.0) (2025-06-10)
 
 
