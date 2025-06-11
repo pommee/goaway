@@ -1,3 +1,15 @@
+# [0.53.0](https://github.com/pommee/goaway/compare/v0.52.1...v0.53.0) (2025-06-11)
+
+
+### Bug Fixes
+
+* improve volume mounts and dev setup ([fc8536f](https://github.com/pommee/goaway/commit/fc8536ff74cd2f40a2b0413d31ce8440008ee032))
+
+
+### Features
+
+* make in-app updates optional, false by default ([d51218c](https://github.com/pommee/goaway/commit/d51218c91d728b1b8a41c9f2a9ccef749df4209d))
+
 ## [0.52.1](https://github.com/pommee/goaway/compare/v0.52.0...v0.52.1) (2025-06-11)
 
 
