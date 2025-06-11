@@ -8,11 +8,15 @@ import {
 } from "@/components/ui/dialog";
 import { GetRequest } from "@/util";
 import {
+  ArrowRightIcon,
   CaretLineUpIcon,
+  CheckCircleIcon,
+  CopyIcon,
   CpuIcon,
   DatabaseIcon,
   DownloadIcon,
   HardDriveIcon,
+  InfoIcon,
   ThermometerIcon
 } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
@@ -20,6 +24,7 @@ import confetti from "canvas-confetti";
 import { compare } from "compare-versions";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Separator } from "./ui/separator";
 
 export type Metrics = {
   cpuTemp: number;
@@ -131,10 +136,13 @@ export function ServerStatistics() {
   const [updateNotified, setUpdateNotified] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateLogs, setUpdateLogs] = useState<string[]>([]);
+  const [installedVersion, setInstalledVersion] = useState<string>("");
   const [newVersion, setNewVersion] = useState<string>("");
   const [updateStarted, setUpdateStarted] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<number>(0);
+  const [inAppUpdate, setInAppUpdate] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<string>("Preparing update...");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (shouldCheckForUpdate()) {
@@ -159,8 +167,10 @@ export function ServerStatistics() {
         const latestVersion = localStorage.getItem("latestVersion");
         const installedVersion = data.version;
         localStorage.setItem("installedVersion", installedVersion);
+        setInAppUpdate(data.inAppUpdate);
 
         if (latestVersion !== null) {
+          setInstalledVersion(installedVersion);
           setNewVersion(latestVersion);
           if (
             installedVersion &&
@@ -272,6 +282,24 @@ export function ServerStatistics() {
     );
   };
 
+  const dockerCommands = `# Stop and remove the current container
+docker stop container-name
+docker rm container-name
+
+# Pull and run the new version
+docker pull pommee/goaway:version`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(dockerCommands);
+      setCopied(true);
+      toast.info("Copied commands to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
   return (
     <>
       <div className="bg-gray-800 rounded-lg mx-2 mt-4 overflow-hidden shadow-lg">
@@ -319,10 +347,13 @@ export function ServerStatistics() {
       </div>
 
       <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-        <DialogContent className="sm:max-w-6xl rounded-lg border border-gray-800">
+        <DialogContent className="sm:max-w-6xl rounded-lg border">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-              Update Available: v{newVersion}
+              Update Available:{" "}
+              <p className="text-muted-foreground">v{installedVersion} </p>
+              <ArrowRightIcon className="text-2xl" />
+              <p className="text-green-600">v{newVersion}</p>
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               A new version is available for installation. View the full{" "}
@@ -337,75 +368,195 @@ export function ServerStatistics() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-3 p-4 bg-gray-900 rounded-md">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-300">{currentStep}</span>
-                <span className="text-gray-400 font-mono">
-                  {Math.round(updateProgress)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full transition-all duration-500 ease-out bg-blue-500"
-                  style={{ width: `${updateProgress}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="h-96 overflow-auto bg-stone-900 p-4 font-mono text-sm rounded-md">
-              {updateLogs.length > 0 ? (
-                updateLogs.map((log, index) => (
-                  <div key={index} className="leading-relaxed">
-                    <p
-                      className={
-                        log.includes("[info]")
-                          ? "text-green-400"
-                          : log.includes("[error]")
-                            ? "text-red-400"
-                            : ""
-                      }
-                    >
-                      {log}
-                    </p>
+          {inAppUpdate === true ? (
+            <>
+              <div className="space-y-4 py-2">
+                <div className="space-y-3 p-4 bg-gray-900 rounded-md">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-300">{currentStep}</span>
+                    <span className="text-gray-400 font-mono">
+                      {Math.round(updateProgress)}%
+                    </span>
                   </div>
-                ))
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <div className="text-center">
-                    <CaretLineUpIcon className="h-8 w-8 animate-pulse mx-auto mb-2" />
-                    <p>Waiting for update to start...</p>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all duration-500 ease-out bg-blue-500"
+                      style={{ width: `${updateProgress}%` }}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="text-sm text-muted-foreground italic">
-              You are recommended to backup your data before proceeding with the
-              update.
-            </div>
-          </div>
+                <div className="h-96 overflow-auto bg-stone-900 p-4 font-mono text-sm rounded-md">
+                  {updateLogs.length > 0 ? (
+                    updateLogs.map((log, index) => (
+                      <div key={index} className="leading-relaxed">
+                        <p
+                          className={
+                            log.includes("[info]")
+                              ? "text-green-400"
+                              : log.includes("[error]")
+                              ? "text-red-400"
+                              : ""
+                          }
+                        >
+                          {log}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      <div className="text-center">
+                        <CaretLineUpIcon className="h-8 w-8 animate-pulse mx-auto mb-2" />
+                        <p>Waiting for update to start...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-          <DialogFooter className="flex items-center justify-between sm:justify-end gap-6 pt-2">
-            <Button
-              disabled={updateStarted}
-              onClick={() => setShowUpdateModal(false)}
-              className="bg-stone-800 text-white border-1 border-gray-600 hover:bg-gray-600"
-            >
-              Remind Me Later
-            </Button>
-            <Button
-              onClick={
-                updateStarted === false
-                  ? startUpdate
-                  : () => setShowUpdateModal(false)
-              }
-              className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
-            >
-              <DownloadIcon className="h-4 w-4" />
-              {updateStarted ? <p>Close</p> : <p>Start Update</p>}
-            </Button>
-          </DialogFooter>
+                <div className="text-sm text-muted-foreground italic">
+                  You are recommended to backup your data before proceeding with
+                  the update.
+                </div>
+              </div>
+
+              <DialogFooter className="flex items-center justify-between sm:justify-end gap-6 pt-2">
+                <Button
+                  disabled={updateStarted}
+                  onClick={() => setShowUpdateModal(false)}
+                  className="bg-stone-800 text-white border-1 border-gray-600 hover:bg-gray-600"
+                >
+                  Remind Me Later
+                </Button>
+                <Button
+                  onClick={
+                    updateStarted === false
+                      ? startUpdate
+                      : () => setShowUpdateModal(false)
+                  }
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
+                >
+                  <DownloadIcon className="h-4 w-4" />
+                  {updateStarted ? <p>Close</p> : <p>Start Update</p>}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="py-2">
+              <div className="flex items-start gap-3 p-4 bg-stone-900 border rounded-lg w-full">
+                <div className="w-full">
+                  <h3 className="flex font-medium text-orange-400 mb-2">
+                    <InfoIcon className="mt-1 mr-2" />
+                    In-app Updates Disabled
+                  </h3>
+                  <div>
+                    <p className="text-sm mb-3">
+                      If you are running inside a Docker container, use the
+                      following commands to update:
+                    </p>
+                    <div className="relative">
+                      <div className="bg-stone-950 rounded-md p-4 font-mono text-sm">
+                        <div className="text-stone-300 space-y-1">
+                          <div className="text-stone-500">
+                            # Stop and remove the current container
+                          </div>
+                          <div className="text-green-400">
+                            docker stop container-name
+                          </div>
+                          <div className="text-green-400">
+                            docker rm container-name
+                          </div>
+                          <br />
+                          <div className="text-stone-500 mt-2">
+                            # Pull and run the new version
+                          </div>
+                          <div className="text-green-400">
+                            docker pull pommee/goaway:version
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCopy}
+                        className="absolute top-2 right-2 p-2 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors duration-500 text-stone-400 hover:text-white cursor-pointer"
+                        title="Copy Docker commands"
+                      >
+                        {copied ? (
+                          <CheckCircleIcon className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <CopyIcon className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-stone-400 mt-4">
+                      Replace{" "}
+                      <code className="bg-stone-950 px-1 py-0.5 rounded">
+                        container-name
+                      </code>{" "}
+                      and{" "}
+                      <code className="bg-stone-950 px-1 py-0.5 rounded">
+                        version
+                      </code>{" "}
+                      with your actual values.
+                    </p>
+                  </div>
+
+                  <Separator className="my-5 bg-stone-950" />
+
+                  <div>
+                    <p className="text-sm mb-3">
+                      If you are running the standalone binary, use the
+                      following commands to update:
+                    </p>
+                    <div className="bg-stone-950 rounded-md p-4 font-mono text-sm overflow-x-auto">
+                      <div className="text-stone-300 space-y-1">
+                        <div className="text-stone-500">
+                          # Stop the binary from running and run one of the
+                          following:
+                        </div>
+                        <br />
+                        <div className="text-stone-500">
+                          # Will install the latest version of goaway into
+                          ~/$USER/.local/bin
+                        </div>
+                        <div className="text-green-400">
+                          curl
+                          https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
+                          | sh
+                        </div>
+                        <div className="text-stone-500">
+                          # It's also possible to specify what version to
+                          install
+                        </div>
+                        <div className="text-green-400">
+                          curl
+                          https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
+                          | sh /dev/stdin 0.40.4
+                        </div>
+                        <br />
+                        <div className="text-stone-500">
+                          # Will replace your goaway binary in the current
+                          working directory with the latest version
+                        </div>
+                        <div className="text-green-400">
+                          https://raw.githubusercontent.com/pommee/goaway/refs/heads/main/updater.sh
+                          | bash
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                This information might be outdated, in that case refer to the{" "}
+                <a
+                  className="font-bold underline"
+                  href="https://github.com/pommee/goaway/blob/main/README.md"
+                  target="_blank"
+                >
+                  repository README
+                </a>
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

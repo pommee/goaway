@@ -43,6 +43,7 @@ type Flags struct {
 	DevMode             bool
 	Ansi                bool
 	JSON                bool
+	InAppUpdate         bool
 }
 
 func main() {
@@ -75,6 +76,7 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only used while developing goaway")
 	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs. Only available in non-json formatted logs")
 	cmd.Flags().BoolVar(&flags.JSON, "json", false, "Toggle JSON formatted logs")
+	cmd.Flags().BoolVar(&flags.InAppUpdate, "in-app-update", false, "Toggle ability to update via dashboard")
 
 	return cmd
 }
@@ -108,6 +110,9 @@ func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
 	}
 	if cmd.Flags().Changed("json") {
 		setFlags.JSON = &flags.JSON
+	}
+	if cmd.Flags().Changed("in-app-update") {
+		setFlags.InAppUpdate = &flags.InAppUpdate
 	}
 
 	return setFlags
