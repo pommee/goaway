@@ -36,6 +36,7 @@ type Config struct {
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
 	LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
 	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
+	InAppUpdate         bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
 
 	// settings not visible in config file
 	DevMode    bool   `yaml:"-" json:"-"`
@@ -82,6 +83,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 		StatisticsRetention: 7,
 		LoggingEnabled:      true,
 		LogLevel:            logging.INFO,
+		InAppUpdate:         false,
 	}
 
 	defaultConfig.DNS.Address = "0.0.0.0"

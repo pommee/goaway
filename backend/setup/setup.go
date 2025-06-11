@@ -21,6 +21,7 @@ type SetFlags struct {
 	DevMode             *bool
 	Ansi                *bool
 	JSON                *bool
+	InAppUpdate         *bool
 }
 
 func UpdateConfig(config *settings.Config, flags *SetFlags) {
@@ -66,6 +67,9 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 	}
 	if flags.LoggingEnabled != nil {
 		log.ToggleLogging(*flags.LoggingEnabled)
+	}
+	if flags.InAppUpdate != nil {
+		config.InAppUpdate = *flags.InAppUpdate
 	}
 }
 

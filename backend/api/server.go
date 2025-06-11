@@ -56,6 +56,7 @@ func (api *API) handleServer(c *gin.Context) {
 		"cpuTemp":           temp,
 		"dbSize":            dbSize,
 		"version":           api.Version,
+		"inAppUpdate":       api.Config.InAppUpdate,
 		"commit":            api.Commit,
 		"date":              api.Date,
 	})
