@@ -1,3 +1,10 @@
+## [0.53.1](https://github.com/pommee/goaway/compare/v0.53.0...v0.53.1) (2025-06-11)
+
+
+### Bug Fixes
+
+* remove appuser ([9690755](https://github.com/pommee/goaway/commit/9690755322fcd77dd71f2ddaf2073afff2d5ce51))
+
 # [0.53.0](https://github.com/pommee/goaway/compare/v0.52.1...v0.53.0) (2025-06-11)
 
 
