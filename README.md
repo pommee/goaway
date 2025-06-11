@@ -39,12 +39,27 @@ docker run -d \
 
 **Using Docker Compose (Recommended for production):**
 
-```bash
-# Download the compose file
-curl -O https://raw.githubusercontent.com/pommee/goaway/main/docker-compose.yml
+Data will **not persist** unless volumes are used!
 
-# Start the service
-docker compose up -d
+```bash
+services:
+  goaway:
+    image: pommee/goaway:latest
+    container_name: goaway
+    restart: unless-stopped
+    # volumes:
+    #  - /path/to/config:/app/config  # Custom settings.yaml configuration
+    #  - /path/to/data:/app/data      # Database storage location
+    environment:
+      - DNS_PORT=${DNS_PORT:-53}
+      - WEBSITE_PORT=${WEBSITE_PORT:-8080}
+    ports:
+      - "${DNS_PORT:-53}:${DNS_PORT:-53}/udp"
+      - "${DNS_PORT:-53}:${DNS_PORT:-53}/tcp"
+      - "${WEBSITE_PORT:-8080}:${WEBSITE_PORT:-8080}/tcp"
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_RAW
 ```
 
 ### Option 2: Quick Install
@@ -100,8 +115,7 @@ You'll see a startup message confirming the services are running:
 
 ![Startup Screen](./resources/started.png)
 
-> [!IMPORTANT]
-> **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once - make sure to save it!
+> [!IMPORTANT] > **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once - make sure to save it!
 
 ### Accessing the Dashboard
 
@@ -142,6 +156,7 @@ Flags:
       --json                       Toggle JSON formatted logs
       --log-level int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
       --logging                    Toggle logging (default true)
+      --in-app-update              Toggle ability to update via dashboard
       --statistics-retention int   Days to keep statistics (default 7)
       --webserver-port int         Port for the web server (default 8080)
 ```
