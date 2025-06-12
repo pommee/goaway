@@ -114,11 +114,16 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 
 func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
 	query := fmt.Sprintf(`
-		SELECT timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes
-		FROM request_log
-		WHERE domain LIKE ?
+		SELECT rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns, 
+		       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes,
+		       COALESCE(STRING_AGG(rli.ip || ':' || rli.rtype, ','), '') as resolved_ips
+		FROM request_log rl
+		LEFT JOIN request_log_ips rli ON rl.id = rli.request_log_id
+		WHERE rl.domain LIKE $1
+		GROUP BY rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
+		         rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
 		ORDER BY %s %s
-		LIMIT ? OFFSET ?`, q.Column, q.Direction)
+		LIMIT $2 OFFSET $3`, q.Column, q.Direction)
 
 	rows, err := db.Query(query, "%"+q.Search+"%", q.PageSize, q.Offset)
 	if err != nil {
@@ -132,14 +137,14 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 	var queries []model.RequestLogEntry
 	for rows.Next() {
 		var query model.RequestLogEntry
-		var ipString string
+		var resolvedIPsString string
 		var timestamp string
 		query.ClientInfo = &model.Client{}
 
 		if err := rows.Scan(
-			&timestamp, &query.Domain, &ipString,
-			&query.Blocked, &query.Cached, &query.ResponseTime,
-			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType, &query.ResponseSizeBytes,
+			&timestamp, &query.Domain, &query.Blocked, &query.Cached, &query.ResponseTime,
+			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType,
+			&query.ResponseSizeBytes, &resolvedIPsString,
 		); err != nil {
 			return nil, err
 		}
@@ -149,11 +154,35 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 			return nil, fmt.Errorf("error: %v", err)
 		}
 		query.Timestamp = time.Unix(parsedTime, 0)
-		query.IP = strings.Split(ipString, ",")
+		query.IP = parseResolvedIPs(resolvedIPsString)
 		queries = append(queries, query)
 	}
 
 	return queries, nil
+}
+
+func parseResolvedIPs(ipString string) []model.ResolvedIP {
+	if ipString == "" {
+		return []model.ResolvedIP{}
+	}
+
+	parts := strings.Split(ipString, ",")
+	resolvedIPs := make([]model.ResolvedIP, 0, len(parts))
+
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		ipParts := strings.Split(part, ":")
+		if len(ipParts) == 2 {
+			resolvedIPs = append(resolvedIPs, model.ResolvedIP{
+				IP:    ipParts[0],
+				RType: ipParts[1],
+			})
+		}
+	}
+
+	return resolvedIPs
 }
 
 func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
@@ -364,7 +393,6 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
@@ -376,15 +404,15 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 		}
 	}()
 
-	valueStrings := make([]string, 0, len(entries))
-	valueArgs := make([]interface{}, 0, len(entries)*11)
-
 	for _, entry := range entries {
-		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-		valueArgs = append(valueArgs,
+		var logID int64
+		err = tx.QueryRow(`
+            INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, 
+                                   client_ip, client_name, status, query_type, response_size_bytes) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+            RETURNING id`,
 			entry.Timestamp.Unix(),
 			entry.Domain,
-			strings.Join(entry.IP, ","),
 			entry.Blocked,
 			entry.Cached,
 			entry.ResponseTime,
@@ -393,15 +421,22 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 			entry.Status,
 			entry.QueryType,
 			entry.ResponseSizeBytes,
-		)
-	}
+		).Scan(&logID)
 
-	query := fmt.Sprintf("INSERT INTO request_log (timestamp, domain, ip, blocked, cached, response_time_ns, client_ip, client_name, status, query_type, response_size_bytes) VALUES %s",
-		strings.Join(valueStrings, ","))
+		if err != nil {
+			return fmt.Errorf("could not save request log: %v", err)
+		}
 
-	_, err = tx.Exec(query, valueArgs...)
-	if err != nil {
-		return fmt.Errorf("could not save request log. Reason: %v", err)
+		for _, resolvedIP := range entry.IP {
+			_, err = tx.Exec(`
+                INSERT INTO request_log_ips (request_log_id, ip, rtype) 
+                VALUES ($1, $2, $3)`,
+				logID, resolvedIP.IP, resolvedIP.RType)
+
+			if err != nil {
+				return fmt.Errorf("could not save resolved IP: %v", err)
+			}
+		}
 	}
 
 	return nil

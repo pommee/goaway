@@ -133,19 +133,25 @@ func NewSourcesTable(db *sql.DB) error {
 func NewRequestLogTable(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS request_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME NOT NULL,
-            domain TEXT NOT NULL,
-			ip TEXT NOT NULL,
-            blocked BOOLEAN NOT NULL,
-            cached BOOLEAN NOT NULL,
-            response_time_ns INTEGER NOT NULL,
-            client_ip TEXT,
-            client_name TEXT,
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			timestamp DATETIME NOT NULL,
+			domain TEXT NOT NULL,
+			blocked BOOLEAN NOT NULL,
+			cached BOOLEAN NOT NULL,
+			response_time_ns INTEGER NOT NULL,
+			client_ip TEXT,
+			client_name TEXT,
 			status TEXT,
 			query_type TEXT,
-			response_size_bytes TEXT
-        );
+			response_size_bytes INTEGER
+		);
+
+		CREATE TABLE IF NOT EXISTS request_log_ips (
+			id SERIAL PRIMARY KEY,
+			request_log_id INTEGER REFERENCES request_log(id) ON DELETE CASCADE,
+			ip TEXT NOT NULL,
+			rtype TEXT NOT NULL
+		);
     `)
 	if err != nil {
 		return err

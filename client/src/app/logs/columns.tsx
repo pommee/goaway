@@ -1,4 +1,12 @@
-import { Check, Lightning, ShieldSlash } from "@phosphor-icons/react";
+import { IPEntry } from "@/pages/logs";
+import { DeleteRequest, GetRequest, PostRequest } from "@/util";
+import {
+  Check,
+  CheckIcon,
+  Lightning,
+  ShieldSlash,
+  TrashIcon
+} from "@phosphor-icons/react";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -13,7 +21,7 @@ export type Queries = {
   cached: boolean;
   client: Client;
   domain: string;
-  ip: Array<string>;
+  ip: IPEntry[];
   queryType: string;
   responseTimeNS: number;
   status: string;
@@ -74,8 +82,30 @@ export const columns: ColumnDef<Queries>[] = [
   },
   {
     accessorKey: "ip",
-    header: "IP",
-    cell: ({ row }) => <div>{row.getValue("ip")}</div>
+    header: "IP(s)",
+    cell: ({ getValue }) => {
+      const value = getValue() as IPEntry[];
+      if (Array.isArray(value)) {
+        return (
+          <div className="flex flex-col">
+            {value.map((entry, i) => {
+              if (entry && typeof entry === "object" && entry.ip) {
+                const ip = String(entry.ip || "");
+                const rtype = String(entry.rtype || "");
+                return (
+                  <span key={i}>
+                    {ip} {rtype && `(${rtype})`}
+                  </span>
+                );
+              } else {
+                return <span key={i}>{String(entry || "")}</span>;
+              }
+            })}
+          </div>
+        );
+      }
+      return <div>{String(value || "")}</div>;
+    }
   },
   {
     id: "client",

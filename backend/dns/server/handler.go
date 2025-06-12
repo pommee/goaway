@@ -18,9 +18,6 @@ import (
 var (
 	blackholeIPv4 = net.ParseIP("0.0.0.0")
 	blackholeIPv6 = net.ParseIP("::")
-
-	resolvedIPv4 = []string{"0.0.0.0"}
-	resolvedIPv6 = []string{"::"}
 )
 
 func trimDomainDot(name string) string {
@@ -41,6 +38,10 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		s.Config.DNS.Status.Paused = false
 	}
 
+	// TODO
+	// IsBlacklisted will not work if the trailing dot is removed
+	// Trailing dot shall exist to be fully quallyfied
+	// However many blacklisted domains miss the trailing dot
 	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) && !s.Whitelist.IsWhitelisted(domainName) {
 		return s.handleBlacklisted(request)
 	}
@@ -187,10 +188,15 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Timestamp:         request.Sent,
-		Domain:            request.Question.Name,
-		Status:            dns.RcodeToString[dns.RcodeSuccess],
-		IP:                []string{"localhost.lan"},
+		Timestamp: request.Sent,
+		Domain:    request.Question.Name,
+		Status:    dns.RcodeToString[dns.RcodeSuccess],
+		IP: []model.ResolvedIP{
+			{
+				IP:    "localhost.lan",
+				RType: "PTR",
+			},
+		},
 		Blocked:           false,
 		Cached:            false,
 		ResponseTime:      time.Since(request.Sent),
@@ -220,10 +226,15 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 	_ = request.W.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
-		Domain:            request.Question.Name,
-		Status:            dns.RcodeToString[dns.RcodeSuccess],
-		QueryType:         dns.TypeToString[request.Question.Qtype],
-		IP:                []string{hostname},
+		Domain:    request.Question.Name,
+		Status:    dns.RcodeToString[dns.RcodeSuccess],
+		QueryType: dns.TypeToString[request.Question.Qtype],
+		IP: []model.ResolvedIP{
+			{
+				IP:    hostname,
+				RType: "PTR",
+			},
+		},
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
 		ResponseTime:      time.Since(request.Sent),
@@ -247,10 +258,13 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	request.Msg.Authoritative = false
 	request.Msg.RecursionAvailable = true
 
-	var resolvedHostnames []string
+	var resolvedHostnames []model.ResolvedIP
 	for _, answer := range answers {
 		if ptr, ok := answer.(*dns.PTR); ok {
-			resolvedHostnames = append(resolvedHostnames, ptr.Ptr)
+			resolvedHostnames = append(resolvedHostnames, model.ResolvedIP{
+				IP:    ptr.Ptr,
+				RType: "PTR",
+			})
 		}
 	}
 
@@ -271,7 +285,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	answers, cached, status := s.Resolve(req)
 
-	resolved := make([]string, 0, len(answers))
+	resolved := make([]model.ResolvedIP, 0, len(answers))
 	req.Msg.Answer = answers
 
 	if req.Msg.RecursionDesired {
@@ -281,13 +295,25 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	for _, a := range answers {
 		switch rr := a.(type) {
 		case *dns.A:
-			resolved = append(resolved, rr.A.String())
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.A.String(),
+				RType: "A",
+			})
 		case *dns.AAAA:
-			resolved = append(resolved, rr.AAAA.String())
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.AAAA.String(),
+				RType: "AAAA",
+			})
 		case *dns.PTR:
-			resolved = append(resolved, rr.Ptr)
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Ptr,
+				RType: "PTR",
+			})
 		case *dns.CNAME:
-			resolved = append(resolved, rr.Target)
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Target,
+				RType: "CNAME",
+			})
 		}
 	}
 
@@ -482,7 +508,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	request.Msg.RecursionAvailable = true
 	request.Msg.Rcode = dns.RcodeSuccess
 
-	var resolved []string
+	var resolved []model.ResolvedIP
 	cacheTTL := uint32(s.Config.DNS.CacheTTL)
 
 	switch request.Question.Qtype {
@@ -514,7 +540,12 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 				A: blackholeIPv4,
 			}}
 		}
-		resolved = resolvedIPv4
+		resolved = []model.ResolvedIP{
+			{
+				IP:    blackholeIPv4.String(),
+				RType: "A",
+			},
+		}
 
 	case dns.TypeAAAA:
 		if len(request.Msg.Answer) == 1 {
@@ -544,7 +575,12 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 				AAAA: blackholeIPv6,
 			}}
 		}
-		resolved = resolvedIPv6
+		resolved = []model.ResolvedIP{
+			{
+				IP:    blackholeIPv6.String(),
+				RType: "AAAA",
+			},
+		}
 
 	default:
 		request.Msg.Rcode = dns.RcodeNameError
@@ -567,6 +603,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		Timestamp:         request.Sent,
 		ResponseTime:      time.Since(request.Sent),
 		Blocked:           true,
+		Cached:            false,
 		ClientInfo:        request.Client,
 	}
 }

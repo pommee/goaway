@@ -6,13 +6,18 @@ type RequestLogEntry struct {
 	Domain            string        `json:"domain"`
 	Status            string        `json:"status"`
 	QueryType         string        `json:"queryType"`
-	IP                []string      `json:"ip"`
+	IP                []ResolvedIP  `json:"ip"`
 	ResponseSizeBytes int           `json:"responseSizeBytes"`
 	Timestamp         time.Time     `json:"timestamp"`
 	ResponseTime      time.Duration `json:"responseTimeNS"`
 	Blocked           bool          `json:"blocked"`
 	Cached            bool          `json:"cached"`
 	ClientInfo        *Client       `json:"client"`
+}
+
+type ResolvedIP struct {
+	IP    string `json:"ip"`
+	RType string `json:"rtype"`
 }
 
 type RequestLogIntervalSummary struct {

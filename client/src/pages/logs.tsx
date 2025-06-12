@@ -59,12 +59,36 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type QueryResponse = {
-  details: Queries[];
+interface Client {
+  ip: string;
+  name: string;
+  mac: string;
+}
+
+export interface IPEntry {
+  ip: string;
+  rtype: string;
+}
+
+interface QueryDetail {
+  domain: string;
+  status: string;
+  queryType: string;
+  ip: IPEntry[];
+  responseSizeBytes: number;
+  timestamp: string;
+  responseTimeNS: number;
+  blocked: boolean;
+  cached: boolean;
+  client: Client;
+}
+
+interface QueryResponse {
+  details: QueryDetail[];
   draw: string;
   recordsFiltered: number;
   recordsTotal: number;
-};
+}
 
 async function fetchQueries(
   page: number,
@@ -83,8 +107,9 @@ async function fetchQueries(
       return {
         details: response.details.map(
           (item: {
-            client: { ip: string; name: string; mac: string };
-            ip: string;
+            client: { ip?: string; name?: string; mac?: string };
+            ip?: { ip?: string; rtype?: string }[];
+            [key: string]: string;
           }) => ({
             ...item,
             client: {
@@ -92,7 +117,12 @@ async function fetchQueries(
               name: item.client?.name || "",
               mac: item.client?.mac || ""
             },
-            ip: Array.isArray(item.ip) ? item.ip : []
+            ip: Array.isArray(item.ip)
+              ? item.ip.map((entry) => ({
+                  ip: String(entry?.ip || ""),
+                  rtype: String(entry?.rtype || "")
+                }))
+              : []
           })
         ),
         draw: response.draw || "1",
@@ -127,9 +157,9 @@ export function Logs() {
   const [rowSelection, setRowSelection] = useState({});
   const totalPages = Math.ceil(totalRecords / pageSize);
 
-  const debounce = (func: { (value) }, delay: number | undefined) => {
-    let timeoutId: string | number | NodeJS.Timeout | undefined;
-    return (...args) => {
+  const debounce = (func: (...args: unknown[]) => void, delay: number) => {
+    let timeoutId: NodeJS.Timeout | undefined;
+    return (...args: unknown[]) => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         func(...args);
@@ -139,7 +169,7 @@ export function Logs() {
 
   const debouncedSetDomainFilter = useMemo(
     () =>
-      debounce((value) => {
+      debounce((value: string) => {
         setDomainFilter(value);
         setPageIndex(0);
       }, 500),
@@ -159,14 +189,19 @@ export function Logs() {
       try {
         const newQuery = JSON.parse(event.data);
 
-        const formattedQuery = {
+        const formattedQuery: Queries = {
           ...newQuery,
           client: {
             ip: newQuery.client?.ip || "",
             name: newQuery.client?.name || "",
             mac: newQuery.client?.mac || ""
           },
-          ip: Array.isArray(newQuery.ip) ? newQuery.ip : []
+          ip: Array.isArray(newQuery.ip)
+            ? newQuery.ip.map((entry: IPEntry) => ({
+                ip: String(entry?.ip || ""),
+                rtype: String(entry?.rtype || "")
+              }))
+            : []
         };
 
         if (
@@ -189,16 +224,16 @@ export function Logs() {
       } catch (error) {
         console.error("Error handling WebSocket message:", error);
       }
+    };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        setWsConnected(false);
-      };
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setWsConnected(false);
+    };
 
-      ws.onclose = () => {
-        console.log("WebSocket connection closed");
-        setWsConnected(false);
-      };
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      setWsConnected(false);
     };
 
     return () => {
@@ -394,17 +429,60 @@ export function Logs() {
                               }}
                               className="block truncate"
                             >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
+                              {(() => {
+                                if (cell.column.id === "ip") {
+                                  const ipValue = cell.getValue() as IPEntry[];
+                                  if (
+                                    Array.isArray(ipValue) &&
+                                    ipValue.length > 0
+                                  ) {
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <span>{ipValue[0]?.ip || ""}</span>
+                                        {ipValue.length > 1 && (
+                                          <span className="text-xs text-stone-400 border-1 ml-1 px-1 rounded border-green-600/60">
+                                            +{ipValue.length - 1}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  return "";
+                                }
+                                return flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                );
+                              })()}
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent className="bg-stone-800 border-1 border-stone-700 text-white p-3">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                          <TooltipContent className="bg-stone-800 border border-stone-700 text-white text-sm p-3 rounded-md shadow-md font-mono">
+                            {(() => {
+                              if (cell.column.id === "ip") {
+                                const ipValue = cell.getValue() as IPEntry[];
+                                return Array.isArray(ipValue) ? (
+                                  <div className="space-y-1">
+                                    {ipValue.map((entry, i) => (
+                                      <div key={i} className="flex gap-2">
+                                        <span className="inline-block w-[80px] text-stone-400">
+                                          {entry?.rtype
+                                            ? `[${entry.rtype}]`
+                                            : ""}
+                                        </span>
+                                        <span>{entry?.ip || ""}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  ""
+                                );
+                              }
+
+                              return flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              );
+                            })()}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
