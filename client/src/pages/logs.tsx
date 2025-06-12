@@ -418,74 +418,86 @@ export function Logs() {
                       className="max-w-60 truncate cursor-pointer"
                       key={cell.id}
                     >
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span
-                              ref={(el) => {
-                                if (el && el.scrollWidth > el.clientWidth) {
-                                  el.setAttribute("data-truncated", "true");
-                                }
-                              }}
-                              className="block truncate"
-                            >
+                      {cell.column.id === "action" ||
+                      cell.column.id === "responseSizeBytes" ||
+                      cell.column.id === "queryType" ? (
+                        <span className="block truncate">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </span>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                ref={(el) => {
+                                  if (el && el.scrollWidth > el.clientWidth) {
+                                    el.setAttribute("data-truncated", "true");
+                                  }
+                                }}
+                                className="block truncate"
+                              >
+                                {(() => {
+                                  if (cell.column.id === "ip") {
+                                    const ipValue =
+                                      cell.getValue() as IPEntry[];
+                                    if (
+                                      Array.isArray(ipValue) &&
+                                      ipValue.length > 0
+                                    ) {
+                                      return (
+                                        <div className="flex items-center gap-1">
+                                          <span>{ipValue[0]?.ip || ""}</span>
+                                          {ipValue.length > 1 && (
+                                            <span className="text-xs text-stone-400 border-1 ml-1 px-1 rounded border-green-600/60">
+                                              +{ipValue.length - 1}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    return "";
+                                  }
+                                  return flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  );
+                                })()}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-stone-800 border border-stone-700 text-white text-sm p-3 rounded-md shadow-md font-mono">
                               {(() => {
                                 if (cell.column.id === "ip") {
                                   const ipValue = cell.getValue() as IPEntry[];
-                                  if (
-                                    Array.isArray(ipValue) &&
-                                    ipValue.length > 0
-                                  ) {
-                                    return (
-                                      <div className="flex items-center gap-1">
-                                        <span>{ipValue[0]?.ip || ""}</span>
-                                        {ipValue.length > 1 && (
-                                          <span className="text-xs text-stone-400 border-1 ml-1 px-1 rounded border-green-600/60">
-                                            +{ipValue.length - 1}
+                                  return Array.isArray(ipValue) ? (
+                                    <div className="space-y-1">
+                                      {ipValue.map((entry, i) => (
+                                        <div key={i} className="flex gap-2">
+                                          <span className="inline-block w-[80px] text-stone-400">
+                                            {entry?.rtype
+                                              ? `[${entry.rtype}]`
+                                              : ""}
                                           </span>
-                                        )}
-                                      </div>
-                                    );
-                                  }
-                                  return "";
+                                          <span>{entry?.ip || ""}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    ""
+                                  );
                                 }
+
                                 return flexRender(
                                   cell.column.columnDef.cell,
                                   cell.getContext()
                                 );
                               })()}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-stone-800 border border-stone-700 text-white text-sm p-3 rounded-md shadow-md font-mono">
-                            {(() => {
-                              if (cell.column.id === "ip") {
-                                const ipValue = cell.getValue() as IPEntry[];
-                                return Array.isArray(ipValue) ? (
-                                  <div className="space-y-1">
-                                    {ipValue.map((entry, i) => (
-                                      <div key={i} className="flex gap-2">
-                                        <span className="inline-block w-[80px] text-stone-400">
-                                          {entry?.rtype
-                                            ? `[${entry.rtype}]`
-                                            : ""}
-                                        </span>
-                                        <span>{entry?.ip || ""}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  ""
-                                );
-                              }
-
-                              return flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              );
-                            })()}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
