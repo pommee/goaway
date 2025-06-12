@@ -1,3 +1,10 @@
+## [0.53.2](https://github.com/pommee/goaway/compare/v0.53.1...v0.53.2) (2025-06-12)
+
+
+### Bug Fixes
+
+* improve response ip and rtype, better ip view for logs, requires regeneration of database ([2fa0073](https://github.com/pommee/goaway/commit/2fa0073a62ae3b0e57adada2e6208fead370ed8a))
+
 ## [0.53.1](https://github.com/pommee/goaway/compare/v0.53.0...v0.53.1) (2025-06-11)
 
 
