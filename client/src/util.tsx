@@ -36,7 +36,8 @@ async function isAuthenticated(res: Response) {
 export async function PostRequest(
   url: string,
   bodyData: unknown,
-  ignoreAuth = false
+  ignoreAuth = false,
+  ignoreError?: boolean
 ) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
@@ -58,7 +59,9 @@ export async function PostRequest(
         await isAuthenticated(res);
       }
       const data = await tryParseJson();
-      showToast(data?.error || "Unknown error occurred.");
+      if (ignoreError !== true) {
+        showToast(data.error || "Unknown error occurred");
+      }
       return [res.status, null];
     }
 
@@ -70,7 +73,7 @@ export async function PostRequest(
   }
 }
 
-export async function GetRequest(url: string) {
+export async function GetRequest(url: string, ignoreError?: boolean) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       credentials: "include"
@@ -79,7 +82,9 @@ export async function GetRequest(url: string) {
     if (!res.ok) {
       await isAuthenticated(res);
       const data = await res.json();
-      showToast(data.error);
+      if (ignoreError !== true) {
+        showToast(data.error);
+      }
       return [res.status, data.error];
     }
 
@@ -96,7 +101,11 @@ export async function GetRequest(url: string) {
   }
 }
 
-export async function PutRequest(url: string, bodyData: unknown) {
+export async function PutRequest(
+  url: string,
+  bodyData: unknown,
+  ignoreError?: boolean
+) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "PUT",
@@ -110,7 +119,9 @@ export async function PutRequest(url: string, bodyData: unknown) {
     if (!res.ok) {
       await isAuthenticated(res);
       const data = await res.json();
-      showToast(data.error);
+      if (ignoreError !== true) {
+        showToast(data.error);
+      }
       return [res.status, data.error];
     }
 
@@ -127,7 +138,7 @@ export async function PutRequest(url: string, bodyData: unknown) {
   }
 }
 
-export async function DeleteRequest(url: string, body) {
+export async function DeleteRequest(url: string, body, ignoreError?: boolean) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",
@@ -138,7 +149,9 @@ export async function DeleteRequest(url: string, body) {
     if (!res.ok) {
       await isAuthenticated(res);
       const data = await res.json();
-      showToast(data.error);
+      if (ignoreError !== true) {
+        showToast(data.error);
+      }
       return [res.status, null];
     }
 

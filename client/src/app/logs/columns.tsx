@@ -28,7 +28,7 @@ export type Queries = {
 
 async function BlacklistDomain(domain: string) {
   try {
-    await DeleteRequest(`whitelist?domain=${domain}`, null);
+    await DeleteRequest(`whitelist?domain=${domain}`, null, true);
 
     const [status] = await PostRequest("custom", { domains: [domain] });
     if (status === 200) {
@@ -42,7 +42,7 @@ async function BlacklistDomain(domain: string) {
 }
 
 async function WhitelistDomain(domain: string) {
-  await GetRequest(`removeFromCustom?domain=${domain}`);
+  await DeleteRequest(`blacklist?domain=${domain}`, null, true);
 
   const [code, response] = await PostRequest("whitelist", {
     domain: domain
