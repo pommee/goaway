@@ -1,7 +1,12 @@
 import { IPEntry } from "@/pages/logs";
-import { Check, Lightning, ShieldSlash } from "@phosphor-icons/react";
-import { Checkbox } from "@radix-ui/react-checkbox";
+import { DeleteRequest, PostRequest } from "@/util";
+import {
+  CheckIcon,
+  LightningIcon,
+  ShieldSlashIcon
+} from "@phosphor-icons/react";
 import { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 
 type Client = {
   ip: string;
@@ -21,29 +26,37 @@ export type Queries = {
   timestamp: string;
 };
 
+async function BlacklistDomain(domain: string) {
+  try {
+    await DeleteRequest(`whitelist?domain=${domain}`, null);
+
+    const [status] = await PostRequest("custom", { domains: [domain] });
+    if (status === 200) {
+      toast.success(`Blacklisted ${domain}`);
+    } else {
+      toast.error(`Failed to block ${domain}`);
+    }
+  } catch {
+    toast.error("An error occurred while sending the request.");
+  }
+}
+
+async function WhitelistDomain(domain: string) {
+  await GetRequest(`removeFromCustom?domain=${domain}`);
+
+  const [code, response] = await PostRequest("whitelist", {
+    domain: domain
+  });
+  if (code === 200) {
+    toast.success(`Whitelisted ${domain}`);
+    return true;
+  } else {
+    toast.error(response.error);
+    return false;
+  }
+}
+
 export const columns: ColumnDef<Queries>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false
-  },
   {
     accessorKey: "timestamp",
     header: "Time",
@@ -132,12 +145,12 @@ export const columns: ColumnDef<Queries>[] = [
         <div className="flex">
           {query.blocked === false ? (
             query.cached ? (
-              <Lightning size={14} color="yellow" className="mt-1 mr-1" />
+              <LightningIcon size={14} color="yellow" className="mt-1 mr-1" />
             ) : (
-              <Check size={14} color="green" className="mt-1 mr-1" />
+              <CheckIcon size={14} color="green" className="mt-1 mr-1" />
             )
           ) : (
-            <ShieldSlash size={14} color="red" className="mt-1 mr-1" />
+            <ShieldSlashIcon size={14} color="red" className="mt-1 mr-1" />
           )}
           <div className="border-1 px-1 border-stone-800 rounded-sm mr-1">
             {wasOK}
@@ -158,5 +171,40 @@ export const columns: ColumnDef<Queries>[] = [
     accessorKey: "responseSizeBytes",
     header: "Size",
     cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>
+  },
+  {
+    accessorKey: "action",
+    header: "Action",
+    cell: ({ row }) => {
+      const isBlocked = row.original.blocked;
+
+      const handleClick = () => {
+        if (isBlocked) {
+          WhitelistDomain(row.original.domain);
+        } else {
+          BlacklistDomain(row.original.domain);
+        }
+      };
+
+      return (
+        <div className="flex justify-center items-center w-fit">
+          {isBlocked === false ? (
+            <div
+              onClick={handleClick}
+              className="rounded-sm text-red-500 border-1 px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+            >
+              Block
+            </div>
+          ) : (
+            <div
+              onClick={handleClick}
+              className="rounded-sm text-green-500 border-1 px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+            >
+              Allow
+            </div>
+          )}
+        </div>
+      );
+    }
   }
 ];
