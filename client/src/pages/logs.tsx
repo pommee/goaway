@@ -39,12 +39,12 @@ import {
 } from "@/components/ui/tooltip";
 import { DeleteRequest, GetRequest } from "@/util";
 import {
-  CaretDoubleLeft,
-  CaretDoubleRight,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
-  Warning
+  CaretDoubleLeftIcon,
+  CaretDoubleRightIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  WarningIcon
 } from "@phosphor-icons/react";
 import {
   ColumnFiltersState,
@@ -282,7 +282,7 @@ export function Logs() {
   });
 
   async function clearLogs() {
-    const [responseCode] = await DeleteRequest("queries");
+    const [responseCode] = await DeleteRequest("queries", null);
     if (responseCode === 200) {
       toast.success("Logs cleared successfully!");
       setQueries([]);
@@ -305,6 +305,7 @@ export function Logs() {
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button
+              disabled={queries.length === 0}
               variant="outline"
               className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
             >
@@ -313,7 +314,7 @@ export function Logs() {
           </DialogTrigger>
           <DialogContent className="bg-zinc-900 text-white border-zinc-800 md:w-auto max-w-md p-6 rounded-xl shadow-lg">
             <div className="flex flex-col items-center text-center">
-              <Warning className="h-12 w-12 text-amber-500 mb-4" />
+              <WarningIcon className="h-12 w-12 text-amber-500 mb-4" />
               <DialogTitle className="text-xl font-semibold mb-2">
                 Confirm Log Clearance
               </DialogTitle>
@@ -355,7 +356,7 @@ export function Logs() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <CaretDown />
+              Columns <CaretDownIcon />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -553,7 +554,7 @@ export function Logs() {
               disabled={pageIndex === 0 || loading}
             >
               <span className="sr-only">Go to first page</span>
-              <CaretDoubleLeft />
+              <CaretDoubleLeftIcon />
             </Button>
             <Button
               variant="outline"
@@ -562,7 +563,7 @@ export function Logs() {
               disabled={pageIndex === 0 || loading}
             >
               <span className="sr-only">Go to previous page</span>
-              <CaretLeft />
+              <CaretLeftIcon />
             </Button>
             <Button
               variant="outline"
@@ -573,7 +574,7 @@ export function Logs() {
               disabled={pageIndex >= totalPages - 1 || loading}
             >
               <span className="sr-only">Go to next page</span>
-              <CaretRight />
+              <CaretRightIcon />
             </Button>
             <Button
               variant="outline"
@@ -582,7 +583,7 @@ export function Logs() {
               disabled={pageIndex >= totalPages - 1 || loading}
             >
               <span className="sr-only">Go to last page</span>
-              <CaretDoubleRight />
+              <CaretDoubleRightIcon />
             </Button>
           </div>
         </div>
