@@ -67,8 +67,15 @@ func (api *API) addList(c *gin.Context) {
 	url := c.Query("url")
 
 	if api.Blacklist.BlocklistURL[name] != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "List already exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List with same name already exists"})
 		return
+	}
+
+	for _, blocklistUrl := range api.Blacklist.BlocklistURL {
+		if url == blocklistUrl {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "List with same URL already exists"})
+			return
+		}
 	}
 
 	err := api.Blacklist.FetchAndLoadHosts(url, name)
