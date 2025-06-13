@@ -1,3 +1,10 @@
+## [0.53.5](https://github.com/pommee/goaway/compare/v0.53.4...v0.53.5) (2025-06-13)
+
+
+### Bug Fixes
+
+* improve 'add new list' ui further ([2a70440](https://github.com/pommee/goaway/commit/2a704408fbeaead2f2c064d9417318c146ed6616))
+
 ## [0.53.4](https://github.com/pommee/goaway/compare/v0.53.3...v0.53.4) (2025-06-13)
 
 
