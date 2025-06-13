@@ -1,3 +1,10 @@
+## [0.53.4](https://github.com/pommee/goaway/compare/v0.53.3...v0.53.4) (2025-06-13)
+
+
+### Bug Fixes
+
+* improve lists page state handling and feedback ([17914e2](https://github.com/pommee/goaway/commit/17914e293e3d4809ebc1e2c5a9c5476762814657))
+
 ## [0.53.3](https://github.com/pommee/goaway/compare/v0.53.2...v0.53.3) (2025-06-13)
 
 
