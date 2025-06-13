@@ -15,10 +15,10 @@ import (
 func (api *API) registerBlacklistRoutes() {
 	api.routes.POST("/prefetch", api.createPrefetchedDomain)
 	api.routes.GET("/prefetch", api.fetchPrefetchedDomains)
-	api.routes.GET("/removeFromCustom", api.removeDomainFromCustom)
 	api.routes.GET("/domains", api.getBlacklistedDomains)
 	api.routes.GET("/topBlockedDomains", api.getTopBlockedDomains)
 	api.routes.GET("/getDomainsForList", api.getDomainsForList)
+	api.routes.DELETE("/blacklist", api.removeDomainFromCustom)
 	api.routes.DELETE("/prefetch", api.deletePrefetchedDomain)
 }
 
