@@ -97,6 +97,13 @@ func NewBlacklistTable(db *sql.DB) error {
 		return err
 	}
 
+	_, err = db.Exec(`
+        CREATE INDEX IF NOT EXISTS idx_blacklist_source_id ON blacklist(source_id)
+    `)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

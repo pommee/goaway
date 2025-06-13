@@ -484,10 +484,13 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 
 func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 	query := `
-		SELECT s.name, s.url, COUNT(b.domain) as blocked_count, s.lastUpdated, s.active
+		SELECT s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
 		FROM sources s
-		LEFT JOIN blacklist b ON s.id = b.source_id
-		GROUP BY s.id, s.name, s.url, s.lastUpdated, s.active
+		LEFT JOIN (
+			SELECT source_id, COUNT(*) as blocked_count
+			FROM blacklist
+			GROUP BY source_id
+		) bc ON s.id = bc.source_id
 		ORDER BY s.name
 	`
 
@@ -499,7 +502,7 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 		_ = rows.Close()
 	}(rows)
 
-	stats := make(map[string]SourceStats, 5)
+	stats := make(map[string]SourceStats, 10)
 
 	for rows.Next() {
 		var name, url string
@@ -507,7 +510,7 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 		var lastUpdated int64
 		var active bool
 
-		if err := rows.Scan(&name, &url, &blockedCount, &lastUpdated, &active); err != nil {
+		if err := rows.Scan(&name, &url, &lastUpdated, &active, &blockedCount); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
@@ -519,7 +522,11 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 		}
 	}
 
-	return stats, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return stats, nil
 }
 
 func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
