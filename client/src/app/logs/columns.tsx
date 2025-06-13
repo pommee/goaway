@@ -1,12 +1,5 @@
 import { IPEntry } from "@/pages/logs";
-import { DeleteRequest, GetRequest, PostRequest } from "@/util";
-import {
-  Check,
-  CheckIcon,
-  Lightning,
-  ShieldSlash,
-  TrashIcon
-} from "@phosphor-icons/react";
+import { Check, Lightning, ShieldSlash } from "@phosphor-icons/react";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef } from "@tanstack/react-table";
 
