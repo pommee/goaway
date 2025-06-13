@@ -38,11 +38,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		s.Config.DNS.Status.Paused = false
 	}
 
-	// TODO
-	// IsBlacklisted will not work if the trailing dot is removed
-	// Trailing dot shall exist to be fully quallyfied
-	// However many blacklisted domains miss the trailing dot
-	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) && !s.Whitelist.IsWhitelisted(domainName) {
+	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) && !s.Whitelist.IsWhitelisted(request.Question.Name) {
 		return s.handleBlacklisted(request)
 	}
 
