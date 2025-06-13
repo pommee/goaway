@@ -106,7 +106,9 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded or invalid file"})
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	if !strings.HasSuffix(strings.ToLower(header.Filename), ".db") {
 		log.Error("Invalid file extension: %s", header.Filename)
@@ -124,7 +126,7 @@ func (api *API) importDatabase(c *gin.Context) {
 		return
 	}
 	defer func() {
-		tempFile.Close()
+		_ = tempFile.Close()
 		_ = os.Remove(tempImport)
 	}()
 
@@ -134,7 +136,9 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
 		return
 	}
-	tempFile.Close()
+	defer func() {
+		_ = tempFile.Close()
+	}()
 
 	testDB, err := sql.Open("sqlite", tempImport)
 	if err != nil {
@@ -145,12 +149,14 @@ func (api *API) importDatabase(c *gin.Context) {
 
 	err = testDB.Ping()
 	if err != nil {
-		testDB.Close()
+		_ = testDB.Close()
 		log.Error("Failed to ping uploaded database: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Corrupted or invalid database file"})
 		return
 	}
-	testDB.Close()
+	defer func() {
+		_ = testDB.Close()
+	}()
 
 	err = api.DBManager.Conn.Close()
 	if err != nil {
@@ -173,7 +179,7 @@ func (api *API) importDatabase(c *gin.Context) {
 	err = copyFile(tempImport, currentDBPath)
 	if err != nil {
 		log.Error("Failed to replace database: %v", err)
-		copyFile(backupPath, currentDBPath)
+		_ = copyFile(backupPath, currentDBPath)
 		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to import database, restored from backup"})
 		return
@@ -182,7 +188,7 @@ func (api *API) importDatabase(c *gin.Context) {
 	api.DBManager.Conn, err = sql.Open("sqlite", currentDBPath)
 	if err != nil {
 		log.Error("Failed to reopen database after import: %v", err)
-		copyFile(backupPath, currentDBPath)
+		_ = copyFile(backupPath, currentDBPath)
 		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open imported database, restored from backup"})
 		return
@@ -191,8 +197,10 @@ func (api *API) importDatabase(c *gin.Context) {
 	err = api.DBManager.Conn.Ping()
 	if err != nil {
 		log.Error("Failed to ping new database: %v", err)
-		api.DBManager.Conn.Close()
-		copyFile(backupPath, currentDBPath)
+		defer func() {
+			_ = api.DBManager.Conn.Close()
+		}()
+		_ = copyFile(backupPath, currentDBPath)
 		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Imported database is not functional, restored from backup"})
 		return
@@ -210,13 +218,17 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer func() {
+		_ = sourceFile.Close()
+	}()
 
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func() {
+		_ = destFile.Close()
+	}()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
