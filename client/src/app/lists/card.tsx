@@ -4,7 +4,9 @@ import { ListEntry } from "@/pages/blacklist";
 import { CardDetails } from "./details";
 import { Clock, ShieldSlash } from "@phosphor-icons/react";
 
-export function ListCard(listEntry: ListEntry) {
+export function ListCard(
+  listEntry: ListEntry & { onDelete: (name: string) => void }
+) {
   const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
     "en-US",
     {
@@ -45,13 +47,7 @@ export function ListCard(listEntry: ListEntry) {
           </div>
         </div>
 
-        <CardDetails
-          active={listEntry.active}
-          blockedCount={listEntry.blockedCount}
-          lastUpdated={listEntry.lastUpdated}
-          name={listEntry.name}
-          url={listEntry.url}
-        />
+        <CardDetails {...listEntry} onDelete={listEntry.onDelete} />
       </div>
     </Card>
   );

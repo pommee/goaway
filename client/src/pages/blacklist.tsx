@@ -44,10 +44,22 @@ export function Blacklist() {
     fetchLists();
   }, []);
 
+  const handleDelete = (name: string) => {
+    setLists((prevLists) => prevLists.filter((list) => list.name !== name));
+  };
+
+  const handleListAdded = (newList: ListEntry) => {
+    setLists((prev) => [...prev, newList]);
+
+    if (newList.active) {
+      setBlockedDomains((prev) => prev + newList.blockedCount);
+    }
+  };
+
   return (
     <div>
       <div className="flex gap-5 items-center">
-        <AddList />
+        <AddList onListAdded={handleListAdded} />
         <UpdateCustom />
         <div className="flex gap-4 mb-4">
           <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-zinc-800 border rounded-t-sm border-b-blue-400">
@@ -80,14 +92,7 @@ export function Blacklist() {
       </div>
       <div className="grid lg:grid-cols-3 gap-2">
         {lists.map((list, index) => (
-          <ListCard
-            key={index}
-            active={list.active}
-            blockedCount={list.blockedCount}
-            lastUpdated={list.lastUpdated}
-            name={list.name}
-            url={list.url}
-          />
+          <ListCard key={index} {...list} onDelete={handleDelete} />
         ))}
       </div>
     </div>

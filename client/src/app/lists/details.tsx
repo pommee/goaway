@@ -10,17 +10,19 @@ import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/blacklist";
 import { DeleteRequest, GetRequest } from "@/util";
 import {
-  ArrowsClockwise,
-  Eraser,
-  Eye,
-  ToggleLeft
+  ArrowsClockwiseIcon,
+  EraserIcon,
+  EyeIcon,
+  ToggleLeftIcon
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import TimeAgo from "react-timeago";
 import { toast } from "sonner";
 import BlockedDomainsList from "./blockedDomains";
 
-export function CardDetails(listEntry: ListEntry) {
+export function CardDetails(
+  listEntry: ListEntry & { onDelete?: (name: string) => void }
+) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [updateDiff, setUpdateDiff] = useState({
     diffAdded: [],
@@ -102,16 +104,19 @@ export function CardDetails(listEntry: ListEntry) {
       );
 
       if (code === 200) {
+        toast.info("Info", {
+          description: `Deleted list: ${listEntry.name}`
+        });
         setDialogOpen(false);
         setShowDiff(false);
-        toast.info(`Deleted ${listEntry.name}`);
+        listEntry.onDelete?.(listEntry.name);
       } else {
         toast.error(response.error);
         setShowDiff(false);
       }
     } catch (error) {
       console.log(error);
-      toast.error("Error checking for updates");
+      toast.error("Error deleting list");
       setShowDiff(false);
     }
   };
@@ -123,7 +128,7 @@ export function CardDetails(listEntry: ListEntry) {
           variant="outline"
           className="bg-zinc-800 border-none hover:bg-zinc-700 text-white w-full mt-2 rounded-lg text-sm py-1 h-auto"
         >
-          <Eye className="mr-2" size={16} />
+          <EyeIcon className="mr-2" size={16} />
           View Details
         </Button>
       </DialogTrigger>
@@ -172,7 +177,7 @@ export function CardDetails(listEntry: ListEntry) {
             variant="outline"
             className="bg-zinc-800 border-none hover:bg-zinc-700 text-white flex-1 text-sm"
           >
-            <ToggleLeft className="mr-1" size={16} />
+            <ToggleLeftIcon className="mr-1" size={16} />
             Toggle
           </Button>
 
@@ -183,7 +188,7 @@ export function CardDetails(listEntry: ListEntry) {
                 variant="outline"
                 className="bg-blue-600 border-none hover:bg-blue-500 text-white flex-1 text-sm"
               >
-                <ArrowsClockwise className="mr-1" size={16} />
+                <ArrowsClockwiseIcon className="mr-1" size={16} />
                 Update
               </Button>
               <Button
@@ -191,7 +196,7 @@ export function CardDetails(listEntry: ListEntry) {
                 variant="outline"
                 className="bg-red-600 border-none hover:bg-red-500 text-white flex-1 text-sm"
               >
-                <Eraser className="mr-1" size={16} />
+                <EraserIcon className="mr-1" size={16} />
                 Delete
               </Button>
             </>

@@ -56,7 +56,7 @@ func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error
 		log.Error("Failed to fetch blocklist URLs: %v", err)
 		return nil, fmt.Errorf("failed to fetch blocklist URLs: %w", err)
 	}
-	err = b.PopulateBlocklistCache()
+	_, err = b.PopulateBlocklistCache()
 	if err != nil {
 		log.Error("Failed to initialize blocklist cache")
 		return nil, fmt.Errorf("failed to initialize blocklist cache: %w", err)
@@ -251,12 +251,12 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 	return nil
 }
 
-func (b *Blacklist) PopulateBlocklistCache() error {
+func (b *Blacklist) PopulateBlocklistCache() (int, error) {
 	b.BlacklistCache = map[string]bool{}
 
 	rows, err := b.DBManager.Conn.Query("SELECT domain FROM blacklist")
 	if err != nil {
-		return fmt.Errorf("failed to query blacklist: %w", err)
+		return 0, fmt.Errorf("failed to query blacklist: %w", err)
 	}
 	defer func(rows *sql.Rows) {
 		_ = rows.Close()
@@ -266,12 +266,13 @@ func (b *Blacklist) PopulateBlocklistCache() error {
 	for rows.Next() {
 		var domain string
 		if err := rows.Scan(&domain); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
+			return 0, fmt.Errorf("failed to scan row: %w", err)
 		}
 		domains[domain] = true
 	}
 	b.BlacklistCache = domains
-	return nil
+
+	return len(domains), nil
 }
 
 func (b *Blacklist) CountDomains() (int, error) {

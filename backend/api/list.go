@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"goaway/backend/dns/lists"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -76,7 +78,7 @@ func (api *API) addList(c *gin.Context) {
 		return
 	}
 
-	err = api.Blacklist.PopulateBlocklistCache()
+	blockedDomains, err := api.Blacklist.PopulateBlocklistCache()
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -84,7 +86,12 @@ func (api *API) addList(c *gin.Context) {
 
 	api.Blacklist.BlocklistURL[name] = url
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, gin.H{"list": lists.SourceStats{
+		URL:          url,
+		BlockedCount: blockedDomains,
+		LastUpdated:  time.Now().Unix(),
+		Active:       false,
+	}})
 }
 
 func (api *API) fetchUpdatedList(c *gin.Context) {
@@ -165,7 +172,7 @@ func (api *API) runUpdateList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err = api.Blacklist.PopulateBlocklistCache()
+	_, err = api.Blacklist.PopulateBlocklistCache()
 	if err != nil {
 		message := fmt.Sprintf("Unable to re-populate the blocklist cache: %v", err)
 		log.Warning("%s", message)
