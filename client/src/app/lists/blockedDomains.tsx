@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GetRequest } from "@/util";
+import { DeleteRequest, GetRequest } from "@/util";
 import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 async function removeDomain(domain: string) {
-  const [status, response] = await GetRequest(
-    `removeFromCustom?domain=${domain}`
+  const [status, response] = await DeleteRequest(
+    `blacklist?domain=${domain}`,
+    null
   );
 
   if (status === 200) {
