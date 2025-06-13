@@ -1,3 +1,10 @@
+## [0.53.6](https://github.com/pommee/goaway/compare/v0.53.5...v0.53.6) (2025-06-13)
+
+
+### Bug Fixes
+
+* rw mutex for blacklist/whitelist ([95ac79a](https://github.com/pommee/goaway/commit/95ac79acadc6588f28888ee53eef1abbeb9683d0))
+
 ## [0.53.5](https://github.com/pommee/goaway/compare/v0.53.4...v0.53.5) (2025-06-13)
 
 
