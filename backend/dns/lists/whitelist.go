@@ -26,6 +26,9 @@ func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error
 }
 
 func (w *Whitelist) AddDomain(domain string) error {
+	w.DBManager.Mutex.Lock()
+	defer w.DBManager.Mutex.Unlock()
+
 	result, err := w.DBManager.Conn.Exec(`INSERT OR IGNORE INTO whitelist (domain) VALUES (?)`, domain)
 	if err != nil {
 		return fmt.Errorf("failed to add domain to whitelist: %w", err)
