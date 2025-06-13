@@ -1,3 +1,11 @@
+## [0.53.7](https://github.com/pommee/goaway/compare/v0.53.6...v0.53.7) (2025-06-13)
+
+
+### Bug Fixes
+
+* added import of database file ([7b83f85](https://github.com/pommee/goaway/commit/7b83f85af429591ef098c97163bf0a0d76282612))
+* bump client dependencies ([63a6009](https://github.com/pommee/goaway/commit/63a6009058de82a3e0bca1477c7c2a3173658c14))
+
 ## [0.53.6](https://github.com/pommee/goaway/compare/v0.53.5...v0.53.6) (2025-06-13)
 
 
