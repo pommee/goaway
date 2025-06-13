@@ -2,6 +2,7 @@ package lists
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -435,7 +436,13 @@ func (b *Blacklist) AddCustomDomains(domains []string) error {
 }
 
 func (b *Blacklist) RemoveCustomDomain(domain string) error {
-	tx, err := b.DBManager.Conn.Begin()
+	b.DBManager.Mutex.Lock()
+	defer b.DBManager.Mutex.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	tx, err := b.DBManager.Conn.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}

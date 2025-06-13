@@ -12,7 +12,7 @@ import (
 
 type DatabaseManager struct {
 	Conn  *sql.DB
-	Mutex sync.Mutex
+	Mutex *sync.RWMutex
 }
 
 func Initialize() (*DatabaseManager, error) {
@@ -81,7 +81,7 @@ func Initialize() (*DatabaseManager, error) {
 		return nil, fmt.Errorf("failed to create prefetch table: %w", err)
 	}
 
-	return &DatabaseManager{Conn: db, Mutex: sync.Mutex{}}, nil
+	return &DatabaseManager{Conn: db, Mutex: &sync.RWMutex{}}, nil
 }
 
 func NewBlacklistTable(db *sql.DB) error {
