@@ -1,3 +1,10 @@
+## [0.53.3](https://github.com/pommee/goaway/compare/v0.53.2...v0.53.3) (2025-06-13)
+
+
+### Bug Fixes
+
+* increase blacklist page load by ~40 times ([3c129fb](https://github.com/pommee/goaway/commit/3c129fb2299e5ea8ca002a1d8c5f6752da79a30a))
+
 ## [0.53.2](https://github.com/pommee/goaway/compare/v0.53.1...v0.53.2) (2025-06-12)
 
 
