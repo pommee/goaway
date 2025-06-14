@@ -1,3 +1,10 @@
+## [0.53.8](https://github.com/pommee/goaway/compare/v0.53.7...v0.53.8) (2025-06-14)
+
+
+### Performance Improvements
+
+* improve log loading performance by about 50x ([f6c4756](https://github.com/pommee/goaway/commit/f6c4756fb5faa8ca25f38f49879b2951ffb70182))
+
 ## [0.53.7](https://github.com/pommee/goaway/compare/v0.53.6...v0.53.7) (2025-06-13)
 
 
