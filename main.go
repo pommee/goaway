@@ -7,6 +7,7 @@ import (
 	"goaway/backend/asciiart"
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
+	"goaway/backend/dns/lists"
 	"goaway/backend/dns/server"
 	"goaway/backend/dns/server/prefetch"
 	"goaway/backend/logging"
@@ -142,27 +143,49 @@ func startServer(config *settings.Config, ansi bool) {
 
 	go dnsServer.ProcessLogEntries()
 
-	blockedDomains, serverInstance, err := dnsServer.Init()
+	dnsReadyChannel := make(chan struct{})
+	errorChannel := make(chan struct{}, 1)
+
+	notifyReady := func() {
+		blacklistEntry, err := lists.InitializeBlacklist(dnsServer.DBManager)
+		if err != nil {
+			log.Error("Failed to initialize blacklist: %v", err)
+			errorChannel <- struct{}{}
+			return
+		}
+		dnsServer.Blacklist = blacklistEntry
+
+		domains, err := blacklistEntry.CountDomains()
+		if err != nil {
+			log.Warning("Failed to count blacklist domains: %v", err)
+		}
+
+		currentVersion := setup.GetVersionOrDefault(version)
+		asciiart.AsciiArt(config, domains, currentVersion.Original(), config.API.Authentication, ansi)
+
+		log.Info("Started DNS server on: %s:%d", config.DNS.Address, config.DNS.Port)
+		close(dnsReadyChannel)
+	}
+
+	serverInstance, err := dnsServer.Init(notifyReady)
 	if err != nil {
 		log.Error("Failed to initialize DNS server: %s", err)
 		os.Exit(1)
 	}
-	currentVersion := setup.GetVersionOrDefault(version)
 
-	asciiart.AsciiArt(config, blockedDomains, currentVersion.Original(), config.API.Authentication, ansi)
-	startServices(dnsServer, serverInstance, config)
+	startServices(dnsServer, serverInstance, config, ansi, dnsReadyChannel, errorChannel)
 }
 
-func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config *settings.Config) {
+func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
 	var wg sync.WaitGroup
-	errorChannel := make(chan struct{}, 1)
 	sigChannel := make(chan os.Signal, 1)
 	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	wg.Add(2)
+
 	go func() {
 		defer wg.Done()
-		log.Info("Started DNS server on port %s", serverInstance.Addr)
+
 		if err := serverInstance.ListenAndServe(); err != nil {
 			log.Error("DNS server failed: %s", err)
 			errorChannel <- struct{}{}
@@ -173,28 +196,45 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 
 	go func() {
 		defer wg.Done()
+
+		<-dnsReadyChannel
 		apiServer := api.API{
 			Authentication:           config.API.Authentication,
 			Config:                   config,
-			DBManager:                dnsServer.DBManager,
-			Blacklist:                dnsServer.Blacklist,
-			Whitelist:                dnsServer.Whitelist,
-			WSQueries:                dnsServer.WSQueries,
-			WSCommunication:          dnsServer.WSCommunication,
 			DNSPort:                  config.DNS.Port,
 			Version:                  version,
 			Commit:                   commit,
 			Date:                     date,
-			Notifications:            dnsServer.Notifications,
+			DNSServer:                dnsServer,
+			DBManager:                dnsServer.DBManager,
+			Blacklist:                dnsServer.Blacklist,
+			Whitelist:                dnsServer.Whitelist,
 			PrefetchedDomainsManager: &prefetcher,
+			Notifications:            dnsServer.Notifications,
+			WSQueries:                dnsServer.WSQueries,
+			WSCommunication:          dnsServer.WSCommunication,
 		}
 
-		apiServer.Start(content, dnsServer, errorChannel)
+		apiServer.Start(content, errorChannel)
 	}()
 
-	go arp.ProcessARPTable()
-	go dnsServer.ClearOldEntries()
-	go prefetcher.Run()
+	go func() {
+		<-dnsReadyChannel
+		log.Debug("Starting ARP table processing...")
+		arp.ProcessARPTable()
+	}()
+
+	go func() {
+		<-dnsReadyChannel
+		log.Debug("Starting cache cleanup routine...")
+		dnsServer.ClearOldEntries()
+	}()
+
+	go func() {
+		<-dnsReadyChannel
+		log.Debug("Starting prefetcher...")
+		prefetcher.Run()
+	}()
 
 	go func() { wg.Wait() }()
 

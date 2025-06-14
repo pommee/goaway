@@ -61,11 +61,10 @@ type API struct {
 	WSCommunication *websocket.Conn
 }
 
-func (api *API) Start(content embed.FS, dnsServer *server.DNSServer, errorChannel chan struct{}) {
+func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 	api.initializeRouter()
 	api.configureCORS()
-	api.DNSServer = dnsServer
-	api.KeyManager = key.NewApiKeyManager(dnsServer.DBManager)
+	api.KeyManager = key.NewApiKeyManager(api.DBManager)
 	api.setupRoutes()
 
 	if !api.Config.DevMode {
@@ -194,8 +193,11 @@ func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan s
 		return false
 	}
 
-	log.Info("Web server started on port :%d", api.Config.API.Port)
-	api.logServerURL()
+	if serverIP, err := getServerIP(); err == nil {
+		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
+	} else {
+		log.Info("Web server started on port :%d", api.Config.API.Port)
+	}
 
 	if err := api.router.RunListener(listener); err != nil {
 		log.Error("Server error: %v", err)
@@ -203,14 +205,6 @@ func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan s
 	}
 
 	return true
-}
-
-func (api *API) logServerURL() {
-	if serverIP, err := getServerIP(); err == nil {
-		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
-	} else {
-		log.Error("Could not determine server IP: %v", err)
-	}
 }
 
 func (api *API) ServeEmbeddedContent(content embed.FS) {

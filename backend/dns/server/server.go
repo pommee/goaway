@@ -75,11 +75,6 @@ type communicationMessage struct {
 }
 
 func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
-	blacklistEntry, err := lists.InitializeBlacklist(dbManager)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize blacklist: %w", err)
-	}
-
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize whitelist: %w", err)
@@ -87,7 +82,6 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 
 	server := &DNSServer{
 		Config:             config,
-		Blacklist:          blacklistEntry,
 		Whitelist:          whitelistEntry,
 		DBManager:          dbManager,
 		logIntervalSeconds: 1,
@@ -100,19 +94,19 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 	return server, nil
 }
 
-func (s *DNSServer) Init() (int, *dns.Server, error) {
+type notifyDNSReady func()
+
+func (s *DNSServer) Init(notifyReady notifyDNSReady) (*dns.Server, error) {
+
 	server := &dns.Server{
-		Addr:      fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
-		Net:       "udp",
-		Handler:   s,
-		ReusePort: true,
+		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
+		Net:               "udp",
+		Handler:           s,
+		ReusePort:         true,
+		NotifyStartedFunc: notifyReady,
 	}
 
-	domains, err := s.Blacklist.CountDomains()
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to count blacklist domains: %w", err)
-	}
-	return domains, server, nil
+	return server, nil
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
