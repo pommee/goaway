@@ -3,6 +3,7 @@ package model
 import "time"
 
 type RequestLogEntry struct {
+	ID                int64         `json:"id"`
 	Domain            string        `json:"domain"`
 	Status            string        `json:"status"`
 	QueryType         string        `json:"queryType"`

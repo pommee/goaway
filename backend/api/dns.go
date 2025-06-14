@@ -5,6 +5,7 @@ import (
 	"goaway/backend/api/models"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
+	model "goaway/backend/dns/server/models"
 	"goaway/backend/settings"
 	"net/http"
 	"strconv"
@@ -69,23 +70,44 @@ func (api *API) getBlocking(c *gin.Context) {
 
 func (api *API) getQueries(c *gin.Context) {
 	query := parseQueryParams(c)
-	queries, err := database.FetchQueries(api.DBManager.Conn, query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+	type result struct {
+		queries []model.RequestLogEntry
+		total   int
+		err     error
+	}
+
+	queryCh := make(chan result, 1)
+	countCh := make(chan result, 1)
+
+	go func() {
+		queries, err := database.FetchQueries(api.DBManager.Conn, query)
+		queryCh <- result{queries: queries, err: err}
+	}()
+
+	go func() {
+		total, err := database.CountQueries(api.DBManager.Conn, query.Search)
+		countCh <- result{total: total, err: err}
+	}()
+
+	queryResult := <-queryCh
+	countResult := <-countCh
+
+	if queryResult.err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": queryResult.err.Error()})
 		return
 	}
 
-	total, err := database.CountQueries(api.DBManager.Conn, query.Search)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if countResult.err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": countResult.err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"draw":            c.DefaultQuery("draw", "1"),
-		"recordsTotal":    total,
-		"recordsFiltered": total,
-		"details":         queries,
+		"recordsTotal":    countResult.total,
+		"recordsFiltered": countResult.total,
+		"details":         queryResult.queries,
 	})
 }
 

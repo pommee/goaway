@@ -71,6 +71,7 @@ export interface IPEntry {
 }
 
 interface QueryDetail {
+  id: number;
   domain: string;
   status: string;
   queryType: string;

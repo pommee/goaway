@@ -26,6 +26,19 @@ func Initialize() (*DatabaseManager, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL;",
+		"PRAGMA cache_size=10000;",    // 10MB cache instead of default 2MB
+		"PRAGMA temp_store=MEMORY;",   // Store temp tables in memory
+		"PRAGMA mmap_size=268435456;", // 256MB memory mapping
+	}
+
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			log.Warning("Failed to set pragma (ignoring) %s: %v\n", pragma, err)
+		}
+	}
+
 	_, err = db.Exec("PRAGMA journal_mode=WAL;")
 	if err != nil {
 		log.Warning("failed to set journal_mode to WAL")
@@ -141,7 +154,7 @@ func NewRequestLogTable(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS request_log (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			timestamp DATETIME NOT NULL,
+			timestamp INTEGER NOT NULL,
 			domain TEXT NOT NULL,
 			blocked BOOLEAN NOT NULL,
 			cached BOOLEAN NOT NULL,
@@ -152,16 +165,29 @@ func NewRequestLogTable(db *sql.DB) error {
 			query_type TEXT,
 			response_size_bytes INTEGER
 		);
-
+		
 		CREATE TABLE IF NOT EXISTS request_log_ips (
-			id SERIAL PRIMARY KEY,
-			request_log_id INTEGER REFERENCES request_log(id) ON DELETE CASCADE,
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			request_log_id INTEGER NOT NULL REFERENCES request_log(id) ON DELETE CASCADE,
 			ip TEXT NOT NULL,
 			rtype TEXT NOT NULL
 		);
-    `)
+	`)
 	if err != nil {
 		return err
+	}
+
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_request_log_domain_timestamp ON request_log(domain, timestamp DESC);",
+		"CREATE INDEX IF NOT EXISTS idx_request_log_timestamp_desc ON request_log(timestamp DESC);",
+		"CREATE INDEX IF NOT EXISTS idx_request_log_covering ON request_log(domain, timestamp DESC, blocked, cached, response_time_ns);",
+		"CREATE INDEX IF NOT EXISTS idx_request_log_ips_request_id ON request_log_ips(request_log_id);",
+	}
+
+	for _, indexSQL := range indexes {
+		if _, err := db.Exec(indexSQL); err != nil {
+			return fmt.Errorf("failed to create index: %w", err)
+		}
 	}
 
 	return nil

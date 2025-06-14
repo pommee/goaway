@@ -113,76 +113,133 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 }
 
 func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
-	query := fmt.Sprintf(`
-		SELECT rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns, 
-		       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes,
-		       COALESCE(STRING_AGG(rli.ip || ':' || rli.rtype, ','), '') as resolved_ips
-		FROM request_log rl
-		LEFT JOIN request_log_ips rli ON rl.id = rli.request_log_id
-		WHERE rl.domain LIKE $1
-		GROUP BY rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
-		         rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
-		ORDER BY %s %s
-		LIMIT $2 OFFSET $3`, q.Column, q.Direction)
-
-	rows, err := db.Query(query, "%"+q.Search+"%", q.PageSize, q.Offset)
-	if err != nil {
-		log.Error("Database query error: %v", err)
-		return nil, err
+	validColumns := map[string]bool{
+		"timestamp": true, "domain": true, "blocked": true, "cached": true,
+		"response_time_ns": true, "client_ip": true, "status": true, "query_type": true,
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	var queries []model.RequestLogEntry
+	if !validColumns[q.Column] {
+		q.Column = "timestamp"
+	}
+
+	if q.Direction != "ASC" && q.Direction != "DESC" {
+		q.Direction = "DESC"
+	}
+
+	var query string
+	var args []interface{}
+
+	if q.Search == "" {
+		query = `
+			SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
+			       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
+			FROM request_log rl
+			ORDER BY rl.` + q.Column + ` ` + q.Direction + `
+			LIMIT ? OFFSET ?`
+		args = []interface{}{q.PageSize, q.Offset}
+	} else {
+		query = `
+			SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
+			       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
+			FROM request_log rl
+			WHERE rl.domain LIKE ?
+			ORDER BY rl.` + q.Column + ` ` + q.Direction + `
+			LIMIT ? OFFSET ?`
+		args = []interface{}{"%" + q.Search + "%", q.PageSize, q.Offset}
+	}
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return nil, fmt.Errorf("database query error: %w", err)
+	}
+	defer rows.Close()
+
+	queries := make([]model.RequestLogEntry, 0, q.PageSize)
+	var requestLogIDs []int64
+
 	for rows.Next() {
 		var query model.RequestLogEntry
-		var resolvedIPsString string
-		var timestamp string
+		var timestamp int64
+		var requestLogID int64
+
 		query.ClientInfo = &model.Client{}
 
 		if err := rows.Scan(
-			&timestamp, &query.Domain, &query.Blocked, &query.Cached, &query.ResponseTime,
-			&query.ClientInfo.IP, &query.ClientInfo.Name, &query.Status, &query.QueryType,
-			&query.ResponseSizeBytes, &resolvedIPsString,
+			&requestLogID, &timestamp, &query.Domain, &query.Blocked, &query.Cached,
+			&query.ResponseTime, &query.ClientInfo.IP, &query.ClientInfo.Name,
+			&query.Status, &query.QueryType, &query.ResponseSizeBytes,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan error: %w", err)
 		}
 
-		parsedTime, err := strconv.ParseInt(timestamp, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("error: %v", err)
-		}
-		query.Timestamp = time.Unix(parsedTime, 0)
-		query.IP = parseResolvedIPs(resolvedIPsString)
+		query.Timestamp = time.Unix(timestamp, 0)
+		query.ID = requestLogID
 		queries = append(queries, query)
+		requestLogIDs = append(requestLogIDs, requestLogID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	if len(requestLogIDs) > 0 {
+		ipMap, err := fetchResolvedIPs(db, requestLogIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch resolved IPs: %w", err)
+		}
+
+		for i := range queries {
+			if ips, exists := ipMap[queries[i].ID]; exists {
+				queries[i].IP = ips
+			}
+		}
 	}
 
 	return queries, nil
 }
 
-func parseResolvedIPs(ipString string) []model.ResolvedIP {
-	if ipString == "" {
-		return []model.ResolvedIP{}
+func fetchResolvedIPs(db *sql.DB, requestLogIDs []int64) (map[int64][]model.ResolvedIP, error) {
+	if len(requestLogIDs) == 0 {
+		return nil, nil
 	}
 
-	parts := strings.Split(ipString, ",")
-	resolvedIPs := make([]model.ResolvedIP, 0, len(parts))
-
-	for _, part := range parts {
-		if part == "" {
-			continue
-		}
-		ipParts := strings.Split(part, ":")
-		if len(ipParts) == 2 {
-			resolvedIPs = append(resolvedIPs, model.ResolvedIP{
-				IP:    ipParts[0],
-				RType: ipParts[1],
-			})
-		}
+	placeholders := make([]string, len(requestLogIDs))
+	args := make([]interface{}, len(requestLogIDs))
+	for i, id := range requestLogIDs {
+		placeholders[i] = "?"
+		args[i] = id
 	}
 
-	return resolvedIPs
+	query := `
+		SELECT request_log_id, ip, rtype 
+		FROM request_log_ips 
+		WHERE request_log_id IN (` + strings.Join(placeholders, ",") + `)`
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ipMap := make(map[int64][]model.ResolvedIP)
+	for rows.Next() {
+		var requestLogID int64
+		var resolvedIP model.ResolvedIP
+
+		if err := rows.Scan(&requestLogID, &resolvedIP.IP, &resolvedIP.RType); err != nil {
+			return nil, err
+		}
+
+		ipMap[requestLogID] = append(ipMap[requestLogID], resolvedIP)
+	}
+
+	return ipMap, rows.Err()
 }
 
 func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
