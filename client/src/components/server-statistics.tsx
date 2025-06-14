@@ -17,7 +17,8 @@ import {
   DownloadIcon,
   HardDriveIcon,
   InfoIcon,
-  ThermometerIcon
+  ThermometerIcon,
+  TrendUpIcon
 } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import confetti from "canvas-confetti";
@@ -39,7 +40,7 @@ export type Metrics = {
   commit: string;
   date: string;
 };
-
+import React from "react";
 const getColor = (value: number, max: number) => {
   const hue = Math.max(0, 120 - (value / max) * 120);
   return `hsl(${hue}, 100%, 50%)`;
@@ -335,13 +336,17 @@ docker pull pommee/goaway:version`;
               unit="%"
               icon={HardDriveIcon}
             />
-            <MetricBar
-              label="DB"
-              value={metrics?.dbSize}
-              max={200}
-              unit="MB"
-              icon={DatabaseIcon}
-            />
+            <div className="flex items-center gap-2 text-xs mt-3">
+              <DatabaseIcon size={12} className="text-gray-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Database</span>
+                  <span className="bg-gray-700 px-2 py-0.5 rounded font-mono text-xs">
+                    {formatNumber(metrics?.dbSize)}MB
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -395,8 +400,8 @@ docker pull pommee/goaway:version`;
                             log.includes("[info]")
                               ? "text-green-400"
                               : log.includes("[error]")
-                                ? "text-red-400"
-                                : ""
+                              ? "text-red-400"
+                              : ""
                           }
                         >
                           {log}
