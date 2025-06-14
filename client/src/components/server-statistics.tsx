@@ -17,8 +17,7 @@ import {
   DownloadIcon,
   HardDriveIcon,
   InfoIcon,
-  ThermometerIcon,
-  TrendUpIcon
+  ThermometerIcon
 } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import confetti from "canvas-confetti";
@@ -400,8 +399,8 @@ docker pull pommee/goaway:version`;
                             log.includes("[info]")
                               ? "text-green-400"
                               : log.includes("[error]")
-                              ? "text-red-400"
-                              : ""
+                                ? "text-red-400"
+                                : ""
                           }
                         >
                           {log}
