@@ -1,3 +1,11 @@
+## [0.53.9](https://github.com/pommee/goaway/compare/v0.53.8...v0.53.9) (2025-06-14)
+
+
+### Bug Fixes
+
+* added udpSize to config ([c7680fa](https://github.com/pommee/goaway/commit/c7680fa1c7db1a169a574180205e2b60db19b91f))
+* always start dns server first ([e76afe4](https://github.com/pommee/goaway/commit/e76afe46ad6dd7b85e74c27021161dd31c097c18))
+
 ## [0.53.8](https://github.com/pommee/goaway/compare/v0.53.7...v0.53.8) (2025-06-14)
 
 
