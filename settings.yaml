@@ -19,6 +19,10 @@ dns:
   # Lower values can result in lesser amount of cached responses, but also the most up-to-date information.
   cacheTTL: 360
 
+  # UDP buffer size for incoming DNS queries (bytes)
+  # Standard DNS-over-UDP packet size limit per RFC 1035
+  udpSize: 512
+
 api:
   # Port used for the API/web interface server.
   # Access the dashboard and management features through this port.

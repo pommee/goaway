@@ -96,13 +96,14 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 
 type notifyDNSReady func()
 
-func (s *DNSServer) Init(notifyReady notifyDNSReady) (*dns.Server, error) {
+func (s *DNSServer) Init(udpSize int, notifyReady notifyDNSReady) (*dns.Server, error) {
 
 	server := &dns.Server{
 		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
 		Net:               "udp",
 		Handler:           s,
 		ReusePort:         true,
+		UDPSize:           udpSize,
 		NotifyStartedFunc: notifyReady,
 	}
 

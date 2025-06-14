@@ -167,7 +167,7 @@ func startServer(config *settings.Config, ansi bool) {
 		close(dnsReadyChannel)
 	}
 
-	serverInstance, err := dnsServer.Init(notifyReady)
+	serverInstance, err := dnsServer.Init(config.DNS.UDPSize, notifyReady)
 	if err != nil {
 		log.Error("Failed to initialize DNS server: %s", err)
 		os.Exit(1)

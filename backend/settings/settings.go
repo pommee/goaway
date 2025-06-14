@@ -25,6 +25,7 @@ type Config struct {
 		CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
 		PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
 		UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
+		UDPSize           int      `yaml:"udpSize" json:"udpSize"`
 		Status            Status   `yaml:"-" json:"status"`
 	} `yaml:"dns" json:"dns"`
 
@@ -94,6 +95,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 		"1.1.1.1:53",
 		"8.8.8.8:53",
 	}
+	defaultConfig.DNS.UDPSize = 512
 
 	defaultConfig.API.Port = 8080
 	defaultConfig.API.Authentication = true
