@@ -152,13 +152,17 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	rows, err := stmt.Query(args...)
 	if err != nil {
 		return nil, fmt.Errorf("database query error: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	queries := make([]model.RequestLogEntry, 0, q.PageSize)
 	var requestLogIDs []int64
@@ -225,7 +229,9 @@ func fetchResolvedIPs(db *sql.DB, requestLogIDs []int64) (map[int64][]model.Reso
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	ipMap := make(map[int64][]model.ResolvedIP)
 	for rows.Next() {
