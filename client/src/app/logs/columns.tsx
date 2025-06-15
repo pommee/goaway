@@ -74,7 +74,9 @@ export const columns: ColumnDef<Queries>[] = [
 
         return <div className="text-muted-foreground">{date}</div>;
       } catch {
-        return <div>{row.original.timestamp}</div>;
+        return (
+          <div className="text-muted-foreground">{row.original.timestamp}</div>
+        );
       }
     }
   },

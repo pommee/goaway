@@ -146,7 +146,7 @@ async function fetchQueries(
 export function Logs() {
   const [queries, setQueries] = useState<Queries[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
   const [domainFilter, setDomainFilter] = useState("");
@@ -294,21 +294,18 @@ export function Logs() {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center">
-          {wsConnected && (
-            <div className="flex items-center mr-4">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              <span className="text-sm text-green-500">Live updates</span>
-            </div>
-          )}
-        </div>
+      <div className="flex items-center">
+        <Input
+          placeholder="Filter domain..."
+          onChange={(event) => debouncedSetDomainFilter(event.target.value)}
+          className="max-w-sm"
+        />
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger asChild className="ml-5">
             <Button
               disabled={queries.length === 0}
               variant="outline"
-              className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
+              className="bg-red-950 hover:bg-red-900 border-1 border-red-900 text-white"
             >
               Clear logs
             </Button>
@@ -346,14 +343,6 @@ export function Logs() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter domain..."
-          onChange={(event) => debouncedSetDomainFilter(event.target.value)}
-          className="max-w-sm"
-        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -377,7 +366,7 @@ export function Logs() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border mt-4">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -518,9 +507,28 @@ export function Logs() {
         </Table>
       </div>
       <div className="flex items-center justify-between px-2 mt-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+        <div className="flex text-sm text-muted-foreground">
           Displaying {table.getPreSelectedRowModel().rows.length} of{" "}
           {totalRecords.toLocaleString()} record(s).
+          <div>
+            <div className="flex items-center ml-5">
+              {wsConnected ? (
+                <>
+                  <span className="text-sm text-green-500/50">
+                    <div className="w-3 h-3 bg-green-500/50 rounded-full mr-2 animate-pulse"></div>
+                    Live updates
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="w-3 h-3 bg-red-500/50 rounded-full mr-2"></div>
+                  <span className="text-sm text-red-500/50">
+                    no websocket connection
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">
@@ -536,7 +544,7 @@ export function Logs() {
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[5, 10, 20, 30, 50, 100, 250].map((size) => (
+                {[5, 15, 30, 50, 100, 250].map((size) => (
                   <SelectItem key={size} value={`${size}`}>
                     {size}
                   </SelectItem>
