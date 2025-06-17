@@ -27,6 +27,10 @@ func NewRateLimiter(enabled bool, maxTries int, window int) *RateLimiter {
 		Window:   window,
 	}
 
+	if !enabled {
+		log.Warning("Rate limit is disabled")
+	}
+
 	return &RateLimiter{
 		Config:   config,
 		mutex:    &sync.RWMutex{},
@@ -35,6 +39,10 @@ func NewRateLimiter(enabled bool, maxTries int, window int) *RateLimiter {
 }
 
 func (rl *RateLimiter) CheckLimit(identifier string) (bool, int) {
+	if !rl.Config.Enabled {
+		return true, 0
+	}
+
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
 
