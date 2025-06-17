@@ -1,4 +1,4 @@
-import { GithubLogo, WarningCircleIcon } from "@phosphor-icons/react";
+import { GithubLogoIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -114,12 +114,16 @@ const Changelog = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-16">
-        <div className="animate-pulse text-gray-400 flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gray-500 animate-bounce"></div>
-          <div className="w-4 h-4 rounded-full bg-gray-500 animate-bounce delay-100"></div>
-          <div className="w-4 h-4 rounded-full bg-gray-500 animate-bounce delay-200"></div>
-          <span className="ml-2">Loading changelog...</span>
+      <div className="min-h-96 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
+          </div>
+          <p className="text-slate-400 text-sm font-medium">
+            Loading changelog...
+          </p>
         </div>
       </div>
     );
@@ -127,14 +131,14 @@ const Changelog = () => {
 
   if (error) {
     return (
-      <div className="p-6 text-red-500 bg-red-900 bg-opacity-20 rounded-md border border-red-700 flex items-center justify-center">
+      <div className="p-6 text-red-400 bg-red-900/50 bg-opacity-20 rounded-md border border-red-700 flex items-center justify-center">
         <div className="flex flex-col items-center">
           <WarningCircleIcon size={48} />
           <div className="text-lg font-semibold">Failed to load changelog</div>
           <div className="text-sm mt-1">{error}</div>
           <button
             onClick={fetchReleases}
-            className="mt-4 px-4 py-2 bg-red-800 hover:bg-red-700 text-white rounded-md transition-colors"
+            className="mt-4 px-4 py-2 bg-red-900 hover:bg-red-700 text-white rounded-md transition-colors"
           >
             Try Again
           </button>
@@ -146,111 +150,124 @@ const Changelog = () => {
   const installedVersion = localStorage.getItem("installedVersion");
 
   return (
-    <div className="text-gray-100 p-4 space-y-6 font-mono max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Changelog</h1>
+        <p className="text-muted-foreground">
+          Stay up to date with the latest changes and improvements.
+        </p>
+      </div>
+
       {releases.length === 0 ? (
-        <div className="p-6 bg-gray-800 rounded-md text-center">
-          No release information available.
+        <div className="bg-stone-900 border rounded-xl p-8 text-center">
+          <p>No release information available.</p>
         </div>
       ) : (
-        releases.map((release, idx) => {
-          const date = new Date(release.published_at);
-          const sections = parseChangelogBody(
-            release.body || "No release notes available."
-          );
-          const isLatest = idx === 0;
-          const isInstalled =
-            release.name.replace("v", "") === installedVersion;
+        <div className="space-y-6">
+          {releases.map((release, idx) => {
+            const date = new Date(release.published_at);
+            const sections = parseChangelogBody(
+              release.body || "No release notes available."
+            );
+            const isLatest = idx === 0;
+            const isInstalled =
+              release.name.replace("v", "") === installedVersion;
 
-          return (
-            <div
-              key={release.id}
-              className={`changelog-entry border border-gray-700 rounded-lg p-5 bg-gray-800 transition-all ${
-                isLatest ? "shadow-md shadow-green-900/20" : ""
-              } ${isInstalled ? "border-l-4 border-l-green-600" : ""}`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold">{release.name}</h3>
-                  <div className="flex gap-1">
-                    {isLatest && (
-                      <span className="latest-tag px-2 py-0.5 text-xs bg-green-800 text-green-100 rounded font-semibold">
-                        Latest
-                      </span>
-                    )}
-                    {isInstalled && (
-                      <span className="installed-tag px-2 py-0.5 text-xs bg-blue-800 text-blue-100 rounded font-semibold">
-                        Installed
-                      </span>
-                    )}
+            return (
+              <div
+                key={release.id}
+                className={`group relative border rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 ${
+                  isLatest
+                    ? "border-stone-600 bg-stone-900/80"
+                    : "border-stone-900 bg-stone-900/60"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold">{release.name}</h2>
+                    <div className="flex gap-2">
+                      {isLatest && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-800 text-white-800">
+                          Latest
+                        </span>
+                      )}
+                      {isInstalled && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white">
+                          Installed
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <time className="text-sm text-muted-foreground font-medium">
+                    {date.toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric"
+                    })}
+                  </time>
                 </div>
-                <p className="text-gray-400 text-sm">
-                  {date.toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric"
-                  })}
-                </p>
-              </div>
 
-              <hr className="border-gray-700 my-3" />
-
-              {sections.length > 0 ? (
-                sections.map((section, sectionIdx) => (
-                  <div key={sectionIdx} className="mt-4">
-                    <h4 className="font-semibold mb-2 text-gray-200 bg-gray-700 px-2 py-1 rounded inline-block">
-                      {section.header}
-                    </h4>
-                    <ul className="space-y-2 mt-2">
-                      {section.commits.map((commit, commitIdx) => (
-                        <li key={commitIdx} className="flex items-start group">
-                          <span className="mr-2 text-green-400">•</span>
-                          <div>
-                            {commit.hash ? (
-                              <div className="flex items-baseline">
-                                <a
-                                  href={commit.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300 hover:underline text-sm font-mono mr-2 transition-colors"
-                                >
-                                  [{commit.hash.substring(0, 7)}]
-                                </a>
-                                <span className="text-gray-200">
-                                  {commit.message}
-                                </span>
+                <div className="space-y-6">
+                  {sections.length > 0 ? (
+                    sections.map((section, sectionIdx) => (
+                      <div key={sectionIdx}>
+                        <h3 className="text-sm font-semibold tracking-wide mb-3 flex items-center">
+                          <span className="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                          {section.header}
+                        </h3>
+                        <div className="space-y-2">
+                          {section.commits.map((commit, commitIdx) => (
+                            <div
+                              key={commitIdx}
+                              className="flex items-start gap-3 group/commit"
+                            >
+                              <div className="ml-1 mt-2"></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start gap-2">
+                                  {commit.hash && (
+                                    <a
+                                      href={commit.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="py-0.5 text-muted-foreground hover:text-white transition-colors"
+                                    >
+                                      {`[${commit.hash.substring(0, 7)}]`}
+                                    </a>
+                                  )}
+                                  <p>{commit.message}</p>
+                                </div>
                               </div>
-                            ) : (
-                              <span className="text-gray-200">
-                                {commit.message}
-                              </span>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              ) : (
-                <div className="py-2 text-gray-400 italic">
-                  No detailed release notes available.
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+                      <span className="italic">
+                        No detailed release notes available
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div className="mt-4 flex justify-end">
-                <a
-                  href={release.html_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-3 py-1 bg-gray-900 hover:bg-gray-700 text-blue-400 rounded-md transition-colors text-sm"
-                >
-                  <GithubLogo size={14} />
-                  View on GitHub
-                </a>
+                <div className="mt-4 pt-2">
+                  <div className="flex justify-end">
+                    <a
+                      href={release.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border-1 border-stone-600 hover:text-white hover:border-stone-400 rounded-sm transition-colors"
+                    >
+                      <GithubLogoIcon size={16} />
+                      View on GitHub
+                    </a>
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </div>
       )}
     </div>
   );
