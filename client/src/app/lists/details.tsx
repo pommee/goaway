@@ -24,6 +24,9 @@ export function CardDetails(
   listEntry: ListEntry & { onDelete?: (name: string) => void }
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [fetchingDiff, setFetchingDiff] = useState(false);
+  const [deletingList, setDeletingList] = useState(false);
+  const [listActive, setListActive] = useState<boolean>();
   const [updateDiff, setUpdateDiff] = useState({
     diffAdded: [],
     diffRemoved: []
@@ -35,15 +38,15 @@ export function CardDetails(
       `toggleBlocklist?blocklist=${listEntry.name}`
     );
     if (code === 200) {
+      setListActive(!listActive);
       toast.info(response.message);
-      setDialogOpen(false);
     } else {
       toast.error(response.message);
-      setDialogOpen(false);
     }
   };
 
   const checkForUpdates = async () => {
+    setFetchingDiff(true);
     try {
       const [code, response] = await GetRequest(
         `fetchUpdatedList?name=${encodeURIComponent(listEntry.name)}&url=${
@@ -71,6 +74,8 @@ export function CardDetails(
       toast.error("Error checking for updates");
       setShowDiff(false);
     }
+
+    setFetchingDiff(false);
   };
 
   const runUpdateList = async () => {
@@ -97,6 +102,7 @@ export function CardDetails(
   };
 
   const deleteList = async () => {
+    setDeletingList(true);
     try {
       const [code, response] = await DeleteRequest(
         `list?name=${encodeURIComponent(listEntry.name)}`,
@@ -119,6 +125,8 @@ export function CardDetails(
       toast.error("Error deleting list");
       setShowDiff(false);
     }
+
+    setDeletingList(false);
   };
 
   return (
@@ -149,7 +157,7 @@ export function CardDetails(
         <div>
           <div className="flex gap-1 text-zinc-500">
             {"status:"}
-            {listEntry.active == true ? (
+            {listActive ? (
               <p className="w-fit text-green-500">active</p>
             ) : (
               <p className="w-fit text-red-500">inactive</p>
@@ -184,20 +192,46 @@ export function CardDetails(
           {listEntry.name !== "Custom" && (
             <>
               <Button
+                disabled={fetchingDiff}
                 onClick={checkForUpdates}
                 variant="outline"
                 className="bg-blue-600 border-none hover:bg-blue-500 text-white flex-1 text-sm"
               >
-                <ArrowsClockwiseIcon className="mr-1" size={16} />
-                Update
+                {fetchingDiff ? (
+                  <div className="flex">
+                    <ArrowsClockwiseIcon
+                      className="mr-1 mt-0.5 animate-spin"
+                      size={16}
+                    />
+                    Updating...
+                  </div>
+                ) : (
+                  <div className="flex">
+                    <ArrowsClockwiseIcon className="mr-1 mt-0.5" size={16} />
+                    Update
+                  </div>
+                )}
               </Button>
               <Button
+                disabled={deletingList}
                 onClick={deleteList}
                 variant="outline"
                 className="bg-red-600 border-none hover:bg-red-500 text-white flex-1 text-sm"
               >
-                <EraserIcon className="mr-1" size={16} />
-                Delete
+                {deletingList ? (
+                  <div className="flex">
+                    <EraserIcon
+                      className="mr-1 mt-0.5 animate-bounce "
+                      size={16}
+                    />
+                    Delete
+                  </div>
+                ) : (
+                  <div className="flex">
+                    <EraserIcon className="mr-1 mt-0.5" size={16} />
+                    Delete
+                  </div>
+                )}
               </Button>
             </>
           )}
