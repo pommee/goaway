@@ -1,3 +1,10 @@
+## [0.54.5](https://github.com/pommee/goaway/compare/v0.54.4...v0.54.5) (2025-06-17)
+
+
+### Bug Fixes
+
+* trigger new release to get out previous changes ([9dcb829](https://github.com/pommee/goaway/commit/9dcb8292fb4065f7ef0da4f9f55aad0ecb46e9a8))
+
 ## [0.54.4](https://github.com/pommee/goaway/compare/v0.54.3...v0.54.4) (2025-06-17)
 
 
