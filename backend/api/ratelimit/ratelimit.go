@@ -38,7 +38,7 @@ func (rl *RateLimiter) CheckLimit(identifier string) (bool, int) {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
 
-	window := time.Duration(rl.Config.Window * int(time.Minute))
+	window := time.Duration(rl.Config.Window) * time.Minute
 	now := time.Now()
 	cutoff := now.Add(-window)
 	attempts := rl.attempts[identifier]
