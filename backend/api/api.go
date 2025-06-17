@@ -20,6 +20,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"goaway/backend/api/key"
+	"goaway/backend/api/ratelimit"
 	"goaway/backend/api/user"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/lists"
@@ -59,12 +60,19 @@ type API struct {
 
 	WSQueries       *websocket.Conn
 	WSCommunication *websocket.Conn
+
+	RateLimiter *ratelimit.RateLimiter
 }
 
 func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 	api.initializeRouter()
 	api.configureCORS()
 	api.KeyManager = key.NewApiKeyManager(api.DBManager)
+	api.RateLimiter = ratelimit.NewRateLimiter(
+		api.Config.API.RateLimiterConfig.Enabled,
+		api.Config.API.RateLimiterConfig.MaxTries,
+		api.Config.API.RateLimiterConfig.Window,
+	)
 	api.setupRoutes()
 
 	if !api.Config.DevMode {

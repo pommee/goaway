@@ -33,6 +33,15 @@ api:
   # Set to true for increased security.
   authentication: true
 
+  # Currently only protects the login route
+  rateLimiter:
+    # Enable or disable the usage of rate limiting
+    enabled: true
+    # User can make N requests before being rate limited
+    maxTries: 5
+    # Once limit is reached, rate limits for N minutes
+    window: 5
+
 # Number of days to retain statistics and query logs.
 # Lower values save disk space but provide less historical data.
 statisticsRetention: 7

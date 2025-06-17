@@ -1,18 +1,16 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"goaway/backend/api/user"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
-
-type Credentials struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
 
 func (api *API) registerAuthRoutes() {
 	api.router.POST("/api/login", api.handleLogin)
@@ -30,16 +28,33 @@ func (api *API) validateCredentials(username, password string) bool {
 }
 
 func (api *API) handleLogin(c *gin.Context) {
-	var creds Credentials
-	if err := c.BindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	allowed, timeUntilReset := api.RateLimiter.CheckLimit(c.ClientIP())
+	if !allowed {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error":             "Too many login attempts. Please try again later.",
+			"retryAfterSeconds": timeUntilReset,
+		})
 		return
 	}
 
-	if api.validateCredentials(creds.Username, creds.Password) {
+	var creds user.Credentials
+	if err := c.BindJSON(&creds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if err := creds.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if api.authenticateUser(creds.Username, creds.Password) {
 		token, err := generateToken(creds.Username)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token generation failed"})
+			log.Info("Token generation failed for user %s: %v", creds.Username, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Authentication service temporarily unavailable",
+			})
 			return
 		}
 
@@ -49,8 +64,33 @@ func (api *API) handleLogin(c *gin.Context) {
 		setAuthCookie(c.Writer, token)
 		c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid username or password",
+		})
 	}
+}
+
+func (api *API) authenticateUser(username, password string) bool {
+	query := "SELECT password FROM user WHERE username = ?"
+
+	var hashedPassword string
+	err := api.DBManager.Conn.QueryRow(query, username).Scan(&hashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Info("Authentication attempt for non-existent or invalid credentials")
+		} else {
+			log.Warning("Database error during authentication: %v", err)
+		}
+		return false
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
+		log.Info("Password comparison failed for user: %s", username)
+		return false
+	}
+
+	log.Info("Successful authentication for user: %s", username)
+	return true
 }
 
 func (api *API) getAuthentication(c *gin.Context) {

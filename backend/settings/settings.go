@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"goaway/backend/api/ratelimit"
 	"goaway/backend/logging"
 	"os"
 	"path/filepath"
@@ -30,8 +31,9 @@ type Config struct {
 	} `yaml:"dns" json:"dns"`
 
 	API struct {
-		Port           int  `yaml:"port" json:"port"`
-		Authentication bool `yaml:"authentication" json:"authentication"`
+		Port              int                         `yaml:"port" json:"port"`
+		Authentication    bool                        `yaml:"authentication" json:"authentication"`
+		RateLimiterConfig ratelimit.RateLimiterConfig `yaml:"rateLimit" json:"-"`
 	} `yaml:"api" json:"api"`
 
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
@@ -99,6 +101,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 
 	defaultConfig.API.Port = 8080
 	defaultConfig.API.Authentication = true
+	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}
 
 	data, err := yaml.Marshal(&defaultConfig)
 	if err != nil {

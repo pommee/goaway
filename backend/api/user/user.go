@@ -4,11 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"goaway/backend/logging"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 var log = logging.GetLogger()
+
+type Credentials struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
 
 func (user *User) Create(db *sql.DB) error {
 	hashedPassword, err := hashPassword(user.Password)
@@ -97,4 +103,28 @@ func (user *User) UpdatePassword(db *sql.DB) error {
 	}
 
 	return tx.Commit()
+}
+
+func (c *Credentials) Validate() error {
+	c.Username = strings.TrimSpace(c.Username)
+	c.Password = strings.TrimSpace(c.Password)
+
+	if c.Username == "" || c.Password == "" {
+		return errors.New("username and password cannot be empty")
+	}
+
+	if len(c.Username) > 60 {
+		return errors.New("username too long")
+	}
+	if len(c.Password) > 120 {
+		return errors.New("password too long")
+	}
+
+	for _, r := range c.Username {
+		if r < 32 || r == 127 {
+			return errors.New("username contains invalid characters")
+		}
+	}
+
+	return nil
 }
