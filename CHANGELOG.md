@@ -1,3 +1,10 @@
+## [0.54.4](https://github.com/pommee/goaway/compare/v0.54.3...v0.54.4) (2025-06-17)
+
+
+### Bug Fixes
+
+* get initial list status when loading details ([9fddc3d](https://github.com/pommee/goaway/commit/9fddc3d491efcfbaadf3c18213cb65f894c83fd8))
+
 ## [0.54.3](https://github.com/pommee/goaway/compare/v0.54.2...v0.54.3) (2025-06-17)
 
 
