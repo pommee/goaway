@@ -1,3 +1,12 @@
+## [0.54.3](https://github.com/pommee/goaway/compare/v0.54.2...v0.54.3) (2025-06-17)
+
+
+### Bug Fixes
+
+* better feedback when toggling, updating and removing a list ([8e61d0e](https://github.com/pommee/goaway/commit/8e61d0e3f35ccd63095551e7b0678d49ffc2a76c))
+* better looking changelog ([515669f](https://github.com/pommee/goaway/commit/515669fa883e5bf68093a9d2d4ba6601b58caabc))
+* hint that you will be logged out once password is changed ([3d80e70](https://github.com/pommee/goaway/commit/3d80e706beb085777796c0957a4c0e91ad5d5ea2))
+
 ## [0.54.2](https://github.com/pommee/goaway/compare/v0.54.1...v0.54.2) (2025-06-17)
 
 
