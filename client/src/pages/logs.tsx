@@ -514,8 +514,8 @@ export function Logs() {
             <div className="flex items-center ml-5">
               {wsConnected ? (
                 <>
-                  <span className="text-sm text-green-500/50">
-                    <div className="w-3 h-3 bg-green-500/50 rounded-full mr-2 animate-pulse"></div>
+                  <span className="flex text-sm text-green-500/50">
+                    <div className="w-3 h-3 bg-green-500/50 rounded-full mr-2 mt-1 animate-pulse"></div>
                     Live updates
                   </span>
                 </>
