@@ -1,3 +1,10 @@
+# [0.54.0](https://github.com/pommee/goaway/compare/v0.53.9...v0.54.0) (2025-06-17)
+
+
+### Features
+
+* added rate limit for login and generally more secure login flow ([d8ed524](https://github.com/pommee/goaway/commit/d8ed524136c21b8689d34c463d36768facf84d75))
+
 ## [0.53.9](https://github.com/pommee/goaway/compare/v0.53.8...v0.53.9) (2025-06-14)
 
 
