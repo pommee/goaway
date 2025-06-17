@@ -26,7 +26,7 @@ export function CardDetails(
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fetchingDiff, setFetchingDiff] = useState(false);
   const [deletingList, setDeletingList] = useState(false);
-  const [listActive, setListActive] = useState<boolean>();
+  const [listActive, setListActive] = useState<boolean>(listEntry.active);
   const [updateDiff, setUpdateDiff] = useState({
     diffAdded: [],
     diffRemoved: []
