@@ -62,7 +62,7 @@ export async function PostRequest(
       if (ignoreError !== true) {
         showToast(data.error || "Unknown error occurred");
       }
-      return [res.status, null];
+      return [res.status, data];
     }
 
     const data = await tryParseJson();

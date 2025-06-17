@@ -75,12 +75,13 @@ export function Login({
     }
 
     try {
-      const [statusCode] = await PostRequest(
+      const [statusCode, response] = await PostRequest(
         "login",
         {
           username,
           password
         },
+        true,
         true
       );
 
@@ -90,6 +91,13 @@ export function Login({
         }
 
         navigate("/");
+      } else if (statusCode === 429) {
+        toast.warning("Rate limit exceeded", {
+          description: `Retry again in ${response.retryAfterSeconds} seconds`
+        });
+        return;
+      } else {
+        toast.warning("Login failed", { description: response.error });
       }
     } catch (error) {
       console.error("Login error:", error);
