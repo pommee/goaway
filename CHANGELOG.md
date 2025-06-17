@@ -1,3 +1,10 @@
+## [0.54.1](https://github.com/pommee/goaway/compare/v0.54.0...v0.54.1) (2025-06-17)
+
+
+### Bug Fixes
+
+* resolve 'overflows int' error for arm ([03d2a1c](https://github.com/pommee/goaway/commit/03d2a1c35d82b4cb132de72d04d00f04be61e0c6))
+
 # [0.54.0](https://github.com/pommee/goaway/compare/v0.53.9...v0.54.0) (2025-06-17)
 
 
