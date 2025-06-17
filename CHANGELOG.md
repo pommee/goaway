@@ -1,3 +1,11 @@
+## [0.54.2](https://github.com/pommee/goaway/compare/v0.54.1...v0.54.2) (2025-06-17)
+
+
+### Bug Fixes
+
+* always log ansi unless json is specified ([fe528dc](https://github.com/pommee/goaway/commit/fe528dcbe90fe0b9cf99fa8b9621fa61b677f3cc))
+* respect false rate limit setting and warn when turned off ([ace8c4c](https://github.com/pommee/goaway/commit/ace8c4c22e88f367b72de4529841a9325872a417))
+
 ## [0.54.1](https://github.com/pommee/goaway/compare/v0.54.0...v0.54.1) (2025-06-17)
 
 
