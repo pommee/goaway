@@ -65,8 +65,12 @@ func (l *Logger) SetLevel(level LogLevel) {
 	}
 }
 
-func (l *Logger) SetFormat(JSONFormat bool) {
-	l.JSON = JSONFormat
+func (l *Logger) SetJson(json bool) {
+	l.JSON = json
+}
+
+func (l *Logger) SetAnsi(ansi bool) {
+	l.Ansi = ansi
 }
 
 func (l *Logger) log(level string, color string, message string, msgLevel LogLevel) {

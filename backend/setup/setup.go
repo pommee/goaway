@@ -29,12 +29,12 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		falseVal := false
 		flags.Ansi = &falseVal
 	}
-	if flags.LogLevel != nil {
-		if *flags.LogLevel > 3 || *flags.LogLevel < 0 {
-			fmt.Println("Flag --log-level can't be greater than 3 or below 0.")
-			os.Exit(1)
-		}
+
+	if flags.LogLevel != nil && (*flags.LogLevel > 3 || *flags.LogLevel < 0) {
+		fmt.Println("Flag --log-level can't be greater than 3 or below 0.")
+		os.Exit(1)
 	}
+
 	if flags.DnsPort != nil {
 		config.DNS.Port = *flags.DnsPort
 	}
@@ -56,20 +56,23 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 	if flags.LogLevel != nil {
 		config.LogLevel = logging.LogLevel(*flags.LogLevel)
 	}
+	if flags.InAppUpdate != nil {
+		config.InAppUpdate = *flags.InAppUpdate
+	}
+
 	if flags.JSON != nil {
 		log.JSON = *flags.JSON
+		log.SetJson(log.JSON)
+	} else {
+		log.Ansi = flags.Ansi == nil || *flags.Ansi
+		log.SetAnsi(log.Ansi)
 	}
-	if flags.Ansi != nil {
-		log.Ansi = *flags.Ansi
-	}
+
 	if flags.LogLevel != nil {
 		log.SetLevel(logging.LogLevel(*flags.LogLevel))
 	}
 	if flags.LoggingEnabled != nil {
 		log.ToggleLogging(*flags.LoggingEnabled)
-	}
-	if flags.InAppUpdate != nil {
-		config.InAppUpdate = *flags.InAppUpdate
 	}
 }
 
