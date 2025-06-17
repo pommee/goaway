@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
-import { UploadIcon, WarningIcon, DownloadIcon } from "@phosphor-icons/react";
+import { DownloadIcon, UploadIcon, WarningIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -606,6 +606,9 @@ export function Settings() {
             <DialogDescription>
               Enter your current password and a new password below.
             </DialogDescription>
+            <p className="bg-zinc-900 p-2 rounded-sm">
+              You will be logged out once the password has been updated.
+            </p>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
