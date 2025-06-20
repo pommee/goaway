@@ -21,7 +21,7 @@ func createTestDB() (*database.DatabaseManager, error) {
 
 func removeTestDB(db *database.DatabaseManager) {
 	_ = db.Conn.Close()
-	_ = os.Remove("database.db")
+	_ = os.RemoveAll("data")
 }
 
 func MockClient() *model.Client {
@@ -35,12 +35,17 @@ func MockClient() *model.Client {
 func MockRequestLogEntry() model.RequestLogEntry {
 	timestamp := time.Now()
 	return model.RequestLogEntry{
-		Timestamp:    timestamp,
-		Domain:       "example.com",
-		IP:           []string{"192.168.0.1"},
+		Timestamp: timestamp,
+		Domain:    "example.com",
+		IP: []model.ResolvedIP{
+			{
+				IP:    "192.168.0.1",
+				RType: "A",
+			},
+		},
 		Blocked:      false,
 		Cached:       false,
-		ResponseTime: 13371337,
+		ResponseTime: 1337,
 		ClientInfo:   MockClient(),
 		Status:       "NOERROR",
 		QueryType:    "A",
@@ -104,7 +109,7 @@ func TestFetchResolution(t *testing.T) {
 	}
 
 	for _, data := range testData {
-		_, err = dbManager.Conn.Exec("INSERT INTO resolution (ip, domain) VALUES (?, ?)", data.ip, data.domain)
+		err = database.CreateNewResolution(dbManager.Conn, data.ip, data.domain)
 		if err != nil {
 			t.Fatalf("Failed to insert domain %s: %v", data.domain, err)
 		}
