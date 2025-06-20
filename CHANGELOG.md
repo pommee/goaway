@@ -1,3 +1,10 @@
+## [0.54.6](https://github.com/pommee/goaway/compare/v0.54.5...v0.54.6) (2025-06-20)
+
+
+### Bug Fixes
+
+* added sorting for certain log columns ([cb5ac49](https://github.com/pommee/goaway/commit/cb5ac492587abef3a7cf7d5a81a9ce757bb7e3e3))
+
 ## [0.54.5](https://github.com/pommee/goaway/compare/v0.54.4...v0.54.5) (2025-06-17)
 
 
