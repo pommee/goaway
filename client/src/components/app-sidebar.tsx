@@ -9,10 +9,10 @@ import {
   SidebarMenuItem
 } from "@/components/ui/sidebar";
 import { GenerateQuote } from "@/quotes";
-import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
   CloudArrowUpIcon,
   GearIcon,
+  GithubLogoIcon,
   HouseIcon,
   ListIcon,
   NoteIcon,
@@ -94,7 +94,7 @@ const data = {
     {
       title: "GitHub",
       url: "https://github.com/pommee/goaway",
-      icon: SiGithub,
+      icon: GithubLogoIcon,
       blank: "_blank"
     },
     {
