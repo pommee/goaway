@@ -1,8 +1,10 @@
 package models
 
 type QueryParams struct {
-	Page, PageSize    int
-	Search            string
-	Column, Direction string
-	Offset            int
+	Page      int
+	PageSize  int
+	Offset    int
+	Search    string
+	Column    string
+	Direction string
 }

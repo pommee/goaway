@@ -50,13 +50,11 @@ import {
   ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   SortingState,
   useReactTable,
   VisibilityState
 } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface Client {
@@ -94,10 +92,14 @@ interface QueryResponse {
 async function fetchQueries(
   page: number,
   pageSize: number,
-  domainFilter: string = ""
+  domainFilter: string = "",
+  sortField: string = "timestamp",
+  sortDirection: string = "desc"
 ): Promise<QueryResponse> {
   try {
-    let url = `queries?page=${page}&pageSize=${pageSize}`;
+    let url = `queries?page=${page}&pageSize=${pageSize}&sortColumn=${encodeURIComponent(
+      sortField
+    )}&sortDirection=${encodeURIComponent(sortDirection)}`;
     if (domainFilter) {
       url += `&search=${encodeURIComponent(domainFilter)}`;
     }
@@ -152,11 +154,13 @@ export function Logs() {
   const [domainFilter, setDomainFilter] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const totalPages = Math.ceil(totalRecords / pageSize);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "timestamp", desc: true }
+  ]);
 
   const debounce = (func: (...args: unknown[]) => void, delay: number) => {
     let timeoutId: NodeJS.Timeout | undefined;
@@ -244,31 +248,36 @@ export function Logs() {
     };
   }, [pageIndex, pageSize, domainFilter]);
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+
+    const sortField = sorting.length > 0 ? sorting[0].id : "timestamp";
+    const sortDirection =
+      sorting.length > 0 ? (sorting[0].desc ? "desc" : "asc") : "desc";
+
+    const result = await fetchQueries(
+      pageIndex + 1,
+      pageSize,
+      domainFilter,
+      sortField,
+      sortDirection
+    );
+
+    setQueries(result.details);
+    setTotalRecords(result.recordsFiltered);
+    setLoading(false);
+  }, [pageIndex, pageSize, domainFilter, sorting]);
+
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-
-      const result = await fetchQueries(pageIndex + 1, pageSize, domainFilter);
-
-      setQueries(result.details);
-      setTotalRecords(result.recordsFiltered);
-      setLoading(false);
-    }
-
     fetchData();
-  }, [pageIndex, pageSize, domainFilter]);
+  }, [fetchData]);
 
   const table = useReactTable({
     data: queries,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     manualPagination: true,
+    manualSorting: true,
     pageCount: totalPages,
     state: {
       sorting,
@@ -279,7 +288,11 @@ export function Logs() {
         pageIndex,
         pageSize
       }
-    }
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection
   });
 
   async function clearLogs() {

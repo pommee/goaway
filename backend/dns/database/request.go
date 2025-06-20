@@ -113,40 +113,34 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 }
 
 func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
-	validColumns := map[string]bool{
-		"timestamp": true, "domain": true, "blocked": true, "cached": true,
-		"response_time_ns": true, "client_ip": true, "status": true, "query_type": true,
-	}
-
-	if !validColumns[q.Column] {
-		q.Column = "timestamp"
-	}
-
-	if q.Direction != "ASC" && q.Direction != "DESC" {
-		q.Direction = "DESC"
-	}
-
 	var query string
 	var args []interface{}
 
-	if q.Search == "" {
-		query = `
-			SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
-			       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
-			FROM request_log rl
-			ORDER BY rl.` + q.Column + ` ` + q.Direction + `
-			LIMIT ? OFFSET ?`
-		args = []interface{}{q.PageSize, q.Offset}
-	} else {
-		query = `
-			SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
-			       rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
-			FROM request_log rl
-			WHERE rl.domain LIKE ?
-			ORDER BY rl.` + q.Column + ` ` + q.Direction + `
-			LIMIT ? OFFSET ?`
-		args = []interface{}{"%" + q.Search + "%", q.PageSize, q.Offset}
+	baseQuery := `
+        SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
+               rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
+        FROM request_log rl`
+
+	if q.Column == "ip" {
+		baseQuery += ` LEFT JOIN resolved_ips ri ON rl.id = ri.request_log_id`
 	}
+
+	whereClause := ""
+	if q.Search != "" {
+		whereClause = " WHERE rl.domain LIKE ?"
+		args = append(args, "%"+q.Search+"%")
+	}
+
+	orderClause := " ORDER BY rl." + q.Column + " " + q.Direction
+
+	if q.Column == "ip" {
+		orderClause = " ORDER BY MAX(ri.ip) " + q.Direction
+	}
+
+	limitClause := " LIMIT ? OFFSET ?"
+	args = append(args, q.PageSize, q.Offset)
+
+	query = baseQuery + whereClause + orderClause + limitClause
 
 	stmt, err := db.Prepare(query)
 	if err != nil {

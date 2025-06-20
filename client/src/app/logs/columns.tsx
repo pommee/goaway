@@ -1,11 +1,14 @@
+import { Button } from "@/components/ui/button";
 import { IPEntry } from "@/pages/logs";
 import { DeleteRequest, PostRequest } from "@/util";
 import {
+  CaretDownIcon,
+  CaretUpIcon,
   CheckIcon,
   LightningIcon,
   ShieldSlashIcon
 } from "@phosphor-icons/react";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Header } from "@tanstack/react-table";
 import { toast } from "sonner";
 
 type Client = {
@@ -25,6 +28,37 @@ export type Queries = {
   status: string;
   timestamp: string;
 };
+
+interface Props {
+  column: Header<object, unknown>["column"];
+  title: string;
+}
+
+export function SortableHeader({ column, title }: Props) {
+  const isSorted = column.getIsSorted();
+
+  const handleClick = () => {
+    if (!isSorted) column.toggleSorting(true);
+    else if (isSorted === "desc") column.toggleSorting(false);
+    else column.clearSorting();
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      onClick={handleClick}
+      className="hover:text-green-400 hover:bg-stone-900 !p-0 h-auto cursor-pointer gap-1"
+    >
+      {title}
+      {isSorted === "asc" && (
+        <CaretUpIcon className="h-4 w-4 text-orange-400" />
+      )}
+      {isSorted === "desc" && (
+        <CaretDownIcon className="h-4 w-4 text-orange-400" />
+      )}
+    </Button>
+  );
+}
 
 async function BlacklistDomain(domain: string) {
   try {
@@ -59,7 +93,7 @@ async function WhitelistDomain(domain: string) {
 export const columns: ColumnDef<Queries>[] = [
   {
     accessorKey: "timestamp",
-    header: "Time",
+    header: ({ column }) => <SortableHeader column={column} title="Time" />,
     cell: ({ row }) => {
       try {
         const timestamp = row.original.timestamp;
@@ -82,7 +116,7 @@ export const columns: ColumnDef<Queries>[] = [
   },
   {
     accessorKey: "domain",
-    header: "Domain",
+    header: ({ column }) => <SortableHeader column={column} title="Domain" />,
     cell: ({ row }) => {
       const wasBlocked = row.original.blocked === true ? "text-red-500" : "";
       return <div className={`${wasBlocked}`}>{row.getValue("domain")}</div>;
@@ -138,10 +172,6 @@ export const columns: ColumnDef<Queries>[] = [
             ? `cache (forwarded)`
             : `ok (forwarded)`
           : `blacklisted`;
-      const ns = query.responseTimeNS;
-      const ms = ns / 1_000_000;
-      const rowText =
-        ms < 10 ? `${Math.round(ns / 1_000)}µs` : `${ms.toFixed(2)}ms`;
 
       return (
         <div className="flex">
@@ -157,21 +187,31 @@ export const columns: ColumnDef<Queries>[] = [
           <div className="border-1 px-1 border-stone-800 rounded-sm mr-1">
             {wasOK}
           </div>
-          <div>
-            {query.status} {rowText}
-          </div>
+          <div>{query.status}</div>
         </div>
       );
     }
   },
   {
+    accessorKey: "responseTimeNS",
+    header: ({ column }) => <SortableHeader column={column} title="Response" />,
+    cell: ({ row }) => {
+      const ns = row.original.responseTimeNS;
+      const ms = ns / 1_000_000;
+      const rowText =
+        ms < 10 ? `${Math.round(ns / 1_000)} µs` : `${ms.toFixed(2)} ms`;
+
+      return <p>{rowText}</p>;
+    }
+  },
+  {
     accessorKey: "queryType",
-    header: "Type",
+    header: ({ column }) => <SortableHeader column={column} title="Type" />,
     cell: ({ row }) => <div>{row.getValue("queryType")}</div>
   },
   {
     accessorKey: "responseSizeBytes",
-    header: "Size",
+    header: ({ column }) => <SortableHeader column={column} title="Size" />,
     cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>
   },
   {

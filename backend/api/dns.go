@@ -9,6 +9,7 @@ import (
 	"goaway/backend/settings"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -119,10 +120,16 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 	sortDirection := c.DefaultQuery("sortDirection", "desc")
 
 	validColumns := map[string]string{
-		"timestamp": "timestamp",
-		"domain":    "domain",
-		"client":    "client_ip",
-		"ip":        "ip",
+		"timestamp":         "timestamp",
+		"domain":            "domain",
+		"client":            "client_ip",
+		"ip":                "ip",
+		"status":            "status",
+		"responseTimeNS":    "response_time_ns",
+		"queryType":         "query_type",
+		"blocked":           "blocked",
+		"cached":            "cached",
+		"responseSizeBytes": "response_size_bytes",
 	}
 
 	column, ok := validColumns[sortColumn]
@@ -130,6 +137,7 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 		column = "timestamp"
 	}
 
+	sortDirection = strings.ToLower(sortDirection)
 	if sortDirection != "asc" && sortDirection != "desc" {
 		sortDirection = "desc"
 	}
@@ -139,7 +147,7 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 		PageSize:  pageSize,
 		Search:    search,
 		Column:    column,
-		Direction: sortDirection,
+		Direction: strings.ToUpper(sortDirection),
 		Offset:    (page - 1) * pageSize,
 	}
 }
