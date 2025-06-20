@@ -73,7 +73,7 @@ export default function RequestTypeChart() {
   };
 
   return (
-    <Card className="w-3/8">
+    <Card className="lg:w-3/8">
       <CardHeader className="pb-0">
         <div className="flex items-center justify-between w-full">
           <CardTitle>Request Types</CardTitle>

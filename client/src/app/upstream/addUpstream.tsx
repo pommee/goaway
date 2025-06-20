@@ -42,7 +42,7 @@ export function AddUpstream() {
             Add upstream
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+        <DialogContent className="bg-zinc-900 text-white border-zinc-800 lg:w-1/3">
           <DialogHeader>
             <DialogTitle>New Upstream</DialogTitle>
           </DialogHeader>
