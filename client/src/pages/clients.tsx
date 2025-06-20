@@ -1,6 +1,6 @@
 import DNSServerVisualizer from "@/app/clients/map";
 import { GetRequest } from "@/util";
-import { Info } from "@phosphor-icons/react";
+import { InfoIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -81,7 +81,7 @@ export function Clients() {
           <div className="border rounded-lg p-6 max-w-md w-full">
             <div className="flex items-center justify-center">
               <div className="p-3">
-                <Info className="w-12 h-12 text-blue-400" />
+                <InfoIcon className="w-12 h-12 text-blue-400" />
               </div>
             </div>
             <h3 className="text-lg font-medium text-center">

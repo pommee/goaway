@@ -26,12 +26,12 @@ import {
 } from "@/components/ui/table";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
-  Clock,
-  Database,
-  Globe,
-  Plus,
-  Spinner,
-  Trash
+  ClockIcon,
+  DatabaseIcon,
+  GlobeIcon,
+  PlusIcon,
+  SpinnerIcon,
+  TrashIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -158,7 +158,7 @@ export function Prefetch() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Database className="h-3 w-3" />
+          <DatabaseIcon className="h-3 w-3" />
           {prefetches.length} {prefetches.length === 1 ? "Entry" : "Entries"}
         </div>
       </div>
@@ -166,7 +166,7 @@ export function Prefetch() {
       <Card className="shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-green-500" />
+            <PlusIcon className="h-5 w-5 text-green-500" />
             Add DNS Prefetch
           </CardTitle>
           <CardDescription>
@@ -184,7 +184,7 @@ export function Prefetch() {
                   Domain name
                 </Label>
                 <div className="relative">
-                  <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="domain"
                     placeholder="example.com."
@@ -262,7 +262,7 @@ export function Prefetch() {
           >
             {submitting ? (
               <>
-                <Spinner className="h-4 w-4 mr-2 animate-spin" />
+                <SpinnerIcon className="h-4 w-4 mr-2 animate-spin" />
                 Adding...
               </>
             ) : (
@@ -276,7 +276,7 @@ export function Prefetch() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-500" />
+              <ClockIcon className="h-5 w-5 text-blue-500" />
               Active Prefetch Domains
             </CardTitle>
             <div className="w-64">
@@ -335,7 +335,7 @@ export function Prefetch() {
                           className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-stone-700"
                           onClick={() => handleDelete(prefetch.domain)}
                         >
-                          <Trash className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
                         </Button>
                       </div>
@@ -346,7 +346,7 @@ export function Prefetch() {
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="h-12 w-12 text-gray-300 mb-4" />
+              <ClockIcon className="h-12 w-12 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-400">
                 No prefetch domains found
               </h3>

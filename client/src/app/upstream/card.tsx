@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { UpstreamEntry } from "@/pages/upstream";
 import { DeleteRequest, PutRequest } from "@/util";
-import { Cloud, Star } from "@phosphor-icons/react";
+import { CloudIcon, StarIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -79,7 +79,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Cloud className="text-primary" size={24} />
+            <CloudIcon className="text-primary" size={24} />
             <span className="font-bold">{upstream.name}</span>
           </div>
         </CardTitle>
@@ -100,7 +100,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       <CardFooter className="gap-2 grid lg:grid-cols-2">
         {isPreferred ? (
           <Button className="w-full text-white font-bold bg-green-700 hover:bg-green-700 cursor-default">
-            <Star className="mr-2" size={16} />
+            <StarIcon className="mr-2" size={16} />
             Preferred
           </Button>
         ) : (
@@ -109,7 +109,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
             onClick={() => setPreferred(upstream.upstream)}
             variant="secondary"
           >
-            <Star className="mr-2" size={16} />
+            <StarIcon className="mr-2" size={16} />
             Set Preferred
           </Button>
         )}

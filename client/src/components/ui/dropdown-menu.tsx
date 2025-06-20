@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
-import { CaretRight, Check, Circle } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckIcon, CircleIcon } from "@phosphor-icons/react";
 
 function DropdownMenu({
   ...props
@@ -99,7 +99,7 @@ function DropdownMenuCheckboxItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <Check className="size-4" />
+          <CheckIcon className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -134,7 +134,7 @@ function DropdownMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <Circle className="size-2 fill-current" />
+          <CircleIcon className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -216,7 +216,7 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <CaretRight className="ml-auto size-4" />
+      <CaretRightIcon className="ml-auto size-4" />
     </DropdownMenuPrimitive.SubTrigger>
   );
 }

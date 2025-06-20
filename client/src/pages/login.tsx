@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { GetRequest, PostRequest } from "@/util";
 import {
-  Eye,
-  EyeClosed,
-  Lock,
-  Spinner,
-  UserCircle
+  EyeIcon,
+  EyeClosedIcon,
+  LockIcon,
+  SpinnerIcon,
+  UserCircleIcon
 } from "@phosphor-icons/react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -151,7 +151,7 @@ export function Login({
                       Username
                     </Label>
                     <div className="relative group">
-                      <UserCircle className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
+                      <UserCircleIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
                       <Input
                         id="username"
                         type="text"
@@ -175,7 +175,7 @@ export function Login({
                       </Label>
                     </div>
                     <div className="relative group">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
+                      <LockIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
                       <Input
                         id="password"
                         ref={passwordRef}
@@ -192,9 +192,9 @@ export function Login({
                         className="absolute right-3 top-3 text-zinc-400 hover:text-indigo-300 transition-colors duration-200 focus:outline-none focus:text-indigo-400"
                       >
                         {showPassword ? (
-                          <EyeClosed className="h-4 w-4" />
+                          <EyeClosedIcon className="h-4 w-4" />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <EyeIcon className="h-4 w-4" />
                         )}
                       </button>
                     </div>
@@ -229,7 +229,7 @@ export function Login({
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center">
-                        <Spinner className="animate-spin" />
+                        <SpinnerIcon className="animate-spin" />
                         Signing in...
                       </span>
                     ) : (

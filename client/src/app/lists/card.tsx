@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/blacklist";
 import { CardDetails } from "./details";
-import { Clock, ShieldSlash } from "@phosphor-icons/react";
+import { ClockIcon, ShieldSlashIcon } from "@phosphor-icons/react";
 
 export function ListCard(
   listEntry: ListEntry & { onDelete: (name: string) => void }
@@ -37,12 +37,12 @@ export function ListCard(
 
         <div className="flex items-center justify-between">
           <div className="flex items-center bg-zinc-900 rounded-full px-3 py-1 text-sm">
-            <ShieldSlash className="mr-1" size={14} />
+            <ShieldSlashIcon className="mr-1" size={14} />
             <span>{listEntry.blockedCount}</span>
           </div>
 
           <div className="flex items-center text-zinc-500 text-sm">
-            <Clock className="mr-1" size={14} />
+            <ClockIcon className="mr-1" size={14} />
             <span>{formattedDate}</span>
           </div>
         </div>

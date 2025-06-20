@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DeleteRequest, GetRequest } from "@/util";
-import { Bell, Info, Warning } from "@phosphor-icons/react";
+import { BellIcon, InfoIcon, WarningIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -64,12 +64,12 @@ export default function Notifications() {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "error":
-        return <Warning className="h-5 w-5 text-red-500" />;
+        return <WarningIcon className="h-5 w-5 text-red-500" />;
       case "warning":
-        return <Warning className="h-5 w-5 text-amber-500" />;
+        return <WarningIcon className="h-5 w-5 text-amber-500" />;
       case "info":
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <InfoIcon className="h-5 w-5 text-blue-500" />;
     }
   };
 
@@ -127,7 +127,7 @@ export default function Notifications() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild className="cursor-pointer">
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
             <div className="absolute -top-1 -right-1 overflow-hidden">
               <div
@@ -199,7 +199,7 @@ export default function Notifications() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-stone-400 p-4">
-              <Bell className="h-6 w-6 mb-2 opacity-50" />
+              <BellIcon className="h-6 w-6 mb-2 opacity-50" />
               <p>No notifications</p>
             </div>
           )}

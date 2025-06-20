@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { CardDetails } from "./details";
 import { ClientEntry } from "@/pages/clients";
 import { Button } from "@/components/ui/button";
-import { Clock, Eye, User } from "@phosphor-icons/react";
+import { ClockIcon, EyeIcon, UserIcon } from "@phosphor-icons/react";
 
 function timeAgo(timestamp: string) {
   const now = new Date();
@@ -42,7 +42,7 @@ export function ClientCard(clientEntry: ClientEntry) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <User className="text-primary" size={24} />
+              <UserIcon className="text-primary" size={24} />
               <span className="text-xl font-bold">{clientEntry.name}</span>
             </div>
           </CardTitle>
@@ -60,7 +60,7 @@ export function ClientCard(clientEntry: ClientEntry) {
             </div>
 
             <div className="flex items-center text-muted-foreground space-x-1">
-              <Clock className="text-primary" size={14} />
+              <ClockIcon className="text-primary" size={14} />
               <span className="text-sm">{lastSeenText}</span>
             </div>
           </div>
@@ -72,7 +72,7 @@ export function ClientCard(clientEntry: ClientEntry) {
             className="w-full group"
             variant="outline"
           >
-            <Eye className="mr-2 group-hover:animate-pulse" size={16} />
+            <EyeIcon className="mr-2 group-hover:animate-pulse" size={16} />
             View Details
           </Button>
         </CardFooter>

@@ -1,5 +1,11 @@
 import { GetRequest } from "@/util";
-import { Database, Icon, Shield, Trash, Users } from "@phosphor-icons/react";
+import {
+  DatabaseIcon,
+  Icon,
+  ShieldIcon,
+  TrashIcon,
+  UsersIcon
+} from "@phosphor-icons/react";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
@@ -84,7 +90,7 @@ export default function MetricsCards() {
       <MetricsCard
         title="Total Queries"
         valueKey="total"
-        Icon={Shield}
+        Icon={ShieldIcon}
         bgColor="#166534"
         metricsData={metricsData}
         description="All DNS queries processed"
@@ -92,7 +98,7 @@ export default function MetricsCards() {
       <MetricsCard
         title="Queries Blocked"
         valueKey="blocked"
-        Icon={Trash}
+        Icon={TrashIcon}
         bgColor="#991b1b"
         metricsData={metricsData}
         description="Total queries filtered"
@@ -100,7 +106,7 @@ export default function MetricsCards() {
       <MetricsCard
         title="Percent Blocked"
         valueKey="percentageBlocked"
-        Icon={Users}
+        Icon={UsersIcon}
         bgColor="#1e40af"
         type="percentage"
         metricsData={metricsData}
@@ -109,7 +115,7 @@ export default function MetricsCards() {
       <MetricsCard
         title="Blocked Domains"
         valueKey="domainBlockLen"
-        Icon={Database}
+        Icon={DatabaseIcon}
         bgColor="#6b21a8"
         metricsData={metricsData}
         description="Number of domains in blocklist"

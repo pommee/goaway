@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { PostRequest } from "@/util";
-import { ArrowsClockwise } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -50,7 +50,7 @@ export function UpdateCustom() {
             className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
             onClick={() => setDialogOpen(true)}
           >
-            <ArrowsClockwise className="mr-2" size={20} />
+            <ArrowsClockwiseIcon className="mr-2" size={20} />
             Update custom
           </Button>
         </DialogTrigger>

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { GetRequest, PostRequest } from "@/util";
-import { Copy, Key, Trash } from "@phosphor-icons/react";
+import { CopyIcon, KeyIcon, TrashIcon } from "@phosphor-icons/react";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -119,7 +119,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
       <DialogContent className="sm:w-2/3">
         <DialogHeader>
           <DialogTitle className="flex">
-            <Key className="mt-1 mr-2" />
+            <KeyIcon className="mt-1 mr-2" />
             API keys
           </DialogTitle>
         </DialogHeader>
@@ -157,7 +157,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                   variant="ghost"
                   onClick={() => copyToClipboard(newKey.key)}
                 >
-                  <Copy size={16} />
+                  <CopyIcon size={16} />
                 </Button>
               </div>
               <p className="text-xs break-all bg-stone-950 p-2 rounded">
@@ -197,7 +197,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                         onClick={() => handleDeleteKey(key.key)}
                         className="text-red-500 hover:text-red-700"
                       >
-                        <Trash size={16} />
+                        <TrashIcon size={16} />
                       </Button>
                     </div>
                   ))}

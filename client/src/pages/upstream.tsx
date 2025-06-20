@@ -1,7 +1,7 @@
 import { AddUpstream } from "@/app/upstream/addUpstream";
 import { UpstreamCard } from "@/app/upstream/card";
 import { GetRequest } from "@/util";
-import { ArrowClockwise } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -60,7 +60,7 @@ export function Upstream() {
       )) || (
         <div className="flex justify-center items-center">
           <div className="flex flex-col items-center space-y-4">
-            <ArrowClockwise className="w-12 h-12 text-blue-400 animate-spin" />
+            <ArrowClockwiseIcon className="w-12 h-12 text-blue-400 animate-spin" />
             <p className="text-lg text-stone-400">Loading upstreams...</p>
           </div>
         </div>

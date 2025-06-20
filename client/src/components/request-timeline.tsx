@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/select";
 import { GetRequest } from "@/util";
 import {
-  ArrowsClockwise,
-  MagnifyingGlassMinus,
-  MagnifyingGlassPlus
+  ArrowsClockwiseIcon,
+  MagnifyingGlassMinusIcon,
+  MagnifyingGlassPlusIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
@@ -195,7 +195,7 @@ export default function RequestTimeline() {
                 className="bg-transparent border-1 text-white hover:bg-stone-800"
                 onClick={handleZoomOut}
               >
-                <MagnifyingGlassMinus weight="bold" className="mr-1" />
+                <MagnifyingGlassMinusIcon weight="bold" className="mr-1" />
                 Reset Zoom
               </Button>
             )}
@@ -223,7 +223,7 @@ export default function RequestTimeline() {
               onClick={fetchData}
               disabled={isRefreshing}
             >
-              <ArrowsClockwise weight="bold" className="mr-1" />
+              <ArrowsClockwiseIcon weight="bold" className="mr-1" />
               Refresh
             </Button>
           </div>
@@ -235,7 +235,7 @@ export default function RequestTimeline() {
               <div className="mb-2 text-sm text-muted-foreground">
                 {!isZoomed && (
                   <div className="flex items-center ml-4">
-                    <MagnifyingGlassPlus weight="bold" className="mr-1" />
+                    <MagnifyingGlassPlusIcon weight="bold" className="mr-1" />
                     Drag to zoom: Select an area on the chart to zoom in
                   </div>
                 )}

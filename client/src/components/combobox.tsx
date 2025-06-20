@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
-import { ArrowsDownUp, Check } from "@phosphor-icons/react";
+import { ArrowsDownUpIcon, CheckIcon } from "@phosphor-icons/react";
 
 interface ComboboxProps {
   value: string;
@@ -37,7 +37,7 @@ export function Combobox({ value, onChange, options }: ComboboxProps) {
           className="w-[200px] justify-between"
         >
           {value ? value : "Select an option..."}
-          <ArrowsDownUp className="opacity-50" />
+          <ArrowsDownUpIcon className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
@@ -56,7 +56,7 @@ export function Combobox({ value, onChange, options }: ComboboxProps) {
                   }}
                 >
                   {option}
-                  <Check
+                  <CheckIcon
                     className={cn(
                       "ml-auto",
                       value === option ? "opacity-100" : "opacity-0"

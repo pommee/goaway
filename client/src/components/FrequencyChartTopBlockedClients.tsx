@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GetRequest } from "@/util";
-import { Warning } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import {
   Bar,
@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload }) => {
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center h-full w-full py-10">
     <div className="mb-4">
-      <Warning size={36} />
+      <WarningIcon size={36} />
     </div>
     <p className="text-gray-500 dark:text-gray-400 text-center">
       No client requests have been made

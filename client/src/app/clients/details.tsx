@@ -2,17 +2,17 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ClientEntry } from "@/pages/clients";
 import { GetRequest } from "@/util";
 import {
-  Bird,
-  CaretDown,
-  CaretRight,
-  Eye,
-  Eyeglasses,
-  IdentificationBadge,
-  Lightning,
-  LineSegments,
-  PlusMinus,
-  Shield,
-  Sparkle
+  BirdIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  EyeIcon,
+  EyeglassesIcon,
+  IdentificationBadgeIcon,
+  LightningIcon,
+  LineSegmentsIcon,
+  PlusMinusIcon,
+  ShieldIcon,
+  SparkleIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -93,7 +93,7 @@ export function CardDetails({
                   </span>
                   {clientEntry.mac && (
                     <span className="ml-2 flex items-center">
-                      <IdentificationBadge size={14} className="mr-1" />
+                      <IdentificationBadgeIcon size={14} className="mr-1" />
                       {clientEntry.mac}
                     </span>
                   )}
@@ -123,7 +123,7 @@ export function CardDetails({
             }`}
             onClick={() => setActiveTab("overview")}
           >
-            <Bird size={16} className="mr-2" />
+            <BirdIcon size={16} className="mr-2" />
             Overview
           </button>
           <button
@@ -134,7 +134,7 @@ export function CardDetails({
             }`}
             onClick={() => setActiveTab("domains")}
           >
-            <LineSegments size={16} className="mr-2" />
+            <LineSegmentsIcon size={16} className="mr-2" />
             Domains
           </button>
         </div>
@@ -149,37 +149,37 @@ export function CardDetails({
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
                   <StatCard
-                    icon={<Eyeglasses size={18} />}
+                    icon={<EyeglassesIcon size={18} />}
                     label="Total Requests"
                     value={clientDetails.totalRequests.toLocaleString()}
                     color="bg-blue-600"
                   />
                   <StatCard
-                    icon={<Sparkle size={18} />}
+                    icon={<SparkleIcon size={18} />}
                     label="Unique Domains"
                     value={clientDetails.uniqueDomains.toLocaleString()}
                     color="bg-purple-600"
                   />
                   <StatCard
-                    icon={<Shield size={18} />}
+                    icon={<ShieldIcon size={18} />}
                     label="Blocked Requests"
                     value={clientDetails.blockedRequests.toLocaleString()}
                     color="bg-red-600"
                   />
                   <StatCard
-                    icon={<Lightning size={18} />}
+                    icon={<LightningIcon size={18} />}
                     label="Cached Requests"
                     value={clientDetails.cachedRequests.toLocaleString()}
                     color="bg-emerald-600"
                   />
                   <StatCard
-                    icon={<PlusMinus size={18} />}
+                    icon={<PlusMinusIcon size={18} />}
                     label="Avg Response"
                     value={`${clientDetails.avgResponseTimeMs.toLocaleString()} ms`}
                     color="bg-amber-600"
                   />
                   <StatCard
-                    icon={<CaretDown size={18} />}
+                    icon={<CaretDownIcon size={18} />}
                     label="Most Queried"
                     value={clientDetails.mostQueriedDomain.split(".")[0]}
                     color="bg-indigo-600"
@@ -188,7 +188,7 @@ export function CardDetails({
 
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
-                    <Eye size={18} className="mr-2 text-blue-400" />
+                    <EyeIcon size={18} className="mr-2 text-blue-400" />
                     Top Queried Domains
                   </h3>
                   <div className="grid gap-2">
@@ -232,7 +232,7 @@ export function CardDetails({
                       className="text-blue-400 hover:text-blue-300 text-sm flex items-center mx-auto"
                       onClick={() => setActiveTab("domains")}
                     >
-                      View all domains <CaretRight size={16} />
+                      View all domains <CaretRightIcon size={16} />
                     </button>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ export function CardDetails({
           </div>
         ) : (
           <div className="text-center py-16 text-gray-400 flex-grow flex flex-col items-center justify-center">
-            <Shield size={48} className="mb-4 text-zinc-600" />
+            <ShieldIcon size={48} className="mb-4 text-zinc-600" />
             <div className="text-lg">No data available for this client</div>
             <div className="text-sm mt-2 text-zinc-500">
               Try checking the network connection or refreshing

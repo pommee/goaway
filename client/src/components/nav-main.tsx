@@ -19,7 +19,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from "@/components/ui/sidebar";
-import { CaretRight, Icon } from "@phosphor-icons/react";
+import { CaretRightIcon, Icon } from "@phosphor-icons/react";
 
 export function NavMain({
   items
@@ -63,7 +63,7 @@ export function NavMain({
                   <>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuAction className="data-[state=open]:rotate-90">
-                        <CaretRight />
+                        <CaretRightIcon />
                         <span className="sr-only">Toggle</span>
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
