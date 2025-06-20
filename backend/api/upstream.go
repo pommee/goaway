@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,16 +13,28 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/miekg/dns"
 	probing "github.com/prometheus-community/pro-bing"
 )
 
+type PingResult struct {
+	Duration   time.Duration
+	Error      error
+	Method     string
+	Successful bool
+}
+
+func (pr PingResult) String() string {
+	if !pr.Successful {
+		return fmt.Sprintf("Failed (%s)", pr.Method)
+	}
+	return pr.Duration.String()
+}
+
 func (api *API) registerUpstreamRoutes() {
 	api.routes.POST("/upstream", api.createUpstream)
-
 	api.routes.GET("/upstreams", api.getUpstreams)
-
 	api.routes.PUT("/preferredUpstream", api.updatePreferredUpstream)
-
 	api.routes.DELETE("/upstream", api.deleteUpstream)
 }
 
@@ -67,12 +80,12 @@ func (api *API) createUpstream(c *gin.Context) {
 }
 
 func (api *API) getUpstreams(c *gin.Context) {
-	upstreams := api.Config.DNS.UpstreamDNS
-	results := make([]map[string]any, len(upstreams))
-
-	preferredUpstream := api.Config.DNS.PreferredUpstream
-
-	var wg sync.WaitGroup
+	var (
+		upstreams         = api.Config.DNS.UpstreamDNS
+		results           = make([]map[string]any, len(upstreams))
+		preferredUpstream = api.Config.DNS.PreferredUpstream
+		wg                sync.WaitGroup
+	)
 	wg.Add(len(upstreams))
 
 	for i, upstream := range upstreams {
@@ -91,58 +104,181 @@ func (api *API) getUpstreams(c *gin.Context) {
 }
 
 func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
-	host := strings.TrimSuffix(upstream, ":53")
+	host, port, err := net.SplitHostPort(upstream)
+	if err != nil {
+		host = upstream
+		port = "53"
+		upstream = net.JoinHostPort(host, port)
+	}
+
 	entry := map[string]any{
 		"upstream":  upstream,
 		"preferred": upstream == preferredUpstream,
+		"host":      host,
+		"port":      port,
 	}
 
-	entry["name"], entry["dnsPing"] = getDNSDetails(host)
-	entry["icmpPing"] = getICMPPing(host)
+	entry["resolvedIP"] = resolveHostname(host)
+	dnsPingResult := measureDNSPing(upstream)
+	entry["dnsPing"] = dnsPingResult.String()
+	entry["dnsPingSuccess"] = dnsPingResult.Successful
+
+	icmpPingResult := measureICMPPing(host)
+	entry["icmpPing"] = icmpPingResult.String()
+	entry["icmpPingSuccess"] = icmpPingResult.Successful
 
 	return entry
 }
 
-func getICMPPing(host string) string {
-	pinger, err := probing.NewPinger(host)
-	if err == nil {
-		pinger.Count = 3
-		pinger.Timeout = 2 * time.Second
-		pinger.SetPrivileged(false)
+func resolveHostname(host string) string {
+	if ip := net.ParseIP(host); ip != nil {
+		return host
+	}
 
-		err = pinger.Run()
-		if err == nil {
-			stats := pinger.Statistics()
-			return stats.AvgRtt.String()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return fmt.Sprintf("Resolution failed: %v", err)
+	}
+
+	if len(ips) > 0 {
+		return ips[0].IP.String()
+	}
+
+	return "No IP found"
+}
+
+func measureDNSPing(upstream string) PingResult {
+	var (
+		testDomains = []string{"google.com", "cloudflare.com", "quad9.net"}
+		client      = &dns.Client{
+			Timeout: 2 * time.Second,
+		}
+		totalDuration time.Duration
+		successCount  int
+		lastError     error
+	)
+
+	for _, domain := range testDomains {
+		msg := &dns.Msg{}
+		msg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+		msg.RecursionDesired = true
+
+		start := time.Now()
+		response, _, err := client.Exchange(msg, upstream)
+		duration := time.Since(start)
+
+		if err != nil {
+			lastError = err
+			continue
+		}
+
+		if response.Rcode != dns.RcodeSuccess {
+			lastError = fmt.Errorf("DNS query failed with rcode: %d", response.Rcode)
+			continue
+		}
+
+		totalDuration += duration
+		successCount++
+	}
+
+	if successCount == 0 {
+		return PingResult{
+			Duration:   0,
+			Error:      lastError,
+			Method:     "dns",
+			Successful: false,
 		}
 	}
 
-	start := time.Now()
-	conn, err := net.DialTimeout("tcp", host+":53", 2*time.Second)
-	if err != nil {
-		log.Warning("Could not ping host %s via ICMP or TCP: %s", host, err.Error())
-		return "Unreachable"
+	avgDuration := totalDuration / time.Duration(successCount)
+	return PingResult{
+		Duration:   avgDuration,
+		Error:      nil,
+		Method:     "dns",
+		Successful: true,
 	}
-	defer func(conn net.Conn) {
-		_ = conn.Close()
-	}(conn)
-
-	duration := time.Since(start)
-	return duration.String()
 }
 
-func getDNSDetails(host string) (string, string) {
-	start := time.Now()
-	ips, err := net.LookupIP(host)
-	duration := time.Since(start)
+func measureICMPPing(host string) PingResult {
+	icmpResult := tryICMPPing(host)
+	if icmpResult.Successful {
+		return icmpResult
+	}
 
+	tcpResult := tryTCPPing(host)
+	return tcpResult
+}
+
+func tryICMPPing(host string) PingResult {
+	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		return "Error: " + err.Error(), "Error: " + err.Error()
+		return PingResult{
+			Duration:   0,
+			Error:      err,
+			Method:     "icmp",
+			Successful: false,
+		}
 	}
-	if len(ips) > 0 {
-		return ips[0].String(), duration.String()
+
+	pinger.Count = 3
+	pinger.Timeout = 3 * time.Second
+	pinger.SetPrivileged(false)
+
+	err = pinger.Run()
+	if err != nil {
+		return PingResult{
+			Duration:   0,
+			Error:      err,
+			Method:     "icmp",
+			Successful: false,
+		}
 	}
-	return "No IP found", duration.String()
+
+	stats := pinger.Statistics()
+	if stats.PacketsRecv == 0 {
+		return PingResult{
+			Duration:   0,
+			Error:      fmt.Errorf("no packets received"),
+			Method:     "icmp",
+			Successful: false,
+		}
+	}
+
+	return PingResult{
+		Duration:   stats.AvgRtt,
+		Error:      nil,
+		Method:     "icmp",
+		Successful: true,
+	}
+}
+
+func tryTCPPing(host string) PingResult {
+	start := time.Now()
+
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "53"), 2*time.Second)
+	if err != nil {
+		return PingResult{
+			Duration:   0,
+			Error:      err,
+			Method:     "tcp",
+			Successful: false,
+		}
+	}
+
+	duration := time.Since(start)
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	return PingResult{
+		Duration:   duration,
+		Error:      nil,
+		Method:     "tcp",
+		Successful: true,
+	}
 }
 
 func (api *API) updatePreferredUpstream(c *gin.Context) {
