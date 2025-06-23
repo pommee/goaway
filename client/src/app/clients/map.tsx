@@ -1,7 +1,12 @@
 import { GetRequest } from "@/util";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import { CardDetails } from "./details";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { XIcon } from "@phosphor-icons/react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientEntry {
   ip: string;
@@ -14,13 +19,16 @@ interface ClientEntry {
 interface NetworkNode {
   id: string;
   name: string;
-  type: "server" | "client";
+  type: "server" | "client" | "cluster";
   ip?: string;
   lastSeen?: string;
   mac?: string;
   vendor?: string;
   color?: string;
   size?: number;
+  clients?: ClientEntry[];
+  subnet?: string;
+  isActive?: boolean;
 }
 
 interface NetworkLink {
@@ -51,6 +59,15 @@ interface CommunicationEvent {
   ip: string;
 }
 
+interface ViewSettings {
+  clusterBySubnet: boolean;
+  hideInactiveClients: boolean;
+  minNodeSize: number;
+  maxNodeSize: number;
+  showLabels: boolean;
+  activityThresholdMinutes: number;
+}
+
 function timeAgo(timestamp: string) {
   const now = new Date();
   const past = new Date(timestamp);
@@ -65,9 +82,40 @@ function timeAgo(timestamp: string) {
     : `${minutes}m ${seconds}s ago`;
 }
 
+function getSubnet(ip: string): string {
+  const parts = ip.split(".");
+  return `${parts[0]}.${parts[1]}.${parts[2]}.x`;
+}
+
+function isClientActive(lastSeen: string, thresholdMinutes: number): boolean {
+  const now = new Date();
+  const past = new Date(lastSeen);
+  const diffInMinutes = (now.getTime() - past.getTime()) / (1000 * 60);
+  return diffInMinutes <= thresholdMinutes;
+}
+
+function groupClientsBySubnet(
+  clients: ClientEntry[]
+): Map<string, ClientEntry[]> {
+  const subnetGroups = new Map<string, ClientEntry[]>();
+
+  clients.forEach((client) => {
+    const subnet = getSubnet(client.ip);
+    if (!subnetGroups.has(subnet)) {
+      subnetGroups.set(subnet, []);
+    }
+    subnetGroups.get(subnet)!.push(client);
+  });
+
+  return subnetGroups;
+}
+
 export default function DNSServerVisualizer() {
   const [clients, setClients] = useState<ClientEntry[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientEntry | null>(
+    null
+  );
+  const [selectedCluster, setSelectedCluster] = useState<ClientEntry[] | null>(
     null
   );
   const [selectedPosition, setSelectedPosition] = useState({ x: 0, y: 0 });
@@ -77,6 +125,16 @@ export default function DNSServerVisualizer() {
   });
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewSettings, setViewSettings] = useState<ViewSettings>({
+    clusterBySubnet: false,
+    hideInactiveClients: false,
+    minNodeSize: 3,
+    maxNodeSize: 12,
+    showLabels: true,
+    activityThresholdMinutes: 60
+  });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({
     width: 800,
@@ -85,28 +143,54 @@ export default function DNSServerVisualizer() {
   const fgRef = useRef<ForceGraphMethods | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const createPulse = (
-    sourceId: string,
-    targetId: string,
-    type: "client" | "dns" | "upstream"
-  ) => {
-    const colors = {
-      client: "#22c55e",
-      dns: "#3b82f6",
-      upstream: "#f59e0b"
-    };
+  const createPulse = useCallback(
+    (
+      sourceId: string,
+      targetId: string,
+      type: "client" | "dns" | "upstream"
+    ) => {
+      const colors = {
+        client: "#22c55e",
+        dns: "#3b82f6",
+        upstream: "#f59e0b"
+      };
 
-    const newPulse: Pulse = {
-      id: `${sourceId}-${targetId}-${Date.now()}-${Math.random()}`,
-      sourceId,
-      targetId,
-      progress: 0,
-      color: colors[type],
-      type
-    };
+      const newPulse: Pulse = {
+        id: `${sourceId}-${targetId}-${Date.now()}-${Math.random()}`,
+        sourceId,
+        targetId,
+        progress: 0,
+        color: colors[type],
+        type
+      };
 
-    setPulses((prev) => [...prev, newPulse]);
-  };
+      setPulses((prev) => [...prev, newPulse]);
+    },
+    []
+  );
+
+  const filteredClients = useMemo(() => {
+    return clients.filter((client) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.ip.includes(searchTerm) ||
+        client.vendor.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const isActive = isClientActive(
+        client.lastSeen,
+        viewSettings.activityThresholdMinutes
+      );
+      const showInactive = !viewSettings.hideInactiveClients || isActive;
+
+      return matchesSearch && showInactive;
+    });
+  }, [
+    clients,
+    searchTerm,
+    viewSettings.hideInactiveClients,
+    viewSettings.activityThresholdMinutes
+  ]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -127,8 +211,12 @@ export default function DNSServerVisualizer() {
 
   useEffect(() => {
     if (fgRef.current) {
-      fgRef.current.d3Force("charge")?.strength(-20);
-      fgRef.current.d3Force("link")?.distance(80);
+      const nodeCount = networkData.nodes.length;
+      const chargeStrength = Math.max(-50, -300 / Math.sqrt(nodeCount));
+      const linkDistance = nodeCount > 20 ? 120 : 80;
+
+      fgRef.current.d3Force("charge")?.strength(chargeStrength);
+      fgRef.current.d3Force("link")?.distance(linkDistance);
     }
   }, [networkData]);
 
@@ -165,11 +253,17 @@ export default function DNSServerVisualizer() {
         const communicationEvent: CommunicationEvent = JSON.parse(event.data);
 
         if (communicationEvent.client) {
-          createPulse(communicationEvent.ip, "dns-server", "client");
+          const sourceId = viewSettings.clusterBySubnet
+            ? getSubnet(communicationEvent.ip)
+            : communicationEvent.ip;
+          createPulse(sourceId, "dns-server", "client");
         }
 
         if (communicationEvent.dns && communicationEvent.ip !== "") {
-          createPulse("dns-server", communicationEvent.ip, "dns");
+          const targetId = viewSettings.clusterBySubnet
+            ? getSubnet(communicationEvent.ip)
+            : communicationEvent.ip;
+          createPulse("dns-server", targetId, "dns");
         } else if (communicationEvent.dns) {
           createPulse("dns-server", "upstream", "dns");
         }
@@ -177,15 +271,22 @@ export default function DNSServerVisualizer() {
         if (communicationEvent.upstream) {
           createPulse("upstream", "dns-server", "upstream");
 
-          const matchingClient = clients.find(
-            (client) => client.ip === communicationEvent.ip
-          );
+          setClients((currentClients) => {
+            const matchingClient = currentClients.find(
+              (client) => client.ip === communicationEvent.ip
+            );
 
-          if (matchingClient) {
-            setTimeout(() => {
-              createPulse("dns-server", communicationEvent.ip, "dns");
-            }, 300);
-          }
+            if (matchingClient) {
+              setTimeout(() => {
+                const targetId = viewSettings.clusterBySubnet
+                  ? getSubnet(communicationEvent.ip)
+                  : communicationEvent.ip;
+                createPulse("dns-server", targetId, "dns");
+              }, 300);
+            }
+
+            return currentClients;
+          });
         }
       } catch (error) {
         console.error("Error handling WebSocket message:", error);
@@ -196,7 +297,7 @@ export default function DNSServerVisualizer() {
       if (ws.readyState === WebSocket.OPEN) ws.close();
       wsRef.current = null;
     };
-  }, [clients]);
+  }, [viewSettings.clusterBySubnet]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -211,7 +312,7 @@ export default function DNSServerVisualizer() {
   }, []);
 
   useEffect(() => {
-    if (clients.length === 0) return;
+    if (filteredClients.length === 0) return;
 
     const nodes: NetworkNode[] = [
       {
@@ -219,14 +320,14 @@ export default function DNSServerVisualizer() {
         name: "DNS Server",
         type: "server",
         color: "#3b82f6",
-        size: 8
+        size: viewSettings.maxNodeSize
       },
       {
         id: "upstream",
         name: "Upstream",
         type: "server",
         color: "#008000",
-        size: 8
+        size: viewSettings.maxNodeSize
       }
     ];
 
@@ -236,43 +337,90 @@ export default function DNSServerVisualizer() {
       source: "upstream",
       target: "dns-server",
       color: "#313131",
-      width: 1
+      width: 2
     });
 
-    clients.forEach((client) => {
-      const nodeColor = "#ef4444";
-      const linkColor = "#313131";
+    if (viewSettings.clusterBySubnet && filteredClients.length > 10) {
+      const subnetGroups = groupClientsBySubnet(filteredClients);
 
-      nodes.push({
-        id: client.ip,
-        name: client.name || client.ip,
-        type: "client",
-        ip: client.ip,
-        lastSeen: client.lastSeen,
-        mac: client.mac,
-        vendor: client.vendor,
-        color: nodeColor,
-        size: 5
-      });
+      subnetGroups.forEach((subnetClients, subnet) => {
+        const activeCount = subnetClients.filter((c) =>
+          isClientActive(c.lastSeen, viewSettings.activityThresholdMinutes)
+        ).length;
 
-      links.push({
-        source: client.ip,
-        target: "dns-server",
-        color: linkColor,
-        width: 1
+        const nodeSize = Math.max(
+          viewSettings.minNodeSize,
+          Math.min(viewSettings.maxNodeSize, 4 + subnetClients.length * 0.5)
+        );
+
+        const nodeColor = activeCount > 0 ? "#ef4444" : "#6b7280";
+
+        nodes.push({
+          id: subnet,
+          name: `${subnet} (${subnetClients.length})`,
+          type: "cluster",
+          color: nodeColor,
+          size: nodeSize,
+          clients: subnetClients,
+          subnet: subnet,
+          isActive: activeCount > 0
+        });
+
+        links.push({
+          source: subnet,
+          target: "dns-server",
+          color: "#313131",
+          width: Math.max(1, Math.min(3, subnetClients.length * 0.1))
+        });
       });
-    });
+    } else {
+      filteredClients.forEach((client) => {
+        const isActive = isClientActive(
+          client.lastSeen,
+          viewSettings.activityThresholdMinutes
+        );
+        const nodeColor = isActive ? "#008000" : "#6b7280";
+        const linkColor = isActive ? "#002000" : "#4b5563";
+
+        nodes.push({
+          id: client.ip,
+          name: client.name || client.ip,
+          type: "client",
+          ip: client.ip,
+          lastSeen: client.lastSeen,
+          mac: client.mac,
+          vendor: client.vendor,
+          color: nodeColor,
+          size: isActive
+            ? viewSettings.maxNodeSize * 0.6
+            : viewSettings.minNodeSize,
+          isActive
+        });
+
+        links.push({
+          source: client.ip,
+          target: "dns-server",
+          color: linkColor,
+          width: isActive ? 1.5 : 0.5
+        });
+      });
+    }
 
     setNetworkData({ nodes, links });
-  }, [clients]);
+  }, [filteredClients, viewSettings]);
 
   const handleNodeClick = (node: NetworkNode, event: MouseEvent) => {
     if (node.type === "client") {
       const client = clients.find((c) => c.ip === node.id);
       if (client) {
         setSelectedClient(client);
+        setSelectedCluster(null);
         setSelectedPosition({ x: event.clientX, y: event.clientY });
       }
+    } else if (node.type === "cluster" && node.clients) {
+      setSelectedCluster(node.clients);
+      setSelectedClient(null);
+      setSelectedPosition({ x: event.clientX, y: event.clientY });
     }
   };
 
@@ -314,7 +462,7 @@ export default function DNSServerVisualizer() {
       grad.addColorStop(1, pulse.color + "00");
 
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -341,22 +489,100 @@ export default function DNSServerVisualizer() {
 
   return (
     <div className="text-white max-w-7xl mx-auto">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold">DNS Server Network Map</h1>
-        <p className="text-sm text-muted-foreground">
-          Live visualization of connected clients
-        </p>
+      <div className="mb-2 p-2 rounded-lg bg-stone-950 border">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Search Clients
+            </label>
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, IP, or vendor..."
+              className="bg-stone-900"
+            />
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <label className="flex items-center">
+              <Checkbox
+                checked={viewSettings.clusterBySubnet}
+                onCheckedChange={(checked: boolean) =>
+                  setViewSettings((prev) => ({
+                    ...prev,
+                    clusterBySubnet: checked
+                  }))
+                }
+                className="mr-2"
+              />
+              <span className="text-sm">Cluster by subnet</span>
+            </label>
+
+            <label className="flex items-center">
+              <Checkbox
+                checked={viewSettings.hideInactiveClients}
+                onCheckedChange={(checked: boolean) =>
+                  setViewSettings((prev) => ({
+                    ...prev,
+                    hideInactiveClients: checked
+                  }))
+                }
+                className="mr-2"
+              />
+              <span className="text-sm">Hide inactive clients</span>
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Activity threshold (minutes)
+            </label>
+            <Slider
+              className="mb-1"
+              defaultValue={[viewSettings.activityThresholdMinutes]}
+              max={480}
+              step={5}
+              onValueChange={(newValue) =>
+                setViewSettings((prev) => ({
+                  ...prev,
+                  activityThresholdMinutes: newValue[0]
+                }))
+              }
+            />
+            <div className="text-xs text-muted-foreground">
+              {viewSettings.activityThresholdMinutes} minutes
+            </div>
+          </div>
+        </div>
       </div>
 
       <div
         ref={containerRef}
         className="rounded-xl border border-stone-800 bg-stone-950 shadow-md p-4 w-full"
       >
-        <div className="grid grid-cols-3 gap-2 text-sm mb-4">
+        <div className="grid grid-cols-4 gap-2 text-sm mb-4">
           {[
-            { label: "client", plural: "clients", value: clients.length },
+            {
+              label: "total client",
+              plural: "total clients",
+              value: clients.length
+            },
+            {
+              label: "visible client",
+              plural: "visible clients",
+              value: filteredClients.length
+            },
             { label: "node", plural: "nodes", value: networkData.nodes.length },
-            { label: "link", plural: "links", value: networkData.links.length }
+            {
+              label: "active",
+              plural: "active",
+              value: filteredClients.filter((c) =>
+                isClientActive(
+                  c.lastSeen,
+                  viewSettings.activityThresholdMinutes
+                )
+              ).length
+            }
           ].map(({ label, plural, value }) => (
             <div
               key={label}
@@ -370,12 +596,13 @@ export default function DNSServerVisualizer() {
           ))}
         </div>
 
-        <p className="text-muted-foreground text-sm mb-1">
-          Client nodes can be clicked for more information.
-        </p>
-        <p className="text-muted-foreground text-sm mb-4">
-          Nodes can be dragged around.
-        </p>
+        <div className="mb-4 text-sm text-muted-foreground space-y-1">
+          <p>Click nodes for details • Drag to move • Mouse wheel to zoom</p>
+          <p>
+            Green nodes are active • Gray nodes are inactive • Larger nodes =
+            more clients
+          </p>
+        </div>
 
         {networkData.nodes.length > 0 && (
           <div className="rounded-md cursor-move overflow-hidden">
@@ -386,28 +613,50 @@ export default function DNSServerVisualizer() {
               height={dimensions.height}
               nodeColor={(node: NetworkNode) => node.color || "#ffffff"}
               nodeVal={(node: NetworkNode) => node.size || 1}
-              nodeLabel={(node: NetworkNode) => node.ip || ""}
+              nodeLabel={(node: NetworkNode) => {
+                if (node.type === "cluster") {
+                  return `${node.name}\nActive: ${
+                    node.clients?.filter((c) =>
+                      isClientActive(
+                        c.lastSeen,
+                        viewSettings.activityThresholdMinutes
+                      )
+                    ).length || 0
+                  }`;
+                }
+                return node.ip || node.name || "";
+              }}
               linkColor={(link: NetworkLink) => link.color || "#313131"}
               linkWidth={(link: NetworkLink) => link.width || 1}
               onNodeClick={handleNodeClick}
-              nodeCanvasObjectMode={() => "after"}
-              nodeCanvasObject={(
-                node: NetworkNode & { x: number; y: number },
-                ctx,
-                globalScale
-              ) => {
-                const label = node.name;
-                const fontSize = 12 / globalScale;
-                ctx.font = `${fontSize}px Sans-Serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillStyle = "white";
-                ctx.fillText(
-                  label,
-                  node.x,
-                  node.y + 2 + ((node.size || 5) + fontSize)
-                );
-              }}
+              nodeCanvasObjectMode={() =>
+                viewSettings.showLabels ? "after" : "before"
+              }
+              nodeCanvasObject={
+                viewSettings.showLabels
+                  ? (
+                      node: NetworkNode & { x: number; y: number },
+                      ctx,
+                      globalScale
+                    ) => {
+                      const label =
+                        node.type === "cluster"
+                          ? `${node.subnet} (${node.clients?.length})`
+                          : node.name;
+                      const fontSize = Math.max(8, 12 / globalScale);
+                      ctx.font = `${fontSize}px Sans-Serif`;
+                      ctx.textAlign = "center";
+                      ctx.textBaseline = "middle";
+                      ctx.fillStyle =
+                        node.isActive === false ? "#9ca3af" : "white";
+                      ctx.fillText(
+                        label,
+                        node.x,
+                        node.y + 2 + ((node.size || 5) + fontSize)
+                      );
+                    }
+                  : undefined
+              }
               linkCanvasObjectMode={() => "replace"}
               linkCanvasObject={renderCustomLink}
               cooldownTicks={100}
@@ -418,7 +667,7 @@ export default function DNSServerVisualizer() {
         )}
 
         <p className="text-right text-xs text-muted-foreground italic mt-2">
-          use mouse to move and zoom
+          Showing {filteredClients.length} of {clients.length} clients
         </p>
       </div>
 
@@ -434,6 +683,53 @@ export default function DNSServerVisualizer() {
           y={selectedPosition.y}
           onClose={() => setSelectedClient(null)}
         />
+      )}
+
+      {selectedCluster && (
+        <div
+          className="fixed z-50 bg-stone-900 border rounded-lg p-4 shadow-lg max-w-md max-h-96 overflow-y-auto"
+          style={{
+            left: selectedPosition.x + 10,
+            top: selectedPosition.y + 10
+          }}
+        >
+          <ScrollArea>
+            <div className="flex">
+              <h3 className="font-semibold">
+                Subnet Cluster ({selectedCluster.length} clients)
+              </h3>
+              <XIcon
+                className="mt-0.5 ml-2 text-xl text-red-500 cursor-pointer"
+                onClick={() => setSelectedCluster(null)}
+              />
+            </div>
+          </ScrollArea>
+          <div className="space-y-1 mt-2 cursor-pointer">
+            {selectedCluster
+              .sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))
+              .map((client) => (
+                <div
+                  onClick={() => {
+                    setSelectedClient(client);
+                  }}
+                  key={client.ip}
+                  className={`p-2 rounded border text-sm ${
+                    isClientActive(
+                      client.lastSeen,
+                      viewSettings.activityThresholdMinutes
+                    )
+                      ? "border-green-500 bg-green-900/20"
+                      : "border-gray-600 bg-gray-800/20"
+                  }`}
+                >
+                  <div className="font-medium">{client.name || client.ip}</div>
+                  <div className="text-xs text-gray-400">
+                    {client.ip} • {timeAgo(client.lastSeen)}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
       )}
     </div>
   );
