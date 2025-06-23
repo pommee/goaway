@@ -52,43 +52,65 @@ func MockRequestLogEntry() model.RequestLogEntry {
 	}
 }
 
-func BenchmarkInsertRequestLog(b *testing.B) {
+func TestInsertRequestLog(t *testing.T) {
 	dbManager, err := createTestDB()
 	if err != nil {
-		b.Fatalf("Failed to create test database: %v", err)
+		t.Fatalf("Failed to create test database: %v", err)
 	}
 	defer removeTestDB(dbManager)
 
-	batch := make([]model.RequestLogEntry, 1000)
+	batch := make([]model.RequestLogEntry, 100)
 	for i := range batch {
 		batch[i] = MockRequestLogEntry()
 	}
 
-	for iteration := 0; b.Loop(); iteration++ {
-		database.SaveRequestLog(dbManager.Conn, batch)
+	err = database.SaveRequestLog(dbManager.Conn, batch)
+	if err != nil {
+		t.Fatalf("Failed to save request log: %v", err)
 	}
 }
 
-func BenchmarkQueryRequestLog(b *testing.B) {
+func TestQueryRequestLog(t *testing.T) {
 	dbManager, err := createTestDB()
 	if err != nil {
-		b.Fatalf("Failed to create test database: %v", err)
+		t.Fatalf("Failed to create test database: %v", err)
 	}
 	defer removeTestDB(dbManager)
 
-	batch := make([]model.RequestLogEntry, 100000)
+	batch := make([]model.RequestLogEntry, 100)
 	for i := range batch {
-		batch[i] = MockRequestLogEntry()
-	}
-	database.SaveRequestLog(dbManager.Conn, batch)
-
-	for b.Loop() {
-		rows, err := dbManager.Conn.Query("SELECT * FROM request_log WHERE domain = ?", "example.com")
-		if err != nil {
-			b.Fatalf("Failed to query request log: %v", err)
+		entry := MockRequestLogEntry()
+		if i%2 == 0 {
+			entry.Domain = "test.com"
 		}
-		_ = rows.Close()
+		batch[i] = entry
 	}
+
+	err = database.SaveRequestLog(dbManager.Conn, batch)
+	if err != nil {
+		t.Fatalf("Failed to save request log batch: %v", err)
+	}
+
+	rows, err := dbManager.Conn.Query("SELECT * FROM request_log WHERE domain = ?", "example.com")
+	if err != nil {
+		t.Fatalf("Failed to query request log: %v", err)
+	}
+	defer rows.Close()
+
+	count := 0
+	for rows.Next() {
+		count++
+	}
+
+	if err = rows.Err(); err != nil {
+		t.Fatalf("Error iterating rows: %v", err)
+	}
+
+	if count == 0 {
+		t.Error("Expected to find some records with domain 'example.com'")
+	}
+
+	t.Logf("Found %d records with domain 'example.com'", count)
 }
 
 func TestFetchResolution(t *testing.T) {
