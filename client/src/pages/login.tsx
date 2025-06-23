@@ -211,7 +211,6 @@ export function Login({
                           localStorage.removeItem("loginUsername");
                         }
                       }}
-                      className="data-[state=checked]:!bg-green-600 !border-stone-500 transition-colors duration-200 cursor-pointer !text-white"
                     />
 
                     <Label
