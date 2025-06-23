@@ -1,3 +1,10 @@
+## [0.54.7](https://github.com/pommee/goaway/compare/v0.54.6...v0.54.7) (2025-06-23)
+
+
+### Bug Fixes
+
+* add filters to clients page ([fdd9267](https://github.com/pommee/goaway/commit/fdd926718f5417eb0898c8c15770cd74b67b0205))
+
 ## [0.54.6](https://github.com/pommee/goaway/compare/v0.54.5...v0.54.6) (2025-06-20)
 
 
