@@ -41,7 +41,7 @@ docker run -d \
 
 Data will **not persist** unless volumes are used!
 
-```bash
+```yml
 services:
   goaway:
     image: pommee/goaway:latest
