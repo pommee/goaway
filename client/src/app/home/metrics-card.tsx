@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
-import { Card } from "./ui/card";
+import { Card } from "../../components/ui/card";
 
 type Metrics = {
   allowed: number;

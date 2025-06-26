@@ -29,7 +29,7 @@ import {
   MagnifyingGlassPlusIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../../components/ui/button";
 
 const chartConfig = {
   blocked: {
