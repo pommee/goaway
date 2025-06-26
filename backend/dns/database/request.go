@@ -80,6 +80,58 @@ func GetRequestSummaryByInterval(interval int, db *sql.DB) ([]model.RequestLogIn
 	return summaries, nil
 }
 
+func GetResponseSizeSummaryByInterval(intervalMinutes int, db *sql.DB) ([]model.ResponseSizeSummary, error) {
+	intervalSeconds := int64(intervalMinutes * 60)
+	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour).Unix()
+
+	query := `
+		SELECT 
+			(timestamp / ?) * ? as start,
+			SUM(response_size_bytes) as total_response_size_bytes,
+			ROUND(AVG(response_size_bytes)) as avg_response_size_bytes,
+			MIN(response_size_bytes) as min_response_size_bytes,
+			MAX(response_size_bytes) as max_response_size_bytes
+		FROM request_log 
+		WHERE timestamp >= ? AND response_size_bytes IS NOT NULL
+		GROUP BY (timestamp / ?)
+		ORDER BY start ASC
+	`
+
+	rows, err := db.Query(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query response size summary: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var summaries []model.ResponseSizeSummary
+	for rows.Next() {
+		var summary model.ResponseSizeSummary
+		var startUnix int64
+
+		err := rows.Scan(
+			&startUnix,
+			&summary.TotalSizeBytes,
+			&summary.AvgResponseSizeBytes,
+			&summary.MinResponseSizeBytes,
+			&summary.MaxResponseSizeBytes,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan response size summary row: %w", err)
+		}
+
+		summary.Start = time.Unix(startUnix, 0)
+		summaries = append(summaries, summary)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating response size summary rows: %w", err)
+	}
+
+	return summaries, nil
+}
+
 func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 	query := "SELECT COUNT(*) AS count, query_type FROM request_log WHERE query_type <> '' GROUP BY query_type ORDER BY count DESC"
 	rows, err := db.Query(query)

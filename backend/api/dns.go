@@ -23,6 +23,7 @@ func (api *API) registerDNSRoutes() {
 	api.routes.GET("/pause", api.getBlocking)
 	api.routes.GET("/queries", api.getQueries)
 	api.routes.GET("/queryTimestamps", api.getQueryTimestamps)
+	api.routes.GET("/responseSizeTimestamps", api.getResponseSizeTimestamps)
 	api.routes.GET("/queryTypes", api.getQueryTypes)
 
 	api.routes.DELETE("/queries", api.clearQueries)
@@ -163,6 +164,26 @@ func (api *API) getQueryTimestamps(c *gin.Context) {
 	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DBManager.Conn)
 	if err != nil {
 		log.Error("%v", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"queries": timestamps,
+	})
+}
+
+func (api *API) getResponseSizeTimestamps(c *gin.Context) {
+	intervalParam := c.Query("interval")
+	interval, err := strconv.Atoi(intervalParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid interval parameter"})
+		return
+	}
+
+	timestamps, err := database.GetResponseSizeSummaryByInterval(interval, api.DBManager.Conn)
+	if err != nil {
+		log.Error("Error fetching response size timestamps: %v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

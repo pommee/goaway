@@ -27,3 +27,11 @@ type RequestLogIntervalSummary struct {
 	CachedCount   int       `json:"cached"`
 	AllowedCount  int       `json:"allowed"`
 }
+
+type ResponseSizeSummary struct {
+	Start                time.Time `json:"start"`
+	TotalSizeBytes       int       `json:"total_size_bytes"`
+	AvgResponseSizeBytes int       `json:"avg_response_size_bytes"`
+	MinResponseSizeBytes int       `json:"min_response_size_bytes"`
+	MaxResponseSizeBytes int       `json:"max_response_size_bytes"`
+}

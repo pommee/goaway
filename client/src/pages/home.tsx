@@ -1,8 +1,9 @@
-import FrequencyChartBlockedDomains from "@/components/FrequencyChartBlockedDomains";
-import FrequencyChartTopBlockedClients from "@/components/FrequencyChartTopBlockedClients";
-import MetricsCards from "@/components/metrics-card";
-import PieChartRequestType from "@/components/request-types";
-import RequestTimeline from "@/components/request-timeline";
+import FrequencyChartBlockedDomains from "@/app/home/FrequencyChartBlockedDomains";
+import FrequencyChartTopBlockedClients from "@/app/home/FrequencyChartTopBlockedClients";
+import MetricsCards from "@/app/home/metrics-card";
+import PieChartRequestType from "@/app/home/request-types";
+import RequestTimeline from "@/app/home/request-timeline";
+import ResponseSizeTimeline from "@/app/home/ResponseSizeTimeline";
 
 export function Home() {
   return (
@@ -20,6 +21,7 @@ export function Home() {
           <FrequencyChartTopBlockedClients />
         </div>
       </div>
+      <ResponseSizeTimeline />
     </>
   );
 }
