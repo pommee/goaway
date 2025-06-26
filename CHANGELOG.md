@@ -1,3 +1,10 @@
+# [0.55.0](https://github.com/pommee/goaway/compare/v0.54.7...v0.55.0) (2025-06-26)
+
+
+### Features
+
+* new response size timeline on the homepage ([873cb12](https://github.com/pommee/goaway/commit/873cb129189c41ad3b18ba97f7d2ed2404d1eff9))
+
 ## [0.54.7](https://github.com/pommee/goaway/compare/v0.54.6...v0.54.7) (2025-06-23)
 
 
