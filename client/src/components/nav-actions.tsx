@@ -32,11 +32,11 @@ import {
   PauseIcon,
   PlayCircleIcon
 } from "@phosphor-icons/react";
+import { compare } from "compare-versions";
 import { JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Metrics } from "./server-statistics";
 import { Input } from "./ui/input";
-import { compare } from "compare-versions";
 
 const data = [
   [
@@ -49,7 +49,7 @@ const data = [
     {
       label: "Check for update",
       icon: CloudArrowUpIcon,
-      dialog: UpdateDialog,
+      dialog: CheckForUpdate,
       color: "text-yellow-600"
     }
   ],
@@ -86,14 +86,12 @@ function AboutDialog() {
           <InfoIcon className="mr-2 text-blue-500" /> About
         </DialogTitle>
         <DialogDescription />
-        <div className="mt-2 text-sm text-muted-foreground">
+        <div className="mt-2 text-sm">
           <div className="grid grid-cols-[auto_1fr] gap-y-1 items-center">
-            <span className="pr-2">Version:</span>
-            <span className="text-white">
-              {responseData?.version || "Not available"}
-            </span>
+            <span className="pr-2 text-muted-foreground">Version:</span>
+            <span>{responseData?.version || "Not available"}</span>
 
-            <span className="pr-2">Commit:</span>
+            <span className="pr-2 text-muted-foreground">Commit:</span>
             <span className="text-blue-400 underline cursor-pointer">
               {(responseData?.commit && (
                 <a
@@ -109,10 +107,8 @@ function AboutDialog() {
                 "Not available"}
             </span>
 
-            <span className="pr-2">Date:</span>
-            <span className="text-white">
-              {responseData?.date || "Not available"}
-            </span>
+            <span className="pr-2 text-muted-foreground">Date:</span>
+            <span>{responseData?.date || "Not available"}</span>
           </div>
         </div>
       </DialogHeader>
@@ -120,7 +116,7 @@ function AboutDialog() {
   );
 }
 
-function UpdateDialog() {
+function CheckForUpdate() {
   useEffect(() => {
     const installedVersion = localStorage.getItem("installedVersion");
 

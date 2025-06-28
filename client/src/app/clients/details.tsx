@@ -79,16 +79,16 @@ export function CardDetails({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-900 text-white border-zinc-700 rounded-lg w-full max-w-5xl mx-auto p-0 overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="bg-gradient-to-r from-blue-900 to-indigo-900 p-4 sm:p-6 border-b border-zinc-700">
+      <DialogContent className="border-none rounded-lg w-full max-w-5xl mx-auto p-0 overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="p-4 sm:p-6 border-b">
           <DialogTitle>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                <h2 className="text-xl sm:text-2xl font-bold mb-1">
                   {clientEntry.name || "Unnamed Device"}
                 </h2>
-                <div className="flex items-center text-blue-200 text-sm">
-                  <span className="bg-blue-800 px-2 py-0.5 rounded-full font-medium">
+                <div className="flex items-center text-sm">
+                  <span className="bg-blue-400 px-2 py-0.5 rounded-full font-medium">
                     {clientEntry.ip}
                   </span>
                   {clientEntry.mac && (
@@ -105,8 +105,8 @@ export function CardDetails({
                 </div>
               </div>
               <div className="text-right hidden sm:block">
-                <span className="text-xs text-blue-200">Last Activity</span>
-                <div className="text-lg font-medium">
+                <span className="text-xs">Last Activity</span>
+                <div className="text-muted-foreground">
                   {formatTimeAgo(clientEntry.lastSeen)}
                 </div>
               </div>
@@ -114,12 +114,12 @@ export function CardDetails({
           </DialogTitle>
         </div>
 
-        <div className="flex bg-zinc-800 border-b border-zinc-700">
+        <div className="flex bg-accent border-b">
           <button
             className={`px-4 py-2 text-sm font-medium flex items-center ${
               activeTab === "overview"
-                ? "bg-zinc-900 text-blue-400 border-b-2 border-blue-500"
-                : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                ? "text-blue-400 border-b-2 border-blue-500"
+                : "text-muted-foreground hover:font-bold hover:border-b-2 border-stone-500 cursor-pointer"
             }`}
             onClick={() => setActiveTab("overview")}
           >
@@ -129,8 +129,8 @@ export function CardDetails({
           <button
             className={`px-4 py-2 text-sm font-medium flex items-center ${
               activeTab === "domains"
-                ? "bg-zinc-900 text-blue-400 border-b-2 border-blue-500"
-                : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                ? "text-blue-400 border-b-2 border-blue-500"
+                : "text-muted-foreground hover:font-bold hover:border-b-2 border-stone-500 cursor-pointer"
             }`}
             onClick={() => setActiveTab("domains")}
           >
@@ -141,7 +141,7 @@ export function CardDetails({
 
         {isLoading ? (
           <div className="flex justify-center items-center p-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
           </div>
         ) : clientDetails ? (
           <div className="overflow-y-auto p-4 sm:p-6 flex-grow">
@@ -187,11 +187,11 @@ export function CardDetails({
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center">
                     <EyeIcon size={18} className="mr-2 text-blue-400" />
                     Top Queried Domains
                   </h3>
-                  <div className="grid gap-2">
+                  <div className="grid gap-3">
                     {Object.entries(clientDetails.allDomains)
                       .sort((a, b) => b[1] - a[1])
                       .slice(0, 5)
@@ -202,17 +202,17 @@ export function CardDetails({
                         return (
                           <div
                             key={index}
-                            className="bg-zinc-800 rounded-md overflow-hidden border border-zinc-700 hover:border-blue-500 transition-colors"
+                            className="bg-accent rounded-md overflow-hidden shadow-sm"
                           >
                             <div className="flex items-center p-2">
-                              <div className="w-12 text-center font-mono bg-zinc-900 py-1 rounded text-xs font-medium">
+                              <div className="w-12 text-center font-mono py-1 rounded text-xs font-medium">
                                 {count}
                               </div>
-                              <div className="ml-3 flex-grow font-medium truncate text-zinc-200">
+                              <div className="ml-3 flex-grow font-medium truncate">
                                 {domain}
                               </div>
                               <div className="w-24 flex-shrink-0">
-                                <div className="h-2 bg-zinc-700 rounded-full w-full">
+                                <div className="h-2 bg-background rounded-full w-full">
                                   <div
                                     className={`h-2 rounded-full ${getProgressColor(
                                       count,
@@ -239,16 +239,16 @@ export function CardDetails({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
                   <ActionButton
-                    label="View Details"
-                    bgClass="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    label="[WIP] View Details"
+                    bgClass="bg-blue-500 text-white"
                   />
                   <ActionButton
-                    label="Block Device"
-                    bgClass="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                    label="[WIP] Block Device"
+                    bgClass="bg-red-500 text-white"
                   />
                   <ActionButton
-                    label="Device Settings"
-                    bgClass="bg-gradient-to-r from-zinc-600 to-zinc-700 hover:from-zinc-700 hover:to-zinc-800"
+                    label="[WIP] Device Settings"
+                    bgClass="bg-stone-500 text-white"
                   />
                 </div>
               </>
@@ -256,23 +256,23 @@ export function CardDetails({
 
             {activeTab === "domains" && (
               <div>
-                <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
-                  <Eye size={18} className="mr-2 text-blue-400" />
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <EyeIcon size={18} className="mr-2 text-blue-400" />
                   All Queried Domains
-                  <span className="ml-2 text-xs bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-400">
+                  <span className="ml-2 text-xs bg-accent px-2 py-0.5 rounded-full text-muted-foreground">
                     {Object.keys(clientDetails.allDomains).length} domains
                   </span>
                 </h3>
 
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-md overflow-hidden">
-                  <div className="flex justify-between items-center py-2 px-3 bg-zinc-800 border-b border-zinc-700">
-                    <div className="w-16 text-xs text-zinc-400 font-medium">
+                <div className="shadow-md border rounded-md overflow-hidden">
+                  <div className="flex justify-between items-center py-2 px-3">
+                    <div className="w-16 text-xs text-muted-foreground font-medium">
                       Count
                     </div>
-                    <div className="flex-grow text-xs text-zinc-400 font-medium">
+                    <div className="flex-grow text-xs text-muted-foreground font-medium">
                       Domain
                     </div>
-                    <div className="w-24 text-xs text-zinc-400 font-medium">
+                    <div className="w-24 text-xs text-muted-foreground font-medium">
                       Percentage
                     </div>
                   </div>
@@ -289,15 +289,15 @@ export function CardDetails({
                         return (
                           <div
                             key={index}
-                            className="flex items-center py-2 px-3 hover:bg-zinc-700/50 border-b border-zinc-700/50 last:border-0"
+                            className="flex items-center py-2 px-3 hover:bg-accent border-b border-accent last:border-0"
                           >
-                            <div className="w-16 font-mono bg-zinc-900 py-1 rounded text-center text-xs font-medium">
+                            <div className="w-16 font-mono bg-accent py-1 rounded text-center text-xs font-medium">
                               {count}
                             </div>
-                            <div className="ml-3 flex-grow font-medium truncate text-zinc-200">
+                            <div className="ml-3 flex-grow font-medium truncate">
                               {domain}
                             </div>
-                            <div className="w-24 text-right text-zinc-400 text-sm">
+                            <div className="w-24 text-right text-muted-foreground text-sm">
                               {percentage}%
                             </div>
                           </div>
@@ -309,10 +309,10 @@ export function CardDetails({
             )}
           </div>
         ) : (
-          <div className="text-center py-16 text-gray-400 flex-grow flex flex-col items-center justify-center">
-            <ShieldIcon size={48} className="mb-4 text-zinc-600" />
+          <div className="text-center py-16 flex-grow flex flex-col items-center justify-center">
+            <ShieldIcon size={48} className="mb-4" />
             <div className="text-lg">No data available for this client</div>
-            <div className="text-sm mt-2 text-zinc-500">
+            <div className="text-sm mt-2 text-muted-foreground">
               Try checking the network connection or refreshing
             </div>
           </div>
@@ -324,14 +324,14 @@ export function CardDetails({
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <div className="bg-zinc-800 rounded-lg border border-zinc-700 hover:border-blue-500 transition-colors shadow-md overflow-hidden">
+    <div className="rounded-sm shadow-md bg-accent">
       <div className={`${color} h-1`}></div>
       <div className="p-3">
-        <div className="flex items-center text-xs text-zinc-400 mb-1">
+        <div className="flex items-center text-xs text-muted-foreground mb-1">
           <span className="mr-1">{icon}</span>
           {label}
         </div>
-        <div className="font-bold text-lg text-white truncate">{value}</div>
+        <div className="font-bold text-lg truncate">{value}</div>
       </div>
     </div>
   );

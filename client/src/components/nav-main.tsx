@@ -1,7 +1,7 @@
 "use client";
 
-import { useLocation } from "react-router-dom";
 import clsx from "clsx";
+import { useLocation } from "react-router-dom";
 
 import {
   Collapsible,
@@ -51,7 +51,7 @@ export function NavMain({
                   asChild
                   tooltip={item.title}
                   className={clsx({
-                    "bg-accent text-white font-semibold": isActive
+                    "bg-accent font-semibold": isActive
                   })}
                 >
                   <a href={item.url}>

@@ -130,7 +130,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
               session with the server. After generating an API key, include it
               in your requests by setting the
             </span>
-            <span className="bg-stone-800 p-0.5 rounded-sm"> api-key </span>
+            <span className="bg-accent p-0.5 rounded-sm"> api-key </span>
             <span>header to the key's value.</span>
           </span>
         </DialogDescription>
@@ -149,7 +149,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
           </div>
 
           {newKey && (
-            <div className="p-4 border rounded-md bg-stone-900 space-y-2">
+            <div className="p-4 border rounded-md space-y-2">
               <div className="flex justify-between items-center">
                 <h4 className="text-sm font-medium">New API Key</h4>
                 <Button
@@ -160,7 +160,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                   <CopyIcon size={16} />
                 </Button>
               </div>
-              <p className="text-xs break-all bg-stone-950 p-2 rounded">
+              <p className="text-xs break-all bg-accent p-2 rounded">
                 {newKey.key}
               </p>
               <p className="text-xs text-yellow-400">
@@ -174,7 +174,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
             {isLoading ? (
               <div className="text-center py-4">Loading API keys...</div>
             ) : apiKeys.length === 0 ? (
-              <div className="text-center py-4 text-sm text-gray-500">
+              <div className="text-center py-4 text-sm text-muted-foreground">
                 No API keys found
               </div>
             ) : (
@@ -187,7 +187,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                     >
                       <div className="space-y-1">
                         <p className="font-medium text-sm">{key.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Created: {formatDate(key.createdAt)}
                         </p>
                       </div>

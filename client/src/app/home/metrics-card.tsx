@@ -47,17 +47,19 @@ function MetricsCard({
 
   return (
     <Card
-      className={clsx("relative p-2 rounded-lg w-full overflow-hidden")}
+      className={clsx(
+        "border-none relative p-2 rounded-lg w-full overflow-hidden"
+      )}
       style={{
-        background: `linear-gradient(to right, #1a1a1a, ${bgColor})`
+        background: bgColor
       }}
     >
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-gray-200">{title}</p>
+          <p className="text-xs font-medium text-white">{title}</p>
           <p className="text-xl font-bold text-white">{formattedValue}</p>
           {description && (
-            <p className="text-xs text-gray-300 mt-0.5">{description}</p>
+            <p className="text-xs text-white/50 mt-0.5">{description}</p>
           )}
         </div>
         <Icon className="w-10 h-10 opacity-60" />

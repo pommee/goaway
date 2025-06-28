@@ -105,7 +105,7 @@ export function Whitelist() {
 
   return (
     <div className="flex justify-center items-center">
-      <div className="space-y-8 md:w-2/3">
+      <div className="space-y-8 xl:w-2/3">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold">Domain whitelist</h1>
@@ -137,7 +137,7 @@ export function Whitelist() {
                     Domain name
                   </Label>
                   <div className="relative">
-                    <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="domain"
                       placeholder="example.com"
@@ -153,7 +153,7 @@ export function Whitelist() {
                 <div className="flex items-end mb-8">
                   <Button
                     variant="default"
-                    className="cursor-pointer w-full bg-green-600 hover:bg-green-700 text-white"
+                    className="cursor-pointer w-full bg-green-600 hover:bg-green-700"
                     onClick={handleSave}
                     disabled={submitting || !domainName}
                   >
@@ -212,16 +212,14 @@ export function Whitelist() {
                 </TableHeader>
                 <TableBody>
                   {filteredDomains.map((domain) => (
-                    <TableRow key={domain} className="hover:bg-stone-800">
-                      <TableCell className="font-medium text-white">
-                        {domain}
-                      </TableCell>
+                    <TableRow key={domain} className="hover:bg-accent">
+                      <TableCell className="font-medium">{domain}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="cursor-pointer h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-stone-700"
+                            className="cursor-pointer h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:font-bold"
                             onClick={() => handleDelete(domain)}
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -235,8 +233,8 @@ export function Whitelist() {
               </Table>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center">
-                <ClockIcon className="h-12 w-12 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-400">
+                <ClockIcon className="h-12 w-12 mb-4" />
+                <h3 className="text-lg font-medium">
                   No whitelisted domains found
                 </h3>
                 <p className="text-muted-foreground mt-1">

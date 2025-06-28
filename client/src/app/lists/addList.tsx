@@ -1,6 +1,6 @@
+import { PlusIcon, SpinnerGapIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PlusIcon, SpinnerGapIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,23 +57,20 @@ export function AddList({
     <div className="mb-5">
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
-          >
+          <Button>
             <PlusIcon className="mr-2" size={20} />
             Add List
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-full max-w-xl rounded-xl p-6">
+        <DialogContent className="w-full max-w-xl rounded-xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               Add a New List
             </DialogTitle>
           </DialogHeader>
 
-          <DialogDescription className="text-sm text-zinc-400 mt-1">
+          <DialogDescription className="text-sm mt-1">
             Predefined lists can be imported using a name and a URL. Here are a
             few useful sources:
             <ul className="list-disc pl-6 mt-2 space-y-1">
@@ -93,7 +90,7 @@ export function AddList({
                   <a
                     href={url}
                     target="_blank"
-                    className="text-blue-400 hover:underline"
+                    className="text-blue-500 hover:underline"
                   >
                     {name}
                   </a>
@@ -106,7 +103,7 @@ export function AddList({
             <div className="grid grid-cols-4 items-center gap-4">
               <Label
                 htmlFor="name"
-                className="text-right text-sm text-zinc-300"
+                className="text-right text-sm text-muted-foreground"
               >
                 List Name
               </Label>
@@ -115,11 +112,14 @@ export function AddList({
                 value={listName}
                 placeholder="e.g. My Blocklist"
                 onChange={(e) => setListName(e.target.value)}
-                className="col-span-3 bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500"
+                className="col-span-3 placeholder-muted-foreground"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="url" className="text-right text-sm text-zinc-300">
+              <Label
+                htmlFor="url"
+                className="text-right text-sm text-muted-foreground"
+              >
                 URL
               </Label>
               <Input
@@ -127,7 +127,7 @@ export function AddList({
                 value={url}
                 placeholder="e.g. https://example.com/list.txt"
                 onChange={(e) => setUrl(e.target.value)}
-                className="col-span-3 bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500"
+                className="col-span-3 placeholder-muted-foreground"
               />
             </div>
           </div>

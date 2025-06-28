@@ -45,16 +45,12 @@ export function UpdateCustom() {
     <div className="mb-5">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setDialogOpen(true)}>
             <ArrowsClockwiseIcon className="mr-2" size={20} />
             Update custom
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 w-1/3 max-w-none">
+        <DialogContent className="md:w-2/3">
           <DialogHeader>
             <DialogTitle>Update custom</DialogTitle>
           </DialogHeader>
@@ -67,13 +63,7 @@ export function UpdateCustom() {
             onChange={(e) => setTextareaValue(e.target.value)}
             placeholder="ads-are-boring.com&#10;remove-this-domain.gov&#10;whatever.you.want.com&#10;..."
           />
-          <Button
-            variant="outline"
-            className="bg-green-800 border-none hover:bg-green-600 text-white"
-            onClick={handleSave}
-          >
-            Save
-          </Button>
+          <Button onClick={handleSave}>Save</Button>
         </DialogContent>
       </Dialog>
     </div>

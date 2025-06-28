@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,12 +6,13 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { DialogDescription } from "@radix-ui/react-dialog";
+import { Label } from "@/components/ui/label";
 import { PostRequest } from "@/util";
+import { PlusIcon } from "@phosphor-icons/react";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "@phosphor-icons/react";
 
 export function AddUpstream() {
   const [newUpstreamIP, setNewUpstreamIP] = useState("");
@@ -34,15 +34,12 @@ export function AddUpstream() {
     <div className="mb-5">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white"
-          >
-            <Plus className="mr-2" size={20} />
+          <Button variant="default">
+            <PlusIcon className="mr-2" size={20} />
             Add upstream
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-zinc-900 text-white border-zinc-800 lg:w-1/3">
+        <DialogContent className="lg:w-1/3">
           <DialogHeader>
             <DialogTitle>New Upstream</DialogTitle>
           </DialogHeader>
@@ -52,11 +49,11 @@ export function AddUpstream() {
             </p>
             <span>
               Default is{" "}
-              <span className="bg-stone-800 p-0.5 pl-1 pr-1 rounded-sm">
+              <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
                 1.1.1.1 (Google)
               </span>
               and{" "}
-              <span className="bg-stone-800 p-0.5 pl-1 pr-1 rounded-sm">
+              <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
                 8.8.8.8 (Cloudflare)
               </span>
             </span>

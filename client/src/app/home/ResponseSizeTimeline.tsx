@@ -2,31 +2,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
-  ChartTooltip,
   ChartLegend,
-  ChartLegendContent
+  ChartLegendContent,
+  ChartTooltip
 } from "@/components/ui/chart";
 import { GetRequest } from "@/util";
 import {
-  MagnifyingGlassMinusIcon,
   ArrowsClockwiseIcon,
+  MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon
 } from "@phosphor-icons/react";
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@radix-ui/react-select";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+  Area,
   AreaChart,
   CartesianGrid,
+  ReferenceArea,
   XAxis,
-  YAxis,
-  Area,
-  ReferenceArea
+  YAxis
 } from "recharts";
 
 const chartConfig = {
@@ -366,10 +366,8 @@ export default function ResponseSizeTimeline() {
                           : "N/A";
 
                       return (
-                        <div className="bg-background border-stone-900 border rounded-sm shadow-lg px-2 py-1">
-                          <p className="text-sm font-medium mb-2">
-                            {formattedLabel}
-                          </p>
+                        <div className="bg-background border rounded-sm shadow-lg px-2 py-1">
+                          <p className="text-xs mb-2">{formattedLabel}</p>
                           <div className="space-y-1">
                             {payload.map((entry, index) => (
                               <div

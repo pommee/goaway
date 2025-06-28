@@ -1,6 +1,6 @@
 import DNSServerVisualizer from "@/app/clients/map";
 import { GetRequest } from "@/util";
-import { InfoIcon } from "@phosphor-icons/react";
+import { InfoIcon, SpinnerIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -65,7 +65,8 @@ export function Clients() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse text-gray-500">
+        <SpinnerIcon className="mr-2 animate-spin" />
+        <div className="animate-pulse text-muted-foreground">
           Loading network map...
         </div>
       </div>
@@ -87,7 +88,7 @@ export function Clients() {
             <h3 className="text-lg font-medium text-center">
               No Client Requests
             </h3>
-            <p className="mt-2 text-center text-gray-600">
+            <p className="mt-2 text-center text-muted-foreground">
               No clients have sent any requests yet. New client information will
               appear here when available.
             </p>

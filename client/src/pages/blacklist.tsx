@@ -62,29 +62,31 @@ export function Blacklist() {
         <AddList onListAdded={handleListAdded} />
         <UpdateCustom />
         <div className="flex gap-4 mb-4">
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-zinc-800 border rounded-t-sm border-b-blue-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-blue-400">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-zinc-400 text-sm">Total Lists:</span>
-            <span className="text-white font-semibold">{lists.length}</span>
+            <span className="text-muted-foreground text-sm">Total Lists:</span>
+            <span className="font-semibold">{lists.length}</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-zinc-800 border rounded-t-sm border-b-green-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-green-400">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-zinc-400 text-sm">Active:</span>
-            <span className="text-white font-semibold">
+            <span className="text-muted-foreground text-sm">Active:</span>
+            <span className="font-semibold">
               {lists.filter((list) => list.active).length}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-zinc-800 border rounded-t-sm border-b-red-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-red-400">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-zinc-400 text-sm">Inactive:</span>
-            <span className="text-white font-semibold">
+            <span className="text-muted-foreground text-sm">Inactive:</span>
+            <span className="font-semibold">
               {lists.filter((list) => !list.active).length}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-zinc-800 border rounded-t-sm border-b-orange-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-orange-400">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-zinc-400 text-sm">Blocked Domains:</span>
-            <span className="text-white font-semibold">
+            <span className="text-muted-foreground text-sm">
+              Blocked Domains:
+            </span>
+            <span className="font-semibold">
               {blockedDomains.toLocaleString()}
             </span>
           </div>

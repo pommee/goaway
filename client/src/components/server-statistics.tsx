@@ -22,7 +22,7 @@ import {
 import { DialogDescription } from "@radix-ui/react-dialog";
 import confetti from "canvas-confetti";
 import { compare } from "compare-versions";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Separator } from "./ui/separator";
 
@@ -39,7 +39,6 @@ export type Metrics = {
   commit: string;
   date: string;
 };
-import React from "react";
 const getColor = (value: number, max: number) => {
   const hue = Math.max(0, 120 - (value / max) * 120);
   return `hsl(${hue}, 100%, 50%)`;
@@ -259,10 +258,12 @@ export function ServerStatistics() {
 
     return (
       <div className="flex items-center gap-2 text-xs">
-        {showIcon && <Icon size={12} className="text-gray-400 flex-shrink-0" />}
+        {showIcon && (
+          <Icon size={12} className="flex-shrink-0 text-muted-foreground" />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-gray-300 truncate">{label}</span>
+            <span className="truncate">{label}</span>
             <span className="font-mono text-gray-100" style={{ color }}>
               {formatNumber(value)}
               {unit}
@@ -302,13 +303,11 @@ docker pull pommee/goaway:version`;
 
   return (
     <>
-      <div className="bg-gray-800 rounded-lg mx-2 mt-4 overflow-hidden shadow-lg">
-        <div className="bg-gray-800 rounded-lg p-3 space-y-3 border border-gray-700">
+      <div className="rounded-lg mx-2 mt-4 overflow-hidden shadow-lg">
+        <div className="rounded-lg p-3 space-y-3 border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400">
-              Server Status
-            </span>
-            <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 font-mono">
+            <span className="text-xs font-medium">Server Status</span>
+            <span className="text-xs px-2 py-0.5 rounded font-mono">
               v{metrics?.version}
             </span>
           </div>
@@ -336,11 +335,14 @@ docker pull pommee/goaway:version`;
               icon={HardDriveIcon}
             />
             <div className="flex items-center gap-2 text-xs mt-3">
-              <DatabaseIcon size={12} className="text-gray-400 flex-shrink-0" />
+              <DatabaseIcon
+                size={12}
+                className="flex-shrink-0 text-muted-foreground"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Database</span>
-                  <span className="bg-gray-700 px-2 py-0.5 rounded font-mono text-xs">
+                  <span>Database</span>
+                  <span className="px-2 py-0.5 rounded font-mono text-xs">
                     {formatNumber(metrics?.dbSize)}MB
                   </span>
                 </div>
@@ -375,14 +377,14 @@ docker pull pommee/goaway:version`;
           {inAppUpdate === true ? (
             <>
               <div className="space-y-4 py-2">
-                <div className="space-y-3 p-4 bg-gray-900 rounded-md">
+                <div className="space-y-3 p-4 rounded-md">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">{currentStep}</span>
-                    <span className="text-gray-400 font-mono">
+                    <span>{currentStep}</span>
+                    <span className="font-mono">
                       {Math.round(updateProgress)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-foreground rounded-full h-2">
                     <div
                       className="h-2 rounded-full transition-all duration-500 ease-out bg-blue-500"
                       style={{ width: `${updateProgress}%` }}
@@ -390,7 +392,7 @@ docker pull pommee/goaway:version`;
                   </div>
                 </div>
 
-                <div className="h-96 overflow-auto bg-stone-900 p-4 font-mono text-sm rounded-md">
+                <div className="h-96 overflow-auto bg-secondary p-4 font-mono text-sm rounded-md">
                   {updateLogs.length > 0 ? (
                     updateLogs.map((log, index) => (
                       <div key={index} className="leading-relaxed">
@@ -408,7 +410,7 @@ docker pull pommee/goaway:version`;
                       </div>
                     ))
                   ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
                       <div className="text-center">
                         <CaretLineUpIcon className="h-8 w-8 animate-pulse mx-auto mb-2" />
                         <p>Waiting for update to start...</p>
@@ -427,7 +429,7 @@ docker pull pommee/goaway:version`;
                 <Button
                   disabled={updateStarted}
                   onClick={() => setShowUpdateModal(false)}
-                  className="bg-stone-800 text-white border-1 border-gray-600 hover:bg-gray-600"
+                  className="bg-muted-foreground"
                 >
                   Remind Me Later
                 </Button>
@@ -437,7 +439,7 @@ docker pull pommee/goaway:version`;
                       ? startUpdate
                       : () => setShowUpdateModal(false)
                   }
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors flex items-center gap-2"
+                  className="bg-blue-500 hover:bg-blue-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <DownloadIcon className="h-4 w-4" />
                   {updateStarted ? <p>Close</p> : <p>Start Update</p>}
@@ -446,7 +448,7 @@ docker pull pommee/goaway:version`;
             </>
           ) : (
             <div className="py-2">
-              <div className="flex items-start gap-3 p-4 bg-stone-900 border rounded-lg w-full">
+              <div className="flex items-start gap-3 p-4 border rounded-lg w-full">
                 <div className="w-full">
                   <h3 className="flex font-medium text-orange-400 mb-2">
                     <InfoIcon className="mt-1 mr-2" />
@@ -458,11 +460,9 @@ docker pull pommee/goaway:version`;
                       following commands to update:
                     </p>
                     <div className="relative">
-                      <div className="bg-stone-950 rounded-md p-4 font-mono text-sm">
-                        <div className="text-stone-300 space-y-1">
-                          <div className="text-stone-500">
-                            # Stop and remove the current container
-                          </div>
+                      <div className="bg-popover rounded-md p-4 font-mono text-sm">
+                        <div className="text-muted-foreground space-y-1">
+                          <div># Stop and remove the current container</div>
                           <div className="text-green-400">
                             docker stop container-name
                           </div>
@@ -470,7 +470,7 @@ docker pull pommee/goaway:version`;
                             docker rm container-name
                           </div>
                           <br />
-                          <div className="text-stone-500 mt-2">
+                          <div className="mt-2">
                             # Pull and run the new version
                           </div>
                           <div className="text-green-400">
@@ -480,7 +480,7 @@ docker pull pommee/goaway:version`;
                       </div>
                       <button
                         onClick={handleCopy}
-                        className="absolute top-2 right-2 p-2 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors duration-500 text-stone-400 hover:text-white cursor-pointer"
+                        className="absolute top-2 right-2 p-2 bg-input rounded-md transition-colors duration-500 hover:text-green-500 cursor-pointer"
                         title="Copy Docker commands"
                       >
                         {copied ? (
@@ -490,34 +490,34 @@ docker pull pommee/goaway:version`;
                         )}
                       </button>
                     </div>
-                    <p className="text-xs text-stone-400 mt-4">
+                    <p className="text-xs text-muted-foreground mt-4">
                       Replace{" "}
-                      <code className="bg-stone-950 px-1 py-0.5 rounded">
+                      <code className="bg-input px-1 py-0.5 rounded">
                         container-name
                       </code>{" "}
                       and{" "}
-                      <code className="bg-stone-950 px-1 py-0.5 rounded">
+                      <code className="bg-input px-1 py-0.5 rounded">
                         version
                       </code>{" "}
                       with your actual values.
                     </p>
                   </div>
 
-                  <Separator className="my-5 bg-stone-950" />
+                  <Separator className="my-5" />
 
                   <div>
                     <p className="text-sm mb-3">
                       If you are running the standalone binary, use the
                       following commands to update:
                     </p>
-                    <div className="bg-stone-950 rounded-md p-4 font-mono text-sm overflow-x-auto">
-                      <div className="text-stone-300 space-y-1">
-                        <div className="text-stone-500">
+                    <div className="bg-popover rounded-md p-4 font-mono text-sm overflow-x-auto">
+                      <div className="space-y-1">
+                        <div className="text-muted-foreground">
                           # Stop the binary from running and run one of the
                           following:
                         </div>
                         <br />
-                        <div className="text-stone-500">
+                        <div className="text-muted-foreground">
                           # Will install the latest version of goaway into
                           ~/$USER/.local/bin
                         </div>
@@ -526,7 +526,7 @@ docker pull pommee/goaway:version`;
                           https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
                           | sh
                         </div>
-                        <div className="text-stone-500">
+                        <div className="text-muted-foreground">
                           # It's also possible to specify what version to
                           install
                         </div>
@@ -536,7 +536,7 @@ docker pull pommee/goaway:version`;
                           | sh /dev/stdin 0.40.4
                         </div>
                         <br />
-                        <div className="text-stone-500">
+                        <div className="text-muted-foreground">
                           # Will replace your goaway binary in the current
                           working directory with the latest version
                         </div>

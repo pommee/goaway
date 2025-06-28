@@ -413,7 +413,7 @@ export function Settings() {
           >
             <div className="border-b pb-3 mb-4">
               <h2 className="text-xl font-semibold">{title}</h2>
-              <p className="text-sm text-gray-500">{description}</p>
+              <p className="text-sm text-muted-foreground">{description}</p>
             </div>
 
             <div className="space-y-4">
@@ -429,7 +429,7 @@ export function Settings() {
                   >
                     <div className="flex-grow">
                       <h3 className="text-base font-medium">Change password</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Change password used to authenticate with the dashboard
                       </p>
                     </div>
@@ -452,7 +452,7 @@ export function Settings() {
                   >
                     <div className="flex-grow">
                       <h3 className="text-base font-medium">API Keys</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Manage API keys for programmatic access to the system
                       </p>
                     </div>
@@ -478,7 +478,7 @@ export function Settings() {
                   >
                     <div className="flex-grow">
                       <h3 className="text-base font-medium">Export database</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Will download the database file.
                       </p>
                     </div>
@@ -503,7 +503,7 @@ export function Settings() {
                   >
                     <div className="flex-grow">
                       <h3 className="text-base font-medium">Import database</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Replace current database with uploaded file. A backup
                         will be created automatically.
                       </p>
@@ -552,7 +552,7 @@ export function Settings() {
                     >
                       <div className="flex-grow">
                         <h3 className="text-base font-medium">{label}</h3>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {explanation}
                         </p>
                       </div>
@@ -606,7 +606,7 @@ export function Settings() {
             <DialogDescription>
               Enter your current password and a new password below.
             </DialogDescription>
-            <p className="bg-zinc-900 p-2 rounded-sm">
+            <p className="bg-accent p-2 rounded-sm">
               You will be logged out once the password has been updated.
             </p>
           </DialogHeader>

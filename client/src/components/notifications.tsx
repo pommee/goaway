@@ -144,15 +144,15 @@ export default function Notifications() {
 
       <DropdownMenuContent
         align="end"
-        className="w-96 p-0 bg-stone-950 border border-stone-800 shadow-xl rounded-lg"
+        className="w-96 p-0 border-1 shadow-xl rounded-lg"
       >
-        <DropdownMenuLabel className="flex justify-between items-center p-4 border-b border-stone-800">
+        <DropdownMenuLabel className="flex justify-between items-center p-4 border-b">
           <span className="font-semibold text-lg">Notifications</span>
           {notifications.some((n) => !n.read) && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs hover:bg-stone-800"
+              className="text-xs"
               onClick={handleMarkAllAsRead}
             >
               Mark all as read
@@ -162,7 +162,7 @@ export default function Notifications() {
 
         <ScrollArea className="h-96">
           {notifications.length > 0 ? (
-            <div className="divide-y divide-stone-800">
+            <div className="divide-y">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
@@ -185,10 +185,10 @@ export default function Notifications() {
                         {notification.text}
                       </p>
                       <div className="flex justify-between items-center">
-                        <p className="text-xs text-stone-400">
+                        <p className="text-xs text-muted-foreground">
                           {getTimeAgo(notification.createdAt)}
                         </p>
-                        <span className="text-xs px-2 py-1 rounded-full bg-stone-800 text-stone-300">
+                        <span className="text-xs px-2 py-1 rounded-full bg-accent">
                           {notification.category}
                         </span>
                       </div>
@@ -198,7 +198,7 @@ export default function Notifications() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-32 text-stone-400 p-4">
+            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground p-4">
               <BellIcon className="h-6 w-6 mb-2 opacity-50" />
               <p>No notifications</p>
             </div>

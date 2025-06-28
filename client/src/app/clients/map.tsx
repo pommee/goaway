@@ -1,12 +1,12 @@
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import { GetRequest } from "@/util";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { XIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import { CardDetails } from "./details";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { XIcon } from "@phosphor-icons/react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientEntry {
   ip: string;
@@ -472,7 +472,7 @@ export default function DNSServerVisualizer() {
 
   if (error) {
     return (
-      <div className="p-4 min-h-screen text-white">
+      <div className="p-4 min-h-screen">
         <div className="text-center">
           <h1 className="text-xl font-bold mb-4">DNS Server Network Map</h1>
           <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 max-w-md mx-auto">
@@ -488,8 +488,8 @@ export default function DNSServerVisualizer() {
   }
 
   return (
-    <div className="text-white max-w-7xl mx-auto">
-      <div className="mb-2 p-2 rounded-lg bg-stone-950 border">
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-2 p-2 rounded-lg">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -499,7 +499,6 @@ export default function DNSServerVisualizer() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, IP, or vendor..."
-              className="bg-stone-900"
             />
           </div>
 
@@ -558,7 +557,7 @@ export default function DNSServerVisualizer() {
 
       <div
         ref={containerRef}
-        className="rounded-xl border border-stone-800 bg-stone-950 shadow-md p-4 w-full"
+        className="rounded-xl shadow-md p-4 w-full border-1 dark:bg-accent"
       >
         <div className="grid grid-cols-4 gap-2 text-sm mb-4">
           {[
@@ -584,11 +583,8 @@ export default function DNSServerVisualizer() {
               ).length
             }
           ].map(({ label, plural, value }) => (
-            <div
-              key={label}
-              className="rounded-lg bg-stone-900/80 border border-stone-800 py-0.5 text-center shadow-sm"
-            >
-              <p className="text-sm font-medium text-white">{value}</p>
+            <div key={label} className="rounded-lg py-0.5 text-center border-1">
+              <p className="text-sm font-medium">{value}</p>
               <p className="text-xs text-muted-foreground">
                 {value === 1 ? label : plural}
               </p>
@@ -647,8 +643,7 @@ export default function DNSServerVisualizer() {
                       ctx.font = `${fontSize}px Sans-Serif`;
                       ctx.textAlign = "center";
                       ctx.textBaseline = "middle";
-                      ctx.fillStyle =
-                        node.isActive === false ? "#9ca3af" : "white";
+                      ctx.fillStyle = node.isActive === false ? "#9ca3af" : "";
                       ctx.fillText(
                         label,
                         node.x,

@@ -134,44 +134,42 @@ export function CardDetails(
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="bg-zinc-800 border-none hover:bg-zinc-700 text-white w-full mt-2 rounded-lg text-sm py-1 h-auto"
+          className="w-full mt-2 rounded-lg text-sm py-1 h-auto"
         >
           <EyeIcon className="mr-2" size={16} />
           View Details
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-zinc-900 text-white border-zinc-800 rounded-xl w-2/3 max-w-200">
+      <DialogContent className="rounded-xl w-2/3 max-w-200">
         <DialogHeader>
           <DialogTitle>{listEntry.name} </DialogTitle>
           {listEntry.url && (
             <a
               href={listEntry.url}
               target={"_"}
-              className="text-sm text-zinc-500 hover:text-zinc-300"
+              className="text-sm text-muted-foreground hover:text-accent-foreground"
             >
               {listEntry.url}
             </a>
           )}
         </DialogHeader>
-        <Separator className="bg-zinc-800" />
+        <Separator />
         <div>
-          <div className="flex gap-1 text-zinc-500">
-            {"status:"}
+          <div className="flex gap-1">
+            <p className="text-muted-foreground">status:</p>
             {listActive ? (
               <p className="w-fit text-green-500">active</p>
             ) : (
               <p className="w-fit text-red-500">inactive</p>
             )}
           </div>
-          <div className="flex gap-1 text-zinc-500">
-            {"blocked:"}
-            <p className="text-white">
-              {listEntry.blockedCount.toLocaleString()}
-            </p>
+          <div className="flex gap-1">
+            <p className="text-muted-foreground">blocked:</p>
+            <p>{listEntry.blockedCount.toLocaleString()}</p>
           </div>
-          <div className="flex gap-1 text-zinc-500">
-            {"updated:"}
-            <div className="text-white">
+          <div className="flex gap-1">
+            <p className="text-muted-foreground">updated:</p>
+            <div>
               <TimeAgo
                 date={new Date(listEntry.lastUpdated * 1000)}
                 minPeriod={60}
@@ -183,7 +181,7 @@ export function CardDetails(
           <Button
             onClick={toggleBlocklist}
             variant="outline"
-            className="bg-zinc-800 border-none hover:bg-zinc-700 text-white flex-1 text-sm"
+            className="bg-green-600 border-none hover:bg-green-500 text-white flex-1 text-sm"
           >
             <ToggleLeftIcon className="mr-1" size={16} />
             Toggle
@@ -241,11 +239,11 @@ export function CardDetails(
         )}
 
         {showDiff && (
-          <div className="mt-4 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+          <div className="mt-4 p-4 bg-accent rounded-lg border">
             <h3 className="font-bold mb-2">
               Update for {listEntry.name} found
             </h3>
-            <Separator className="bg-stone-700 mb-1" />
+            <Separator className="mb-1" />
             {updateDiff.diffAdded.length > 0 && (
               <>
                 <div className="mb-3">
@@ -256,14 +254,14 @@ export function CardDetails(
                     {updateDiff.diffAdded.map((item, i) => (
                       <div
                         key={`added-${i}`}
-                        className="text-green-300 bg-stone-900 p-1 rounded-sm"
+                        className="text-green-400 bg-background p-1 rounded-sm"
                       >
                         {item}
                       </div>
                     ))}
                   </div>
                 </div>
-                <Separator className="bg-stone-600 mb-2" />
+                <Separator className="mb-2" />
               </>
             )}
             {updateDiff.diffRemoved.length > 0 && (
@@ -275,7 +273,7 @@ export function CardDetails(
                   {updateDiff.diffRemoved.map((item, i) => (
                     <div
                       key={`removed-${i}`}
-                      className="text-red-300 bg-stone-900 p-1 rounded-sm"
+                      className="text-red-400 bg-background p-1 rounded-sm"
                     >
                       {item}
                     </div>

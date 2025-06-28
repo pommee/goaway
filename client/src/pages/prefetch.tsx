@@ -316,15 +316,15 @@ export function Prefetch() {
                 {filteredPrefetches.map((prefetch) => (
                   <TableRow
                     key={prefetch.domain}
-                    className="hover:bg-stone-800"
+                    className="hover:bg-accent text-sm"
                   >
-                    <TableCell className="font-medium text-white">
+                    <TableCell className="font-medium">
                       {prefetch.domain}
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="font-mono">
                       {formatRefresh(prefetch.refresh)}
                     </TableCell>
-                    <TableCell className="text-gray-300 text-sm">
+                    <TableCell className="">
                       {qtypeExpanded(prefetch.qtype)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -332,7 +332,7 @@ export function Prefetch() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-stone-700"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:font-bold cursor-pointer"
                           onClick={() => handleDelete(prefetch.domain)}
                         >
                           <TrashIcon className="h-4 w-4" />
@@ -346,10 +346,8 @@ export function Prefetch() {
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ClockIcon className="h-12 w-12 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-400">
-                No prefetch domains found
-              </h3>
+              <ClockIcon className="h-12 w-12 mb-4" />
+              <h3 className="text-lg font-medium">No prefetch domains found</h3>
               <p className="text-muted-foreground mt-1">
                 {searchTerm
                   ? "No matching entries for your search"

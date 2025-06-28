@@ -159,7 +159,7 @@ const Changelog = () => {
       </div>
 
       {releases.length === 0 ? (
-        <div className="bg-stone-900 border rounded-xl p-8 text-center">
+        <div className="bg-accent border rounded-xl p-8 text-center">
           <p>No release information available.</p>
         </div>
       ) : (
@@ -177,9 +177,7 @@ const Changelog = () => {
               <div
                 key={release.id}
                 className={`group relative border rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 ${
-                  isLatest
-                    ? "border-stone-600 bg-stone-900/80"
-                    : "border-stone-900 bg-stone-900/60"
+                  isLatest ? "border-primary bg-accent" : "bg-accent"
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -187,12 +185,12 @@ const Changelog = () => {
                     <h2 className="text-xl font-semibold">{release.name}</h2>
                     <div className="flex gap-2">
                       {isLatest && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-800 text-white-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white">
                           Latest
                         </span>
                       )}
                       {isInstalled && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white">
                           Installed
                         </span>
                       )}
@@ -229,7 +227,7 @@ const Changelog = () => {
                                       href={commit.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="py-0.5 text-muted-foreground hover:text-white transition-colors"
+                                      className="py-0.5 text-muted-foreground hover:text-primary transition-colors"
                                     >
                                       {`[${commit.hash.substring(0, 7)}]`}
                                     </a>
@@ -243,7 +241,7 @@ const Changelog = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
                       <span className="italic">
                         No detailed release notes available
                       </span>

@@ -75,7 +75,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
   }
 
   return (
-    <Card className="w-full max-w-sm bg-background/80 backdrop-blur-sm border-zinc-700/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+    <Card className="w-full max-w-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -87,13 +87,13 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       </CardHeader>
 
       <CardContent>
-        <div className="flex items-center space-x-2 text-muted-foreground">
-          <p>DNS Ping: </p>
-          <p className="text-white">{upstream.dnsPing}</p>
+        <div className="flex items-center space-x-2">
+          <p className="text-muted-foreground">DNS Ping: </p>
+          <p>{upstream.dnsPing}</p>
         </div>
-        <div className="flex items-center space-x-2 text-muted-foreground">
-          <p>ICMP Ping:</p>
-          <p className="text-white">{upstream.icmpPing}</p>
+        <div className="flex items-center space-x-2">
+          <p className="text-muted-foreground">ICMP Ping:</p>
+          <p>{upstream.icmpPing}</p>
         </div>
       </CardContent>
 
@@ -105,7 +105,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
           </Button>
         ) : (
           <Button
-            className="w-full"
+            className="w-full cursor-pointer"
             onClick={() => setPreferred(upstream.upstream)}
             variant="secondary"
           >
@@ -118,7 +118,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
             deleteState === "confirm"
               ? "bg-red-600 hover:bg-red-500"
               : "bg-red-800 hover:bg-red-600"
-          } text-white relative overflow-hidden transition-all duration-300`}
+          } text-white relative overflow-hidden transition-all duration-300 cursor-pointer`}
           onClick={handleDelete}
         >
           <span

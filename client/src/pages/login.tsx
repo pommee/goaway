@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { GetRequest, PostRequest } from "@/util";
 import {
-  EyeIcon,
   EyeClosedIcon,
+  EyeIcon,
   LockIcon,
   SpinnerIcon,
   UserCircleIcon
@@ -133,25 +133,25 @@ export function Login({
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    <div className="flex min-h-screen w-full items-center bg-zinc-900 justify-center p-4 overflow-hidden">
+    <div className="flex min-h-screen w-full items-center justify-center p-4 overflow-hidden">
       <MP />
       <div className="w-full max-w-md text-center">
         <FloatingTitle />
 
         <div className={cn("flex flex-col", className)} {...props}>
-          <Card className="z-10 mt-10 border border-zinc-800 shadow-xl bg-card-gradient backdrop-blur-lg transition-all duration-300 hover:shadow-glow animate-card-appear">
+          <Card className="z-10 mt-10 border shadow-xl backdrop-blur-lg transition-all duration-300 hover:shadow-glow animate-card-appear">
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-2">
                     <Label
                       htmlFor="username"
-                      className="text-sm font-medium text-zinc-300"
+                      className="text-sm font-medium text-muted-foreground"
                     >
                       Username
                     </Label>
                     <div className="relative group">
-                      <UserCircleIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
+                      <UserCircleIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="username"
                         type="text"
@@ -160,7 +160,7 @@ export function Login({
                         autoFocus
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="pl-10 bg-zinc-900/70 border-zinc-700 text-zinc-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all duration-300 animate-input-appear placeholder:text-zinc-500"
+                        className="pl-10"
                       />
                     </div>
                   </div>
@@ -169,13 +169,13 @@ export function Login({
                     <div className="flex items-center justify-between">
                       <Label
                         htmlFor="password"
-                        className="text-sm font-medium text-zinc-300"
+                        className="text-sm font-medium text-muted-foreground"
                       >
                         Password
                       </Label>
                     </div>
                     <div className="relative group">
-                      <LockIcon className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-hover:text-indigo-300 transition-colors duration-300" />
+                      <LockIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="password"
                         ref={passwordRef}
@@ -184,12 +184,12 @@ export function Login({
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-10 bg-zinc-900/70 border-zinc-700 text-zinc-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all duration-300 animate-input-appear placeholder:text-zinc-500"
+                        className="pl-10 pr-10"
                       />
                       <button
                         type="button"
                         onClick={togglePasswordVisibility}
-                        className="absolute right-3 top-3 text-zinc-400 hover:text-indigo-300 transition-colors duration-200 focus:outline-none focus:text-indigo-400"
+                        className="absolute right-3 top-3 text-muted-foreground focus:outline-none cursor-pointer"
                       >
                         {showPassword ? (
                           <EyeClosedIcon className="h-4 w-4" />
@@ -215,7 +215,7 @@ export function Login({
 
                     <Label
                       htmlFor="remember"
-                      className="text-sm font-medium leading-none text-white cursor-pointer"
+                      className="text-sm font-medium leading-none text-muted-foreground cursor-pointer"
                     >
                       Remember me
                     </Label>
@@ -223,7 +223,7 @@ export function Login({
 
                   <Button
                     type="submit"
-                    className="w-full bg-green-900 text-white hover:bg-green-700 transition-all duration-300 hover:shadow-md hover:shadow-green-900/30 hover:translate-y-px animate-button-pulse focus:ring-2 focus:ring-green-700/50 disabled:opacity-70"
+                    className="w-full bg-green-900 hover:bg-green-700 transition-all duration-300 hover:shadow-md hover:shadow-green-900/30 hover:translate-y-px animate-button-pulse focus:ring-2 focus:ring-green-700/50 disabled:opacity-70 text-white"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -240,7 +240,7 @@ export function Login({
             </CardContent>
           </Card>
 
-          <div className="mt-6 text-zinc-500 text-sm z-10">
+          <div className="mt-6 text-muted-foreground text-sm z-10">
             <p>
               Version {responseData?.version} - Last updated{" "}
               {new Date(responseData?.date).toLocaleString("en-US", {
@@ -254,7 +254,7 @@ export function Login({
                 href="https://github.com/pommee/goaway"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 hover:underline transition-all duration-200"
+                className="text-blue-400 hover:text-blue-300 hover:underline transition-all duration-200"
               >
                 View on GitHub
               </a>

@@ -323,14 +323,14 @@ export function Logs() {
               Clear logs
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 text-white border-zinc-800 md:w-auto max-w-md p-6 rounded-xl shadow-lg">
+          <DialogContent className="md:w-auto max-w-md p-6 rounded-xl shadow-lg">
             <div className="flex flex-col items-center text-center">
               <WarningIcon className="h-12 w-12 text-amber-500 mb-4" />
               <DialogTitle className="text-xl font-semibold mb-2">
                 Confirm Log Clearance
               </DialogTitle>
               <DialogDescription className="text-base text-zinc-300 mb-6">
-                <div className="bg-red-600/50 p-4">
+                <div className="bg-red-600/80 p-4 text-background">
                   <p>Are you sure you want to clear all logs?</p>{" "}
                   <p>
                     This action is
@@ -346,8 +346,7 @@ export function Logs() {
                   Yes, clear logs
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="text-zinc-400 hover:text-white"
+                  className="hover:font-bold"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancel

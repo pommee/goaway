@@ -1,19 +1,19 @@
 import { ThemeProvider } from "@/components/theme-provider";
-import Layout from "../app/layout";
-import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { AnimatePresence, motion } from "motion/react";
+import { Suspense } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
+import Layout from "../app/layout";
+import { Blacklist } from "./blacklist";
 import Changelog from "./changelog";
 import { Clients } from "./clients";
-import { Blacklist } from "./blacklist";
-import { Login } from "./login";
 import { Home } from "./home";
+import { Login } from "./login";
 import { Logs } from "./logs";
-import { Settings } from "./settings";
-import { Suspense } from "react";
-import { Resolution } from "./resolution";
-import { Upstream } from "./upstream";
-import { AnimatePresence, motion } from "motion/react";
 import { Prefetch } from "./prefetch";
+import { Resolution } from "./resolution";
+import { Settings } from "./settings";
+import { Upstream } from "./upstream";
 import { Whitelist } from "./whitelist";
 
 function PageLoader() {

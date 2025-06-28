@@ -186,7 +186,7 @@ export function Resolution() {
               <Label className="font-medium text-transparent">Action</Label>
               <Button
                 variant="default"
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                className="w-full"
                 onClick={handleSave}
                 disabled={submitting || !domainName || !ip}
               >
@@ -202,23 +202,21 @@ export function Resolution() {
             </div>
           </div>
 
-          <div className="mt-4 bg-gradient-to-br from-blue-900/20 to-blue-800/30 border rounded-xl p-3">
+          <div className="mt-4 bg-accent border rounded-xl p-3">
             <div className="flex items-start gap-3">
               <InfoIcon className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="space-y-2 flex-1">
                 <div>
-                  <h4 className="text-white font-medium mb-1">
-                    Wildcard Matching
-                  </h4>
-                  <p className="text-stone-300 text-sm leading-relaxed">
+                  <h4 className="font-medium mb-1">Wildcard Matching</h4>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     Use wildcards to match multiple subdomains with a single
                     rule
                   </p>
                 </div>
 
-                <div className="bg-stone-950/50 rounded-lg p-3">
+                <div className="bg-background rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <code className="text-sm font-mono bg-stone-800/80 px-2 py-1 rounded text-blue-300 font-medium">
+                    <code className="text-sm font-mono bg-accent px-2 py-1 rounded text-blue-400 font-medium">
                       *.example.local
                     </code>
                     <div className="flex items-center gap-1.5 text-emerald-400">
@@ -237,10 +235,8 @@ export function Resolution() {
                         key={index}
                         className="flex items-center gap-1.5 text-xs text-muted-foreground"
                       >
-                        <div className="w-1 h-1 bg-stone-500 rounded-full"></div>
-                        <code className="text-stone-300 font-mono truncate">
-                          {domain}
-                        </code>
+                        <div className="w-1 h-1 bg-accent-foreground rounded-full" />
+                        <code className="font-mono truncate">{domain}</code>
                       </div>
                     ))}
                   </div>
@@ -251,15 +247,15 @@ export function Resolution() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2 border-b">
+      <Card className="py-4">
+        <CardHeader className="pb-4 border-b">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3">
               <div className="bg-blue-500/20 p-2 rounded-lg">
                 <DatabaseIcon className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <span className="text-white">Current Resolutions</span>
+                <span>Current Resolutions</span>
                 <p className="text-sm text-muted-foreground font-normal mt-0.5">
                   {resolutions.length} active{" "}
                   {resolutions.length === 1 ? "mapping" : "mappings"}
@@ -273,7 +269,7 @@ export function Resolution() {
                   placeholder="Search domains or IPs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 text-white"
+                  className="pl-9"
                 />
               </div>
             </div>
@@ -285,13 +281,12 @@ export function Resolution() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-4 bg-stone-800/30 rounded-lg border border-stone"
+                  className="flex items-center justify-between p-4 rounded-lg border border-stone"
                 >
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-48 bg-stone-600/50" />
-                    <Skeleton className="h-4 w-24 bg-stone-600/50" />
+                    <Skeleton className="h-4 w-24 bg-accent" />
                   </div>
-                  <Skeleton className="h-8 w-8 rounded-full bg-stone-600/50" />
+                  <Skeleton className="h-8 w-8 rounded-full bg-accent" />
                 </div>
               ))}
             </div>
@@ -300,7 +295,7 @@ export function Resolution() {
               {filteredResolutions.map((resolution) => (
                 <div
                   key={resolution.domain}
-                  className="group flex items-center justify-between p-2 hover:bg-stone-900/40 transition-all duration-200"
+                  className="group flex items-center justify-between p-2 hover:bg-accent transition-all duration-200"
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <div className="flex-shrink-0">
@@ -309,18 +304,18 @@ export function Resolution() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1">
                         <GlobeIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                        <span className="font-medium text-white truncate">
+                        <span className="font-medium truncate">
                           {resolution.domain}
                         </span>
                         {resolution.domain.includes("*") && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-200/20 text-orange-300 border border-orange-500/30">
                             Wildcard
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <NetworkIcon />
-                        <code className="font-mono text-white bg-stone-800/50 px-2 py-0.5 rounded">
+                        <code className="font-mono bg-accent px-2 py-0.5 rounded">
                           {resolution.ip}
                         </code>
                       </div>
@@ -330,7 +325,7 @@ export function Resolution() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
                       onClick={() =>
                         handleDelete(resolution.domain, resolution.ip)
                       }
@@ -344,12 +339,10 @@ export function Resolution() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-4 text-center">
-              <div className="bg-stone-800/50 p-4 rounded-full mb-4">
-                <DatabaseIcon className="h-8 w-8 text-muted-foreground" />
+              <div className="bg-accent p-4 rounded-full mb-4">
+                <DatabaseIcon className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-medium text-stone-300 mb-2">
-                No resolutions found
-              </h3>
+              <h3 className="text-lg font-medium mb-2">No resolutions found</h3>
               <p className="text-muted-foreground max-w-sm">
                 {searchTerm
                   ? "No matching entries for your search term. Try a different keyword."

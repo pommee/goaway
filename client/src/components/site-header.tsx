@@ -3,6 +3,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "react-router-dom";
 import { NavActions } from "./nav-actions";
 import Notifications from "./notifications";
+import { ModeToggle } from "./theme-toggle";
 
 interface PageInfo {
   title: string;
@@ -95,6 +96,7 @@ export function SiteHeader() {
       </div>
 
       <div className="flex items-center gap-2 px-4 lg:px-6">
+        <ModeToggle />
         <Notifications />
         <NavActions />
       </div>
