@@ -1,3 +1,10 @@
+# [0.56.0](https://github.com/pommee/goaway/compare/v0.55.0...v0.56.0) (2025-06-28)
+
+
+### Features
+
+* added light/dark mode theme toggle ([1efad12](https://github.com/pommee/goaway/commit/1efad12f88ae6655c90fdb3dec3ca78934c58f5d))
+
 # [0.55.0](https://github.com/pommee/goaway/compare/v0.54.7...v0.55.0) (2025-06-26)
 
 
