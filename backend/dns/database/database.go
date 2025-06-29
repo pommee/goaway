@@ -155,7 +155,9 @@ func NewRequestLogTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	_, err = tx.Exec(`
 		CREATE TABLE IF NOT EXISTS request_log (

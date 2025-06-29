@@ -67,7 +67,9 @@ func GetRequestSummaryByInterval(interval int, db *sql.DB) ([]model.RequestLogIn
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	for rows.Next() {
 		var ts int64
