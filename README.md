@@ -115,7 +115,7 @@ You'll see a startup message confirming the services are running:
 
 ![Startup Screen](./resources/started.png)
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once - make sure to save it!
 
 ### Accessing the Dashboard
@@ -153,6 +153,7 @@ Flags:
   -h, --help                       help for goaway
       --ansi                       Toggle colorized logs. Only available in non-json formatted logs (default true)
       --auth                       Toggle authentication for admin dashboard (default true)
+      --dashboard                  Serve dashboard (default true)
       --dns-port int               Port for the DNS server (default 53)
       --json                       Toggle JSON formatted logs
       --log-level int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
