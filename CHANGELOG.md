@@ -1,3 +1,10 @@
+## [0.56.2](https://github.com/pommee/goaway/compare/v0.56.1...v0.56.2) (2025-06-29)
+
+
+### Bug Fixes
+
+* env variables takes presence over settings file and flags ([328e6fc](https://github.com/pommee/goaway/commit/328e6fc3afeede68a200a4e310a1aefd3d3009e1))
+
 ## [0.56.1](https://github.com/pommee/goaway/compare/v0.56.0...v0.56.1) (2025-06-29)
 
 
