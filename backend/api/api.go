@@ -75,7 +75,7 @@ func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 	)
 	api.setupRoutes()
 
-	if !api.Config.DevMode {
+	if api.Config.Dashboard {
 		api.ServeEmbeddedContent(content)
 	}
 
@@ -90,24 +90,26 @@ func (api *API) initializeRouter() {
 }
 
 func (api *API) configureCORS() {
-	var allowedOrigins []string
+	var (
+		corsConfig = cors.Config{
+			AllowOrigins:     []string{},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
+			ExposeHeaders:    []string{"Set-Cookie"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}
+	)
 
-	if !api.Config.DevMode {
-		allowedOrigins = append(allowedOrigins, "*")
+	if api.Config.Dashboard {
+		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "*")
 	} else {
-		log.Warning("No embedded content found, not serving")
-		allowedOrigins = append(allowedOrigins, "http://localhost:8081")
+		log.Warning("Dashboard UI is disabled")
+		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "http://localhost:8081")
+		api.routes.Use(cors.New(corsConfig))
 	}
 
-	api.router.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
-		ExposeHeaders:    []string{"Set-Cookie"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
+	api.router.Use(cors.New(corsConfig))
 	api.setupAuthAndMiddleware()
 }
 
@@ -130,21 +132,7 @@ func (api *API) setupAuthAndMiddleware() {
 		api.SetupAuth()
 		api.routes.Use(api.authMiddleware())
 	} else {
-		log.Info("Authentication is disabled.")
-		api.setupDevModeCORS()
-	}
-}
-
-func (api *API) setupDevModeCORS() {
-	if api.Config.DevMode {
-		api.routes.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"http://localhost:8081"},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
-			ExposeHeaders:    []string{"Set-Cookie"},
-			AllowCredentials: true,
-			MaxAge:           12 * time.Hour,
-		}))
+		log.Warning("Authentication is disabled.")
 	}
 }
 

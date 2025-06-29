@@ -20,30 +20,33 @@ type Status struct {
 	PauseTime int       `json:"pauseTime"`
 }
 
+type DNSConfig struct {
+	Address           string   `yaml:"address" json:"address"`
+	Port              int      `yaml:"port" json:"port"`
+	CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
+	PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
+	UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
+	UDPSize           int      `yaml:"udpSize" json:"udpSize"`
+	Status            Status   `yaml:"-" json:"status"`
+}
+
+type APIConfig struct {
+	Port              int                         `yaml:"port" json:"port"`
+	Authentication    bool                        `yaml:"authentication" json:"authentication"`
+	RateLimiterConfig ratelimit.RateLimiterConfig `yaml:"rateLimit" json:"-"`
+}
+
 type Config struct {
-	DNS struct {
-		Address           string   `yaml:"address" json:"address"`
-		Port              int      `yaml:"port" json:"port"`
-		CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
-		PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
-		UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
-		UDPSize           int      `yaml:"udpSize" json:"udpSize"`
-		Status            Status   `yaml:"-" json:"status"`
-	} `yaml:"dns" json:"dns"`
+	DNS DNSConfig `yaml:"dns" json:"dns"`
+	API APIConfig `yaml:"api" json:"api"`
 
-	API struct {
-		Port              int                         `yaml:"port" json:"port"`
-		Authentication    bool                        `yaml:"authentication" json:"authentication"`
-		RateLimiterConfig ratelimit.RateLimiterConfig `yaml:"rateLimit" json:"-"`
-	} `yaml:"api" json:"api"`
-
+	Dashboard           bool             `yaml:"dashboard" json:"-"`
 	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
 	LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
 	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
 	InAppUpdate         bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
 
 	// settings not visible in config file
-	DevMode    bool   `yaml:"-" json:"-"`
 	BinaryPath string `yaml:"-" json:"-"`
 }
 
@@ -69,8 +72,33 @@ func LoadSettings() (Config, error) {
 		return Config{}, fmt.Errorf("could not read settings file: %w", err)
 	}
 
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	type configWithPtr struct {
+		DNS                 DNSConfig        `yaml:"dns" json:"dns"`
+		API                 APIConfig        `yaml:"api" json:"api"`
+		Dashboard           *bool            `yaml:"dashboard" json:"-"`
+		StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
+		LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
+		LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
+		InAppUpdate         bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
+	}
+
+	var temp configWithPtr
+	if err := yaml.Unmarshal(data, &temp); err != nil {
 		return Config{}, fmt.Errorf("invalid settings format: %w", err)
+	}
+
+	config.DNS = temp.DNS
+	config.API = temp.API
+	config.StatisticsRetention = temp.StatisticsRetention
+	config.LoggingEnabled = temp.LoggingEnabled
+	config.LogLevel = temp.LogLevel
+	config.InAppUpdate = temp.InAppUpdate
+
+	if temp.Dashboard == nil {
+		// true by default if the Dashboard field was not found in settings.yaml
+		config.Dashboard = true
+	} else {
+		config.Dashboard = *temp.Dashboard
 	}
 
 	binaryPath, err := os.Executable()
@@ -100,6 +128,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	}
 	defaultConfig.DNS.UDPSize = 512
 
+	defaultConfig.Dashboard = true
 	defaultConfig.API.Port = GetEnvAsIntWithDefault("WEBSITE_PORT", 8080)
 	defaultConfig.API.Authentication = true
 	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}

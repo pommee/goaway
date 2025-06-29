@@ -41,7 +41,7 @@ type Flags struct {
 	StatisticsRetention int
 	LoggingEnabled      bool
 	Authentication      bool
-	DevMode             bool
+	Dashboard           bool
 	Ansi                bool
 	JSON                bool
 	InAppUpdate         bool
@@ -74,7 +74,7 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().IntVar(&flags.StatisticsRetention, "statistics-retention", 7, "Days to keep statistics")
 	cmd.Flags().BoolVar(&flags.LoggingEnabled, "logging", true, "Toggle logging")
 	cmd.Flags().BoolVar(&flags.Authentication, "auth", true, "Toggle authentication for admin dashboard")
-	cmd.Flags().BoolVar(&flags.DevMode, "dev", false, "Only used while developing goaway")
+	cmd.Flags().BoolVar(&flags.Dashboard, "dashboard", true, "Serve dashboard")
 	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs. Only available in non-json formatted logs")
 	cmd.Flags().BoolVar(&flags.JSON, "json", false, "Toggle JSON formatted logs")
 	cmd.Flags().BoolVar(&flags.InAppUpdate, "in-app-update", false, "Toggle ability to update via dashboard")
@@ -103,8 +103,8 @@ func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
 	if cmd.Flags().Changed("auth") {
 		setFlags.Authentication = &flags.Authentication
 	}
-	if cmd.Flags().Changed("dev") {
-		setFlags.DevMode = &flags.DevMode
+	if cmd.Flags().Changed("dashboard") {
+		setFlags.Dashboard = &flags.Dashboard
 	}
 	if cmd.Flags().Changed("ansi") {
 		setFlags.Ansi = &flags.Ansi

@@ -19,7 +19,7 @@ type SetFlags struct {
 	StatisticsRetention *int
 	LoggingEnabled      *bool
 	Authentication      *bool
-	DevMode             *bool
+	Dashboard           *bool
 	Ansi                *bool
 	JSON                *bool
 	InAppUpdate         *bool
@@ -65,8 +65,8 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 	if flags.Authentication != nil {
 		config.API.Authentication = *flags.Authentication
 	}
-	if flags.DevMode != nil {
-		config.DevMode = *flags.DevMode
+	if flags.Dashboard != nil {
+		config.Dashboard = *flags.Dashboard
 	}
 	if flags.LoggingEnabled != nil {
 		config.LoggingEnabled = *flags.LoggingEnabled
@@ -110,6 +110,7 @@ func InitializeSettings(flags *SetFlags) *settings.Config {
 	}
 
 	UpdateConfig(&config, flags)
+	config.Save()
 
 	return &config
 }

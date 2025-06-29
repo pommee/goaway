@@ -42,6 +42,11 @@ api:
     # Once limit is reached, rate limits for N minutes
     window: 5
 
+# Serves the dashboard (ui) on http://server-ip:api-port
+# If false, the API will still be available, but the dashboard will not be served.
+# This is useful for deployments where the dashboard is not needed.
+dashboard: true
+
 # Number of days to retain statistics and query logs.
 # Lower values save disk space but provide less historical data.
 statisticsRetention: 7
