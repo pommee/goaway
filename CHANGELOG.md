@@ -1,3 +1,10 @@
+## [0.56.1](https://github.com/pommee/goaway/compare/v0.56.0...v0.56.1) (2025-06-29)
+
+
+### Performance Improvements
+
+* performance improvement for resp size timeline and various ui changes ([6670ee1](https://github.com/pommee/goaway/commit/6670ee1b9ce9c984a7ec2d17c0cae15649db8042))
+
 # [0.56.0](https://github.com/pommee/goaway/compare/v0.55.0...v0.56.0) (2025-06-28)
 
 
