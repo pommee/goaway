@@ -1,7 +1,7 @@
 .PHONY: publish build lint example-queries dev format test bench
 
-DNS_PORT = $(or $(GOAWAY_PORT),53)
-WEBSITE_PORT = $(or $(GOAWAY_WEBSITE_PORT),8080)
+DNS_PORT ?= 53
+WEBSITE_PORT ?= 8080
 LATEST_VERSION = $(shell git describe --tags --abbrev=0 | sed 's/^v//')
 
 publish:
