@@ -1,3 +1,10 @@
+## [0.56.3](https://github.com/pommee/goaway/compare/v0.56.2...v0.56.3) (2025-06-29)
+
+
+### Bug Fixes
+
+* reworked 'add list' modal and various other ui elements ([bdfa309](https://github.com/pommee/goaway/commit/bdfa309741115009a96b923403dc42999a580704))
+
 ## [0.56.2](https://github.com/pommee/goaway/compare/v0.56.1...v0.56.2) (2025-06-29)
 
 
