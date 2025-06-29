@@ -5,6 +5,7 @@ import (
 	"goaway/backend/logging"
 	"goaway/backend/settings"
 	"os"
+	"strconv"
 
 	"github.com/Masterminds/semver"
 )
@@ -34,12 +35,29 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		fmt.Println("Flag --log-level can't be greater than 3 or below 0.")
 		os.Exit(1)
 	}
-
-	if flags.DnsPort != nil {
-		config.DNS.Port = *flags.DnsPort
+	if flags.DnsPort != nil || os.Getenv("DNS_PORT") != "" {
+		if port, found := os.LookupEnv("DNS_PORT"); found {
+			dnsPort, err := strconv.Atoi(port)
+			if err != nil {
+				log.Error("Could not parse DNS_PORT environment variable")
+				os.Exit(1)
+			}
+			config.DNS.Port = dnsPort
+		} else {
+			config.DNS.Port = *flags.DnsPort
+		}
 	}
-	if flags.WebserverPort != nil {
-		config.API.Port = *flags.WebserverPort
+	if flags.WebserverPort != nil || os.Getenv("WEBSITE_PORT") != "" {
+		if port, found := os.LookupEnv("WEBSITE_PORT"); found {
+			websitePort, err := strconv.Atoi(port)
+			if err != nil {
+				log.Error("Could not parse WEBSITE_PORT environment variable")
+				os.Exit(1)
+			}
+			config.API.Port = websitePort
+		} else {
+			config.API.Port = *flags.WebserverPort
+		}
 	}
 	if flags.StatisticsRetention != nil {
 		config.StatisticsRetention = *flags.StatisticsRetention

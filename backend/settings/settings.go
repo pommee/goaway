@@ -6,6 +6,7 @@ import (
 	"goaway/backend/logging"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -90,7 +91,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	}
 
 	defaultConfig.DNS.Address = "0.0.0.0"
-	defaultConfig.DNS.Port = 53
+	defaultConfig.DNS.Port = GetEnvAsIntWithDefault("DNS_PORT", 53)
 	defaultConfig.DNS.CacheTTL = 3600
 	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
 	defaultConfig.DNS.UpstreamDNS = []string{
@@ -99,7 +100,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	}
 	defaultConfig.DNS.UDPSize = 512
 
-	defaultConfig.API.Port = 8080
+	defaultConfig.API.Port = GetEnvAsIntWithDefault("WEBSITE_PORT", 8080)
 	defaultConfig.API.Authentication = true
 	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}
 
@@ -142,4 +143,19 @@ func (config *Config) UpdateSettings(updatedSettings Config) {
 	log.ToggleLogging(config.LoggingEnabled)
 	log.SetLevel(config.LogLevel)
 	config.Save()
+}
+
+func GetEnvAsIntWithDefault(envVariable string, defaultValue int) int {
+	val, found := os.LookupEnv(envVariable)
+	fmt.Println(val, found)
+	if !found {
+		return defaultValue
+	}
+
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		return defaultValue
+	}
+
+	return intVal
 }
