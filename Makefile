@@ -25,7 +25,7 @@ lint:			; pnpm -C client lint && golangci-lint run ./backend/...
 commitlint:  	; pnpm -C client commitlint
 
 dev: build
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up
 
 dev-website:   ; pnpm -C client install && pnpm -C client dev
 dev-server:    ; mkdir client/dist ; touch client/dist/.fake ; air .
