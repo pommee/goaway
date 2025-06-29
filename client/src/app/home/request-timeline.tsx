@@ -170,9 +170,9 @@ export default function RequestTimeline() {
 
   return (
     <div className="w-full">
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div className="grid flex-1 sm:text-left">
+      <Card className="overflow-hidden py-2 gap-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
+          <div className="grid sm:text-left">
             <CardTitle className="text-xl">Request Timeline</CardTitle>
             <p className="text-sm text-muted-foreground">
               {timelineInterval}-Minute Intervals,{" "}
@@ -231,19 +231,16 @@ export default function RequestTimeline() {
 
         {filteredData.length > 0 ? (
           <>
-            <CardContent className="px-2 pt-0">
+            <CardContent className="px-2">
               <div className="mb-2 text-sm text-muted-foreground">
                 {!isZoomed && (
-                  <div className="flex items-center ml-4">
+                  <div className="flex items-center ml-2">
                     <MagnifyingGlassPlusIcon weight="bold" className="mr-1" />
                     Drag to zoom: Select an area on the chart to zoom in
                   </div>
                 )}
               </div>
-              <ChartContainer
-                config={chartConfig}
-                className="aspect-auto h-[300px] w-full"
-              >
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
                 <AreaChart
                   data={filteredData}
                   onMouseDown={handleMouseDown}
@@ -402,7 +399,9 @@ export default function RequestTimeline() {
                       fillOpacity={0.3}
                     />
                   )}
-                  <ChartLegend content={<ChartLegendContent />} />
+                  <ChartLegend
+                    content={<ChartLegendContent className="p-0" />}
+                  />
                 </AreaChart>
               </ChartContainer>
             </CardContent>

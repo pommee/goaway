@@ -7,7 +7,6 @@ import (
 	dbModel "goaway/backend/dns/database/models"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -44,40 +43,47 @@ func GetDistinctRequestIP(db *sql.DB) int {
 }
 
 func GetRequestSummaryByInterval(interval int, db *sql.DB) ([]model.RequestLogIntervalSummary, error) {
-	minutes := strconv.Itoa(interval * 60)
-	query := fmt.Sprintf(`
-	SELECT
-	(timestamp / %s) * %s AS interval_start,
-	SUM(CASE WHEN blocked = 1 THEN 1 ELSE 0 END) AS blocked_count,
-	SUM(CASE WHEN cached = 1 THEN 1 ELSE 0 END) AS cached_count,
-	SUM(CASE WHEN blocked = 0 AND cached = 0 THEN 1 ELSE 0 END) AS allowed_count
-	FROM request_log
-	WHERE timestamp >= strftime('%%s', 'now', '-24 hours')
-	GROUP BY interval_start
-	ORDER BY interval_start;`,
-		minutes, minutes,
-	)
+	minutes := interval * 60
+	summaries := make([]model.RequestLogIntervalSummary, 0, 1440/minutes)
 
-	rows, err := db.Query(query)
+	query := `
+        SELECT
+            interval_start,
+            SUM(blocked) AS blocked_count,
+            SUM(cached) AS cached_count,
+            SUM(1 - blocked - cached) AS allowed_count
+        FROM (
+            SELECT
+                (timestamp / ?) * ? AS interval_start,
+                blocked,
+                cached
+            FROM request_log
+            WHERE timestamp >= (strftime('%s', 'now') - 86400)
+        )
+        GROUP BY interval_start
+        ORDER BY interval_start`
+
+	rows, err := db.Query(query, minutes, minutes)
 	if err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	defer rows.Close()
 
-	var summaries []model.RequestLogIntervalSummary
 	for rows.Next() {
 		var ts int64
-		var summary model.RequestLogIntervalSummary
-		if err := rows.Scan(&ts, &summary.BlockedCount, &summary.CachedCount, &summary.AllowedCount); err != nil {
+		var blockedCount, cachedCount, allowedCount int
+		if err := rows.Scan(&ts, &blockedCount, &cachedCount, &allowedCount); err != nil {
 			return nil, err
 		}
-		summary.IntervalStart = time.Unix(ts, 0)
-		summaries = append(summaries, summary)
+		summaries = append(summaries, model.RequestLogIntervalSummary{
+			IntervalStart: time.Unix(ts, 0),
+			BlockedCount:  blockedCount,
+			CachedCount:   cachedCount,
+			AllowedCount:  allowedCount,
+		})
 	}
 
-	return summaries, nil
+	return summaries, rows.Err()
 }
 
 func GetResponseSizeSummaryByInterval(intervalMinutes int, db *sql.DB) ([]model.ResponseSizeSummary, error) {

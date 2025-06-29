@@ -10,7 +10,8 @@ import { GetRequest } from "@/util";
 import {
   ArrowsClockwiseIcon,
   MagnifyingGlassMinusIcon,
-  MagnifyingGlassPlusIcon
+  MagnifyingGlassPlusIcon,
+  SpinnerIcon
 } from "@phosphor-icons/react";
 import {
   Select,
@@ -170,9 +171,9 @@ export default function ResponseSizeTimeline() {
       <Card className="w-full">
         <CardContent className="flex items-center justify-center p-6">
           <div className="flex flex-col items-center space-y-2">
-            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
-            <p className="text-sm text-muted-foreground">
-              Loading response size data...
+            <p className="flex text-sm text-muted-foreground">
+              <SpinnerIcon className="animate-spin mt-1 mr-2" /> Loading
+              response size data...
             </p>
           </div>
         </CardContent>
@@ -181,9 +182,9 @@ export default function ResponseSizeTimeline() {
   }
 
   return (
-    <div className="w-full mt-5">
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+    <div className="w-full">
+      <Card className="overflow-hidden py-2 gap-2">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
           <div className="grid flex-1 sm:text-left">
             <CardTitle className="text-xl">Response Size Timeline</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -243,10 +244,10 @@ export default function ResponseSizeTimeline() {
 
         {filteredData.length > 0 ? (
           <>
-            <CardContent className="px-2 pt-0">
+            <CardContent className="px-2">
               <div className="mb-1 text-sm text-muted-foreground">
                 {!isZoomed && (
-                  <div className="flex items-center ml-4">
+                  <div className="flex items-center ml-2">
                     <MagnifyingGlassPlusIcon weight="bold" className="mr-1" />
                     Drag to zoom: Select an area on the chart to zoom in
                   </div>

@@ -73,12 +73,12 @@ export default function RequestTypeChart() {
   };
 
   return (
-    <Card className="lg:w-3/8">
-      <CardHeader className="pb-0">
-        <div className="flex items-center justify-between w-full">
-          <CardTitle>Request Types</CardTitle>
+    <Card className="py-2 min-w-80">
+      <CardHeader className="mx-2">
+        <div className="flex items-center justify-between gap-1 w-full">
+          <CardTitle className="text-sm">Request Types</CardTitle>
           <Select value={chartType} onValueChange={handleChartTypeChange}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs">
               <SelectValue placeholder="Chart Type" />
             </SelectTrigger>
             <SelectContent>
@@ -89,28 +89,26 @@ export default function RequestTypeChart() {
         </div>
       </CardHeader>
       {chartData.length > 0 && (
-        <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-1 px-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 px-2">
           {chartData.map((item: QueryType) => (
             <div
               key={item.queryType}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
             >
               <div
-                className="w-3 h-3 rounded-full shadow-sm"
+                className="w-2 h-2 rounded-full shadow-sm"
                 style={{ backgroundColor: item.fill }}
               />
-              <span className="text-xs font-medium text-foreground">
-                {item.queryType}
-              </span>
+              <span className="text-xs text-foreground">{item.queryType}</span>
               <span className="text-xs text-muted-foreground">
-                ({item.count})
+                {item.count}
               </span>
             </div>
           ))}
         </div>
       )}
       {chartData.length > 0 ? (
-        <CardContent className="flex-1 pb-0">
+        <CardContent className="flex-1 pb-0 h-[200px]">
           {chartType === "radar" ? (
             <ChartContainer config={{}}>
               <RadarChart data={chartData}>
@@ -119,13 +117,13 @@ export default function RequestTypeChart() {
                   content={<ChartTooltipContent />}
                 />
                 <PolarGrid />
-                <PolarAngleAxis dataKey="requestType" />
+                <PolarAngleAxis dataKey="queryType" />
                 <Radar
                   dataKey="count"
-                  fill="#8884d8"
+                  fill="var(--primary)"
                   fillOpacity={0.6}
-                  stroke="#8884d8"
-                  activeDot={{ r: 8 }}
+                  stroke="var(--muted-foreground)"
+                  activeDot={{ r: 4 }}
                 />
               </RadarChart>
             </ChartContainer>
@@ -140,18 +138,18 @@ export default function RequestTypeChart() {
                   data={chartData}
                   dataKey="count"
                   label
-                  nameKey="requestType"
+                  nameKey="queryType"
                 />
               </PieChart>
             </ChartContainer>
           )}
         </CardContent>
       ) : (
-        <CardContent className="flex h-[300px] items-center justify-center">
+        <CardContent className="flex h-[200px] items-center justify-center">
           <div className="text-center">
-            <p className="text-lg font-medium">No data available</p>
-            <p className="text-sm text-muted-foreground">
-              No query types has yet been identified
+            <p className="text-sm font-medium">No data available</p>
+            <p className="text-xs text-muted-foreground">
+              No query types have yet been identified
             </p>
           </div>
         </CardContent>

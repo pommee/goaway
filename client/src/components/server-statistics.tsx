@@ -307,7 +307,7 @@ docker pull pommee/goaway:version`;
         <div className="rounded-lg p-3 space-y-3 border">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">Server Status</span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono">
+            <span className="text-xs px-2 py-0.5 rounded font-mono bg-accent">
               v{metrics?.version}
             </span>
           </div>
@@ -342,7 +342,7 @@ docker pull pommee/goaway:version`;
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
                   <span>Database</span>
-                  <span className="px-2 py-0.5 rounded font-mono text-xs">
+                  <span className="px-2 py-0.5 rounded font-mono text-xs bg-accent">
                     {formatNumber(metrics?.dbSize)}MB
                   </span>
                 </div>
@@ -401,8 +401,8 @@ docker pull pommee/goaway:version`;
                             log.includes("[info]")
                               ? "text-green-400"
                               : log.includes("[error]")
-                                ? "text-red-400"
-                                : ""
+                              ? "text-red-400"
+                              : ""
                           }
                         >
                           {log}

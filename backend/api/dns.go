@@ -155,22 +155,25 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 
 func (api *API) getQueryTimestamps(c *gin.Context) {
 	intervalParam := c.Query("interval")
+	if intervalParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "interval parameter is required"})
+		return
+	}
+
 	interval, err := strconv.Atoi(intervalParam)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid interval parameter"})
 		return
 	}
 
 	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DBManager.Conn)
 	if err != nil {
-		log.Error("%v", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Error("Failed to get request summary: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"queries": timestamps,
-	})
+	c.JSON(http.StatusOK, gin.H{"queries": timestamps})
 }
 
 func (api *API) getResponseSizeTimestamps(c *gin.Context) {

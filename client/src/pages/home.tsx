@@ -13,7 +13,7 @@ export function Home() {
         <RequestTimeline />
         <PieChartRequestType />
       </div>
-      <div className="flex w-full mt-5 gap-4 flex-col md:flex-row">
+      <div className="flex w-full mb-5 mt-5 gap-4 flex-col md:flex-row">
         <div className="w-full md:w-1/2 h-[250px]">
           <FrequencyChartBlockedDomains />
         </div>

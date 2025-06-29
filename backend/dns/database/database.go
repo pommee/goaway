@@ -151,7 +151,13 @@ func NewSourcesTable(db *sql.DB) error {
 }
 
 func NewRequestLogTable(db *sql.DB) error {
-	_, err := db.Exec(`
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
 		CREATE TABLE IF NOT EXISTS request_log (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			timestamp INTEGER NOT NULL,
@@ -178,19 +184,19 @@ func NewRequestLogTable(db *sql.DB) error {
 	}
 
 	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_request_log_domain_timestamp ON request_log(domain, timestamp DESC);",
+		"CREATE INDEX IF NOT EXISTS idx_request_log_timestamp_covering ON request_log(timestamp, blocked, cached);",
 		"CREATE INDEX IF NOT EXISTS idx_request_log_timestamp_desc ON request_log(timestamp DESC);",
-		"CREATE INDEX IF NOT EXISTS idx_request_log_covering ON request_log(domain, timestamp DESC, blocked, cached, response_time_ns);",
+		"CREATE INDEX IF NOT EXISTS idx_request_log_domain_timestamp ON request_log(domain, timestamp DESC);",
 		"CREATE INDEX IF NOT EXISTS idx_request_log_ips_request_id ON request_log_ips(request_log_id);",
 	}
 
 	for _, indexSQL := range indexes {
-		if _, err := db.Exec(indexSQL); err != nil {
+		if _, err := tx.Exec(indexSQL); err != nil {
 			return fmt.Errorf("failed to create index: %w", err)
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func NewResolutionTable(db *sql.DB) error {
