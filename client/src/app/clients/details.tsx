@@ -79,7 +79,7 @@ export function CardDetails({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="border-none rounded-lg w-full max-w-5xl mx-auto p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="border-none bg-accent rounded-lg w-full max-w-5xl mx-auto p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="p-4 sm:p-6 border-b">
           <DialogTitle>
             <div className="flex items-center justify-between">
@@ -114,7 +114,7 @@ export function CardDetails({
           </DialogTitle>
         </div>
 
-        <div className="flex bg-accent border-b">
+        <div className="flex bg-background border-b">
           <button
             className={`px-4 py-2 text-sm font-medium flex items-center ${
               activeTab === "overview"
@@ -202,7 +202,7 @@ export function CardDetails({
                         return (
                           <div
                             key={index}
-                            className="bg-accent rounded-md overflow-hidden shadow-sm"
+                            className="bg-background rounded-md overflow-hidden shadow-sm"
                           >
                             <div className="flex items-center p-2">
                               <div className="w-12 text-center font-mono py-1 rounded text-xs font-medium">
@@ -212,7 +212,7 @@ export function CardDetails({
                                 {domain}
                               </div>
                               <div className="w-24 flex-shrink-0">
-                                <div className="h-2 bg-background rounded-full w-full">
+                                <div className="h-2 bg-accent rounded-full w-full">
                                   <div
                                     className={`h-2 rounded-full ${getProgressColor(
                                       count,
@@ -324,7 +324,7 @@ export function CardDetails({
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <div className="rounded-sm shadow-md bg-accent">
+    <div className="rounded-sm shadow-md bg-background">
       <div className={`${color} h-1`}></div>
       <div className="p-3">
         <div className="flex items-center text-xs text-muted-foreground mb-1">

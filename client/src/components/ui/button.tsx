@@ -45,11 +45,15 @@ function Button({
     asChild?: boolean;
   }) {
   const Comp = asChild ? Slot : "button";
+  const cursorPointer =
+    props.disabled === undefined || false ? "cursor-pointer" : "";
 
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={`${cursorPointer} ${cn(
+        buttonVariants({ variant, size, className })
+      )}`}
       {...props}
     />
   );

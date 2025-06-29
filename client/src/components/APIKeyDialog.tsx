@@ -69,7 +69,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
       });
       if (status === 200 && response) {
         setNewKey(response);
-        fetchAPIKeys();
+        await fetchAPIKeys();
         setNewKeyName("");
         toast.success("API key generated successfully");
       }

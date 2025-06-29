@@ -133,7 +133,7 @@ export function CardDetails(
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="outline"
+          variant="secondary"
           className="w-full mt-2 rounded-lg text-sm py-1 h-auto"
         >
           <EyeIcon className="mr-2" size={16} />

@@ -116,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuButton size="lg" asChild>
                 <a href="/home">
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <img src={"/logo.png"} />
+                    <img src={"/logo.png"} alt={""} />
                   </div>
                   <div className="grid flex-1 text-left text-lg leading-tight">
                     <span className="truncate font-medium">GoAway</span>
