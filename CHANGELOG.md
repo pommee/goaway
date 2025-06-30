@@ -1,3 +1,13 @@
+## [0.56.4](https://github.com/pommee/goaway/compare/v0.56.3...v0.56.4) (2025-06-30)
+
+
+### Bug Fixes
+
+* clearer indication when adding new list ([6fb1538](https://github.com/pommee/goaway/commit/6fb15381f3c337e624388fce7ce2506f3a5d1333))
+* specify status for newly added list ([30048a5](https://github.com/pommee/goaway/commit/30048a5df04cb68a37d558548a3e0a8cb2b04a3f))
+* update ui upon adding/removing an upstream ([f0a63dd](https://github.com/pommee/goaway/commit/f0a63dd9085016f0da660c6be883e0c3cb21b5f6))
+* validate new upstream ip and port ([14d694f](https://github.com/pommee/goaway/commit/14d694f8ce67cd30fab3e73372cbb0259fa6e6c7))
+
 ## [0.56.3](https://github.com/pommee/goaway/compare/v0.56.2...v0.56.3) (2025-06-29)
 
 
