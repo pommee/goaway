@@ -13,7 +13,12 @@ import { CloudIcon, StarIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export function UpstreamCard(upstream: UpstreamEntry) {
+type UpstreamCardProps = {
+  upstream: UpstreamEntry;
+  onRemove: (upstream: string) => void;
+};
+
+export function UpstreamCard({ upstream, onRemove }: UpstreamCardProps) {
   const currentUpstream = upstream;
   const [isPreferred, setIsPreferred] = useState(upstream.preferred);
   const [deleteState, setDeleteState] = useState<"initial" | "confirm">(
@@ -63,6 +68,7 @@ export function UpstreamCard(upstream: UpstreamEntry) {
       );
 
       if (status === 200) {
+        onRemove(currentUpstream.upstream);
         toast.success(response.message);
       } else {
         toast.warning(response.message || "Failed to delete upstream");

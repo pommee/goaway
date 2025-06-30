@@ -330,6 +330,11 @@ func (api *API) deleteUpstream(c *gin.Context) {
 		return
 	}
 
+	if !slices.Contains(api.Config.DNS.UpstreamDNS, upstreamToDelete) {
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Upstream %s not found", upstreamToDelete)})
+		return
+	}
+
 	var updatedUpstreams []string
 	for _, upstream := range api.Config.DNS.UpstreamDNS {
 		if upstream != upstreamToDelete {
@@ -339,6 +344,7 @@ func (api *API) deleteUpstream(c *gin.Context) {
 
 	api.Config.DNS.UpstreamDNS = updatedUpstreams
 	api.Config.Save()
+	log.Info("Removed upstream: %s", upstreamToDelete)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Upstream removed successfully",

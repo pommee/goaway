@@ -8,13 +8,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { UpstreamEntry } from "@/pages/upstream";
 import { PostRequest } from "@/util";
 import { PlusIcon } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function AddUpstream() {
+type AddUpstreamProps = {
+  onAdd: (entry: UpstreamEntry) => void;
+};
+
+export function AddUpstream({ onAdd }: AddUpstreamProps) {
   const [newUpstreamIP, setNewUpstreamIP] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -25,8 +30,14 @@ export function AddUpstream() {
     if (code === 200) {
       toast.info(response.message);
       setOpen(false);
-    } else {
-      toast.error(response.message || "Failed to create upstream");
+      onAdd({
+        dnsPing: "reload to ping",
+        icmpPing: "reload to ping",
+        name: newUpstreamIP,
+        preferred: false,
+        upstream: newUpstreamIP
+      });
+      setNewUpstreamIP("");
     }
   };
 

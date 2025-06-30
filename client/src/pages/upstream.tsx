@@ -5,11 +5,6 @@ import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-type UpstreamResponse = {
-  preferredUpstream: string;
-  upstreams: [UpstreamEntry];
-};
-
 export type UpstreamEntry = {
   dnsPing: string;
   icmpPing: string;
@@ -19,41 +14,44 @@ export type UpstreamEntry = {
 };
 
 export function Upstream() {
-  const [upstreams, setUpstreams] = useState<UpstreamResponse>();
+  const [upstreams, setUpstreams] = useState<UpstreamEntry[]>([]);
+
+  const fetchupstreams = async () => {
+    const [code, response] = await GetRequest("upstreams");
+    if (code !== 200) {
+      toast.warning(`Unable to fetch upstreams`);
+      return;
+    }
+    setUpstreams(response.upstreams);
+  };
 
   useEffect(() => {
-    async function fetchupstreams() {
-      const [code, response] = await GetRequest("upstreams");
-      if (code !== 200) {
-        toast.warning(`Unable to fetch upstreams`);
-        return;
-      }
-
-      if (Array.isArray(response.upstreams)) {
-        setUpstreams(response);
-      } else {
-        console.warn("Unexpected response format:", response);
-      }
-    }
-
     fetchupstreams();
   }, []);
+
+  const handleAddUpstream = (entry: UpstreamEntry) => {
+    setUpstreams((prev) => [...prev, entry]);
+  };
+
+  const handleRemoveUpstream = (upstream: string) => {
+    setUpstreams((prev) => {
+      const filtered = prev.filter((u) => u.upstream !== upstream);
+      return filtered;
+    });
+  };
 
   return (
     <div>
       <div className="flex gap-5">
-        <AddUpstream />
+        <AddUpstream onAdd={handleAddUpstream} />
       </div>
-      {(upstreams && (
+      {(upstreams.length > 0 && (
         <div className="grid lg:grid-cols-4 gap-2">
-          {upstreams?.upstreams.map((upstream, index) => (
+          {upstreams.map((upstream) => (
             <UpstreamCard
-              key={index}
-              dnsPing={upstream.dnsPing}
-              icmpPing={upstream.icmpPing}
-              name={upstream.name}
-              preferred={upstream.preferred}
-              upstream={upstream.upstream}
+              key={upstream.upstream}
+              upstream={upstream}
+              onRemove={handleRemoveUpstream}
             />
           ))}
         </div>
