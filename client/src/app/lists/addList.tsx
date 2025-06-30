@@ -4,7 +4,8 @@ import {
   ListIcon,
   LinkIcon,
   InfoIcon,
-  CaretDownIcon
+  CaretDownIcon,
+  PowerIcon
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +24,8 @@ import { Label } from "@/components/ui/label";
 import { DialogDescription } from "@radix-ui/react-dialog";
 
 import { ListEntry } from "@/pages/blacklist";
-import { GetRequest } from "@/util";
+import { PostRequest } from "@/util";
+import { Switch } from "@/components/ui/switch";
 
 const RECOMMENDED_SOURCES = [
   {
@@ -122,6 +124,7 @@ export function AddList({
   const [expandedSources, setExpandedSources] = useState<Set<string>>(
     new Set()
   );
+  const [listActive, setListActive] = useState(true);
 
   const toggleSourceExpansion = (sourceName: string) => {
     const newExpanded = new Set(expandedSources);
@@ -149,19 +152,19 @@ export function AddList({
     setIsSaving(true);
 
     try {
-      const [code, response] = await GetRequest(
-        `addList?name=${encodeURIComponent(
-          listName.trim()
-        )}&url=${encodeURIComponent(url.trim())}`
-      );
+      const [code, response] = await PostRequest("addList", {
+        name: listName.trim(),
+        url: url.trim(),
+        active: listActive
+      });
 
       if (code === 200) {
         const newList: ListEntry = {
           name: listName.trim(),
           url: url.trim(),
-          active: response.list.active,
-          blockedCount: response.list.blockedCount,
-          lastUpdated: response.list.lastUpdated
+          active: response.active,
+          blockedCount: response.blockedCount,
+          lastUpdated: response.lastUpdated
         };
 
         onListAdded(newList);
@@ -217,7 +220,7 @@ export function AddList({
           </DialogHeader>
 
           <div className="space-y-6">
-            <div className="space-y-4 p-4 bg-accent rounded-lg border">
+            <div className="space-y-4 p-4 rounded-lg border">
               <div className="space-y-2">
                 <Label
                   htmlFor="name"
@@ -255,6 +258,14 @@ export function AddList({
                 <p className="text-xs text-muted-foreground">
                   Enter the direct URL to a hosts file or domain list
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="active" className="text-muted-foreground">
+                  <PowerIcon size={16} />
+                  List active
+                </Label>
+                <Switch checked={listActive} onCheckedChange={setListActive} />
               </div>
             </div>
 

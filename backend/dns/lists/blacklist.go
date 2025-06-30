@@ -490,7 +490,7 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 	return nil
 }
 
-func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
+func (b *Blacklist) GetAllListStatistics() (map[string]SourceStats, error) {
 	query := `
 		SELECT s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
 		FROM sources s
@@ -535,6 +535,42 @@ func (b *Blacklist) GetSourceStatistics() (map[string]SourceStats, error) {
 	}
 
 	return stats, nil
+}
+
+func (b *Blacklist) GetListStatistics(listname string) (string, SourceStats, error) {
+	query := `
+		SELECT s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
+		FROM sources s
+		LEFT JOIN (
+			SELECT source_id, COUNT(*) as blocked_count
+			FROM blacklist
+			GROUP BY source_id
+		) bc ON s.id = bc.source_id
+		WHERE s.name = ?
+	`
+
+	var stats SourceStats
+	var name, url string
+	var blockedCount int
+	var lastUpdated int64
+	var active bool
+
+	err := b.DBManager.Conn.QueryRow(query, listname).Scan(&name, &url, &lastUpdated, &active, &blockedCount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", SourceStats{}, fmt.Errorf("list not found")
+		}
+		return "", SourceStats{}, fmt.Errorf("failed to query list statistics: %w", err)
+	}
+
+	stats = SourceStats{
+		URL:          url,
+		BlockedCount: blockedCount,
+		LastUpdated:  lastUpdated,
+		Active:       active,
+	}
+
+	return name, stats, nil
 }
 
 func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
