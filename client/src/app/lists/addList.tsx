@@ -194,6 +194,21 @@ export function AddList({
 
   return (
     <div className="mb-5">
+      <Dialog open={isSaving}>
+        <DialogContent className="flex flex-col items-center justify-center gap-4 max-w-sm">
+          <div className="flex text-lg font-medium">
+            <SpinnerGapIcon
+              className="animate-spin text-primary mt-0.5 mr-2"
+              size={24}
+            />{" "}
+            Adding list...
+          </div>
+          <div className="text-sm text-muted-foreground text-center">
+            Please wait while your list is being added.
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogTrigger asChild>
           <Button className="shadow-sm hover:shadow-md transition-all duration-200">
