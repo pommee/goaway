@@ -176,7 +176,6 @@ func (config *Config) UpdateSettings(updatedSettings Config) {
 
 func GetEnvAsIntWithDefault(envVariable string, defaultValue int) int {
 	val, found := os.LookupEnv(envVariable)
-	fmt.Println(val, found)
 	if !found {
 		return defaultValue
 	}
