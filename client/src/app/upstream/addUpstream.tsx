@@ -24,6 +24,12 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
   const [open, setOpen] = useState(false);
 
   const handleSave = async () => {
+    if (!/^[\d\\.]+:\d+$/.test(newUpstreamIP.trim())) {
+      toast.error(
+        "Please enter the upstream in IP:PORT format, e.g. 1.1.1.1:53"
+      );
+      return;
+    }
     const [code, response] = await PostRequest(`upstream`, {
       upstream: newUpstreamIP
     });
@@ -80,6 +86,10 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
                 className="col-span-3"
               />
             </div>
+            <span className="text-xs text-muted-foreground col-span-4 pl-2">
+              Please enter the IP and port, e.g.{" "}
+              <span className="font-mono">1.1.1.1:53</span>
+            </span>
           </div>
           <Button
             variant="outline"

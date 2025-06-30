@@ -46,7 +46,7 @@ export function Upstream() {
         <AddUpstream onAdd={handleAddUpstream} />
       </div>
       {(upstreams.length > 0 && (
-        <div className="grid lg:grid-cols-4 gap-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mt-6">
           {upstreams.map((upstream) => (
             <UpstreamCard
               key={upstream.upstream}
