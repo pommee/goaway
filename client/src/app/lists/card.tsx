@@ -1,12 +1,36 @@
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/blacklist";
-import { ClockIcon, ShieldSlashIcon } from "@phosphor-icons/react";
+import {
+  ArrowUpIcon,
+  ClockIcon,
+  ShieldSlashIcon,
+  EraserIcon
+} from "@phosphor-icons/react";
 import { CardDetails } from "./details";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function ListCard(
-  listEntry: ListEntry & { onDelete: (name: string) => void }
+  props: ListEntry & {
+    onDelete: (name: string) => void;
+    editMode?: boolean;
+    selected?: boolean;
+    onSelect?: () => void;
+    updating?: boolean;
+    deleting?: boolean;
+    fadingOut?: boolean;
+  }
 ) {
+  const {
+    editMode,
+    selected,
+    onSelect,
+    updating,
+    deleting,
+    fadingOut,
+    ...listEntry
+  } = props;
+
   const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
     "en-US",
     {
@@ -20,17 +44,42 @@ export function ListCard(
   );
 
   return (
-    <Card className="w-full p-6 rounded-2xl relative shadow-lg hover:shadow-xl transition-all duration-300 border">
+    <Card
+      className={`w-full p-6 rounded-2xl relative shadow-lg hover:shadow-xl transition-all duration-300 border
+        ${
+          fadingOut
+            ? "opacity-0 transition-opacity duration-400"
+            : "opacity-100"
+        }
+      `}
+    >
+      {editMode && listEntry.name !== "Custom" && (
+        <div className="absolute top-4 left-4 z-10 cursor-pointer">
+          <Checkbox checked={selected} onCheckedChange={onSelect} />
+        </div>
+      )}
+      {deleting && (
+        <div className="absolute top-4 right-10 z-20">
+          <EraserIcon className="animate-bounce text-red-500" size={22} />
+        </div>
+      )}
       <div
         className={`absolute top-4 right-4 w-2 h-2 rounded-full ${
           listEntry.active ? "bg-green-500" : "bg-red-500"
         } shadow-glow`}
       />
-
       <div className="flex flex-col gap-4">
         <div className="w-full">
           <h2 className="text-center text-xl font-bold mb-1">
-            {listEntry.name}
+            <p className="flex items-center justify-center gap-2">
+              {listEntry.name}{" "}
+              {updating && (
+                <ArrowUpIcon
+                  className="animate-bounce text-green-500"
+                  size={22}
+                />
+              )}
+            </p>
           </h2>
           <Separator />
         </div>
