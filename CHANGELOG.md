@@ -1,3 +1,10 @@
+## [0.56.5](https://github.com/pommee/goaway/compare/v0.56.4...v0.56.5) (2025-07-06)
+
+
+### Bug Fixes
+
+* added ability to remove and update multiple lists ([4dd2920](https://github.com/pommee/goaway/commit/4dd2920a68b546e438fcfc6374d72f29cf5dd2d6))
+
 ## [0.56.4](https://github.com/pommee/goaway/compare/v0.56.3...v0.56.4) (2025-06-30)
 
 
