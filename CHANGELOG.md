@@ -1,3 +1,10 @@
+# [0.57.0](https://github.com/pommee/goaway/compare/v0.56.5...v0.57.0) (2025-07-06)
+
+
+### Features
+
+* added ability to toggle automatic blacklist updates at midnight ([9e09a6c](https://github.com/pommee/goaway/commit/9e09a6c852b06d994769e57d494fb36d5591768d))
+
 ## [0.56.5](https://github.com/pommee/goaway/compare/v0.56.4...v0.56.5) (2025-07-06)
 
 
