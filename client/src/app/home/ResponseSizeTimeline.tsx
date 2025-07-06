@@ -183,9 +183,9 @@ export default function ResponseSizeTimeline() {
 
   return (
     <div className="w-full">
-      <Card className="overflow-hidden py-2 gap-2">
+      <Card className="overflow-hidden py-2 gap-0">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
-          <div className="grid flex-1 sm:text-left">
+          <div className="grid sm:text-left">
             <CardTitle className="text-xl">Response Size Timeline</CardTitle>
             <p className="text-sm text-muted-foreground">
               {timelineInterval}-Minute Intervals,{" "}
