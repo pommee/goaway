@@ -32,6 +32,7 @@ export function CardDetails(
     diffRemoved: []
   });
   const [showDiff, setShowDiff] = useState(false);
+  const [listUpdating, setListUpdating] = useState(false);
 
   const toggleBlocklist = async () => {
     const [code, response] = await GetRequest(
@@ -79,6 +80,7 @@ export function CardDetails(
   };
 
   const runUpdateList = async () => {
+    setListUpdating(true);
     try {
       const [code, response] = await GetRequest(
         `runUpdateList?name=${encodeURIComponent(listEntry.name)}&url=${
@@ -201,7 +203,7 @@ export function CardDetails(
                       className="mr-1 mt-0.5 animate-spin"
                       size={16}
                     />
-                    Updating...
+                    Looking for update...
                   </div>
                 ) : (
                   <div className="flex">
@@ -285,7 +287,17 @@ export function CardDetails(
               className="mt-6 bg-green-700 hover:bg-green-600 cursor-pointer text-white w-full"
               onClick={runUpdateList}
             >
-              Accept changes
+              {listUpdating ? (
+                <p className="flex items-center">
+                  <ArrowsClockwiseIcon
+                    className="mr-2 animate-spin"
+                    size={16}
+                  />
+                  Updating list...
+                </p>
+              ) : (
+                <p className="flex items-center">Accept changes (?)</p>
+              )}
             </Button>
           </div>
         )}
