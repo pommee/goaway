@@ -40,11 +40,12 @@ type Config struct {
 	DNS DNSConfig `yaml:"dns" json:"dns"`
 	API APIConfig `yaml:"api" json:"api"`
 
-	Dashboard           bool             `yaml:"dashboard" json:"-"`
-	StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
-	LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
-	LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
-	InAppUpdate         bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
+	Dashboard                 bool             `yaml:"dashboard" json:"-"`
+	ScheduledBlacklistUpdates bool             `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
+	StatisticsRetention       int              `yaml:"statisticsRetention" json:"statisticsRetention"`
+	LoggingEnabled            bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
+	LogLevel                  logging.LogLevel `yaml:"logLevel" json:"logLevel"`
+	InAppUpdate               bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
 
 	// settings not visible in config file
 	BinaryPath string `yaml:"-" json:"-"`
@@ -73,13 +74,14 @@ func LoadSettings() (Config, error) {
 	}
 
 	type configWithPtr struct {
-		DNS                 DNSConfig        `yaml:"dns" json:"dns"`
-		API                 APIConfig        `yaml:"api" json:"api"`
-		Dashboard           *bool            `yaml:"dashboard" json:"-"`
-		StatisticsRetention int              `yaml:"statisticsRetention" json:"statisticsRetention"`
-		LoggingEnabled      bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
-		LogLevel            logging.LogLevel `yaml:"logLevel" json:"logLevel"`
-		InAppUpdate         bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
+		DNS                       DNSConfig        `yaml:"dns" json:"dns"`
+		API                       APIConfig        `yaml:"api" json:"api"`
+		Dashboard                 *bool            `yaml:"dashboard" json:"-"`
+		ScheduledBlacklistUpdates *bool            `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
+		StatisticsRetention       int              `yaml:"statisticsRetention" json:"statisticsRetention"`
+		LoggingEnabled            bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
+		LogLevel                  logging.LogLevel `yaml:"logLevel" json:"logLevel"`
+		InAppUpdate               bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
 	}
 
 	var temp configWithPtr
@@ -99,6 +101,13 @@ func LoadSettings() (Config, error) {
 		config.Dashboard = true
 	} else {
 		config.Dashboard = *temp.Dashboard
+	}
+
+	if temp.ScheduledBlacklistUpdates == nil {
+		// false by default if the ScheduledBlacklistUpdates field was not found in settings.yaml
+		config.ScheduledBlacklistUpdates = false
+	} else {
+		config.ScheduledBlacklistUpdates = *temp.ScheduledBlacklistUpdates
 	}
 
 	binaryPath, err := os.Executable()
@@ -129,6 +138,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig.DNS.UDPSize = 512
 
 	defaultConfig.Dashboard = true
+	defaultConfig.ScheduledBlacklistUpdates = false
 	defaultConfig.API.Port = GetEnvAsIntWithDefault("WEBSITE_PORT", 8080)
 	defaultConfig.API.Authentication = true
 	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}

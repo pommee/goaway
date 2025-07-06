@@ -47,6 +47,10 @@ api:
 # This is useful for deployments where the dashboard is not needed.
 dashboard: true
 
+# Enable or disable automatic updates for blacklists.
+# If enabled, the server will check for updates to blacklists daily at midnight.
+scheduledBlacklistUpdates: false
+
 # Number of days to retain statistics and query logs.
 # Lower values save disk space but provide less historical data.
 statisticsRetention: 7

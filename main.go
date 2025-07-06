@@ -226,6 +226,14 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 
 	go func() {
 		<-dnsReadyChannel
+		if config.ScheduledBlacklistUpdates {
+			log.Debug("Starting scheduler for automatic list updates...")
+			dnsServer.Blacklist.ScheduleAutomaticListUpdates()
+		}
+	}()
+
+	go func() {
+		<-dnsReadyChannel
 		log.Debug("Starting cache cleanup routine...")
 		dnsServer.ClearOldEntries()
 	}()

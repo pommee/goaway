@@ -32,6 +32,16 @@ type SourceStats struct {
 	Active       bool   `json:"active"`
 }
 
+type ListUpdateAvailable struct {
+	RemoteDomains   []string `json:"remoteDomains"`
+	DBDomains       []string `json:"dbDomains"`
+	RemoteChecksum  string   `json:"remoteChecksum"`
+	DBChecksum      string   `json:"dbChecksum"`
+	UpdateAvailable bool     `json:"updateAvailable"`
+	DiffAdded       []string `json:"diffAdded"`
+	DiffRemoved     []string `json:"diffRemoved"`
+}
+
 func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error) {
 	b := &Blacklist{
 		DBManager: dbManager,
@@ -107,6 +117,50 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 
 	b.BlocklistURL = blocklistURL
 	return blocklistURL, nil
+}
+
+func (b *Blacklist) CheckIfUpdateAvailable(remoteListURL, listName string) (ListUpdateAvailable, error) {
+	listUpdateAvailable := ListUpdateAvailable{}
+	remoteDomains, remoteChecksum, err := b.FetchRemoteHostsList(remoteListURL)
+	if err != nil {
+		log.Warning("Failed to fetch remote hosts list: %v", err)
+		return listUpdateAvailable, fmt.Errorf("failed to fetch remote hosts list: %w", err)
+	}
+
+	dbDomains, dbChecksum, err := b.FetchDBHostsList(listName)
+	if err != nil {
+		log.Warning("Failed to fetch database hosts list: %v", err)
+		return listUpdateAvailable, fmt.Errorf("failed to fetch database hosts list: %w", err)
+	}
+
+	if remoteChecksum == dbChecksum {
+		log.Debug("No updates available for %s", listName)
+		return listUpdateAvailable, nil
+	}
+
+	diff := func(a, b []string) []string {
+		mb := make(map[string]struct{}, len(b))
+		for _, x := range b {
+			mb[x] = struct{}{}
+		}
+		diff := make([]string, 0)
+		for _, x := range a {
+			if _, found := mb[x]; !found {
+				diff = append(diff, x)
+			}
+		}
+		return diff
+	}
+
+	return ListUpdateAvailable{
+		RemoteDomains:   remoteDomains,
+		DBDomains:       dbDomains,
+		RemoteChecksum:  remoteChecksum,
+		DBChecksum:      dbChecksum,
+		UpdateAvailable: true,
+		DiffAdded:       diff(remoteDomains, dbDomains),
+		DiffRemoved:     diff(dbDomains, remoteDomains),
+	}, nil
 }
 
 func (b *Blacklist) FetchRemoteHostsList(url string) ([]string, string, error) {
@@ -644,4 +698,44 @@ func (b *Blacklist) RemoveSourceAndDomains(source string) error {
 
 	log.Info("Removed all domains and source '%s'", source)
 	return nil
+}
+
+func (b *Blacklist) ScheduleAutomaticListUpdates() {
+	for {
+		next := time.Now().Add(24 * time.Hour).Truncate(24 * time.Hour)
+		log.Info("Next auto-update for lists scheduled for: %s", next.Format(time.DateTime))
+		time.Sleep(time.Until(next))
+
+		for name, url := range b.BlocklistURL {
+			if name == "Custom" {
+				continue
+			}
+			log.Info("Checking for updates for blocklist %s from %s", name, url)
+
+			availableUpdate, err := b.CheckIfUpdateAvailable(url, name)
+			if err != nil {
+				log.Warning("Failed to check for updates for %s: %v", name, err)
+				continue
+			}
+
+			if !availableUpdate.UpdateAvailable {
+				log.Info("No updates available for %s", name)
+				continue
+			}
+
+			if err := b.RemoveSourceAndDomains(name); err != nil {
+				log.Warning("Failed to remove old domains for %s: %v", name, err)
+				continue
+			}
+			if err := b.FetchAndLoadHosts(url, name); err != nil {
+				log.Warning("Failed to fetch and load hosts for %s: %v", name, err)
+				continue
+			}
+
+			log.Info("Successfully updated %s with %d new domains", name, len(availableUpdate.DiffAdded))
+		}
+		if _, err := b.PopulateBlocklistCache(); err != nil {
+			log.Warning("Failed to populate blocklist cache after auto-update: %v", err)
+		}
+	}
 }

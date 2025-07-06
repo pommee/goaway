@@ -153,44 +153,18 @@ func (api *API) fetchUpdatedList(c *gin.Context) {
 		return
 	}
 
-	remoteDomains, remoteChecksum, err := api.Blacklist.FetchRemoteHostsList(url)
+	availableUpdate, err := api.Blacklist.CheckIfUpdateAvailable(url, name)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	dbDomains, dbChecksum, err := api.Blacklist.FetchDBHostsList(name)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if remoteChecksum == dbChecksum {
+	if availableUpdate.RemoteChecksum == availableUpdate.DBChecksum {
 		c.JSON(http.StatusOK, gin.H{"updateAvailable": false, "message": "No list updates available"})
 		return
 	}
 
-	diff := func(a, b []string) []string {
-		mb := make(map[string]struct{}, len(b))
-		for _, x := range b {
-			mb[x] = struct{}{}
-		}
-		diff := make([]string, 0)
-		for _, x := range a {
-			if _, found := mb[x]; !found {
-				diff = append(diff, x)
-			}
-		}
-		return diff
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"updateAvailable": true,
-		"remoteChecksum":  remoteChecksum,
-		"dbChecksum":      dbChecksum,
-		"diffAdded":       diff(remoteDomains, dbDomains),
-		"diffRemoved":     diff(dbDomains, remoteDomains),
-	})
+	c.JSON(http.StatusOK, availableUpdate)
 }
 
 func (api *API) runUpdateList(c *gin.Context) {
