@@ -119,13 +119,13 @@ export default function FrequencyChartBlockedDomains() {
             <TabsList>
               <TabsTrigger
                 value="frequency"
-                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+                className="border-l-0 !bg-accent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
               >
                 Frequency
               </TabsTrigger>
               <TabsTrigger
                 value="hits"
-                className="cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
+                className="border-l-0 !bg-accent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-orange-600 rounded-none p-0 m-2"
               >
                 Hits
               </TabsTrigger>
