@@ -53,10 +53,12 @@ services:
     environment:
       - DNS_PORT=${DNS_PORT:-53}
       - WEBSITE_PORT=${WEBSITE_PORT:-8080}
+    #  - DOT_PORT=${DOT_PORT:-853}  # Port for DoT
     ports:
       - "${DNS_PORT:-53}:${DNS_PORT:-53}/udp"
       - "${DNS_PORT:-53}:${DNS_PORT:-53}/tcp"
       - "${WEBSITE_PORT:-8080}:${WEBSITE_PORT:-8080}/tcp"
+    #  - "${DOT_PORT:-853}:${DOT_PORT:-853}/tcp"
     cap_add:
       - NET_BIND_SERVICE
       - NET_RAW
@@ -115,7 +117,7 @@ You'll see a startup message confirming the services are running:
 
 ![Startup Screen](./resources/started.png)
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once - make sure to save it!
 
 ### Accessing the Dashboard
@@ -155,6 +157,7 @@ Flags:
       --auth                       Toggle authentication for admin dashboard (default true)
       --dashboard                  Serve dashboard (default true)
       --dns-port int               Port for the DNS server (default 53)
+      --dot-port int               Port for the DoT (DNS-over-TCP) server (default 853)
       --json                       Toggle JSON formatted logs
       --log-level int              0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR (default 1)
       --logging                    Toggle logging (default true)

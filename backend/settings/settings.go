@@ -23,11 +23,15 @@ type Status struct {
 type DNSConfig struct {
 	Address           string   `yaml:"address" json:"address"`
 	Port              int      `yaml:"port" json:"port"`
+	DoTPort           int      `yaml:"dotPort" json:"dotPort"`
 	CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
 	PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
 	UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
 	UDPSize           int      `yaml:"udpSize" json:"udpSize"`
 	Status            Status   `yaml:"-" json:"status"`
+
+	TLSCertFile string `yaml:"tlsCertFile" json:"tlsCertFile"`
+	TLSKeyFile  string `yaml:"tlsKeyFile" json:"tlsKeyFile"`
 }
 
 type APIConfig struct {
@@ -129,6 +133,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 
 	defaultConfig.DNS.Address = "0.0.0.0"
 	defaultConfig.DNS.Port = GetEnvAsIntWithDefault("DNS_PORT", 53)
+	defaultConfig.DNS.DoTPort = GetEnvAsIntWithDefault("DOT_PORT", 853)
 	defaultConfig.DNS.CacheTTL = 3600
 	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
 	defaultConfig.DNS.UpstreamDNS = []string{
@@ -136,6 +141,8 @@ func createDefaultSettings(filePath string) (Config, error) {
 		"8.8.8.8:53",
 	}
 	defaultConfig.DNS.UDPSize = 512
+	defaultConfig.DNS.TLSCertFile = ""
+	defaultConfig.DNS.TLSKeyFile = ""
 
 	defaultConfig.Dashboard = true
 	defaultConfig.ScheduledBlacklistUpdates = false

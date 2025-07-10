@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"goaway/backend/dns/database"
@@ -87,7 +88,7 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
-		dnsClient:          new(dns.Client),
+		dnsClient:          &dns.Client{Net: "tcp-tls"},
 		Notifications:      notificationsManager,
 	}
 
@@ -97,11 +98,46 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 type notifyDNSReady func()
 
 func (s *DNSServer) Init(udpSize int, notifyReady notifyDNSReady) (*dns.Server, error) {
-
 	server := &dns.Server{
 		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
 		Net:               "udp",
 		Handler:           s,
+		ReusePort:         true,
+		UDPSize:           udpSize,
+		NotifyStartedFunc: notifyReady,
+	}
+
+	return server, nil
+}
+
+func (s *DNSServer) InitTCP(udpSize int) (*dns.Server, error) {
+	server := &dns.Server{
+		Addr:      fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
+		Net:       "tcp",
+		Handler:   s,
+		ReusePort: true,
+		UDPSize:   udpSize,
+	}
+
+	return server, nil
+}
+
+func (s *DNSServer) InitDoT(udpSize int) (*dns.Server, error) {
+	cert, err := tls.LoadX509KeyPair(s.Config.DNS.TLSCertFile, s.Config.DNS.TLSKeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load TLS cert/key: %w", err)
+	}
+
+	notifyReady := func() {
+		log.Info("Started DoT server on port %d", s.Config.DNS.DoTPort)
+	}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	server := &dns.Server{
+		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.DoTPort),
+		Net:               "tcp-tls",
+		Handler:           s,
+		TLSConfig:         tlsConfig,
 		ReusePort:         true,
 		UDPSize:           udpSize,
 		NotifyStartedFunc: notifyReady,

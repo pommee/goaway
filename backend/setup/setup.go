@@ -14,6 +14,7 @@ var log = logging.GetLogger()
 
 type SetFlags struct {
 	DnsPort             *int
+	DoTPort             *int
 	WebserverPort       *int
 	LogLevel            *int
 	StatisticsRetention *int
@@ -45,6 +46,18 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 			config.DNS.Port = dnsPort
 		} else {
 			config.DNS.Port = *flags.DnsPort
+		}
+	}
+	if flags.DoTPort != nil || os.Getenv("DOT_PORT") != "" {
+		if port, found := os.LookupEnv("DOT_PORT"); found {
+			dotPort, err := strconv.Atoi(port)
+			if err != nil {
+				log.Error("Could not parse DOT_PORT environment variable")
+				os.Exit(1)
+			}
+			config.DNS.DoTPort = dotPort
+		} else {
+			config.DNS.DoTPort = *flags.DoTPort
 		}
 	}
 	if flags.WebserverPort != nil || os.Getenv("WEBSITE_PORT") != "" {

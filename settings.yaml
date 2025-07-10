@@ -2,9 +2,20 @@ dns:
   # Address used for the DNS server to bind to. Default all IPv4 addresses (0.0.0.0).
   # This is the ip address on which the server will listen for incoming DNS queries.
   address: 0.0.0.0
-  # Port used for the DNS server. Standard DNS uses port 53.
-  # This is the port where the server will listen for incoming DNS queries.
+
+  # Port used for the DNS server to bind to.
+  # This is the port on which the server will listen for incoming DNS queries.
+  # The server will listen on both UDP and TCP on this port.
   port: 53
+
+  # Address used for the DNS-over-TLS (DoT) server to bind to.
+  dotPort: 853
+
+  # TLS certificate and key file for DNS-over-TLS (DoT) server.
+  # If empty, the DoT server will not be started.
+  # This file should contain the TLS certificate in PEM format.
+  tlsCertFile: ""
+  tlsKeyFile: ""
 
   # Primary DNS server to forward queries to.
   preferredUpstream: 8.8.8.8:53

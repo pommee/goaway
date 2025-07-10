@@ -437,7 +437,14 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		upstreamMsg.RecursionDesired = true
 		upstreamMsg.Id = dns.Id()
 
-		in, _, err := s.dnsClient.Exchange(upstreamMsg, s.Config.DNS.PreferredUpstream)
+		upstream := s.Config.DNS.PreferredUpstream
+		if s.dnsClient.Net == "tcp-tls" && !strings.HasSuffix(upstream, ":853") {
+			host, _, err := net.SplitHostPort(upstream)
+			if err == nil {
+				upstream = net.JoinHostPort(host, "853")
+			}
+		}
+		in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
 		if err != nil {
 			errCh <- err
 			return

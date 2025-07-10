@@ -36,6 +36,7 @@ var (
 
 type Flags struct {
 	DnsPort             int
+	DoTPort             int
 	WebserverPort       int
 	LogLevel            int
 	StatisticsRetention int
@@ -69,6 +70,7 @@ func createRootCommand() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&flags.DnsPort, "dns-port", 53, "Port for the DNS server")
+	cmd.Flags().IntVar(&flags.DoTPort, "dot-port", 853, "Port for the DoT (DNS-over-TCP) server")
 	cmd.Flags().IntVar(&flags.WebserverPort, "webserver-port", 8080, "Port for the web server")
 	cmd.Flags().IntVar(&flags.LogLevel, "log-level", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
 	cmd.Flags().IntVar(&flags.StatisticsRetention, "statistics-retention", 7, "Days to keep statistics")
@@ -87,6 +89,9 @@ func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
 
 	if cmd.Flags().Changed("dns-port") {
 		setFlags.DnsPort = &flags.DnsPort
+	}
+	if cmd.Flags().Changed("dot-port") {
+		setFlags.DoTPort = &flags.DoTPort
 	}
 	if cmd.Flags().Changed("webserver-port") {
 		setFlags.WebserverPort = &flags.WebserverPort
@@ -167,16 +172,22 @@ func startServer(config *settings.Config, ansi bool) {
 		close(dnsReadyChannel)
 	}
 
-	serverInstance, err := dnsServer.Init(config.DNS.UDPSize, notifyReady)
+	udpServer, err := dnsServer.Init(config.DNS.UDPSize, notifyReady)
 	if err != nil {
 		log.Error("Failed to initialize DNS server: %s", err)
 		os.Exit(1)
 	}
 
-	startServices(dnsServer, serverInstance, config, ansi, dnsReadyChannel, errorChannel)
+	tcpServer, _ := dnsServer.InitTCP(config.DNS.UDPSize)
+	if err != nil {
+		log.Error("Failed to initialize TCP server: %s", err)
+		os.Exit(1)
+	}
+
+	startServices(dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
 }
 
-func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
+func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
 	var wg sync.WaitGroup
 	sigChannel := make(chan os.Signal, 1)
 	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
@@ -186,11 +197,37 @@ func startServices(dnsServer *server.DNSServer, serverInstance *dns.Server, conf
 	go func() {
 		defer wg.Done()
 
-		if err := serverInstance.ListenAndServe(); err != nil {
-			log.Error("DNS server failed: %s", err)
+		if err := udpServer.ListenAndServe(); err != nil {
+			log.Error("UDP server failed: %s", err)
 			errorChannel <- struct{}{}
 		}
 	}()
+
+	go func() {
+		defer wg.Done()
+
+		if err := tcpServer.ListenAndServe(); err != nil {
+			log.Error("TCP server failed: %s", err)
+			errorChannel <- struct{}{}
+		}
+	}()
+
+	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
+		dotServer, err := dnsServer.InitDoT(config.DNS.UDPSize)
+		if err != nil {
+			log.Error("Failed to initialize DoT server: %s", err)
+			os.Exit(1)
+		}
+
+		go func() {
+			defer wg.Done()
+
+			if err := dotServer.ListenAndServe(); err != nil {
+				log.Error("DoT server failed: %s", err)
+				errorChannel <- struct{}{}
+			}
+		}()
+	}
 
 	prefetcher := prefetch.New(dnsServer)
 
