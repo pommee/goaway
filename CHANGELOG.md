@@ -1,3 +1,10 @@
+# [0.58.0](https://github.com/pommee/goaway/compare/v0.57.0...v0.58.0) (2025-07-10)
+
+
+### Features
+
+* added support for DoT (DNS-over-TLS) ([0ef51c1](https://github.com/pommee/goaway/commit/0ef51c16214c4ce22e5536c45ea6eb1e78806533))
+
 # [0.57.0](https://github.com/pommee/goaway/compare/v0.56.5...v0.57.0) (2025-07-06)
 
 
