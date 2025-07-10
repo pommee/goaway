@@ -401,8 +401,8 @@ docker pull pommee/goaway:version`;
                             log.includes("[info]")
                               ? "text-green-400"
                               : log.includes("[error]")
-                              ? "text-red-400"
-                              : ""
+                                ? "text-red-400"
+                                : ""
                           }
                         >
                           {log}
