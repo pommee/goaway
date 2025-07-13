@@ -119,6 +119,8 @@ func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
 	}
 
 	entry["resolvedIP"] = resolveHostname(host)
+	entry["upstreamName"] = getUpstreamName(host)
+
 	dnsPingResult := measureDNSPing(upstream)
 	entry["dnsPing"] = dnsPingResult.String()
 	entry["dnsPingSuccess"] = dnsPingResult.Successful
@@ -279,6 +281,27 @@ func tryTCPPing(host string) PingResult {
 		Method:     "tcp",
 		Successful: true,
 	}
+}
+
+func getUpstreamName(host string) string {
+	if ip := net.ParseIP(host); ip == nil {
+		return host
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	names, err := net.DefaultResolver.LookupAddr(ctx, host)
+	if err != nil {
+		log.Info("Reverse lookup failed for %s: %v", host, err)
+		return "unknown"
+	}
+
+	if len(names) > 0 {
+		return strings.TrimSuffix(names[0], ".")
+	}
+
+	return "unknown"
 }
 
 func (api *API) updatePreferredUpstream(c *gin.Context) {

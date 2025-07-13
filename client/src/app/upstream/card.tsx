@@ -86,7 +86,9 @@ export function UpstreamCard({ upstream, onRemove }: UpstreamCardProps) {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <CloudIcon className="text-primary" size={24} />
-            <span className="font-bold">{upstream.name}</span>
+            <span className="font-bold">
+              {upstream.name} {upstream.upstreamName}
+            </span>
           </div>
         </CardTitle>
         <CardDescription>{upstream.upstream}</CardDescription>

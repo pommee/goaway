@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export type UpstreamEntry = {
+  upstreamName: string;
   dnsPing: string;
   icmpPing: string;
   name: string;
