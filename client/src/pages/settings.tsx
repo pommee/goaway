@@ -15,7 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
-import { DownloadIcon, UploadIcon, WarningIcon } from "@phosphor-icons/react";
+import {
+  DownloadIcon,
+  SpinnerIcon,
+  UploadIcon,
+  WarningIcon
+} from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -103,62 +108,6 @@ function parseLogLevel(level: number | string) {
   }
 }
 
-const exportDatabase = async () => {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "database.db";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-
-    toast.info("Exported!", { description: `Database has been exported` });
-  } catch (error) {
-    console.error("Failed to export database:", error);
-    toast.error("Could not export database");
-  }
-};
-
-const importDatabase = async (file: File) => {
-  try {
-    const formData = new FormData();
-    formData.append("database", file);
-
-    const response = await fetch(`${getApiBaseUrl()}/api/importDatabase`, {
-      method: "POST",
-      body: formData,
-      credentials: "include"
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to import database");
-    }
-
-    const result = await response.json();
-    toast.success("Database imported successfully!", {
-      description: result.backup_created
-        ? `Backup created: ${result.backup_created}`
-        : "Import completed"
-    });
-  } catch (error) {
-    console.error("Failed to import database:", error);
-    toast.error("Could not import database", {
-      description:
-        error instanceof Error ? error.message : "Unknown error occurred"
-    });
-  }
-};
-
 export function Settings() {
   const [preferences, setPreferences] = useState<Settings>({
     dns: {
@@ -194,6 +143,7 @@ export function Settings() {
   const [passwordError, setPasswordError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const originalPreferencesRef = useRef<string>("");
   const toastIdRef = useRef<string | number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -391,6 +341,65 @@ export function Settings() {
     }
   }, [isChanged, toastShown]);
 
+  const exportDatabase = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "database.db";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.info("Exported!", { description: `Database has been exported` });
+    } catch (error) {
+      console.error("Failed to export database:", error);
+      toast.error("Could not export database");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const importDatabase = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("database", file);
+
+      const response = await fetch(`${getApiBaseUrl()}/api/importDatabase`, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to import database");
+      }
+
+      const result = await response.json();
+      toast.success("Database imported successfully!", {
+        description: result.backup_created
+          ? `Backup created: ${result.backup_created}`
+          : "Import completed"
+      });
+    } catch (error) {
+      console.error("Failed to import database:", error);
+      toast.error("Could not import database", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center">
@@ -486,10 +495,19 @@ export function Settings() {
                       onClick={() => exportDatabase()}
                       variant="outline"
                       className="w-full md:w-auto"
-                      disabled={isImporting}
+                      disabled={isImporting || isExporting}
                     >
-                      <UploadIcon className="w-4 h-4 mr-2" />
-                      {isImporting ? "Exporting..." : "Export"}
+                      {isExporting ? (
+                        <>
+                          <SpinnerIcon className="w-4 h-4 mr-2 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <UploadIcon className="w-4 h-4 mr-2" />
+                          Export
+                        </>
+                      )}
                     </Button>
                   </div>
 
@@ -521,10 +539,19 @@ export function Settings() {
                         onClick={() => fileInputRef.current?.click()}
                         variant="outline"
                         className="w-full md:w-auto"
-                        disabled={isImporting}
+                        disabled={isImporting || isExporting}
                       >
-                        <DownloadIcon className="w-4 h-4 mr-2" />
-                        {isImporting ? "Importing..." : "Import"}
+                        {isImporting ? (
+                          <>
+                            <SpinnerIcon className="w-4 h-4 mr-2 animate-spin" />
+                            Importing...
+                          </>
+                        ) : (
+                          <>
+                            <DownloadIcon className="w-4 h-4 mr-2" />
+                            Import
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
