@@ -11,8 +11,8 @@ dns:
   # Address used for the DNS-over-TLS (DoT) server to bind to.
   dotPort: 853
 
-  # TLS certificate and key file for DNS-over-TLS (DoT) server.
-  # If empty, the DoT server will not be started.
+  # TLS certificate and key file for DNS-over-TLS (DoT) & DNS-over-HTTPS servers.
+  # If empty, the servers will not be started.
   # This file should contain the TLS certificate in PEM format.
   tlsCertFile: ""
   tlsKeyFile: ""
