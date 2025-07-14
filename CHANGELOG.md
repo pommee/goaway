@@ -1,3 +1,10 @@
+# [0.60.0](https://github.com/pommee/goaway/compare/v0.59.0...v0.60.0) (2025-07-14)
+
+
+### Features
+
+* added reverse lookup for local clients ([60a022c](https://github.com/pommee/goaway/commit/60a022ca5cba7a54aa6b93edba88c141182eae45))
+
 # [0.59.0](https://github.com/pommee/goaway/compare/v0.58.0...v0.59.0) (2025-07-14)
 
 
