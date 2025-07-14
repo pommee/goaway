@@ -1,3 +1,10 @@
+## [0.60.1](https://github.com/pommee/goaway/compare/v0.60.0...v0.60.1) (2025-07-14)
+
+
+### Bug Fixes
+
+* fix issue related to port 853 always being used for upstream ([abead1f](https://github.com/pommee/goaway/commit/abead1f70cbc6982da9105b2fa3194f0ba4d3c1a))
+
 # [0.60.0](https://github.com/pommee/goaway/compare/v0.59.0...v0.60.0) (2025-07-14)
 
 
