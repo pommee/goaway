@@ -1,3 +1,10 @@
+# [0.59.0](https://github.com/pommee/goaway/compare/v0.58.0...v0.59.0) (2025-07-14)
+
+
+### Features
+
+* added support for DoH (dns-over-https) ([e2d070a](https://github.com/pommee/goaway/commit/e2d070a7c741ad9330b722f9f868cafbceb69390))
+
 # [0.58.0](https://github.com/pommee/goaway/compare/v0.57.0...v0.58.0) (2025-07-10)
 
 
