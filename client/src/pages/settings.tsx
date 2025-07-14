@@ -429,7 +429,7 @@ export function Settings() {
   return (
     <>
       <div
-        className="container mx-auto space-y-6
+        className="container mx-auto space-y-4
         w-full
         xl:w-1/2"
       >
