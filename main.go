@@ -146,7 +146,7 @@ func startServer(config *settings.Config, ansi bool) {
 
 	cert, err := config.GetCertificate()
 	if err != nil {
-		log.Fatal("Failed to load TLS certificate: %s", err)
+		log.Fatal("%s", err)
 	}
 
 	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, cert)
@@ -156,52 +156,66 @@ func startServer(config *settings.Config, ansi bool) {
 
 	go dnsServer.ProcessLogEntries()
 
+	blacklistEntry, err := lists.InitializeBlacklist(dnsServer.DBManager)
+	if err != nil {
+		log.Fatal("Failed to initialize blacklist: %v", err)
+	}
+	dnsServer.Blacklist = blacklistEntry
+
+	domains, err := blacklistEntry.CountDomains()
+	if err != nil {
+		log.Warning("Failed to count blacklist domains: %v", err)
+	}
+
+	currentVersion := setup.GetVersionOrDefault(version)
+	asciiart.AsciiArt(config, domains, currentVersion.Original(), config.API.Authentication, ansi)
+
 	dnsReadyChannel := make(chan struct{})
 	errorChannel := make(chan struct{}, 1)
 
 	notifyReady := func() {
-		blacklistEntry, err := lists.InitializeBlacklist(dnsServer.DBManager)
-		if err != nil {
-			log.Error("Failed to initialize blacklist: %v", err)
-			errorChannel <- struct{}{}
-			return
-		}
-		dnsServer.Blacklist = blacklistEntry
-
-		domains, err := blacklistEntry.CountDomains()
-		if err != nil {
-			log.Warning("Failed to count blacklist domains: %v", err)
-		}
-
-		currentVersion := setup.GetVersionOrDefault(version)
-		asciiart.AsciiArt(config, domains, currentVersion.Original(), config.API.Authentication, ansi)
-
 		log.Info("Started DNS server on: %s:%d", config.DNS.Address, config.DNS.Port)
 		close(dnsReadyChannel)
 	}
 
-	udpServer, err := dnsServer.InitUDP(notifyReady)
-	if err != nil {
-		log.Fatal("Failed to initialize DNS server: %s", err)
+	udpServer := &dns.Server{
+		Addr:      fmt.Sprintf("%s:%d", config.DNS.Address, config.DNS.Port),
+		Net:       "udp",
+		Handler:   dnsServer,
+		ReusePort: true,
+		UDPSize:   config.DNS.UDPSize,
 	}
 
-	tcpServer, _ := dnsServer.InitTCP()
-	if err != nil {
-		log.Fatal("Failed to initialize TCP server: %s", err)
+	tcpServer := &dns.Server{
+		Addr:              fmt.Sprintf("%s:%d", config.DNS.Address, config.DNS.Port),
+		Net:               "tcp",
+		Handler:           dnsServer,
+		ReusePort:         true,
+		UDPSize:           config.DNS.UDPSize,
+		NotifyStartedFunc: notifyReady,
 	}
 
 	startServices(cert, dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
 }
 
-func startServices(cert tls.Certificate, dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
+func startServices(
+	cert tls.Certificate,
+	dnsServer *server.DNSServer,
+	udpServer *dns.Server,
+	tcpServer *dns.Server,
+	config *settings.Config,
+	ansi bool,
+	dnsReadyChannel chan struct{},
+	errorChannel chan struct{},
+) {
 	var (
 		wg         sync.WaitGroup
 		sigChannel = make(chan os.Signal, 1)
 	)
 
 	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
-	wg.Add(2)
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
@@ -211,6 +225,7 @@ func startServices(cert tls.Certificate, dnsServer *server.DNSServer, udpServer,
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
@@ -246,9 +261,9 @@ func startServices(cert tls.Certificate, dnsServer *server.DNSServer, udpServer,
 			defer wg.Done()
 
 			if serverIP, err := api.GetServerIP(); err == nil {
-				log.Info("DoH server running at https://%s:%d/dns-query", serverIP, config.DNS.DoHPort)
+				log.Info("DoH (dns-over-https) server running at https://%s:%d/dns-query", serverIP, config.DNS.DoHPort)
 			} else {
-				log.Info("DoH server running on port :%d", config.DNS.DoHPort)
+				log.Info("DoH (dns-over-https) server running on port :%d", config.DNS.DoHPort)
 			}
 
 			if err := dohServer.ListenAndServeTLS(config.DNS.TLSCertFile, config.DNS.TLSKeyFile); err != nil {
@@ -260,6 +275,7 @@ func startServices(cert tls.Certificate, dnsServer *server.DNSServer, udpServer,
 
 	prefetcher := prefetch.New(dnsServer)
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 

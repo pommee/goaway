@@ -212,8 +212,7 @@ func (config *Config) GetCertificate() (tls.Certificate, error) {
 	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(config.DNS.TLSCertFile, config.DNS.TLSKeyFile)
 		if err != nil {
-			log.Error("Failed to load TLS certificate: %s", err)
-			return tls.Certificate{}, err
+			return tls.Certificate{}, fmt.Errorf("Failed to load TLS certificate: %s", err)
 		}
 
 		return cert, nil

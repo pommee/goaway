@@ -74,9 +74,7 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 	}
 
 	var client dns.Client
-	if cert.Certificate == nil {
-		client = dns.Client{Net: "udp"}
-	} else {
+	if cert.Certificate != nil {
 		client = dns.Client{Net: "tcp-tls"}
 	}
 
