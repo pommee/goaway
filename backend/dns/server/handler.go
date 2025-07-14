@@ -34,6 +34,10 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		return s.handlePTRQuery(request)
 	}
 
+	if hostIP, found := s.reverseHostnameLookup(request.Question.Name); found {
+		return s.respondWithHostnameA(request, hostIP)
+	}
+
 	if s.Config.DNS.Status.Paused && time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
 		s.Config.DNS.Status.Paused = false
 	}
@@ -57,6 +61,31 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 
 	log.Debug("Saving new MAC address: %s %s", mac, vendor)
 	database.SaveMacEntry(s.DBManager.Conn, clientIP, mac, vendor)
+}
+
+func (s *DNSServer) reverseHostnameLookup(hostname string) (string, bool) {
+	var (
+		trimmedHost = strings.TrimSuffix(hostname, ".")
+		resultIP    string
+		found       bool
+	)
+
+	s.clientCache.Range(func(_, value any) bool {
+		client, ok := value.(*model.Client)
+		if !ok {
+			return true
+		}
+
+		if strings.TrimSuffix(client.Name, ".") == trimmedHost {
+			resultIP = client.IP
+			found = true
+			return false
+		}
+
+		return true
+	})
+
+	return resultIP, found
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
@@ -147,7 +176,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 
 	if hostname != "unknown" {
-		return s.respondWithHostname(request, hostname)
+		return s.respondWithHostnamePTR(request, hostname)
 	}
 
 	return s.forwardPTRQueryUpstream(request)
@@ -199,10 +228,33 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		ClientInfo:        request.Client,
 		QueryType:         "PTR",
 		ResponseSizeBytes: request.Msg.Len(),
+		Protocol:          request.Protocol,
 	}
 }
 
-func (s *DNSServer) respondWithHostname(request *Request, hostname string) model.RequestLogEntry {
+func (s *DNSServer) respondWithHostnameA(request *Request, hostIP string) model.RequestLogEntry {
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = true
+	request.Msg.Rcode = dns.RcodeSuccess
+
+	response := &dns.A{
+		Hdr: dns.RR_Header{
+			Name:   request.Question.Name,
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+			Ttl:    60,
+		},
+		A: net.ParseIP(hostIP),
+	}
+
+	request.Msg.Answer = []dns.RR{response}
+	_ = request.W.WriteMsg(request.Msg)
+
+	return s.respondWithType(request, dns.TypeA, hostIP)
+}
+
+func (s *DNSServer) respondWithHostnamePTR(request *Request, hostname string) model.RequestLogEntry {
 	request.Msg.Response = true
 	request.Msg.Authoritative = false
 	request.Msg.RecursionAvailable = true
@@ -221,14 +273,18 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 	request.Msg.Answer = []dns.RR{ptr}
 	_ = request.W.WriteMsg(request.Msg)
 
+	return s.respondWithType(request, dns.TypePTR, hostname)
+}
+
+func (s *DNSServer) respondWithType(request *Request, rType uint16, ip string) model.RequestLogEntry {
 	return model.RequestLogEntry{
 		Domain:    request.Question.Name,
 		Status:    dns.RcodeToString[dns.RcodeSuccess],
 		QueryType: dns.TypeToString[request.Question.Qtype],
 		IP: []model.ResolvedIP{
 			{
-				IP:    hostname,
-				RType: "PTR",
+				IP:    ip,
+				RType: dns.TypeToString[rType],
 			},
 		},
 		ResponseSizeBytes: request.Msg.Len(),
@@ -237,6 +293,7 @@ func (s *DNSServer) respondWithHostname(request *Request, hostname string) model
 		Blocked:           false,
 		Cached:            false,
 		ClientInfo:        request.Client,
+		Protocol:          request.Protocol,
 	}
 }
 
@@ -275,6 +332,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		Timestamp:         request.Sent,
 		ResponseTime:      time.Since(request.Sent),
 		ClientInfo:        request.Client,
+		Protocol:          request.Protocol,
 	}
 }
 
@@ -609,5 +667,6 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		Blocked:           true,
 		Cached:            false,
 		ClientInfo:        request.Client,
+		Protocol:          request.Protocol,
 	}
 }
