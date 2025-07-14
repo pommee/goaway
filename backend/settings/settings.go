@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"crypto/tls"
 	"fmt"
 	"goaway/backend/api/ratelimit"
 	"goaway/backend/logging"
@@ -205,4 +206,18 @@ func GetEnvAsIntWithDefault(envVariable string, defaultValue int) int {
 	}
 
 	return intVal
+}
+
+func (config *Config) GetCertificate() (tls.Certificate, error) {
+	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(config.DNS.TLSCertFile, config.DNS.TLSKeyFile)
+		if err != nil {
+			log.Error("Failed to load TLS certificate: %s", err)
+			return tls.Certificate{}, err
+		}
+
+		return cert, nil
+	}
+
+	return tls.Certificate{}, nil
 }

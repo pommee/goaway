@@ -67,10 +67,17 @@ type communicationMessage struct {
 	Ip       string `json:"ip"`
 }
 
-func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager) (*DNSServer, error) {
+func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager, cert tls.Certificate) (*DNSServer, error) {
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize whitelist: %w", err)
+	}
+
+	var client dns.Client
+	if cert.Certificate == nil {
+		client = dns.Client{Net: "udp"}
+	} else {
+		client = dns.Client{Net: "tcp-tls"}
 	}
 
 	server := &DNSServer{
@@ -80,7 +87,7 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 		logIntervalSeconds: 1,
 		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
-		dnsClient:          &dns.Client{Net: "tcp-tls"},
+		dnsClient:          &client,
 		Notifications:      notificationsManager,
 	}
 

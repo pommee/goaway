@@ -144,7 +144,12 @@ func startServer(config *settings.Config, ansi bool) {
 
 	notificationManager := notification.NewNotificationManager(dbManager)
 
-	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager)
+	cert, err := config.GetCertificate()
+	if err != nil {
+		log.Fatal("Failed to load TLS certificate: %s", err)
+	}
+
+	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, cert)
 	if err != nil {
 		log.Fatal("Failed to initialize server: %s", err)
 	}
@@ -185,10 +190,10 @@ func startServer(config *settings.Config, ansi bool) {
 		log.Fatal("Failed to initialize TCP server: %s", err)
 	}
 
-	startServices(dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
+	startServices(cert, dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
 }
 
-func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
+func startServices(cert tls.Certificate, dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
 	var (
 		wg         sync.WaitGroup
 		sigChannel = make(chan os.Signal, 1)
@@ -215,12 +220,7 @@ func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server
 		}
 	}()
 
-	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(config.DNS.TLSCertFile, config.DNS.TLSKeyFile)
-		if err != nil {
-			log.Fatal("Failed to load TLS certificate: %s", err)
-		}
-
+	if cert.Certificate != nil {
 		dotServer, err := dnsServer.InitDoT(cert)
 		if err != nil {
 			log.Fatal("Failed to initialize DoT server: %s", err)
