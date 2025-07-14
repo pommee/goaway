@@ -15,6 +15,7 @@ var log = logging.GetLogger()
 type SetFlags struct {
 	DnsPort             *int
 	DoTPort             *int
+	DoHPort             *int
 	WebserverPort       *int
 	LogLevel            *int
 	StatisticsRetention *int
@@ -40,8 +41,7 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		if port, found := os.LookupEnv("DNS_PORT"); found {
 			dnsPort, err := strconv.Atoi(port)
 			if err != nil {
-				log.Error("Could not parse DNS_PORT environment variable")
-				os.Exit(1)
+				log.Fatal("Could not parse DNS_PORT environment variable")
 			}
 			config.DNS.Port = dnsPort
 		} else {
@@ -52,20 +52,29 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		if port, found := os.LookupEnv("DOT_PORT"); found {
 			dotPort, err := strconv.Atoi(port)
 			if err != nil {
-				log.Error("Could not parse DOT_PORT environment variable")
-				os.Exit(1)
+				log.Fatal("Could not parse DOT_PORT environment variable")
 			}
 			config.DNS.DoTPort = dotPort
 		} else {
 			config.DNS.DoTPort = *flags.DoTPort
 		}
 	}
+	if flags.DoHPort != nil || os.Getenv("DOH_PORT") != "" {
+		if port, found := os.LookupEnv("DOH_PORT"); found {
+			dohPort, err := strconv.Atoi(port)
+			if err != nil {
+				log.Fatal("Could not parse DOH_PORT environment variable")
+			}
+			config.DNS.DoHPort = dohPort
+		} else {
+			config.DNS.DoHPort = *flags.DoHPort
+		}
+	}
 	if flags.WebserverPort != nil || os.Getenv("WEBSITE_PORT") != "" {
 		if port, found := os.LookupEnv("WEBSITE_PORT"); found {
 			websitePort, err := strconv.Atoi(port)
 			if err != nil {
-				log.Error("Could not parse WEBSITE_PORT environment variable")
-				os.Exit(1)
+				log.Fatal("Could not parse WEBSITE_PORT environment variable")
 			}
 			config.API.Port = websitePort
 		} else {

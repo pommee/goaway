@@ -340,6 +340,7 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 		ResponseTime:      time.Since(req.Sent),
 		Cached:            cached,
 		ClientInfo:        req.Client,
+		Protocol:          req.Protocol,
 	}
 }
 

@@ -171,7 +171,8 @@ func NewRequestLogTable(db *sql.DB) error {
 			client_name TEXT,
 			status TEXT,
 			query_type TEXT,
-			response_size_bytes INTEGER
+			response_size_bytes INTEGER,
+			protocol TEXT
 		);
 		
 		CREATE TABLE IF NOT EXISTS request_log_ips (

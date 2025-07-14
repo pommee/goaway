@@ -63,7 +63,7 @@ const SETTINGS_SECTIONS = [
   },
   {
     title: "DNS Server",
-    description: "Tune DNS server performance",
+    description: "Tune DNS server performance and behavior",
     settings: [
       {
         label: "Cache TTL",
@@ -71,6 +71,22 @@ const SETTINGS_SECTIONS = [
         explanation: "Domain resolution cache duration (seconds)",
         options: [30, 60, 120, 300],
         default: 60,
+        widgetType: Input
+      },
+      {
+        label: "TLS Certificate",
+        key: "tlsCertFile",
+        explanation: "Path to TLS certificate for DNS over TLS",
+        options: [],
+        default: "",
+        widgetType: Input
+      },
+      {
+        label: "TLS Key",
+        key: "tlsKeyFile",
+        explanation: "Path to TLS key for DNS over TLS",
+        options: [],
+        default: "",
         widgetType: Input
       }
     ]
@@ -119,7 +135,9 @@ export function Settings() {
         paused: false,
         pausedAt: "",
         pauseTime: 0
-      }
+      },
+      tlsCertFile: "",
+      tlsKeyFile: ""
     },
     api: {
       port: 0,
@@ -564,8 +582,16 @@ export function Settings() {
                       ? preferences.dns?.cacheTTL
                       : preferences[key];
 
-                  if (key === "logging") {
-                    currentValue = preferences.loggingEnabled;
+                  switch (key) {
+                    case "logging":
+                      currentValue = preferences.loggingEnabled;
+                      break;
+                    case "tlsCertFile":
+                      currentValue = preferences.dns?.tlsCertFile;
+                      break;
+                    case "tlsKeyFile":
+                      currentValue = preferences.dns?.tlsKeyFile;
+                      break;
                   }
 
                   return (
@@ -611,8 +637,16 @@ export function Settings() {
                                     onChange: (
                                       e: React.ChangeEvent<HTMLInputElement>
                                     ) => handleSelect(key, e.target.value),
-                                    placeholder: "Enter Value",
-                                    className: "w-full md:w-40"
+                                    placeholder:
+                                      key === "tlsCertFile"
+                                        ? "No cert"
+                                        : key === "tlsKeyFile"
+                                          ? "No key"
+                                          : `${label.toLowerCase()}`,
+                                    className: "w-full md:w-40",
+                                    disabled:
+                                      key === "tlsCertFile" ||
+                                      key === "tlsKeyFile"
                                   }
                                 : {})}
                         />
@@ -776,6 +810,8 @@ export interface Dns {
   preferredUpstream: string;
   upstreamDNS: string[];
   status: Status;
+  tlsCertFile: string;
+  tlsKeyFile: string;
 }
 
 export interface Status {

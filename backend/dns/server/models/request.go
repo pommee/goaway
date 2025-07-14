@@ -14,7 +14,17 @@ type RequestLogEntry struct {
 	Blocked           bool          `json:"blocked"`
 	Cached            bool          `json:"cached"`
 	ClientInfo        *Client       `json:"client"`
+	Protocol          Protocol      `json:"protocol"`
 }
+
+type Protocol string
+
+const (
+	UDP Protocol = "UDP"
+	TCP Protocol = "TCP"
+	DoT Protocol = "DoT"
+	DoH Protocol = "DoH"
+)
 
 type ResolvedIP struct {
 	IP    string `json:"ip"`

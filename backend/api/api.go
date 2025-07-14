@@ -189,7 +189,7 @@ func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan s
 		return false
 	}
 
-	if serverIP, err := getServerIP(); err == nil {
+	if serverIP, err := GetServerIP(); err == nil {
 		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
 	} else {
 		log.Info("Web server started on port :%d", api.Config.API.Port)
@@ -204,7 +204,7 @@ func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan s
 }
 
 func (api *API) ServeEmbeddedContent(content embed.FS) {
-	ipAddress, err := getServerIP()
+	ipAddress, err := GetServerIP()
 	if err != nil {
 		log.Error("Error getting IP address: %v", err)
 		return
@@ -290,7 +290,7 @@ func injectServerConfig(htmlContent, serverIP string, port int) string {
 	)
 }
 
-func getServerIP() (string, error) {
+func GetServerIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return "", err

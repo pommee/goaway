@@ -178,7 +178,7 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 
 	baseQuery := `
         SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
-               rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes
+               rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes, rl.protocol
         FROM request_log rl`
 
 	if q.Column == "ip" {
@@ -231,7 +231,7 @@ func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, er
 		if err := rows.Scan(
 			&requestLogID, &timestamp, &query.Domain, &query.Blocked, &query.Cached,
 			&query.ResponseTime, &query.ClientInfo.IP, &query.ClientInfo.Name,
-			&query.Status, &query.QueryType, &query.ResponseSizeBytes,
+			&query.Status, &query.QueryType, &query.ResponseSizeBytes, &query.Protocol,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -525,8 +525,8 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 		var logID int64
 		err = tx.QueryRow(`
             INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, 
-                                   client_ip, client_name, status, query_type, response_size_bytes) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+                                   client_ip, client_name, status, query_type, response_size_bytes, protocol)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
             RETURNING id`,
 			entry.Timestamp.Unix(),
 			entry.Domain,
@@ -538,6 +538,7 @@ func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
 			entry.Status,
 			entry.QueryType,
 			entry.ResponseSizeBytes,
+			entry.Protocol,
 		).Scan(&logID)
 
 		if err != nil {

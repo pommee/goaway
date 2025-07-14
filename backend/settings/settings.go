@@ -24,6 +24,7 @@ type DNSConfig struct {
 	Address           string   `yaml:"address" json:"address"`
 	Port              int      `yaml:"port" json:"port"`
 	DoTPort           int      `yaml:"dotPort" json:"dotPort"`
+	DoHPort           int      `yaml:"dohPort" json:"dohPort"`
 	CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
 	PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
 	UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
@@ -134,6 +135,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig.DNS.Address = "0.0.0.0"
 	defaultConfig.DNS.Port = GetEnvAsIntWithDefault("DNS_PORT", 53)
 	defaultConfig.DNS.DoTPort = GetEnvAsIntWithDefault("DOT_PORT", 853)
+	defaultConfig.DNS.DoHPort = GetEnvAsIntWithDefault("DOH_PORT", 443)
 	defaultConfig.DNS.CacheTTL = 3600
 	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
 	defaultConfig.DNS.UpstreamDNS = []string{

@@ -10,6 +10,7 @@ import (
 	"goaway/backend/logging"
 	notification "goaway/backend/notifications"
 	"goaway/backend/settings"
+	"net"
 	"sync"
 	"time"
 
@@ -21,10 +22,6 @@ import (
 var (
 	log = logging.GetLogger()
 )
-
-type MacVendor struct {
-	Vendor string `json:"company"`
-}
 
 type DNSServer struct {
 	Config              *settings.Config
@@ -44,12 +41,6 @@ type DNSServer struct {
 	Notifications       *notification.Manager
 }
 
-type QueryResponse struct {
-	IPAddresses []dns.RR
-	Ttl         uint32
-	Status      int
-}
-
 type CachedRecord struct {
 	IPAddresses []dns.RR
 	ExpiresAt   time.Time
@@ -66,6 +57,7 @@ type Request struct {
 	Sent     time.Time
 	Client   *model.Client
 	Prefetch bool
+	Protocol model.Protocol
 }
 
 type communicationMessage struct {
@@ -95,57 +87,6 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 	return server, nil
 }
 
-type notifyDNSReady func()
-
-func (s *DNSServer) Init(udpSize int, notifyReady notifyDNSReady) (*dns.Server, error) {
-	server := &dns.Server{
-		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
-		Net:               "udp",
-		Handler:           s,
-		ReusePort:         true,
-		UDPSize:           udpSize,
-		NotifyStartedFunc: notifyReady,
-	}
-
-	return server, nil
-}
-
-func (s *DNSServer) InitTCP(udpSize int) (*dns.Server, error) {
-	server := &dns.Server{
-		Addr:      fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Port),
-		Net:       "tcp",
-		Handler:   s,
-		ReusePort: true,
-		UDPSize:   udpSize,
-	}
-
-	return server, nil
-}
-
-func (s *DNSServer) InitDoT(udpSize int) (*dns.Server, error) {
-	cert, err := tls.LoadX509KeyPair(s.Config.DNS.TLSCertFile, s.Config.DNS.TLSKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS cert/key: %w", err)
-	}
-
-	notifyReady := func() {
-		log.Info("Started DoT server on port %d", s.Config.DNS.DoTPort)
-	}
-
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-	server := &dns.Server{
-		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.DoTPort),
-		Net:               "tcp-tls",
-		Handler:           s,
-		TLSConfig:         tlsConfig,
-		ReusePort:         true,
-		UDPSize:           udpSize,
-		NotifyStartedFunc: notifyReady,
-	}
-
-	return server, nil
-}
-
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	if len(r.Question) != 1 {
 		log.Warning("Query container more than one question, ignoring!")
@@ -155,19 +96,70 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	client := s.getClientInfo(w.RemoteAddr().String())
-	go s.WSCom(communicationMessage{true, false, false, client.IP})
+	protocol := s.detectProtocol(w)
 
-	entry := s.processQuery(&Request{w, r, r.Question[0], time.Now(), client, false})
+	go s.WSCom(communicationMessage{
+		Client:   true,
+		Upstream: false,
+		DNS:      false,
+		Ip:       client.IP,
+	})
 
-	go s.WSCom(communicationMessage{false, false, true, client.IP})
+	entry := s.processQuery(&Request{
+		W:        w,
+		Msg:      r,
+		Question: r.Question[0],
+		Sent:     time.Now(),
+		Client:   client,
+		Prefetch: false,
+		Protocol: protocol,
+	})
+
+	go s.WSCom(communicationMessage{
+		Client:   false,
+		Upstream: false,
+		DNS:      true,
+		Ip:       client.IP,
+	})
 	s.logEntryChannel <- entry
 }
 
+func (s *DNSServer) detectProtocol(w dns.ResponseWriter) model.Protocol {
+	if conn, ok := w.(interface{ ConnectionState() *tls.ConnectionState }); ok {
+		if conn.ConnectionState() != nil {
+			return model.DoT
+		}
+	}
+
+	if conn, ok := w.(interface{ RemoteAddr() net.Addr }); ok {
+		addr := conn.RemoteAddr()
+		if addr.Network() == "tcp" {
+			return model.TCP
+		}
+	}
+
+	return model.UDP
+}
+
 func (s *DNSServer) WSCom(message communicationMessage) {
-	if s.WSCommunication != nil {
-		entryWSJson, _ := json.Marshal(message)
-		s.WSCommunicationLock.Lock()
-		_ = s.WSCommunication.WriteMessage(websocket.TextMessage, entryWSJson)
-		s.WSCommunicationLock.Unlock()
+	if s.WSCommunication == nil {
+		return
+	}
+
+	entryWSJson, err := json.Marshal(message)
+	if err != nil {
+		log.Error("Failed to marshal websocket message: %v", err)
+		return
+	}
+
+	s.WSCommunicationLock.Lock()
+	defer s.WSCommunicationLock.Unlock()
+
+	if err := s.WSCommunication.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		log.Warning("Failed to set websocket write deadline: %v", err)
+	}
+
+	if err := s.WSCommunication.WriteMessage(websocket.TextMessage, entryWSJson); err != nil {
+		log.Error("Failed to write websocket message: %v", err)
 	}
 }

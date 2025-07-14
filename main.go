@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"fmt"
 	"goaway/backend/api"
@@ -37,6 +38,7 @@ var (
 type Flags struct {
 	DnsPort             int
 	DoTPort             int
+	DoHPort             int
 	WebserverPort       int
 	LogLevel            int
 	StatisticsRetention int
@@ -50,8 +52,7 @@ type Flags struct {
 
 func main() {
 	if err := createRootCommand().Execute(); err != nil {
-		log.Error("Command execution failed: %s", err)
-		os.Exit(1)
+		log.Fatal("Command execution failed: %s", err)
 	}
 }
 
@@ -71,6 +72,7 @@ func createRootCommand() *cobra.Command {
 
 	cmd.Flags().IntVar(&flags.DnsPort, "dns-port", 53, "Port for the DNS server")
 	cmd.Flags().IntVar(&flags.DoTPort, "dot-port", 853, "Port for the DoT (DNS-over-TCP) server")
+	cmd.Flags().IntVar(&flags.DoHPort, "doh-port", 443, "Port for the DoH (DNS-over-HTTPS) server")
 	cmd.Flags().IntVar(&flags.WebserverPort, "webserver-port", 8080, "Port for the web server")
 	cmd.Flags().IntVar(&flags.LogLevel, "log-level", 1, "0 = DEBUG | 1 = INFO | 2 = WARNING | 3 = ERROR")
 	cmd.Flags().IntVar(&flags.StatisticsRetention, "statistics-retention", 7, "Days to keep statistics")
@@ -92,6 +94,9 @@ func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
 	}
 	if cmd.Flags().Changed("dot-port") {
 		setFlags.DoTPort = &flags.DoTPort
+	}
+	if cmd.Flags().Changed("doh-port") {
+		setFlags.DoHPort = &flags.DoHPort
 	}
 	if cmd.Flags().Changed("webserver-port") {
 		setFlags.WebserverPort = &flags.WebserverPort
@@ -134,16 +139,14 @@ func startServer(config *settings.Config, ansi bool) {
 
 	dbManager, err := database.Initialize()
 	if err != nil {
-		log.Error("failed while initializing database: %v", err)
-		os.Exit(1)
+		log.Fatal("failed while initializing database: %v", err)
 	}
 
 	notificationManager := notification.NewNotificationManager(dbManager)
 
 	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager)
 	if err != nil {
-		log.Error("Failed to initialize server: %s", err)
-		os.Exit(1)
+		log.Fatal("Failed to initialize server: %s", err)
 	}
 
 	go dnsServer.ProcessLogEntries()
@@ -172,26 +175,26 @@ func startServer(config *settings.Config, ansi bool) {
 		close(dnsReadyChannel)
 	}
 
-	udpServer, err := dnsServer.Init(config.DNS.UDPSize, notifyReady)
+	udpServer, err := dnsServer.InitUDP(notifyReady)
 	if err != nil {
-		log.Error("Failed to initialize DNS server: %s", err)
-		os.Exit(1)
+		log.Fatal("Failed to initialize DNS server: %s", err)
 	}
 
-	tcpServer, _ := dnsServer.InitTCP(config.DNS.UDPSize)
+	tcpServer, _ := dnsServer.InitTCP()
 	if err != nil {
-		log.Error("Failed to initialize TCP server: %s", err)
-		os.Exit(1)
+		log.Fatal("Failed to initialize TCP server: %s", err)
 	}
 
 	startServices(dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
 }
 
 func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server, config *settings.Config, ansi bool, dnsReadyChannel chan struct{}, errorChannel chan struct{}) {
-	var wg sync.WaitGroup
-	sigChannel := make(chan os.Signal, 1)
-	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
+	var (
+		wg         sync.WaitGroup
+		sigChannel = make(chan os.Signal, 1)
+	)
 
+	signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM)
 	wg.Add(2)
 
 	go func() {
@@ -213,17 +216,43 @@ func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server
 	}()
 
 	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
-		dotServer, err := dnsServer.InitDoT(config.DNS.UDPSize)
+		cert, err := tls.LoadX509KeyPair(config.DNS.TLSCertFile, config.DNS.TLSKeyFile)
 		if err != nil {
-			log.Error("Failed to initialize DoT server: %s", err)
-			os.Exit(1)
+			log.Fatal("Failed to load TLS certificate: %s", err)
 		}
 
+		dotServer, err := dnsServer.InitDoT(cert)
+		if err != nil {
+			log.Fatal("Failed to initialize DoT server: %s", err)
+		}
+
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
 			if err := dotServer.ListenAndServe(); err != nil {
 				log.Error("DoT server failed: %s", err)
+				errorChannel <- struct{}{}
+			}
+		}()
+
+		dohServer, err := dnsServer.InitDoH(cert)
+		if err != nil {
+			log.Fatal("Failed to initialize DoH server: %s", err)
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if serverIP, err := api.GetServerIP(); err == nil {
+				log.Info("DoH server running at https://%s:%d/dns-query", serverIP, config.DNS.DoHPort)
+			} else {
+				log.Info("DoH server running on port :%d", config.DNS.DoHPort)
+			}
+
+			if err := dohServer.ListenAndServeTLS(config.DNS.TLSCertFile, config.DNS.TLSKeyFile); err != nil {
+				log.Error("DoH server failed: %s", err)
 				errorChannel <- struct{}{}
 			}
 		}()
@@ -285,8 +314,7 @@ func startServices(dnsServer *server.DNSServer, udpServer, tcpServer *dns.Server
 
 	select {
 	case <-errorChannel:
-		log.Error("Server failure detected. Exiting.")
-		os.Exit(1)
+		log.Fatal("Server failure detected. Exiting.")
 	case <-sigChannel:
 		log.Info("Received interrupt. Shutting down.")
 		os.Exit(0)

@@ -23,6 +23,7 @@ const (
 	INFO
 	WARNING
 	ERROR
+	FATAL
 )
 
 type Logger struct {
@@ -144,6 +145,19 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	} else {
 		l.log("[ERROR] ", ColorRed, format, ERROR)
 	}
+}
+
+func (l *Logger) Fatal(format string, args ...interface{}) {
+	if !l.verifyLog(FATAL) {
+		return
+	}
+	if len(args) > 0 {
+		message := fmt.Sprintf(format, args...)
+		l.log("[FATAL] ", ColorRed, message, FATAL)
+	} else {
+		l.log("[FATAL] ", ColorRed, format, FATAL)
+	}
+	os.Exit(1)
 }
 
 func FromString(logLevel string) LogLevel {

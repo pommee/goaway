@@ -27,6 +27,7 @@ export type Queries = {
   responseTimeNS: number;
   status: string;
   timestamp: string;
+  protocol: string;
 };
 
 interface Props {
@@ -208,6 +209,11 @@ export const columns: ColumnDef<Queries>[] = [
     accessorKey: "queryType",
     header: ({ column }) => <SortableHeader column={column} title="Type" />,
     cell: ({ row }) => <div>{row.getValue("queryType")}</div>
+  },
+  {
+    accessorKey: "protocol",
+    header: ({ column }) => <SortableHeader column={column} title="Protocol" />,
+    cell: ({ row }) => <div>{row.getValue("protocol")}</div>
   },
   {
     accessorKey: "responseSizeBytes",
