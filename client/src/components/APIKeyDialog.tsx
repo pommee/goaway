@@ -19,11 +19,6 @@ interface APIKey {
   createdAt: string;
 }
 
-interface NewAPIKeyData {
-  key: string;
-  id: string;
-}
-
 interface APIKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,14 +28,14 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newKeyName, setNewKeyName] = useState("");
-  const [newKey, setNewKey] = useState<NewAPIKeyData | null>(null);
+  const [newKey, setNewKey] = useState<string>("");
 
   const fetchAPIKeys = async () => {
     setIsLoading(true);
     try {
       const [status, response] = await GetRequest("apiKey");
       if (status === 200 && response) {
-        setApiKeys(response.keys);
+        setApiKeys(response);
       }
     } catch (error) {
       console.error("Failed to fetch API keys:", error);
@@ -53,7 +48,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
   useEffect(() => {
     if (open) {
       fetchAPIKeys();
-      setNewKey(null);
+      setNewKey("");
     }
   }, [open]);
 
@@ -79,9 +74,9 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
     }
   };
 
-  const handleDeleteKey = async (key: string) => {
+  const handleDeleteKey = async (name: string) => {
     try {
-      const [status, message] = await GetRequest(`deleteApiKey?key=${key}`);
+      const [status, message] = await GetRequest(`deleteApiKey?name=${name}`);
       if (status === 200) {
         toast.success(message.message);
         await fetchAPIKeys();
@@ -155,13 +150,13 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => copyToClipboard(newKey.key)}
+                  onClick={() => copyToClipboard(newKey)}
                 >
                   <CopyIcon size={16} />
                 </Button>
               </div>
               <p className="text-xs break-all bg-accent p-2 rounded">
-                {newKey.key}
+                {newKey}
               </p>
               <p className="text-xs text-yellow-400">
                 Save this key now. It will never be shown again!
@@ -182,7 +177,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                 <div className="space-y-2">
                   {apiKeys.map((key) => (
                     <div
-                      key={key.key}
+                      key={key.name}
                       className="flex justify-between items-center p-3 border rounded-md"
                     >
                       <div className="space-y-1">
@@ -194,7 +189,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleDeleteKey(key.key)}
+                        onClick={() => handleDeleteKey(key.name)}
                         className="text-red-500 hover:text-red-700"
                       >
                         <TrashIcon size={16} />

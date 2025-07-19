@@ -109,7 +109,7 @@ func (api *API) getQueries(c *gin.Context) {
 		"draw":            c.DefaultQuery("draw", "1"),
 		"recordsTotal":    countResult.total,
 		"recordsFiltered": countResult.total,
-		"details":         queryResult.queries,
+		"queries":         queryResult.queries,
 	})
 }
 
@@ -173,7 +173,7 @@ func (api *API) getQueryTimestamps(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"queries": timestamps})
+	c.JSON(http.StatusOK, timestamps)
 }
 
 func (api *API) getResponseSizeTimestamps(c *gin.Context) {
@@ -191,9 +191,7 @@ func (api *API) getResponseSizeTimestamps(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"queries": timestamps,
-	})
+	c.JSON(http.StatusOK, timestamps)
 }
 
 func (api *API) getQueryTypes(c *gin.Context) {
@@ -204,9 +202,7 @@ func (api *API) getQueryTypes(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"queries": queries,
-	})
+	c.JSON(http.StatusOK, queries)
 }
 
 func (api *API) clearQueries(c *gin.Context) {

@@ -45,9 +45,7 @@ func (api *API) updateSettings(c *gin.Context) {
 }
 
 func (api *API) getSettings(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"settings": api.Config,
-	})
+	c.JSON(http.StatusOK, api.Config)
 }
 
 func (api *API) exportDatabase(c *gin.Context) {

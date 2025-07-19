@@ -30,7 +30,7 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
       );
       return;
     }
-    const [code, response] = await PostRequest(`upstream`, {
+    const [code, response] = await PostRequest("upstream", {
       upstream: newUpstreamIP
     });
     if (code === 200) {

@@ -25,13 +25,13 @@ export function Blacklist() {
 
   useEffect(() => {
     async function fetchLists() {
-      const [code, response] = await GetRequest(`lists`);
+      const [code, response] = await GetRequest("lists");
       if (code !== 200) {
-        toast.warning(`Unable to fetch lists`);
+        toast.warning("Unable to fetch lists");
         return;
       }
 
-      const listArray: ListEntry[] = Object.entries(response.lists).map(
+      const listArray: ListEntry[] = Object.entries(response).map(
         ([name, details]) => ({
           name,
           ...details

@@ -44,18 +44,18 @@ export function CardDetails({
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    async function fetchClients() {
+    async function fetchClient() {
       setIsLoading(true);
       try {
         const [code, response] = await GetRequest(
           `clientDetails?clientIP=${clientEntry.ip}`
         );
         if (code !== 200) {
-          toast.warning(`Unable to fetch client details`);
+          toast.warning("Unable to fetch client details");
           return;
         }
 
-        setClientDetails(response.details);
+        setClientDetails(response);
       } catch {
         toast.error("Error fetching client details");
       } finally {
@@ -63,7 +63,7 @@ export function CardDetails({
       }
     }
 
-    fetchClients();
+    fetchClient();
   }, [clientEntry.ip]);
 
   const getProgressColor = (value: number, max: number) => {

@@ -56,7 +56,7 @@ func (api *API) fetchPrefetchedDomains(c *gin.Context) {
 	for _, b := range api.PrefetchedDomainsManager.Domains {
 		prefetchedDomains = append(prefetchedDomains, b)
 	}
-	c.JSON(http.StatusOK, gin.H{"domains": prefetchedDomains})
+	c.JSON(http.StatusOK, prefetchedDomains)
 }
 
 func (api *API) removeDomainFromCustom(c *gin.Context) {
@@ -115,7 +115,7 @@ func (api *API) getTopBlockedDomains(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"domains": topBlockedDomains})
+	c.JSON(http.StatusOK, topBlockedDomains)
 }
 
 func (api *API) getDomainsForList(c *gin.Context) {
@@ -131,7 +131,7 @@ func (api *API) getDomainsForList(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"domains": domains})
+	c.JSON(http.StatusOK, domains)
 }
 
 func (api *API) deletePrefetchedDomain(c *gin.Context) {

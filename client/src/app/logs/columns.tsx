@@ -170,9 +170,9 @@ export const columns: ColumnDef<Queries>[] = [
       const wasOK =
         query.blocked === false
           ? query.cached
-            ? `cache (forwarded)`
-            : `ok (forwarded)`
-          : `blacklisted`;
+            ? "cache (forwarded)"
+            : "ok (forwarded)"
+          : "blacklisted";
 
       return (
         <div className="flex">

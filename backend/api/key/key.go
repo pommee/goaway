@@ -79,7 +79,7 @@ func (m *ApiKeyManager) refreshCache() error {
 	return nil
 }
 
-func (m *ApiKeyManager) VerifyApiKey(apiKey string) bool {
+func (m *ApiKeyManager) VerifyKey(apiKey string) bool {
 	if err := m.refreshCache(); err != nil {
 		log.Warning("Failed to refresh API key cache: %v", err)
 
@@ -94,11 +94,16 @@ func (m *ApiKeyManager) VerifyApiKey(apiKey string) bool {
 
 	m.cacheMu.RLock()
 	defer m.cacheMu.RUnlock()
-	_, exists := m.keyCache[apiKey]
-	return exists
+	for _, value := range m.keyCache {
+		if value.Key == apiKey {
+			return true
+		}
+	}
+
+	return false
 }
 
-func generateApiKey() (string, error) {
+func generateKey() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
@@ -106,8 +111,8 @@ func generateApiKey() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func (m *ApiKeyManager) CreateApiKey(name string) (string, error) {
-	apiKey, err := generateApiKey()
+func (m *ApiKeyManager) CreateKey(name string) (string, error) {
+	apiKey, err := generateKey()
 	if err != nil {
 		return "", err
 	}
@@ -119,26 +124,30 @@ func (m *ApiKeyManager) CreateApiKey(name string) (string, error) {
 	}
 
 	m.cacheMu.Lock()
-	m.keyCache[apiKey] = ApiKey{Name: name, Key: apiKey, CreatedAt: createdAt}
+	m.keyCache[name] = ApiKey{Name: name, Key: apiKey, CreatedAt: createdAt}
 	m.cacheMu.Unlock()
 
 	return apiKey, nil
 }
 
-func (m *ApiKeyManager) DeleteApiKey(apiKey string) error {
-	_, err := m.dbManager.Conn.Exec(`DELETE FROM apikey WHERE key = ?`, apiKey)
+func (m *ApiKeyManager) DeleteKey(keyName string) error {
+	_, err := m.dbManager.Conn.Exec("DELETE FROM apikey WHERE name = ?", keyName)
 	if err != nil {
 		return err
 	}
 
 	m.cacheMu.Lock()
-	delete(m.keyCache, apiKey)
+	delete(m.keyCache, keyName)
 	m.cacheMu.Unlock()
+
+	if err := m.refreshCache(); err != nil {
+		log.Warning("%v", err)
+	}
 
 	return nil
 }
 
-func (m *ApiKeyManager) GetAllApiKeys() ([]ApiKey, error) {
+func (m *ApiKeyManager) GetAllKeys() ([]ApiKey, error) {
 	if err := m.refreshCache(); err != nil {
 		return nil, err
 	}
@@ -148,7 +157,9 @@ func (m *ApiKeyManager) GetAllApiKeys() ([]ApiKey, error) {
 
 	keys := make([]ApiKey, 0, len(m.keyCache))
 	for _, apiKey := range m.keyCache {
-		keys = append(keys, apiKey)
+		keyCopy := apiKey
+		keyCopy.Key = "redacted"
+		keys = append(keys, keyCopy)
 	}
 
 	sort.Slice(keys, func(i, j int) bool {

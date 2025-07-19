@@ -125,28 +125,7 @@ function parseLogLevel(level: number | string) {
 }
 
 export function Settings() {
-  const [preferences, setPreferences] = useState<Settings>({
-    dns: {
-      port: 53,
-      cacheTTL: 360,
-      preferredUpstream: "",
-      upstreamDNS: [],
-      status: {
-        paused: false,
-        pausedAt: "",
-        pauseTime: 0
-      },
-      tlsCertFile: "",
-      tlsKeyFile: ""
-    },
-    api: {
-      port: 0,
-      authentication: false
-    },
-    statisticsRetention: 7,
-    loggingEnabled: true,
-    logLevel: 0
-  });
+  const [preferences, setPreferences] = useState<Root>();
   const [isChanged, setIsChanged] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -170,9 +149,9 @@ export function Settings() {
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
-      const [status, response]: [number, Root] = await GetRequest("settings");
-      if (status === 200 && response && response.settings) {
-        const settings = response.settings;
+      const [status, response] = await GetRequest("settings");
+      if (status === 200 && response) {
+        const settings: Root = response;
         settings.logLevel = parseLogLevel(settings.logLevel);
         setPreferences(settings);
         originalPreferencesRef.current = JSON.stringify(settings);
@@ -378,7 +357,7 @@ export function Settings() {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      toast.info("Exported!", { description: `Database has been exported` });
+      toast.info("Exported!", { description: "Database has been exported" });
     } catch (error) {
       console.error("Failed to export database:", error);
       toast.error("Could not export database");
@@ -791,36 +770,37 @@ export function Settings() {
   );
 }
 
-export interface Root {
-  settings: Settings;
-}
-
-export interface Settings {
-  font?: string;
+interface Root {
   dns: Dns;
   api: Api;
+  scheduledBlacklistUpdates: boolean;
   statisticsRetention: number;
   loggingEnabled: boolean;
-  logLevel: number | string;
+  logLevel: number;
+  inAppUpdate: boolean;
 }
 
-export interface Dns {
+interface Dns {
+  address: string;
   port: number;
+  dotPort: number;
+  dohPort: number;
   cacheTTL: number;
   preferredUpstream: string;
   upstreamDNS: string[];
+  udpSize: number;
   status: Status;
   tlsCertFile: string;
   tlsKeyFile: string;
 }
 
-export interface Status {
+interface Status {
   paused: boolean;
   pausedAt: string;
   pauseTime: number;
 }
 
-export interface Api {
+interface Api {
   port: number;
   authentication: boolean;
 }

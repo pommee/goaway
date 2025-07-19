@@ -33,7 +33,7 @@ func (api *API) getClients(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"clients": clients})
+	c.JSON(http.StatusOK, clients)
 }
 
 func (api *API) getClientDetails(c *gin.Context) {
@@ -56,18 +56,16 @@ func (api *API) getClientDetails(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"details": map[string]interface{}{
-			"ip":                clientIP,
-			"totalRequests":     clientRequestDetails.TotalRequests,
-			"uniqueDomains":     clientRequestDetails.UniqueDomains,
-			"blockedRequests":   clientRequestDetails.BlockedRequests,
-			"cachedRequests":    clientRequestDetails.CachedRequests,
-			"avgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
-			"mostQueriedDomain": mostQueriedDomain,
-			"lastSeen":          clientRequestDetails.LastSeen,
-			"allDomains":        queriedDomains,
-		},
+	c.JSON(http.StatusOK, map[string]any{
+		"ip":                clientIP,
+		"totalRequests":     clientRequestDetails.TotalRequests,
+		"uniqueDomains":     clientRequestDetails.UniqueDomains,
+		"blockedRequests":   clientRequestDetails.BlockedRequests,
+		"cachedRequests":    clientRequestDetails.CachedRequests,
+		"avgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
+		"mostQueriedDomain": mostQueriedDomain,
+		"lastSeen":          clientRequestDetails.LastSeen,
+		"allDomains":        queriedDomains,
 	})
 }
 
@@ -79,5 +77,5 @@ func (api *API) getTopClients(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"clients": topClients})
+	c.JSON(http.StatusOK, topClients)
 }

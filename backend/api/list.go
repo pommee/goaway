@@ -49,7 +49,7 @@ func (api *API) updateCustom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"blockedLen": len(request.Domains)})
+	c.Status(http.StatusOK)
 }
 
 func (api *API) getLists(c *gin.Context) {
@@ -59,7 +59,7 @@ func (api *API) getLists(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"lists": lists})
+	c.JSON(http.StatusOK, lists)
 }
 
 func (api *API) addList(c *gin.Context) {

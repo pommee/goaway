@@ -83,13 +83,11 @@ export default function FrequencyChartTopBlockedClients() {
     async function fetchTopBlockedClients() {
       try {
         const [, clients] = await GetRequest("topClients");
-        const formattedData = clients.clients.map(
-          (client: TopBlockedClients) => ({
-            client: client.client,
-            requestCount: client.requestCount,
-            frequency: client.frequency
-          })
-        );
+        const formattedData = clients.map((client: TopBlockedClients) => ({
+          client: client.client,
+          requestCount: client.requestCount,
+          frequency: client.frequency
+        }));
 
         setData(formattedData);
         setIsLoading(false);

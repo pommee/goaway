@@ -60,9 +60,9 @@ export function Whitelist() {
 
   const fetchWhitelistedDomains = async () => {
     setLoading(true);
-    const [code, response] = await GetRequest(`whitelist`);
+    const [code, response] = await GetRequest("whitelist");
     if (code !== 200) {
-      toast.error(`Unable to fetch whitelisted domains`);
+      toast.error("Unable to fetch whitelisted domains");
       setLoading(false);
       return;
     }

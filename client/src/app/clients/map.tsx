@@ -230,7 +230,7 @@ export default function DNSServerVisualizer() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        setClients(response.clients);
+        setClients(response);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch clients"

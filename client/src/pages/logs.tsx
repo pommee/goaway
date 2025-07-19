@@ -83,7 +83,7 @@ interface QueryDetail {
 }
 
 interface QueryResponse {
-  details: QueryDetail[];
+  queries: QueryDetail[];
   draw: string;
   recordsFiltered: number;
   recordsTotal: number;
@@ -106,9 +106,9 @@ async function fetchQueries(
 
     const [, response] = await GetRequest(url);
 
-    if (response?.details && Array.isArray(response.details)) {
+    if (response?.queries && Array.isArray(response.queries)) {
       return {
-        details: response.details.map(
+        queries: response.queries.map(
           (item: {
             client: { ip?: string; name?: string; mac?: string };
             ip?: { ip?: string; rtype?: string }[];
@@ -134,14 +134,14 @@ async function fetchQueries(
       };
     } else {
       return {
-        details: [],
+        queries: [],
         draw: "1",
         recordsFiltered: 0,
         recordsTotal: 0
       };
     }
   } catch {
-    return { details: [], draw: "1", recordsFiltered: 0, recordsTotal: 0 };
+    return { queries: [], draw: "1", recordsFiltered: 0, recordsTotal: 0 };
   }
 }
 
@@ -263,7 +263,7 @@ export function Logs() {
       sortDirection
     );
 
-    setQueries(result.details);
+    setQueries(result.queries);
     setTotalRecords(result.recordsFiltered);
     setLoading(false);
   }, [pageIndex, pageSize, domainFilter, sorting]);

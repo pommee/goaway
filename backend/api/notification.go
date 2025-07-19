@@ -20,7 +20,7 @@ func (api *API) fetchNotifications(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 	}
-	c.JSON(http.StatusOK, gin.H{"notifications": notifications})
+	c.JSON(http.StatusOK, notifications)
 }
 
 func (api *API) markNotificationAsRead(c *gin.Context) {

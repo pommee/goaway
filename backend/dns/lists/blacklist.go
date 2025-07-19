@@ -642,7 +642,7 @@ func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 		_ = rows.Close()
 	}(rows)
 
-	var domains []string
+	domains := make([]string, 0)
 	for rows.Next() {
 		var domain string
 		if err := rows.Scan(&domain); err != nil {

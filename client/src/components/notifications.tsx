@@ -46,7 +46,7 @@ export default function Notifications() {
           return;
         }
 
-        setNotifications(response.notifications);
+        setNotifications(response);
       } catch {
         toast.error("Error while fetching notifications");
       }

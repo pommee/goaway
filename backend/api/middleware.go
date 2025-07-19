@@ -23,7 +23,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 		}
 
 		if apiKey := c.GetHeader("api-key"); apiKey != "" {
-			if api.KeyManager.VerifyApiKey(apiKey) {
+			if api.KeyManager.VerifyKey(apiKey) {
 				c.Next()
 				return
 			}

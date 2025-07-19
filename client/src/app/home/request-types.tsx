@@ -45,17 +45,15 @@ export default function RequestTypeChart() {
     async function fetchQueryTypes() {
       try {
         const [, data] = await GetRequest("queryTypes");
-        if (!data.queries || !Array.isArray(data.queries)) {
+        if (!data || !Array.isArray(data)) {
           return;
         }
 
-        const formattedData = data.queries.map(
-          (request: QueryType, index: number) => ({
-            count: request.count,
-            queryType: request.queryType,
-            fill: colors[index % colors.length]
-          })
-        );
+        const formattedData = data.map((request: QueryType, index: number) => ({
+          count: request.count,
+          queryType: request.queryType,
+          fill: colors[index % colors.length]
+        }));
 
         setChartData(formattedData);
       } catch (error) {

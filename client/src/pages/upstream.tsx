@@ -20,7 +20,7 @@ export function Upstream() {
   const fetchupstreams = async () => {
     const [code, response] = await GetRequest("upstreams");
     if (code !== 200) {
-      toast.warning(`Unable to fetch upstreams`);
+      toast.warning("Unable to fetch upstreams");
       return;
     }
     setUpstreams(response.upstreams);

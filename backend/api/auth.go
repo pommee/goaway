@@ -151,27 +151,27 @@ func (api *API) createAPIKey(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := api.KeyManager.CreateApiKey(request.Name)
+	apiKey, err := api.KeyManager.CreateKey(request.Name)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"key": apiKey})
+	c.JSON(http.StatusOK, apiKey)
 }
 
 func (api *API) getAPIKeys(c *gin.Context) {
-	apiKeys, err := api.KeyManager.GetAllApiKeys()
+	apiKeys, err := api.KeyManager.GetAllKeys()
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"keys": apiKeys})
+	c.JSON(http.StatusOK, apiKeys)
 }
 
 func (api *API) deleteAPIKey(c *gin.Context) {
-	keyToDelete := c.Query("key")
+	keyName := c.Query("name")
 
-	err := api.KeyManager.DeleteApiKey(keyToDelete)
+	err := api.KeyManager.DeleteKey(keyName)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

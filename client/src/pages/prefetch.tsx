@@ -95,14 +95,14 @@ export function Prefetch() {
 
   const fetchPrefetches = async () => {
     setLoading(true);
-    const [code, response] = await GetRequest(`prefetch`);
+    const [code, response] = await GetRequest("prefetch");
     if (code !== 200) {
-      toast.error(`Unable to fetch DNS prefetch entries`);
+      toast.error("Unable to fetch DNS prefetch entries");
       setLoading(false);
       return;
     }
 
-    setPrefetches(response.domains || []);
+    setPrefetches(response || []);
     setLoading(false);
   };
 

@@ -82,7 +82,7 @@ export default function FrequencyChartBlockedDomains() {
       try {
         const [, domains] = await GetRequest("topBlockedDomains");
 
-        const formattedData = domains.domains.map((domain) => ({
+        const formattedData = domains.map((domain) => ({
           name: domain.name,
           hits: domain.hits,
           frequency: domain.frequency

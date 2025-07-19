@@ -69,7 +69,7 @@ export default function RequestTimeline() {
       const [, responseData] = await GetRequest(
         `queryTimestamps?interval=${timelineInterval}`
       );
-      const data = responseData.queries.map((q: Query) => ({
+      const data = responseData.map((q: Query) => ({
         interval: q.start,
         timestamp: new Date(q.start).toISOString(),
         blocked: q.blocked,

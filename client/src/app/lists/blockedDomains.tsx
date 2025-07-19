@@ -40,11 +40,11 @@ export default function BlockedDomainsList({ listName }) {
           `getDomainsForList?list=${listName}`
         );
         if (code !== 200) {
-          toast.warning(`Unable to fetch client details`);
+          toast.warning("Unable to fetch client details");
           return;
         }
 
-        setDomains(response.domains);
+        setDomains(response);
       } catch {
         toast.error(`Could not fetch domains for ${listName}`);
       } finally {

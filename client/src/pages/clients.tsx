@@ -42,8 +42,8 @@ export function Clients() {
         return;
       }
 
-      if (Array.isArray(response.clients)) {
-        const clientsSorted = sortClientsByIP(response.clients);
+      if (Array.isArray(response)) {
+        const clientsSorted = sortClientsByIP(response);
         setClients(clientsSorted);
       } else {
         console.warn("Unexpected response format:", response);

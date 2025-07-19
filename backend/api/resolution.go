@@ -46,7 +46,7 @@ func (api *API) getResolutions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"resolutions": resolutions})
+	c.JSON(http.StatusOK, resolutions)
 }
 
 func (api *API) deleteResolution(c *gin.Context) {
@@ -67,5 +67,5 @@ func (api *API) deleteResolution(c *gin.Context) {
 	}
 
 	api.DNSServer.RemoveCachedDomain(domain)
-	c.JSON(http.StatusOK, gin.H{"deleted": rowsAffected})
+	c.Status(http.StatusOK)
 }

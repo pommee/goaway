@@ -66,19 +66,19 @@ export function Resolution() {
 
   const fetchResolutions = async () => {
     setLoading(true);
-    const [code, response] = await GetRequest(`resolutions`);
+    const [code, response] = await GetRequest("resolutions");
     if (code !== 200) {
-      toast.error(`Unable to fetch resolutions`);
+      toast.error("Unable to fetch resolutions");
       setLoading(false);
       return;
     }
 
-    const listArray: ListEntry[] = Object.entries(
-      response.resolutions || {}
-    ).map(([, details]) => ({
-      domain: details.domain,
-      ip: details.ip
-    }));
+    const listArray: ListEntry[] = Object.entries(response || {}).map(
+      ([, details]) => ({
+        domain: details.domain,
+        ip: details.ip
+      })
+    );
 
     setResolutions(listArray);
     setLoading(false);

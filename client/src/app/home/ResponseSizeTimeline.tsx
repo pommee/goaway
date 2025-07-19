@@ -73,7 +73,7 @@ export default function ResponseSizeTimeline() {
       const [, responseData] = await GetRequest(
         `responseSizeTimestamps?interval=${timelineInterval}`
       );
-      const data = responseData.queries.map((q: ResponseSizeQuery) => ({
+      const data = responseData.map((q: ResponseSizeQuery) => ({
         interval: q.start,
         timestamp: new Date(q.start).toISOString(),
         total: q.total_size_bytes,
