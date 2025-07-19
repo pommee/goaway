@@ -1,3 +1,10 @@
+## [0.60.3](https://github.com/pommee/goaway/compare/v0.60.2...v0.60.3) (2025-07-19)
+
+
+### Bug Fixes
+
+* simplify naming, has an impact on api responses ([25bd28e](https://github.com/pommee/goaway/commit/25bd28e4d3a59e6abf32f4dea4a1ae909b847213))
+
 ## [0.60.2](https://github.com/pommee/goaway/compare/v0.60.1...v0.60.2) (2025-07-19)
 
 
