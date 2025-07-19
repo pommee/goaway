@@ -1,3 +1,11 @@
+## [0.60.2](https://github.com/pommee/goaway/compare/v0.60.1...v0.60.2) (2025-07-19)
+
+
+### Bug Fixes
+
+* bump client dependencies ([b040443](https://github.com/pommee/goaway/commit/b040443789087e7b635d6b7691af18092607c052))
+* bump go to 1.24.5 and bump backend dependencies ([bae75b1](https://github.com/pommee/goaway/commit/bae75b16aa5e12be188e2d573062b9ec4a332690))
+
 ## [0.60.1](https://github.com/pommee/goaway/compare/v0.60.0...v0.60.1) (2025-07-14)
 
 
