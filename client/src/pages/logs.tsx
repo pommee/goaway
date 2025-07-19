@@ -451,10 +451,12 @@ export function Logs() {
                                       ipValue.length > 0
                                     ) {
                                       return (
-                                        <div className="flex items-center gap-1">
-                                          <span>{ipValue[0]?.ip || ""}</span>
+                                        <div className="flex items-center gap-1 min-w-0">
+                                          <span className="truncate flex-1 min-w-0">
+                                            {ipValue[0]?.ip || ""}
+                                          </span>
                                           {ipValue.length > 1 && (
-                                            <span className="text-xs text-stone-400 border-1 ml-1 px-1 rounded border-green-600/60">
+                                            <span className="text-xs text-muted-foreground border-1 px-1 rounded border-green-600/60 flex-shrink-0">
                                               +{ipValue.length - 1}
                                             </span>
                                           )}
