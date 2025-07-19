@@ -11,10 +11,15 @@ import {
   LabelList,
   ResponsiveContainer,
   Tooltip,
+  TooltipContentProps,
   XAxis,
   YAxis
 } from "recharts";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import {
+  NameType,
+  ValueType
+} from "recharts/types/component/DefaultTooltipContent";
 
 type TopBlockedDomains = {
   frequency: number;
@@ -22,25 +27,26 @@ type TopBlockedDomains = {
   name: string;
 };
 
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({
+  active,
+  payload
+}: TooltipContentProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-        <p className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate max-w-xs">
-          {data.name}
-        </p>
+      <div className="bg-accent p-2 rounded-md border">
+        <p className="font-medium mb-1 truncate max-w-xs">{data.name}</p>
         <div className="flex flex-col gap-1 text-sm">
           <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-indigo-500 mr-2" />
-            <span className="text-gray-600 dark:text-gray-300">Hits:</span>
+            <div className="w-3 h-3 rounded-full bg-primary mr-2" />
+            <span className="text-muted-foreground">Hits:</span>
             <span className="ml-1 font-medium">
               {data.hits.toLocaleString()}
             </span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-purple-500 mr-2" />
-            <span className="text-gray-600 dark:text-gray-300">Frequency:</span>
+            <div className="w-3 h-3 rounded-full bg-primary mr-2" />
+            <span className="text-muted-foreground">Frequency:</span>
             <span className="ml-1 font-medium">
               {data.frequency.toFixed(2)}%
             </span>
@@ -90,7 +96,7 @@ export default function FrequencyChartBlockedDomains() {
     }
 
     fetchTopBlockedDomains();
-    const interval = setInterval(fetchTopBlockedDomains, 1000);
+    const interval = setInterval(fetchTopBlockedDomains, 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -160,7 +166,7 @@ export default function FrequencyChartBlockedDomains() {
                 tick={{ fontSize: 12, textAnchor: "end" }}
                 tickLine={false}
                 axisLine={false}
-                width={150}
+                width="auto"
                 tickFormatter={formatDomainName}
                 interval={0}
               />
