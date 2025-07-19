@@ -210,7 +210,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	}
 
 	request.Msg.Answer = []dns.RR{ptr}
-	_ = request.W.WriteMsg(request.Msg)
+	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
 		Timestamp: request.Sent,
@@ -249,7 +249,7 @@ func (s *DNSServer) respondWithHostnameA(request *Request, hostIP string) model.
 	}
 
 	request.Msg.Answer = []dns.RR{response}
-	_ = request.W.WriteMsg(request.Msg)
+	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
 	return s.respondWithType(request, dns.TypeA, hostIP)
 }
@@ -271,7 +271,7 @@ func (s *DNSServer) respondWithHostnamePTR(request *Request, hostname string) mo
 	}
 
 	request.Msg.Answer = []dns.RR{ptr}
-	_ = request.W.WriteMsg(request.Msg)
+	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
 	return s.respondWithType(request, dns.TypePTR, hostname)
 }
@@ -321,7 +321,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		}
 	}
 
-	_ = request.W.WriteMsg(request.Msg)
+	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
 		Domain:            request.Question.Name,
@@ -336,14 +336,14 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	}
 }
 
-func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
-	answers, cached, status := s.Resolve(req)
+func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
+	answers, cached, status := s.Resolve(request)
 
 	resolved := make([]model.ResolvedIP, 0, len(answers))
-	req.Msg.Answer = answers
+	request.Msg.Answer = answers
 
-	if req.Msg.RecursionDesired {
-		req.Msg.RecursionAvailable = true
+	if request.Msg.RecursionDesired {
+		request.Msg.RecursionAvailable = true
 	}
 
 	for _, a := range answers {
@@ -372,33 +372,33 @@ func (s *DNSServer) handleStandardQuery(req *Request) model.RequestLogEntry {
 	}
 
 	if len(answers) == 0 {
-		req.Msg.Rcode = dns.RcodeServerFailure
+		request.Msg.Rcode = dns.RcodeServerFailure
 	}
 
-	req.Msg.Response = true
-	req.Msg.Authoritative = false
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
 
-	err := req.W.WriteMsg(req.Msg)
+	err := request.ResponseWriter.WriteMsg(request.Msg)
 	if err != nil {
-		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", req.Client.IP, req.Msg.Answer, err.Error())
+		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", request.Client.IP, request.Msg.Answer, err.Error())
 		s.Notifications.CreateNotification(&notification.Notification{
 			Severity: notification.SeverityWarning,
 			Category: notification.CategoryDNS,
-			Text:     fmt.Sprintf("Could not write query response. Client: %s, err: %v", req.Client.IP, err.Error()),
+			Text:     fmt.Sprintf("Could not write query response. Client: %s, err: %v", request.Client.IP, err.Error()),
 		})
 	}
 
 	return model.RequestLogEntry{
-		Domain:            req.Question.Name,
+		Domain:            request.Question.Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[req.Question.Qtype],
+		QueryType:         dns.TypeToString[request.Question.Qtype],
 		IP:                resolved,
-		ResponseSizeBytes: req.Msg.Len(),
-		Timestamp:         req.Sent,
-		ResponseTime:      time.Since(req.Sent),
+		ResponseSizeBytes: request.Msg.Len(),
+		Timestamp:         request.Sent,
+		ResponseTime:      time.Since(request.Sent),
 		Cached:            cached,
-		ClientInfo:        req.Client,
-		Protocol:          req.Protocol,
+		ClientInfo:        request.Client,
+		Protocol:          request.Protocol,
 	}
 }
 
@@ -654,7 +654,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 		request.Msg.Question = []dns.Question{request.Question}
 	}
 
-	_ = request.W.WriteMsg(request.Msg)
+	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
 	return model.RequestLogEntry{
 		Domain:            request.Question.Name,

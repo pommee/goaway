@@ -51,13 +51,13 @@ type CachedRecord struct {
 }
 
 type Request struct {
-	W        dns.ResponseWriter
-	Msg      *dns.Msg
-	Question dns.Question
-	Sent     time.Time
-	Client   *model.Client
-	Prefetch bool
-	Protocol model.Protocol
+	ResponseWriter dns.ResponseWriter
+	Msg            *dns.Msg
+	Question       dns.Question
+	Sent           time.Time
+	Client         *model.Client
+	Prefetch       bool
+	Protocol       model.Protocol
 }
 
 type communicationMessage struct {
@@ -111,13 +111,13 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	})
 
 	entry := s.processQuery(&Request{
-		W:        w,
-		Msg:      r,
-		Question: r.Question[0],
-		Sent:     time.Now(),
-		Client:   client,
-		Prefetch: false,
-		Protocol: protocol,
+		ResponseWriter: w,
+		Msg:            r,
+		Question:       r.Question[0],
+		Sent:           time.Now(),
+		Client:         client,
+		Prefetch:       false,
+		Protocol:       protocol,
 	})
 
 	go s.WSCom(communicationMessage{

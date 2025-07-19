@@ -113,20 +113,20 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 
 	msg.Compress = true
 
-	dohWriter := &DoHResponseWriter{
+	responseWriter := &DoHResponseWriter{
 		httpWriter: w,
 		remoteAddr: r.RemoteAddr,
 		DoHPort:    s.Config.DNS.DoHPort,
 	}
 
 	req := &Request{
-		W:        dohWriter,
-		Msg:      msg,
-		Question: msg.Question[0],
-		Sent:     time.Now(),
-		Client:   s.getClientInfo(r.RemoteAddr),
-		Prefetch: false,
-		Protocol: model.DoH,
+		ResponseWriter: responseWriter,
+		Msg:            msg,
+		Question:       msg.Question[0],
+		Sent:           time.Now(),
+		Client:         s.getClientInfo(r.RemoteAddr),
+		Prefetch:       false,
+		Protocol:       model.DoH,
 	}
 
 	logEntry := s.processQuery(req)
@@ -245,3 +245,9 @@ func (w *DoHResponseWriter) TsigStatus() error {
 func (w *DoHResponseWriter) TsigTimersOnly(bool) {}
 
 func (w *DoHResponseWriter) Hijack() {}
+
+func (w *DoHResponseWriter) Header() http.Header { return nil }
+
+func (w *DoHResponseWriter) Network() string { return "tcp" }
+
+func (w *DoHResponseWriter) WriteHeader(statusCode int) {}
