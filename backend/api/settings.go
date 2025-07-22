@@ -95,6 +95,38 @@ func (api *API) exportDatabase(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, fileInfo.Size(), "application/octet-stream", file, nil)
 }
 
+func validateSQLiteFile(filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("cannot open file: %v", err)
+	}
+	go func() {
+		_ = file.Close()
+	}()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("cannot stat file: %v", err)
+	}
+
+	if stat.Size() < 50 {
+		return fmt.Errorf("file too small to be a valid SQLite database")
+	}
+
+	header := make([]byte, 16)
+	_, err = file.Read(header)
+	if err != nil {
+		return fmt.Errorf("cannot read file header: %v", err)
+	}
+
+	expectedHeader := "SQLite format 3\x00"
+	if string(header) != expectedHeader {
+		return fmt.Errorf("invalid SQLite header - file may be corrupted or not a SQLite database")
+	}
+
+	return nil
+}
+
 func (api *API) importDatabase(c *gin.Context) {
 	log.Info("Starting import of database")
 
@@ -124,7 +156,6 @@ func (api *API) importDatabase(c *gin.Context) {
 		return
 	}
 	defer func() {
-		_ = tempFile.Close()
 		_ = os.Remove(tempImport)
 	}()
 
@@ -134,9 +165,26 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
 		return
 	}
-	defer func() {
-		_ = tempFile.Close()
-	}()
+
+	err = tempFile.Sync()
+	if err != nil {
+		log.Error("Failed to sync temporary file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
+		return
+	}
+
+	err = tempFile.Close()
+	if err != nil {
+		log.Error("Failed to close temporary file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
+		return
+	}
+
+	if err := validateSQLiteFile(tempImport); err != nil {
+		log.Error("SQLite file validation failed: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid SQLite database file: " + err.Error()})
+		return
+	}
 
 	testDB, err := sql.Open("sqlite", tempImport)
 	if err != nil {
@@ -149,9 +197,26 @@ func (api *API) importDatabase(c *gin.Context) {
 	if err != nil {
 		_ = testDB.Close()
 		log.Error("Failed to ping uploaded database: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Corrupted or invalid database file"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Corrupted or invalid database file: " + err.Error()})
 		return
 	}
+
+	var integrityResult string
+	err = testDB.QueryRow("PRAGMA integrity_check").Scan(&integrityResult)
+	if err != nil {
+		_ = testDB.Close()
+		log.Error("Failed to run integrity check: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database integrity check failed"})
+		return
+	}
+
+	if integrityResult != "ok" {
+		_ = testDB.Close()
+		log.Error("Database integrity check failed: %s", integrityResult)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database integrity check failed: " + integrityResult})
+		return
+	}
+
 	defer func() {
 		_ = testDB.Close()
 	}()
@@ -195,11 +260,22 @@ func (api *API) importDatabase(c *gin.Context) {
 	err = api.DBManager.Conn.Ping()
 	if err != nil {
 		log.Error("Failed to ping new database: %v", err)
-		defer func() {
-			_ = api.DBManager.Conn.Close()
-		}()
+		_ = api.DBManager.Conn.Close()
 		_ = copyFile(backupPath, currentDBPath)
-		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
+
+		api.DBManager.Conn, err = sql.Open("sqlite", currentDBPath)
+		if err != nil {
+			log.Error("Failed to reconnect to restored database: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Critical error: failed to restore database connection"})
+			return
+		}
+
+		err = api.DBManager.Conn.Ping()
+		if err != nil {
+			log.Error("Failed to ping restored database: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Critical error: restored database is not functional"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Imported database is not functional, restored from backup"})
 		return
 	}

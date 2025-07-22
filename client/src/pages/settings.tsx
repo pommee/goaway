@@ -377,17 +377,19 @@ export function Settings() {
         credentials: "include"
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to import database");
+      if (response.ok) {
+        const result = await response.json();
+        toast.success("Database imported successfully!", {
+          description: result.backup_created
+            ? `Backup created: ${result.backup_created}`
+            : "Import completed"
+        });
+      } else {
+        const result = await response.json();
+        toast.error("Could not import database", {
+          description: result.error
+        });
       }
-
-      const result = await response.json();
-      toast.success("Database imported successfully!", {
-        description: result.backup_created
-          ? `Backup created: ${result.backup_created}`
-          : "Import completed"
-      });
     } catch (error) {
       console.error("Failed to import database:", error);
       toast.error("Could not import database", {
