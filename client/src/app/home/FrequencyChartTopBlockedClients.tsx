@@ -3,8 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GetRequest } from "@/util";
-import { WarningIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { UsersIcon, WarningIcon } from "@phosphor-icons/react";
+import { useEffect, useState, useRef } from "react";
 import {
   Bar,
   BarChart,
@@ -61,16 +61,26 @@ const CustomTooltip = ({
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center h-full w-full py-10">
     <div className="mb-4">
-      <WarningIcon size={36} />
+      <WarningIcon size={36} className="text-destructive" />
     </div>
-    <p className="text-gray-500 dark:text-gray-400 text-center">
-      No client requests have been made
-    </p>
-    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 text-center">
+    <p className="text-muted-foreground text-sm text-center">
       Client data will appear here when requests are detected
     </p>
   </div>
 );
+
+const isNewData = (a: TopBlockedClients[], b: TopBlockedClients[]): boolean => {
+  if (a.length !== b.length) return false;
+
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      item.client === other.client &&
+      item.frequency === other.frequency &&
+      item.requestCount === other.requestCount
+    );
+  });
+};
 
 export default function FrequencyChartTopBlockedClients() {
   const [data, setData] = useState<TopBlockedClients[]>([]);
@@ -78,6 +88,7 @@ export default function FrequencyChartTopBlockedClients() {
   const [sortBy, setSortBy] = useState<"frequency" | "requestCount">(
     "frequency"
   );
+  const previousDataRef = useRef<TopBlockedClients[]>([]);
 
   useEffect(() => {
     async function fetchTopBlockedClients() {
@@ -89,7 +100,11 @@ export default function FrequencyChartTopBlockedClients() {
           frequency: client.frequency
         }));
 
-        setData(formattedData);
+        if (!isNewData(formattedData, previousDataRef.current)) {
+          setData(formattedData);
+          previousDataRef.current = formattedData;
+        }
+
         setIsLoading(false);
       } catch {
         setIsLoading(false);
@@ -116,7 +131,10 @@ export default function FrequencyChartTopBlockedClients() {
     <Card className="h-full overflow-hidden">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-bold">Top Clients</CardTitle>
+          <CardTitle className="flex text-xl font-bold">
+            <UsersIcon className="mt-1 mr-2" />
+            Top Clients
+          </CardTitle>
           <Tabs
             value={sortBy}
             onValueChange={(value) =>

@@ -25,8 +25,10 @@ import {
 import { GetRequest } from "@/util";
 import {
   ArrowsClockwiseIcon,
+  ChartLineIcon,
   MagnifyingGlassMinusIcon,
-  MagnifyingGlassPlusIcon
+  MagnifyingGlassPlusIcon,
+  WarningIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
@@ -173,7 +175,9 @@ export default function RequestTimeline() {
       <Card className="overflow-hidden py-2 gap-0">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
           <div className="grid sm:text-left">
-            <CardTitle className="text-xl">Request Timeline</CardTitle>
+            <CardTitle className="flex text-xl">
+              <ChartLineIcon className="mt-1 mr-2" /> Request Timeline
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               {timelineInterval}-Minute Intervals,{" "}
               {filteredData.length > 0
@@ -408,8 +412,10 @@ export default function RequestTimeline() {
           </>
         ) : (
           <CardContent className="flex h-[300px] items-center justify-center">
-            <div className="text-center">
-              <p className="text-lg font-medium">No data available</p>
+            <div className="flex flex-col items-center justify-center">
+              <div className="mb-4">
+                <WarningIcon size={36} className="text-destructive" />
+              </div>
               <p className="text-sm text-muted-foreground">
                 No requests recorded yet
               </p>

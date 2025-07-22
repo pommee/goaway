@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GetRequest } from "@/util";
-import { WarningIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { NetworkSlashIcon, WarningIcon } from "@phosphor-icons/react";
+import { useEffect, useState, useRef } from "react";
 import {
   Bar,
   BarChart,
@@ -61,34 +61,49 @@ const CustomTooltip = ({
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center h-full w-full py-10">
     <div className="mb-4">
-      <WarningIcon size={36} />
+      <WarningIcon size={36} className="text-destructive" />
     </div>
-    <p className="text-gray-500 dark:text-gray-400 text-center">
-      No domains have been blocked yet
-    </p>
-    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 text-center">
+    <p className="text-muted-foreground text-sm text-center">
       Blocked domains will appear here when detected
     </p>
   </div>
 );
 
+const isNewData = (a: TopBlockedDomains[], b: TopBlockedDomains[]): boolean => {
+  if (a.length !== b.length) return false;
+
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      item.name === other.name &&
+      item.frequency === other.frequency &&
+      item.hits === other.hits
+    );
+  });
+};
+
 export default function FrequencyChartBlockedDomains() {
   const [data, setData] = useState<TopBlockedDomains[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<"frequency" | "hits">("frequency");
+  const previousDataRef = useRef<TopBlockedDomains[]>([]);
 
   useEffect(() => {
     async function fetchTopBlockedDomains() {
       try {
         const [, domains] = await GetRequest("topBlockedDomains");
 
-        const formattedData = domains.map((domain) => ({
+        const formattedData = domains.map((domain: TopBlockedDomains) => ({
           name: domain.name,
           hits: domain.hits,
           frequency: domain.frequency
         }));
 
-        setData(formattedData);
+        if (!isNewData(formattedData, previousDataRef.current)) {
+          setData(formattedData);
+          previousDataRef.current = formattedData;
+        }
+
         setIsLoading(false);
       } catch {
         setIsLoading(false);
@@ -115,8 +130,8 @@ export default function FrequencyChartBlockedDomains() {
     <Card className="h-full overflow-hidden">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-bold">
-            Top Blocked Domains
+          <CardTitle className="flex text-xl font-bold">
+            <NetworkSlashIcon className="mt-1 mr-2" /> Top Blocked Domains
           </CardTitle>
           <Tabs
             value={sortBy}
