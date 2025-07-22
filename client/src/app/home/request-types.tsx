@@ -106,7 +106,7 @@ export default function RequestTypeChart() {
         </div>
       )}
       {chartData.length > 0 ? (
-        <CardContent className="flex-1 pb-0 h-[200px]">
+        <CardContent className="flex-1 pb-0 px-0 h-[200px]">
           {chartType === "radar" ? (
             <ChartContainer config={{}}>
               <RadarChart data={chartData}>

@@ -128,8 +128,8 @@ export default function FrequencyChartTopBlockedClients() {
   };
 
   return (
-    <Card className="h-full overflow-hidden">
-      <CardHeader>
+    <Card className="h-full overflow-hidden gap-0 py-0 pt-2">
+      <CardHeader className="px-4 mb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="flex text-xl font-bold">
             <UsersIcon className="mt-1 mr-2" />

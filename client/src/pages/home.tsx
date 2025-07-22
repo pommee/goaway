@@ -14,10 +14,10 @@ export function Home() {
         <PieChartRequestType />
       </div>
       <div className="flex w-full mb-5 mt-5 gap-4 flex-col md:flex-row">
-        <div className="w-full md:w-1/2 h-[250px]">
+        <div className="w-full md:w-1/2 h-[180px]">
           <FrequencyChartBlockedDomains />
         </div>
-        <div className="w-full md:w-1/2 h-[250px]">
+        <div className="w-full md:w-1/2 h-[180px]">
           <FrequencyChartTopBlockedClients />
         </div>
       </div>
