@@ -35,7 +35,6 @@ func (api *API) updateSettings(c *gin.Context) {
 	}
 
 	api.Config.UpdateSettings(updatedSettings)
-	log.Info("Updated settings!")
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Debug("%s", string(settingsJson))
 

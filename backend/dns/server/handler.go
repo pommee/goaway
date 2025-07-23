@@ -338,12 +338,16 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 
 func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry {
 	answers, cached, status := s.Resolve(request)
-
 	resolved := make([]model.ResolvedIP, 0, len(answers))
-	request.Msg.Answer = answers
 
+	request.Msg.Answer = answers
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
 	if request.Msg.RecursionDesired {
 		request.Msg.RecursionAvailable = true
+	}
+	if len(answers) == 0 {
+		request.Msg.Rcode = dns.RcodeServerFailure
 	}
 
 	for _, a := range answers {
@@ -368,15 +372,28 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				IP:    rr.Target,
 				RType: "CNAME",
 			})
+		case *dns.SVCB:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Target,
+				RType: "SVCB",
+			})
+		case *dns.MX:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Mx,
+				RType: "MX",
+			})
+		case *dns.TXT:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Txt[0],
+				RType: "TXT",
+			})
+		case *dns.NS:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Ns,
+				RType: "NS",
+			})
 		}
 	}
-
-	if len(answers) == 0 {
-		request.Msg.Rcode = dns.RcodeServerFailure
-	}
-
-	request.Msg.Response = true
-	request.Msg.Authoritative = false
 
 	err := request.ResponseWriter.WriteMsg(request.Msg)
 	if err != nil {

@@ -182,7 +182,7 @@ func (config *Config) Save() {
 		log.Error("Could not save settings %v", err)
 	}
 
-	log.Info("Updated settings saved successfully")
+	log.Info("Settings saved successfully")
 }
 
 func (config *Config) UpdateSettings(updatedSettings Config) {
