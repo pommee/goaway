@@ -1,3 +1,10 @@
+## [0.60.4](https://github.com/pommee/goaway/compare/v0.60.3...v0.60.4) (2025-07-23)
+
+
+### Bug Fixes
+
+* reworked settings page and added more options ([552fc87](https://github.com/pommee/goaway/commit/552fc874ed9431de9c4fa90cadfb5c7c96a5e8d2))
+
 ## [0.60.3](https://github.com/pommee/goaway/compare/v0.60.2...v0.60.3) (2025-07-19)
 
 
