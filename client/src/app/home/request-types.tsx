@@ -71,7 +71,7 @@ export default function RequestTypeChart() {
   };
 
   return (
-    <Card className="py-2 min-w-80">
+    <Card className="py-2 min-w-80 gap-2">
       <CardHeader className="mx-2">
         <div className="flex items-center justify-between gap-1 w-full">
           <CardTitle className="text-sm">Request Types</CardTitle>
