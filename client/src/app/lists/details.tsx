@@ -122,8 +122,7 @@ export function CardDetails(
         toast.error(response.error);
         setShowDiff(false);
       }
-    } catch (error) {
-      console.log(error);
+    } catch {
       toast.error("Error deleting list");
       setShowDiff(false);
     }

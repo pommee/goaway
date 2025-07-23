@@ -195,7 +195,7 @@ func startServer(config *settings.Config, ansi bool) {
 		NotifyStartedFunc: notifyReady,
 	}
 
-	startServices(cert, dnsServer, udpServer, tcpServer, config, ansi, dnsReadyChannel, errorChannel)
+	startServices(cert, dnsServer, udpServer, tcpServer, config, dnsReadyChannel, errorChannel)
 }
 
 func startServices(
@@ -204,7 +204,6 @@ func startServices(
 	udpServer *dns.Server,
 	tcpServer *dns.Server,
 	config *settings.Config,
-	ansi bool,
 	dnsReadyChannel chan struct{},
 	errorChannel chan struct{},
 ) {

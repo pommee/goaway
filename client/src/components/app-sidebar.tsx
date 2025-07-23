@@ -39,11 +39,6 @@ const data = {
       url: "/logs",
       icon: NotebookIcon
     },
-    //    {
-    //      title: "Domains",
-    //      url: "/domains",
-    //      icon: Server,
-    //    },
     {
       title: "Lists",
       url: "/blacklist",

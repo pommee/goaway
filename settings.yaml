@@ -8,8 +8,11 @@ dns:
   # The server will listen on both UDP and TCP on this port.
   port: 53
 
-  # Address used for the DNS-over-TLS (DoT) server to bind to.
+  # Port used for the DoT (DNS-over-TLS) server to bind to.
   dotPort: 853
+
+  # Port used for the DoH (DNS-over-HTTPS) server to bind to.
+  dohPort: 443
 
   # TLS certificate and key file for DNS-over-TLS (DoT) & DNS-over-HTTPS servers.
   # If empty, the servers will not be started.
