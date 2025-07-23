@@ -181,8 +181,6 @@ func (config *Config) Save() {
 	if err := os.WriteFile("./config/settings.yaml", data, 0644); err != nil {
 		log.Error("Could not save settings %v", err)
 	}
-
-	log.Info("Settings saved successfully")
 }
 
 func (config *Config) UpdateSettings(updatedSettings Config) {

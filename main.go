@@ -274,6 +274,10 @@ func startServices(
 
 	prefetcher := prefetch.New(dnsServer)
 
+	if err := dnsServer.PopulateHostnameCache(); err != nil {
+		log.Warning("Unable to populate hostname cache: %s", err)
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

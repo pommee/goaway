@@ -32,6 +32,7 @@ type DNSServer struct {
 	lastLogTime         time.Time
 	Cache               sync.Map
 	clientCache         sync.Map
+	hostnameCache       sync.Map
 	WebServer           *gin.Engine
 	logEntryChannel     chan model.RequestLogEntry
 	WSQueries           *websocket.Conn
@@ -144,6 +145,36 @@ func (s *DNSServer) detectProtocol(w dns.ResponseWriter) model.Protocol {
 	}
 
 	return model.UDP
+}
+
+func (s *DNSServer) PopulateHostnameCache() (err error) {
+	rows, err := s.DBManager.Conn.Query(`
+		SELECT DISTINCT client_ip, client_name
+		FROM request_log
+		WHERE client_name IS NOT NULL AND client_name != 'unknown'
+	`)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
+
+	for rows.Next() {
+		var ip, name string
+		if scanErr := rows.Scan(&ip, &name); scanErr != nil {
+			return scanErr
+		}
+
+		if _, exists := s.hostnameCache.Load(name); !exists {
+			s.hostnameCache.Store(name, ip)
+		}
+	}
+
+	return rows.Err()
 }
 
 func (s *DNSServer) WSCom(message communicationMessage) {

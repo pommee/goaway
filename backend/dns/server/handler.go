@@ -27,22 +27,37 @@ func trimDomainDot(name string) string {
 	return name
 }
 
+func isPTRQuery(request *Request, domainName string) bool {
+	return request.Question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.")
+}
+
+func (s *DNSServer) checkAndUpdatePauseStatus() {
+	if s.Config.DNS.Status.Paused &&
+		time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
+		s.Config.DNS.Status.Paused = false
+	}
+}
+
+func (s *DNSServer) shouldBlockQuery(domainName, fullName string) bool {
+	return !s.Config.DNS.Status.Paused &&
+		s.Blacklist.IsBlacklisted(domainName) &&
+		!s.Whitelist.IsWhitelisted(fullName)
+}
+
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := trimDomainDot(request.Question.Name)
 
-	if request.Question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.") {
+	if isPTRQuery(request, domainName) {
 		return s.handlePTRQuery(request)
 	}
 
-	if hostIP, found := s.reverseHostnameLookup(request.Question.Name); found {
-		return s.respondWithHostnameA(request, hostIP)
+	if ip, found := s.reverseHostnameLookup(request.Question.Name); found {
+		return s.respondWithHostnameA(request, ip)
 	}
 
-	if s.Config.DNS.Status.Paused && time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
-		s.Config.DNS.Status.Paused = false
-	}
+	s.checkAndUpdatePauseStatus()
 
-	if !s.Config.DNS.Status.Paused && s.Blacklist.IsBlacklisted(domainName) && !s.Whitelist.IsWhitelisted(request.Question.Name) {
+	if s.shouldBlockQuery(domainName, request.Question.Name) {
 		return s.handleBlacklisted(request)
 	}
 
@@ -63,29 +78,16 @@ func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
 	database.SaveMacEntry(s.DBManager.Conn, clientIP, mac, vendor)
 }
 
-func (s *DNSServer) reverseHostnameLookup(hostname string) (string, bool) {
-	var (
-		trimmedHost = strings.TrimSuffix(hostname, ".")
-		resultIP    string
-		found       bool
-	)
+func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, bool) {
+	trimmed := strings.TrimSuffix(requestedHostname, ".")
 
-	s.clientCache.Range(func(_, value any) bool {
-		client, ok := value.(*model.Client)
-		if !ok {
-			return true
+	if value, ok := s.hostnameCache.Load(trimmed); ok {
+		if ip, ok := value.(string); ok {
+			return ip, true
 		}
+	}
 
-		if strings.TrimSuffix(client.Name, ".") == trimmedHost {
-			resultIP = client.IP
-			found = true
-			return false
-		}
-
-		return true
-	})
-
-	return resultIP, found
+	return "", false
 }
 
 func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
@@ -131,6 +133,11 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 
 	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
 	s.clientCache.Store(clientIP, &client)
+
+	if client.Name != "unknown" {
+		s.hostnameCache.Store(client.Name, client.IP)
+	}
+
 	return &client
 }
 
