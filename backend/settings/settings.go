@@ -181,16 +181,33 @@ func (config *Config) Save() {
 	if err := os.WriteFile("./config/settings.yaml", data, 0644); err != nil {
 		log.Error("Could not save settings %v", err)
 	}
+
+	log.Info("Updated settings saved successfully")
 }
 
 func (config *Config) UpdateSettings(updatedSettings Config) {
+	config.API.Port = updatedSettings.API.Port
+	config.API.Authentication = updatedSettings.API.Authentication
+
+	config.DNS.Address = updatedSettings.DNS.Address
+	config.DNS.Port = updatedSettings.DNS.Port
+	config.DNS.DoTPort = updatedSettings.DNS.DoTPort
+	config.DNS.DoHPort = updatedSettings.DNS.DoHPort
+	config.DNS.UDPSize = updatedSettings.DNS.UDPSize
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
+	config.DNS.TLSCertFile = updatedSettings.DNS.TLSCertFile
+	config.DNS.TLSKeyFile = updatedSettings.DNS.TLSKeyFile
+
 	config.LogLevel = updatedSettings.LogLevel
 	config.StatisticsRetention = updatedSettings.StatisticsRetention
 	config.LoggingEnabled = updatedSettings.LoggingEnabled
 
+	config.ScheduledBlacklistUpdates = updatedSettings.ScheduledBlacklistUpdates
+	config.InAppUpdate = updatedSettings.InAppUpdate
+
 	log.ToggleLogging(config.LoggingEnabled)
 	log.SetLevel(config.LogLevel)
+
 	config.Save()
 }
 

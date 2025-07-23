@@ -111,7 +111,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:w-2/3">
+      <DialogContent className="sm:w-2/3 max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex">
             <KeyIcon className="mt-1 mr-2" />
@@ -120,13 +120,10 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
         </DialogHeader>
         <DialogDescription className="text-sm leading-relaxed">
           <span>
-            <span>
-              API keys provide a way to establish a long-lived authenticated
-              session with the server. After generating an API key, include it
-              in your requests by setting the
-            </span>
-            <span className="bg-accent p-0.5 rounded-sm"> api-key </span>
-            <span>header to the key's value.</span>
+            API keys provide a way to establish a long-lived authenticated
+            session with the server. After generating an API key, include it in
+            your requests by setting the <b> api-key </b> header to the key's
+            value.
           </span>
         </DialogDescription>
         <div className="space-y-6 py-4">

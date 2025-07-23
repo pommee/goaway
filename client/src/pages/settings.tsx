@@ -1,9 +1,23 @@
 "use client";
 
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { APIKeyDialog } from "@/components/APIKeyDialog";
-import { Combobox } from "@/components/combobox";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { GetRequest, PostRequest, PutRequest, getApiBaseUrl } from "@/util";
+import {
+  CertificateIcon,
+  CircuitryIcon,
+  DatabaseIcon,
+  DownloadIcon,
+  KeyIcon,
+  LockIcon,
+  ShuffleIcon,
+  SpinnerIcon,
+  TextAlignCenterIcon,
+  UploadIcon,
+  WarningIcon
+} from "@phosphor-icons/react";
 import {
   Dialog,
   DialogContent,
@@ -13,154 +27,87 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/combobox";
+import { Button } from "@/components/ui/button";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Root } from "@radix-ui/react-slot";
 import { Switch } from "@/components/ui/switch";
-import { getApiBaseUrl, GetRequest, PostRequest, PutRequest } from "@/util";
-import {
-  DownloadIcon,
-  SpinnerIcon,
-  UploadIcon,
-  WarningIcon
-} from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
-const SETTINGS_SECTIONS = [
-  {
-    title: "Security",
-    description: "Configure security settings",
-    settings: []
-  },
-  {
-    title: "Logging",
-    description: "Configure logging preferences",
-    settings: [
-      {
-        label: "Log Level",
-        key: "logLevel",
-        explanation: "Set the verbosity of system logs",
-        options: ["Debug", "Info", "Warning", "Error"],
-        default: "Info",
-        widgetType: Combobox
-      },
-      {
-        label: "Statistics Retention",
-        key: "statisticsRetention",
-        explanation: "Days to retain system statistics",
-        options: [1, 7, 30, 90],
-        default: 7,
-        widgetType: Combobox
-      },
-      {
-        label: "Logging",
-        key: "logging",
-        explanation: "Toggle logging",
-        options: [true, false],
-        default: true,
-        widgetType: Switch
-      }
-    ]
-  },
-  {
-    title: "DNS Server",
-    description: "Tune DNS server performance and behavior",
-    settings: [
-      {
-        label: "Cache TTL",
-        key: "cacheTTL",
-        explanation: "Domain resolution cache duration (seconds)",
-        options: [30, 60, 120, 300],
-        default: 60,
-        widgetType: Input
-      },
-      {
-        label: "TLS Certificate",
-        key: "tlsCertFile",
-        explanation: "Path to TLS certificate for DNS over TLS",
-        options: [],
-        default: "",
-        widgetType: Input
-      },
-      {
-        label: "TLS Key",
-        key: "tlsKeyFile",
-        explanation: "Path to TLS key for DNS over TLS",
-        options: [],
-        default: "",
-        widgetType: Input
-      }
-    ]
-  },
-  {
-    title: "Database",
-    description: "Database settings",
-    settings: []
-  }
-];
-
-function parseLogLevel(level: number | string) {
-  if (typeof level === "number") {
-    switch (level) {
-      case 0:
-        return "Debug";
-      case 1:
-        return "Info";
-      case 2:
-        return "Warning";
-      case 3:
-        return "Error";
-    }
-  } else if (typeof level === "string") {
-    switch (level) {
-      case "Debug":
-        return 0;
-      case "Info":
-        return 1;
-      case "Warning":
-        return 2;
-      case "Error":
-        return 3;
-    }
-  }
-}
+const parseLogLevel = (level: number | string) => {
+  const levels = ["Debug", "Info", "Warning", "Error"];
+  return typeof level === "number" ? levels[level] : levels.indexOf(level);
+};
 
 export function Settings() {
-  const [preferences, setPreferences] = useState<Root>();
-  const [isChanged, setIsChanged] = useState(false);
-  const [toastShown, setToastShown] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
+  const [preferences, setPreferences] = useState<Root>({
+    dns: {
+      address: "0.0.0.0",
+      port: 53,
+      dotPort: 853,
+      dohPort: 443,
+      cacheTTL: 60,
+      preferredUpstream: "8.8.8.8:53",
+      upstreamDNS: [],
+      udpSize: 512,
+      status: {
+        paused: false,
+        pausedAt: "",
+        pauseTime: 0
+      },
+      tlsCertFile: "",
+      tlsKeyFile: ""
+    },
+    api: {
+      port: 8080,
+      authentication: true
+    },
+    scheduledBlacklistUpdates: false,
+    statisticsRetention: 7,
+    loggingEnabled: true,
+    logLevel: 1,
+    inAppUpdate: false
   });
-  const [passwordError, setPasswordError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const originalPreferencesRef = useRef<string>("");
-  const toastIdRef = useRef<string | number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const originalPrefs = useRef("");
+  const latestPreferences = useRef(preferences);
+  const [isChanged, setIsChanged] = useState(false);
+  const [modals, setModals] = useState({
+    password: false,
+    apiKey: false,
+    importConfirm: false
+  });
+  const [file, setFile] = useState<File | null>(null);
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
+  const [loading, setLoading] = useState({
+    main: true,
+    import: false,
+    export: false
+  });
+  const [error, setError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [unsavedToastId, setUnsavedToastId] = useState<string | number | null>(
+    null
+  );
 
   const fetchSettings = async () => {
-    setIsLoading(true);
     try {
       const [status, response] = await GetRequest("settings");
-      if (status === 200 && response) {
-        const settings: Root = response;
-        settings.logLevel = parseLogLevel(settings.logLevel);
+      if (status === 200) {
+        const settings = {
+          ...response,
+          logLevel: parseLogLevel(response.logLevel)
+        };
         setPreferences(settings);
-        originalPreferencesRef.current = JSON.stringify(settings);
+        originalPrefs.current = JSON.stringify(settings);
       }
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      toast.error("Could not load settings");
+    } catch {
+      toast.error("Failed to load settings");
     } finally {
-      setIsLoading(false);
+      setLoading((prev) => ({ ...prev, main: false }));
     }
   };
 
@@ -168,611 +115,513 @@ export function Settings() {
     fetchSettings();
   }, []);
 
-  const handleSelect = (key: string, value: string | number | boolean) => {
+  const handleSettingChange = (
+    key: string,
+    value: number | string | boolean
+  ) => {
     setPreferences((prev) => {
-      if (key === "cacheTTL") {
-        return {
-          ...prev,
-          dns: {
-            ...prev.dns,
-            cacheTTL: typeof value === "number" ? value : Number(value)
-          }
-        };
-      }
+      let newPrefs = { ...prev };
 
-      const newPreferences = {
-        ...prev,
-        [key]: typeof prev[key] === "number" ? Number(value) : value
+      const keyUpdaters = {
+        apiPort: () => ({ ...prev, api: { ...prev.api, port: Number(value) } }),
+        authentication: () => ({
+          ...prev,
+          api: { ...prev.api, authentication: value }
+        }),
+
+        dnsAddress: () => ({ ...prev, dns: { ...prev.dns, address: value } }),
+        dnsPort: () => ({ ...prev, dns: { ...prev.dns, port: Number(value) } }),
+        dotPort: () => ({
+          ...prev,
+          dns: { ...prev.dns, dotPort: Number(value) }
+        }),
+        dohPort: () => ({
+          ...prev,
+          dns: { ...prev.dns, dohPort: Number(value) }
+        }),
+        cacheTTL: () => ({
+          ...prev,
+          dns: { ...prev.dns, cacheTTL: Number(value) }
+        }),
+        udpSize: () => ({
+          ...prev,
+          dns: { ...prev.dns, udpSize: Number(value) }
+        }),
+        tlsCertFile: () => ({
+          ...prev,
+          dns: { ...prev.dns, tlsCertFile: value }
+        }),
+        tlsKeyFile: () => ({
+          ...prev,
+          dns: { ...prev.dns, tlsKeyFile: value }
+        }),
+
+        logging: () => ({ ...prev, loggingEnabled: value }),
+
+        default: () => ({ ...prev, [key]: value })
       };
 
-      const currentChecksum = JSON.stringify(newPreferences);
-      const hasChanged = currentChecksum !== originalPreferencesRef.current;
-
-      setIsChanged(hasChanged);
-      return newPreferences;
+      newPrefs = keyUpdaters[key] ? keyUpdaters[key]() : keyUpdaters.default();
+      return newPrefs;
     });
   };
 
-  const handleSaveChanges = async () => {
-    try {
-      const settings = { ...preferences };
-      settings.logLevel = parseLogLevel(settings.logLevel);
-      await PostRequest("settings", settings);
-
-      originalPreferencesRef.current = JSON.stringify(settings);
-
-      setIsChanged(false);
-      setToastShown(false);
-
-      if (toastIdRef.current) {
-        toast.dismiss(toastIdRef.current);
-        toastIdRef.current = null;
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const hasChanged = JSON.stringify(preferences) !== originalPrefs.current;
+      if (hasChanged !== isChanged) {
+        setIsChanged(hasChanged);
       }
+    }, 100);
 
-      setTimeout(() => {
-        toast.success("Settings updated successfully");
-      }, 100);
-    } catch (error) {
-      console.error("Error saving settings", error);
+    return () => clearTimeout(timeoutId);
+  }, [preferences, isChanged]);
+
+  useEffect(() => {
+    latestPreferences.current = preferences;
+  }, [preferences]);
+
+  const saveSettingsCallback = useCallback(async () => {
+    try {
+      const currentPrefs = latestPreferences.current;
+      await PostRequest("settings", {
+        ...currentPrefs,
+        logLevel: parseLogLevel(currentPrefs.logLevel)
+      });
+      originalPrefs.current = JSON.stringify(currentPrefs);
+      setIsChanged(false);
+      if (unsavedToastId) {
+        toast.dismiss(unsavedToastId);
+        setUnsavedToastId(null);
+      }
+      toast.success("Settings saved");
+    } catch {
       toast.error("Failed to save settings");
     }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.name.toLowerCase().endsWith(".db")) {
-        toast.error("Please select a valid database file (*.db)");
-        return;
-      }
-      setSelectedFile(file);
-      setIsImportConfirmOpen(true);
-    }
-  };
-
-  const handleImportConfirm = async () => {
-    if (!selectedFile) return;
-
-    setIsImporting(true);
-    setIsImportConfirmOpen(false);
-
-    await importDatabase(selectedFile);
-
-    setIsImporting(false);
-    setSelectedFile(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleImportCancel = () => {
-    setIsImportConfirmOpen(false);
-    setSelectedFile(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswordData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
-
-    setPasswordError("");
-  };
-
-  const handlePasswordSubmit = async () => {
-    setPasswordError("");
-
-    if (!passwordData.currentPassword) {
-      setPasswordError("Current password is required");
-      return;
-    }
-
-    if (!passwordData.newPassword) {
-      setPasswordError("New password is required");
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError("New passwords do not match");
-      return;
-    }
-
-    try {
-      const [status, response] = await PutRequest("password", {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
-
-      if (status === 200) {
-        toast.success("Password updated successfully!");
-        setIsPasswordModalOpen(false);
-
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        });
-
-        navigate("/login");
-      } else if (status === 400) {
-        setPasswordError(response);
-      } else {
-        setPasswordError("An unexpected error occurred.");
-      }
-    } catch {
-      setPasswordError("Failed to update password. Please try again.");
-    }
-  };
+  }, [unsavedToastId]);
 
   useEffect(() => {
-    if (!isChanged) {
-      setToastShown(false);
-    }
-  }, [isChanged]);
-
-  useEffect(() => {
-    if (isChanged && !toastShown) {
-      const id = toast("Unsaved Changes", {
-        description: "You have pending configuration updates",
-        action: {
-          label: "Save Now",
-          onClick: handleSaveChanges
-        },
-        duration: Infinity,
-        id: "unsaved-changes-toast"
+    if (isChanged && !unsavedToastId) {
+      const toastId = toast.info("Unsaved Changes", {
+        description: "You have pending changes",
+        action: { label: "Save", onClick: saveSettingsCallback },
+        closeButton: true,
+        duration: Infinity
       });
-      toastIdRef.current = id;
-      setToastShown(true);
-    } else if (!isChanged && toastShown) {
-      if (toastIdRef.current) {
-        toast.dismiss(toastIdRef.current);
-        toastIdRef.current = null;
-      }
-      setToastShown(false);
+      setUnsavedToastId(toastId);
+    } else if (!isChanged && unsavedToastId) {
+      toast.dismiss(unsavedToastId);
+      setUnsavedToastId(null);
     }
-  }, [isChanged, toastShown]);
+  }, [isChanged, unsavedToastId, saveSettingsCallback]);
 
-  const exportDatabase = async () => {
-    setIsExporting(true);
-    try {
-      const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "database.db";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      toast.info("Exported!", { description: "Database has been exported" });
-    } catch (error) {
-      console.error("Failed to export database:", error);
-      toast.error("Could not export database");
-    } finally {
-      setIsExporting(false);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file?.name.endsWith(".db")) {
+      setFile(file);
+      setModals((prev) => ({ ...prev, importConfirm: true }));
+    } else {
+      toast.error("Please select a .db file");
     }
   };
 
-  const importDatabase = async (file: File) => {
+  const importDb = async () => {
+    if (!file) return;
+    setLoading((prev) => ({ ...prev, import: true }));
+
     try {
       const formData = new FormData();
       formData.append("database", file);
-
       const response = await fetch(`${getApiBaseUrl()}/api/importDatabase`, {
         method: "POST",
-        body: formData,
-        credentials: "include"
+        body: formData
       });
 
       if (response.ok) {
         const result = await response.json();
-        toast.success("Database imported successfully!", {
+        toast.success("Database imported", {
           description: result.backup_created
-            ? `Backup created: ${result.backup_created}`
-            : "Import completed"
+            ? `Backup: ${result.backup_created}`
+            : ""
         });
       } else {
-        const result = await response.json();
-        toast.error("Could not import database", {
-          description: result.error
-        });
+        throw new Error(await response.text());
       }
-    } catch (error) {
-      console.error("Failed to import database:", error);
-      toast.error("Could not import database", {
-        description:
-          error instanceof Error ? error.message : "Unknown error occurred"
+    } catch (err) {
+      toast.error("Import failed", {
+        description: err instanceof Error ? err.message : ""
       });
+    } finally {
+      setLoading((prev) => ({ ...prev, import: false }));
+      setModals((prev) => ({ ...prev, importConfirm: false }));
+      setFile(null);
+      if (fileInput.current) fileInput.current.value = "";
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex justify-center items-center">
-        <div className="text-center">Loading settings...</div>
-      </div>
-    );
-  }
+  const exportDb = async () => {
+    setLoading((prev) => ({ ...prev, export: true }));
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "database.db";
+      a.click();
+      toast.success("Database exported");
+    } catch {
+      toast.error("Export failed");
+    } finally {
+      setLoading((prev) => ({ ...prev, export: false }));
+    }
+  };
+
+  const updatePassword = async () => {
+    if (!passwords.current) return setError("Current password required");
+    if (!passwords.new) return setError("New password required");
+    if (passwords.new !== passwords.confirm)
+      return setError("Passwords don't match");
+
+    try {
+      const [status, response] = await PutRequest("password", {
+        currentPassword: passwords.current,
+        newPassword: passwords.new
+      });
+
+      if (status === 200) {
+        toast.success("Password updated");
+        setModals((prev) => ({ ...prev, password: false }));
+        navigate("/login");
+      } else {
+        setError(response || "Error updating password");
+      }
+    } catch {
+      setError("Failed to update password");
+    }
+  };
+
+  if (loading.main)
+    return <div className="container mx-auto py-8 text-center">Loading...</div>;
 
   return (
-    <>
-      <div
-        className="container mx-auto space-y-4
-        w-full
-        xl:w-1/2"
-      >
-        {SETTINGS_SECTIONS.map(({ title, description, settings }) => (
-          <Card
-            key={title}
-            className="shadow-sm rounded-xl p-4 md:p-6 space-y-4"
-          >
-            <div className="border-b pb-3 mb-4">
+    <div className="container mx-auto space-y-4 xl:w-1/2">
+      <p className="text-sm text-muted-foreground">
+        Settings marked with an asterisk (*) require a full restart to take
+        effect.
+      </p>
+      {SETTINGS_SECTIONS.map(({ title, description, icon, settings }) => (
+        <Card key={title} className="p-4 gap-2">
+          <CardTitle className="border-b-1 pb-1">
+            <div className="flex">
+              <div className="mt-1 p-1 mr-2 rounded-lg bg-primary/10 text-primary">
+                {icon}
+              </div>
               <h2 className="text-xl font-semibold">{title}</h2>
-              <p className="text-sm text-muted-foreground">{description}</p>
             </div>
+            <p className="mt-1 text-sm font-normal text-muted-foreground">
+              {description}
+            </p>
+          </CardTitle>
 
-            <div className="space-y-4">
-              {title === "Security" && (
-                <div>
-                  <div
-                    key="changepassword"
-                    className="flex flex-col md:flex-row
-                  justify-between mb-4
-                  items-start md:items-center
-                  space-y-2 md:space-y-0
-                  md:space-x-4"
-                  >
-                    <div className="flex-grow">
-                      <h3 className="text-base font-medium">Change password</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Change password used to authenticate with the dashboard
-                      </p>
-                    </div>
+          <div className="space-y-4">
+            {title === "Security" && (
+              <>
+                <SettingRow
+                  title="Change password"
+                  description="Update dashboard login password."
+                  action={
                     <Button
-                      onClick={() => setIsPasswordModalOpen(true)}
                       variant="outline"
-                      className="w-full md:w-auto"
+                      onClick={() =>
+                        setModals((prev) => ({ ...prev, password: true }))
+                      }
                     >
                       Change Password
                     </Button>
-                  </div>
-
-                  <div
-                    key="apikey"
-                    className="flex flex-col md:flex-row
-                    justify-between
-                    items-start md:items-center
-                    space-y-2 md:space-y-0
-                    md:space-x-4"
-                  >
-                    <div className="flex-grow">
-                      <h3 className="text-base font-medium">API Keys</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Manage API keys for programmatic access to the system
-                      </p>
-                    </div>
+                  }
+                />
+                <SettingRow
+                  title="API Keys"
+                  description="Manage programmatic access keys."
+                  action={
                     <Button
-                      onClick={() => setIsApiKeyModalOpen(true)}
                       variant="outline"
-                      className="w-full md:w-auto"
+                      onClick={() =>
+                        setModals((prev) => ({ ...prev, apiKey: true }))
+                      }
                     >
                       Manage Keys
                     </Button>
-                  </div>
-                </div>
-              )}
-              {title === "Database" && (
-                <div className="space-y-4">
-                  <div
-                    key="exportdatabase"
-                    className="flex flex-col md:flex-row
-                    justify-between
-                    items-start md:items-center
-                    space-y-2 md:space-y-0
-                    md:space-x-4"
-                  >
-                    <div className="flex-grow">
-                      <h3 className="text-base font-medium">Export database</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Will download the database file.
-                      </p>
-                    </div>
+                  }
+                />
+              </>
+            )}
+
+            {title === "Database" && (
+              <>
+                <SettingRow
+                  title="Export database"
+                  description="Download current database file"
+                  action={
                     <Button
-                      onClick={() => exportDatabase()}
                       variant="outline"
-                      className="w-full md:w-auto"
-                      disabled={isImporting || isExporting}
+                      onClick={exportDb}
+                      disabled={loading.import || loading.export}
                     >
-                      {isExporting ? (
+                      {loading.export ? (
                         <>
-                          <SpinnerIcon className="w-4 h-4 mr-2 animate-spin" />
+                          <SpinnerIcon className="animate-spin mr-2" />{" "}
                           Exporting...
                         </>
                       ) : (
                         <>
-                          <UploadIcon className="w-4 h-4 mr-2" />
-                          Export
+                          <UploadIcon className="mr-2" /> Export
                         </>
                       )}
                     </Button>
-                  </div>
-
-                  <div
-                    key="importdatabase"
-                    className="flex flex-col md:flex-row
-                    justify-between
-                    items-start md:items-center
-                    space-y-2 md:space-y-0
-                    md:space-x-4"
-                  >
-                    <div className="flex-grow">
-                      <h3 className="text-base font-medium">Import database</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Replace current database with uploaded file. A backup
-                        will be created automatically.
-                      </p>
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                  }
+                />
+                <SettingRow
+                  title="Import database"
+                  description="Replace current database (backup created)"
+                  action={
+                    <>
                       <input
-                        ref={fileInputRef}
+                        ref={fileInput}
                         type="file"
                         accept=".db"
-                        onChange={handleFileSelect}
+                        onChange={handleFileUpload}
                         className="hidden"
-                        id="database-import"
                       />
                       <Button
-                        onClick={() => fileInputRef.current?.click()}
                         variant="outline"
-                        className="w-full md:w-auto"
-                        disabled={isImporting || isExporting}
+                        onClick={() => fileInput.current?.click()}
+                        disabled={loading.import || loading.export}
                       >
-                        {isImporting ? (
+                        {loading.import ? (
                           <>
-                            <SpinnerIcon className="w-4 h-4 mr-2 animate-spin" />
+                            <SpinnerIcon className="animate-spin mr-2" />{" "}
                             Importing...
                           </>
                         ) : (
                           <>
-                            <DownloadIcon className="w-4 h-4 mr-2" />
-                            Import
+                            <DownloadIcon className="mr-2" /> Import
                           </>
                         )}
                       </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {settings.map(
-                ({ label, key, explanation, options, widgetType: Widget }) => {
-                  let currentValue =
-                    key === "cacheTTL"
-                      ? preferences.dns?.cacheTTL
-                      : preferences[key];
-
-                  switch (key) {
-                    case "logging":
-                      currentValue = preferences.loggingEnabled;
-                      break;
-                    case "tlsCertFile":
-                      currentValue = preferences.dns?.tlsCertFile;
-                      break;
-                    case "tlsKeyFile":
-                      currentValue = preferences.dns?.tlsKeyFile;
-                      break;
+                    </>
                   }
-
-                  return (
-                    <div
-                      key={key}
-                      className="flex flex-col md:flex-row
-                        justify-between
-                        items-start md:items-center
-                        space-y-2 md:space-y-0
-                        md:space-x-4"
-                    >
-                      <div className="flex-grow">
-                        <h3 className="text-base font-medium">{label}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {explanation}
-                        </p>
-                      </div>
-
-                      <div className="flex-shrink-0 w-full md:w-auto">
-                        <Widget
-                          {...(Widget === Combobox
-                            ? {
-                                value: currentValue?.toString() || "",
-                                onChange: (value: string) =>
-                                  handleSelect(key, value),
-                                options,
-                                className: "w-full md:w-40"
-                              }
-                            : Widget === Switch
-                              ? {
-                                  checked: Boolean(currentValue),
-                                  onCheckedChange: (value: boolean) =>
-                                    handleSelect(
-                                      key === "logging"
-                                        ? "loggingEnabled"
-                                        : key,
-                                      value
-                                    )
-                                }
-                              : Widget === Input
-                                ? {
-                                    value: currentValue?.toString() || "",
-                                    onChange: (
-                                      e: React.ChangeEvent<HTMLInputElement>
-                                    ) => handleSelect(key, e.target.value),
-                                    placeholder:
-                                      key === "tlsCertFile"
-                                        ? "No cert"
-                                        : key === "tlsKeyFile"
-                                          ? "No key"
-                                          : `${label.toLowerCase()}`,
-                                    className: "w-full md:w-40",
-                                    disabled:
-                                      key === "tlsCertFile" ||
-                                      key === "tlsKeyFile"
-                                  }
-                                : {})}
-                        />
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Enter your current password and a new password below.
-            </DialogDescription>
-            <p className="bg-accent p-2 rounded-sm">
-              You will be logged out once the password has been updated.
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {passwordError && (
-              <div className="flex bg-stone-900 border-1 border-red-700 text-red-700 px-4 py-2 rounded-md text-sm">
-                <WarningIcon className="mt-1 mr-2" />
-                {passwordError}
-              </div>
+                />
+              </>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="currentPassword" className="text-sm font-medium">
-                Current Password
-              </label>
-              <Input
-                id="currentPassword"
-                name="currentPassword"
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-                placeholder="Enter your current password"
-              />
-            </div>
+            {settings.map(
+              ({ label, key, explanation, options, widgetType: Widget }) => {
+                const keyMap = {
+                  apiPort: preferences?.api.port,
+                  authentication: preferences?.api.authentication,
 
-            <div className="space-y-2">
-              <label htmlFor="newPassword" className="text-sm font-medium">
-                New Password
-              </label>
-              <Input
-                id="newPassword"
-                name="newPassword"
-                type="password"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                placeholder="Enter your new password"
-              />
-            </div>
+                  dnsAddress: preferences?.dns.address,
+                  dnsPort: preferences?.dns.port,
+                  dotPort: preferences?.dns.dotPort,
+                  dohPort: preferences?.dns.dohPort,
+                  cacheTTL: preferences?.dns.cacheTTL,
+                  udpSize: preferences?.dns.udpSize,
+                  tlsCertFile: preferences?.dns.tlsCertFile,
+                  tlsKeyFile: preferences?.dns.tlsKeyFile,
 
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm New Password
-              </label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                placeholder="Confirm your new password"
-              />
-            </div>
+                  logging: preferences?.loggingEnabled
+                };
+
+                const value = keyMap[key] ?? preferences[key];
+
+                return (
+                  <SettingRow
+                    key={key}
+                    title={label}
+                    description={explanation}
+                    action={
+                      <Widget
+                        {...(Widget === Combobox
+                          ? {
+                              value: String(value),
+                              onChange: (v: string) =>
+                                handleSettingChange(key, v),
+                              options,
+                              className: "w-40"
+                            }
+                          : Widget === Switch
+                            ? {
+                                checked: Boolean(value),
+                                onCheckedChange: (v: boolean) =>
+                                  handleSettingChange(
+                                    key === "logging" ? "loggingEnabled" : key,
+                                    v
+                                  )
+                              }
+                            : {
+                                value: String(value),
+                                onChange: (
+                                  e: React.ChangeEvent<HTMLInputElement>
+                                ) => handleSettingChange(key, e.target.value),
+                                placeholder: label,
+                                className: "w-40"
+                              })}
+                      />
+                    }
+                  />
+                );
+              }
+            )}
           </div>
+        </Card>
+      ))}
 
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsPasswordModalOpen(false);
-                setPasswordError("");
-                setPasswordData({
-                  currentPassword: "",
-                  newPassword: "",
-                  confirmPassword: ""
-                });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handlePasswordSubmit}>Update Password</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PasswordModal
+        open={modals.password}
+        onClose={() => setModals((prev) => ({ ...prev, password: false }))}
+        onSubmit={updatePassword}
+        passwords={passwords}
+        setPasswords={setPasswords}
+        error={error}
+        setError={setError}
+      />
 
-      <Dialog open={isImportConfirmOpen} onOpenChange={setIsImportConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Database Import</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to import{" "}
-              <strong>{selectedFile?.name}</strong>?<br /> This{" "}
-              <strong>will replace</strong> your current database.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <div className="flex bg-orange-800/80 border border-orange-600/80 text-orange-200/80 px-4 py-2 text-sm">
-              <WarningIcon className="mt-0.5 mr-2 flex-shrink-0" />
-              <div>
-                <p className="font-bold">Important:</p>
-                <p>
-                  Your current database will be backed up automatically before
-                  the import. This action cannot be undone without restoring
-                  from the backup.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
-            <Button variant="outline" onClick={handleImportCancel}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleImportConfirm}
-              variant="destructive"
-              className="cursor-pointer hover:bg-red-800"
-            >
-              Import Database
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImportModal
+        open={modals.importConfirm}
+        onClose={() => setModals((prev) => ({ ...prev, importConfirm: false }))}
+        onConfirm={importDb}
+        filename={file?.name}
+      />
 
       <APIKeyDialog
-        open={isApiKeyModalOpen}
-        onOpenChange={setIsApiKeyModalOpen}
+        open={modals.apiKey}
+        onOpenChange={(open) =>
+          setModals((prev) => ({ ...prev, apiKey: open }))
+        }
       />
-    </>
+    </div>
   );
 }
 
-interface Root {
+const SettingRow = ({
+  title,
+  description,
+  action
+}: {
+  title: string;
+  description: string;
+  action: React.ReactNode;
+}) => (
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h3 className="font-medium">{title}</h3>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+    <div className="w-full md:w-auto">{action}</div>
+  </div>
+);
+
+const PasswordModal = ({
+  open,
+  onClose,
+  onSubmit,
+  passwords,
+  setPasswords,
+  error,
+  setError
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  passwords: { current: string; new: string; confirm: string };
+  setPasswords: (p: { current: string; new: string; confirm: string }) => void;
+  error: string;
+  setError: (e: string) => void;
+}) => (
+  <Dialog open={open} onOpenChange={onClose}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogDescription>
+          Update your password. You'll be logged out after changing it.
+        </DialogDescription>
+      </DialogHeader>
+
+      {error && (
+        <div className="flex items-center bg-red-900/20 text-red-500 p-2 rounded text-sm">
+          <WarningIcon className="mr-2" />
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {["current", "new", "confirm"].map((type) => (
+          <div key={type} className="space-y-2">
+            <label className="text-sm font-medium">
+              {type === "current"
+                ? "Current Password"
+                : type === "new"
+                  ? "New Password"
+                  : "Confirm Password"}
+            </label>
+            <Input
+              type="password"
+              value={passwords[type as keyof typeof passwords]}
+              onChange={(e) => {
+                setPasswords({ ...passwords, [type]: e.target.value });
+                setError("");
+              }}
+              placeholder={`Enter ${type} password`}
+            />
+          </div>
+        ))}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={onSubmit}>Update</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
+const ImportModal = ({
+  open,
+  onClose,
+  onConfirm,
+  filename
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  filename?: string;
+}) => (
+  <Dialog open={open} onOpenChange={onClose}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Confirm Import</DialogTitle>
+        <DialogDescription>
+          Replace current database with <strong>{filename}</strong>? A backup
+          will be created for your current database.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="destructive" onClick={onConfirm}>
+          Import
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
+export interface Root {
   dns: Dns;
   api: Api;
   scheduledBlacklistUpdates: boolean;
@@ -782,7 +631,7 @@ interface Root {
   inAppUpdate: boolean;
 }
 
-interface Dns {
+export interface Dns {
   address: string;
   port: number;
   dotPort: number;
@@ -796,13 +645,180 @@ interface Dns {
   tlsKeyFile: string;
 }
 
-interface Status {
+export interface Status {
   paused: boolean;
   pausedAt: string;
   pauseTime: number;
 }
 
-interface Api {
+export interface Api {
   port: number;
   authentication: boolean;
 }
+
+const SETTINGS_SECTIONS = [
+  {
+    title: "Security",
+    description:
+      "Manage user authentication and access control for the dashboard and API.",
+    icon: <LockIcon />,
+    settings: []
+  },
+  {
+    title: "API",
+    description:
+      "Configure how the API behaves, including its port and authentication requirements.",
+    icon: <KeyIcon />,
+    settings: [
+      {
+        label: "Port *",
+        key: "apiPort",
+        explanation: "Port the API server listens on.",
+        default: 8080,
+        widgetType: Input
+      },
+      {
+        label: "Authentication *",
+        key: "authentication",
+        explanation: "Require login credentials to access the dashboard.",
+        options: [true, false],
+        default: true,
+        widgetType: Switch
+      }
+    ]
+  },
+  {
+    title: "Logging",
+    description:
+      "Set logging preferences, including verbosity level and data retention.",
+    icon: <TextAlignCenterIcon />,
+    settings: [
+      {
+        label: "Log Level",
+        key: "logLevel",
+        explanation: "Controls the verbosity of system logs.",
+        options: ["Debug", "Info", "Warning", "Error"],
+        default: "Info",
+        widgetType: Combobox
+      },
+      {
+        label: "Statistics Retention",
+        key: "statisticsRetention",
+        explanation: "Number of days to retain usage statistics.",
+        options: [1, 7, 30, 90],
+        default: 7,
+        widgetType: Combobox
+      },
+      {
+        label: "Logging",
+        key: "logging",
+        explanation: "Enable or disable logging across the system.",
+        options: [true, false],
+        default: true,
+        widgetType: Switch
+      }
+    ]
+  },
+  {
+    title: "DNS Server",
+    description:
+      "Manage core DNS server settings, including ports, caching, and buffer size.",
+    icon: <CircuitryIcon />,
+    settings: [
+      {
+        label: "Address *",
+        key: "dnsAddress",
+        explanation: "The network address to bind the DNS server to.",
+        default: "0.0.0.0",
+        widgetType: Input
+      },
+      {
+        label: "Port *",
+        key: "dnsPort",
+        explanation: "Port the DNS server listens on.",
+        default: 53,
+        widgetType: Input
+      },
+      {
+        label: "DoT Port *",
+        key: "dotPort",
+        explanation: "Port for DNS-over-TLS traffic.",
+        default: 853,
+        widgetType: Input
+      },
+      {
+        label: "DoH Port *",
+        key: "dohPort",
+        explanation: "Port for DNS-over-HTTPS traffic.",
+        default: 443,
+        widgetType: Input
+      },
+      {
+        label: "Cache TTL *",
+        key: "cacheTTL",
+        explanation: "How long (in seconds) to cache DNS results.",
+        default: 60,
+        widgetType: Input
+      },
+      {
+        label: "UDP Size *",
+        key: "udpSize",
+        explanation: "Maximum UDP packet size in bytes.",
+        default: 512,
+        widgetType: Input
+      }
+    ]
+  },
+  {
+    title: "Certificate",
+    description:
+      "Specify TLS certificates for encrypted communication with clients.",
+    icon: <CertificateIcon />,
+    settings: [
+      {
+        label: "TLS Certificate *",
+        key: "tlsCertFile",
+        explanation: "Path to the TLS certificate file.",
+        default: "",
+        widgetType: Input
+      },
+      {
+        label: "TLS Key *",
+        key: "tlsKeyFile",
+        explanation: "Path to the TLS private key file.",
+        default: "",
+        widgetType: Input
+      }
+    ]
+  },
+  {
+    title: "Database",
+    description:
+      "Import, export, and manage the internal database used by the application.",
+    icon: <DatabaseIcon />,
+    settings: []
+  },
+  {
+    title: "Miscellaneous",
+    description:
+      "Other configurable options that don't fit into a specific category.",
+    icon: <ShuffleIcon />,
+    settings: [
+      {
+        label: "Scheduled Blacklist Updates *",
+        key: "scheduledBlacklistUpdates",
+        explanation: "Automatically update blacklists on a regular schedule.",
+        default: false,
+        widgetType: Switch
+      },
+      {
+        label: "In App Updates *",
+        key: "inAppUpdate",
+        explanation:
+          "Enable in-app update checks and automatic version management.",
+        default: false,
+        widgetType: Switch
+      }
+    ]
+  }
+];
