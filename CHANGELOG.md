@@ -1,3 +1,10 @@
+## [0.60.5](https://github.com/pommee/goaway/compare/v0.60.4...v0.60.5) (2025-07-23)
+
+
+### Bug Fixes
+
+* improved the reverse hostname lookup process ([44cc6ff](https://github.com/pommee/goaway/commit/44cc6ff1301500ba6fb7347336e7a1e95085fa04))
+
 ## [0.60.4](https://github.com/pommee/goaway/compare/v0.60.3...v0.60.4) (2025-07-23)
 
 
