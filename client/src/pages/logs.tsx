@@ -329,8 +329,8 @@ export function Logs() {
               <DialogTitle className="text-xl font-semibold mb-2">
                 Confirm Log Clearance
               </DialogTitle>
-              <DialogDescription className="text-base text-zinc-300 mb-6">
-                <div className="bg-red-600/80 p-4 text-background">
+              <DialogDescription className="text-base mb-6">
+                <div className="bg-red-500/40 border-1 border-red-500 text-red-400 p-4 rounded-xl">
                   <p>Are you sure you want to clear all logs?</p>{" "}
                   <p>
                     This action is
@@ -340,16 +340,14 @@ export function Logs() {
               </DialogDescription>
               <div className="flex gap-4">
                 <Button
-                  className="bg-red-700 hover:bg-red-600 text-white"
-                  onClick={clearLogs}
-                >
-                  Yes, clear logs
-                </Button>
-                <Button
+                  variant="outline"
                   className="hover:font-bold"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancel
+                </Button>
+                <Button variant="destructive" onClick={clearLogs}>
+                  Yes, clear logs
                 </Button>
               </div>
             </div>
