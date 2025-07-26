@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"goaway/backend/api/models"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
@@ -206,18 +205,21 @@ func (api *API) getQueryTypes(c *gin.Context) {
 }
 
 func (api *API) clearQueries(c *gin.Context) {
-	result, err := api.DBManager.Conn.Exec("DELETE FROM request_log")
+	_, err := api.DBManager.Conn.Exec("DELETE FROM request_log")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
 		return
 	}
-	rowsAffected, _ := result.RowsAffected()
+
+	_, err = api.DBManager.Conn.Exec("DELETE FROM request_log_ips")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
+		return
+	}
 
 	api.Blacklist.Vacuum()
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Cleared %d logs", rowsAffected),
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Cleared all logs"})
 }
 
 func (api *API) clearBlocking(c *gin.Context) {
