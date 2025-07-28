@@ -1,3 +1,10 @@
+## [0.60.7](https://github.com/pommee/goaway/compare/v0.60.6...v0.60.7) (2025-07-28)
+
+
+### Bug Fixes
+
+* add ping check for ws message before sending and set warnings to debug ([fb5ca94](https://github.com/pommee/goaway/commit/fb5ca94be08e2b7eb7811251e6e4fb16b8a05286))
+
 ## [0.60.6](https://github.com/pommee/goaway/compare/v0.60.5...v0.60.6) (2025-07-28)
 
 
