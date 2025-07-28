@@ -10,8 +10,8 @@ export type ClientEntry = {
   mac: string;
   name: string;
   vendor: string;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
 };
 
 const sortClientsByIP = (clients: ClientEntry[]): ClientEntry[] => {

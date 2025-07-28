@@ -1,5 +1,6 @@
 "use client";
 
+import { CardDetails } from "@/app/clients/details";
 import { columns, Queries } from "@/app/logs/columns";
 import { Button } from "@/components/ui/button";
 import {
@@ -157,10 +158,19 @@ export function Logs() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
+
   const totalPages = Math.ceil(totalRecords / pageSize);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "timestamp", desc: true }
   ]);
+
+  const showClientDetails = useCallback((client: Client) => {
+    setSelectedClient(client);
+    setIsClientDetailsOpen(true);
+  }, []);
 
   const debounce = (func: (...args: unknown[]) => void, delay: number) => {
     let timeoutId: NodeJS.Timeout | undefined;
@@ -272,9 +282,31 @@ export function Logs() {
     fetchData();
   }, [fetchData]);
 
+  const columnsWithClientHandler = useMemo(() => {
+    return columns.map((column) => {
+      if (column.id === "client") {
+        return {
+          ...column,
+          cell: ({ row }: { row: any }) => {
+            const client = row.original.client;
+            return (
+              <div
+                onClick={() => showClientDetails(client)}
+                className="cursor-pointer hover:text-primary transition-colors"
+              >
+                {client.name} | {client.ip}
+              </div>
+            );
+          }
+        };
+      }
+      return column;
+    });
+  }, [showClientDetails]);
+
   const table = useReactTable({
     data: queries,
-    columns,
+    columns: columnsWithClientHandler,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,
@@ -376,6 +408,7 @@ export function Logs() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
       <div className="rounded-md border mt-4">
         <Table>
           <TableHeader>
@@ -398,7 +431,7 @@ export function Logs() {
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columnsWithClientHandler.length}
                   className="h-24 text-center"
                 >
                   Loading...
@@ -508,7 +541,7 @@ export function Logs() {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columnsWithClientHandler.length}
                   className="h-24 text-center"
                 >
                   No queries saved in the database.
@@ -518,6 +551,7 @@ export function Logs() {
           </TableBody>
         </Table>
       </div>
+
       <div className="flex items-center justify-between px-2 mt-4">
         <div className="flex text-sm text-muted-foreground">
           Displaying {table.getPreSelectedRowModel().rows.length} of{" "}
@@ -609,6 +643,24 @@ export function Logs() {
           </div>
         </div>
       </div>
+
+      {selectedClient && (
+        <Dialog
+          open={isClientDetailsOpen}
+          onOpenChange={setIsClientDetailsOpen}
+        >
+          <DialogContent>
+            <CardDetails
+              ip={selectedClient.ip}
+              lastSeen={"N/A"}
+              mac={selectedClient.mac}
+              name={selectedClient.name}
+              vendor={""}
+              onClose={() => setIsClientDetailsOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
