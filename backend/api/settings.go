@@ -71,12 +71,11 @@ func (api *API) exportDatabase(c *gin.Context) {
 		return
 	}
 
-	defer func(tx *os.File) {
+	defer func() {
 		_ = file.Close()
-
 		// remove the temporary export file after sending it
 		_ = os.Remove(tempExport)
-	}(file)
+	}()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
@@ -91,7 +90,24 @@ func (api *API) exportDatabase(c *gin.Context) {
 	c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	c.Header("Cache-Control", "no-cache")
 
-	c.DataFromReader(http.StatusOK, fileInfo.Size(), "application/octet-stream", file, nil)
+	c.Stream(func(w io.Writer) bool {
+		buffer := make([]byte, 32*1024)
+		n, err := file.Read(buffer)
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Error reading file during stream: %v", err)
+			}
+			return false
+		}
+
+		_, writeErr := w.Write(buffer[:n])
+		if writeErr != nil {
+			log.Error("Error writing to response stream: %v", writeErr)
+			return false
+		}
+
+		return n > 0
+	})
 }
 
 func validateSQLiteFile(filePath string) error {

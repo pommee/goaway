@@ -85,7 +85,10 @@ func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 func (api *API) initializeRouter() {
 	gin.SetMode(gin.ReleaseMode)
 	api.router = gin.New()
-	api.router.Use(gzip.Gzip(gzip.DefaultCompression))
+
+	// Ignore compression on this route as otherwise it has problems with exposing the Content-Length header
+	ignoreCompression := gzip.WithExcludedPaths([]string{"/api/exportDatabase"})
+	api.router.Use(gzip.Gzip(gzip.DefaultCompression, ignoreCompression))
 	api.routes = api.router.Group("/api")
 }
 

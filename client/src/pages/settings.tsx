@@ -259,19 +259,73 @@ export function Settings() {
     }
   };
 
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
+  };
+
   const exportDb = async () => {
     setLoading((prev) => ({ ...prev, export: true }));
+    const toastId = toast.loading("Starting export...", {
+      description: "Preparing database for export",
+      duration: Infinity
+    });
+
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
-      const blob = await response.blob();
+      if (!response.ok)
+        throw new Error(`Export failed: ${response.statusText}`);
+      if (!response.body) throw new Error("ReadableStream not supported");
+
+      const total = parseInt(response.headers.get("Content-Length") || "0", 10);
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        received += value.length;
+
+        const progressText =
+          total > 0
+            ? `${Math.round((received / total) * 100)}% (${formatBytes(
+                received
+              )} / ${formatBytes(total)})`
+            : `Downloaded ${formatBytes(received)}`;
+
+        toast.loading("Downloading database...", {
+          id: toastId,
+          description: progressText,
+          duration: Infinity
+        });
+      }
+
+      const blob = new Blob(chunks, { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "database.db";
-      a.click();
-      toast.success("Database exported");
-    } catch {
-      toast.error("Export failed");
+      const a = Object.assign(document.createElement("a"), {
+        href: url,
+        download: "database.db"
+      });
+      document.body.appendChild(a).click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast.success("Database exported successfully!", {
+        id: toastId,
+        description: `Downloaded ${formatBytes(received)}`,
+        duration: 4000
+      });
+    } catch (error) {
+      toast.error("Export failed", {
+        id: toastId,
+        description: error.message || "An error occurred during export",
+        duration: 5000
+      });
     } finally {
       setLoading((prev) => ({ ...prev, export: false }));
     }
