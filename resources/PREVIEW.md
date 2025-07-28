@@ -10,9 +10,13 @@ Here are some preview images of the `goaway` dashboard.
 
 <img src="./logs.png" alt="Logs Preview" width="100%">
 
-## Lists
+## Lists (Blacklist)
 
-<img src="./lists.png" alt="Lists Preview" width="100%">
+<img src="./blacklist.png" alt="Lists Preview" width="100%">
+
+## Lists (Whitelist)
+
+<img src="./whitelist.png" alt="Lists Preview" width="100%">
 
 ## Resolution
 
