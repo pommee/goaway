@@ -290,7 +290,7 @@ export function Logs() {
       if (column.id === "client") {
         return {
           ...column,
-          cell: ({ row }: { row: any }) => {
+          cell: ({ row }) => {
             const client = row.original.client;
             return (
               <div
