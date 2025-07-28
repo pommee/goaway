@@ -45,6 +45,7 @@ import {
   CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  QuestionIcon,
   WarningIcon
 } from "@phosphor-icons/react";
 import {
@@ -161,6 +162,8 @@ export function Logs() {
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
+
+  const [showHelp, setShowHelp] = useState(false);
 
   const totalPages = Math.ceil(totalRecords / pageSize);
   const [sorting, setSorting] = useState<SortingState>([
@@ -340,6 +343,12 @@ export function Logs() {
   return (
     <div className="w-full">
       <div className="flex items-center">
+        <QuestionIcon
+          size={20}
+          className="mr-4 hover:text-orange-400 cursor-pointer"
+          onClick={() => setShowHelp(true)}
+        />
+
         <Input
           placeholder="Filter domain..."
           onChange={(event) => debouncedSetDomainFilter(event.target.value)}
@@ -658,6 +667,110 @@ export function Logs() {
               vendor={""}
               onClose={() => setIsClientDetailsOpen(false)}
             />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showHelp && (
+        <Dialog open={showHelp} onOpenChange={setShowHelp}>
+          <DialogContent className="max-w-4xl max-h-4/5 overflow-y-auto">
+            <DialogTitle>Log Table Help</DialogTitle>
+            <DialogDescription>
+              The log table contains a couple of columns which sometimes serves
+              a multi-purpose. This help box will explain what each one means
+              and can do.
+            </DialogDescription>
+
+            <li>
+              <b>Timestamp</b>
+              <br /> Specifies when the query was sent by the client.
+            </li>
+
+            <li>
+              <b>Domain</b>
+              <br /> Domain name the client has requested
+            </li>
+
+            <li>
+              <b>IP(s)</b>
+              <br /> Response given back to the client. This can contain
+              multiple response types inside the same request, indicated by the
+              '+N'. Hovering over will reveal all resolved IP's.
+            </li>
+
+            <li>
+              <b>Client</b>
+              <br /> Here the client hostname and IP will be shown. It is
+              possible to click the client to show a modal about the client
+              where further actions and information is available.
+            </li>
+
+            <li>
+              <b>Status</b>
+              <br /> This column will indicate multiple factors of the request
+              and response.
+              <li className="ml-4">
+                <b>ok / blacklisted / cached</b> - The request was fully
+                processed, blacklisted or found in cache. In all cases the
+                client receives a response; only 'blacklisted' differs as the IP
+                will always be '0.0.0.0'.
+              </li>
+              <li className="ml-4">
+                <b>Response Status</b> - This specifies whether a request was
+                sucessfully fulfilled, failed or otherwise. Most common types
+                are:
+                <ul className="ml-4">
+                  <li>
+                    <b>NoError - </b>
+                    Request was sucesfully fulfilled without any error.
+                  </li>
+                  <li>
+                    <b>NXDomain</b> - Either a blacklisted domain or it was not
+                    found.
+                  </li>
+                </ul>
+              </li>
+            </li>
+
+            <li>
+              <b>Response</b>
+              <br /> Time taken to fully process a request from once the request
+              is received to once the server responds.
+            </li>
+
+            <li>
+              <b>Type</b>
+              <br /> Response type given back to the client. Most common types
+              are:
+              <li className="ml-4">
+                <b>A</b> - The IPv4 address
+              </li>
+              <li className="ml-4">
+                <b>AAAA</b> - The IPv6 address
+              </li>
+              <li className="ml-4">
+                <b>CNAME</b> - A domain name alias
+              </li>
+            </li>
+
+            <li>
+              <b>Protocol</b>
+              <br /> Protocol used while processing the request to an upstream
+              server. Most common one is UDP, however TCP, TLS, dns-over-tcp
+              (DoT) and dns-over-https (DoH) is also available.
+            </li>
+
+            <li>
+              <b>Size</b>
+              <br /> Response size in bytes given back to the client.
+            </li>
+
+            <li>
+              <b>Action</b>
+              <br /> Here it is possible to toggle the status of a domain name.
+              For example if the domain is whitelisted, then it can be
+              blacklisted and vice versa.
+            </li>
           </DialogContent>
         </Dialog>
       )}
