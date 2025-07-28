@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"goaway/backend/audit"
 	"goaway/backend/settings"
 	"io"
 	"net/http"
@@ -37,6 +38,11 @@ func (api *API) updateSettings(c *gin.Context) {
 	api.Config.UpdateSettings(updatedSettings)
 	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
 	log.Debug("%s", string(settingsJson))
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicSettings,
+		Message: "Settings was updated",
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"config": api.Config,
@@ -107,6 +113,11 @@ func (api *API) exportDatabase(c *gin.Context) {
 		}
 
 		return n > 0
+	})
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicDatabase,
+		Message: "Database was exported",
 	})
 }
 
@@ -296,6 +307,11 @@ func (api *API) importDatabase(c *gin.Context) {
 	}
 
 	log.Info("Database imported successfully from %s", header.Filename)
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicDatabase,
+		Message: "Database was imported",
+	})
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Database imported successfully",
 		"backup_created": backupPath,

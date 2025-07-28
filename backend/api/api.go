@@ -122,6 +122,7 @@ func (api *API) setupRoutes() {
 	api.registerBlacklistRoutes()
 	api.registerWhitelistRoutes()
 	api.registerClientRoutes()
+	api.registerAuditRoutes()
 	api.registerDNSRoutes()
 	api.registerUpstreamRoutes()
 	api.registerListsRoutes()

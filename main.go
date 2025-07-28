@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"goaway/backend/api"
 	"goaway/backend/asciiart"
+	"goaway/backend/audit"
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/lists"
@@ -143,13 +144,14 @@ func startServer(config *settings.Config, ansi bool) {
 	}
 
 	notificationManager := notification.NewNotificationManager(dbManager)
+	auditManager := audit.NewAuditManager(dbManager)
 
 	cert, err := config.GetCertificate()
 	if err != nil {
 		log.Fatal("%s", err)
 	}
 
-	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, cert)
+	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, auditManager, cert)
 	if err != nil {
 		log.Fatal("Failed to initialize server: %s", err)
 	}

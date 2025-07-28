@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"goaway/backend/audit"
 	"io"
 	"net/http"
 	"net/url"
@@ -49,6 +50,10 @@ func (api *API) updateCustom(c *gin.Context) {
 		return
 	}
 
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicList,
+		Message: fmt.Sprintf("Added %d domains to custom blacklist", len(request.Domains)),
+	})
 	c.Status(http.StatusOK)
 }
 
@@ -136,6 +141,10 @@ func (api *API) addList(c *gin.Context) {
 		return
 	}
 
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicList,
+		Message: fmt.Sprintf("New blacklist with name '%s' was added", request.Name),
+	})
 	c.JSON(http.StatusOK, newList)
 }
 
@@ -264,5 +273,10 @@ func (api *API) removeList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 	delete(api.Blacklist.BlocklistURL, name)
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicList,
+		Message: fmt.Sprintf("Blacklist with name '%s' was deleted", name),
+	})
 	c.Status(http.StatusOK)
 }

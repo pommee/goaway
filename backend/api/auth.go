@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"goaway/backend/api/user"
+	"goaway/backend/audit"
 	"io"
 	"net/http"
 
@@ -128,6 +130,10 @@ func (api *API) updatePassword(c *gin.Context) {
 		return
 	}
 
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicUser,
+		Message: fmt.Sprintf("Password was changed for user '%s'", existingUser.Username),
+	})
 	log.Info("Password has been changed!")
 	c.Status(http.StatusOK)
 }

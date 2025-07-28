@@ -4,6 +4,7 @@ import MetricsCards from "@/app/home/metrics-card";
 import PieChartRequestType from "@/app/home/request-types";
 import RequestTimeline from "@/app/home/request-timeline";
 import ResponseSizeTimeline from "@/app/home/ResponseSizeTimeline";
+import Audit from "@/app/home/Audit";
 
 export function Home() {
   return (
@@ -22,6 +23,7 @@ export function Home() {
         </div>
       </div>
       <ResponseSizeTimeline />
+      <Audit />
     </>
   );
 }

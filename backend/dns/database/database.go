@@ -94,6 +94,11 @@ func Initialize() (*DatabaseManager, error) {
 		return nil, fmt.Errorf("failed to create prefetch table: %w", err)
 	}
 
+	err = NewAuditTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create audit table: %w", err)
+	}
+
 	return &DatabaseManager{Conn: db, Mutex: &sync.RWMutex{}}, nil
 }
 
@@ -273,6 +278,20 @@ func NewPrefetchTable(db *sql.DB) error {
 		domain TEXT PRIMARY KEY,
 		refresh INTEGER,
 		qtype INTEGER
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewAuditTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS audit (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		topic TEXT,
+		message TEXT,
+		created_at DATETIME NOT NULL
 	)`)
 	if err != nil {
 		return err

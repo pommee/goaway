@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"goaway/backend/audit"
 	"io"
 	"net"
 	"net/http"
@@ -76,6 +77,11 @@ func (api *API) createUpstream(c *gin.Context) {
 	api.Config.Save()
 
 	log.Info("Added %s as a new upstream", upstream)
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicUpstream,
+		Message: fmt.Sprintf("Added a new upstream '%s'", request.Upstream),
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Added %s as a new upstream", upstream)})
 }
 
@@ -342,6 +348,11 @@ func (api *API) updatePreferredUpstream(c *gin.Context) {
 	log.Info("%s", message)
 
 	api.Config.Save()
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicUpstream,
+		Message: fmt.Sprintf("New preferred upstream '%s'", request.Upstream),
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 
@@ -368,6 +379,11 @@ func (api *API) deleteUpstream(c *gin.Context) {
 	api.Config.DNS.UpstreamDNS = updatedUpstreams
 	api.Config.Save()
 	log.Info("Removed upstream: %s", upstreamToDelete)
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicUpstream,
+		Message: fmt.Sprintf("Removed upstream '%s'", upstreamToDelete),
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Upstream removed successfully",

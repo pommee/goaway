@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"goaway/backend/audit"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server/prefetch"
 	"io"
@@ -48,6 +49,11 @@ func (api *API) createPrefetchedDomain(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicPrefetch,
+		Message: fmt.Sprintf("Added new prefetch '%s'", prefetchedDomain.Domain),
+	})
 	c.Status(http.StatusOK)
 }
 
@@ -149,5 +155,9 @@ func (api *API) deletePrefetchedDomain(c *gin.Context) {
 		return
 	}
 
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicPrefetch,
+		Message: fmt.Sprintf("Removed prefetched domain '%s'", domainPrefetchToDelete),
+	})
 	c.Status(http.StatusOK)
 }

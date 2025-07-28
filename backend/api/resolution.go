@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"goaway/backend/audit"
 	"goaway/backend/dns/database"
 	"net/http"
 
@@ -36,6 +37,11 @@ func (api *API) createResolution(c *gin.Context) {
 		return
 	}
 	api.DNSServer.RemoveCachedDomain(newResolution.Domain)
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicResolution,
+		Message: fmt.Sprintf("Added new resolution '%s'", newResolution.Domain),
+	})
 	c.Status(http.StatusOK)
 }
 
@@ -67,5 +73,10 @@ func (api *API) deleteResolution(c *gin.Context) {
 	}
 
 	api.DNSServer.RemoveCachedDomain(domain)
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicResolution,
+		Message: fmt.Sprintf("Removed resolution '%s'", domain),
+	})
 	c.Status(http.StatusOK)
 }

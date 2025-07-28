@@ -2,6 +2,7 @@ package api
 
 import (
 	"goaway/backend/api/models"
+	"goaway/backend/audit"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
 	model "goaway/backend/dns/server/models"
@@ -218,6 +219,11 @@ func (api *API) clearQueries(c *gin.Context) {
 	}
 
 	api.Blacklist.Vacuum()
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicLogs,
+		Message: "Logs were cleared",
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cleared all logs"})
 }
