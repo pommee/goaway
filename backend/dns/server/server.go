@@ -182,20 +182,29 @@ func (s *DNSServer) WSCom(message communicationMessage) {
 		return
 	}
 
+	s.WSCommunicationLock.Lock()
+	defer s.WSCommunicationLock.Unlock()
+
+	if err := s.WSCommunication.WriteControl(
+		websocket.PingMessage,
+		nil,
+		time.Now().Add(2*time.Second),
+	); err != nil {
+		log.Debug("Websocket connection not alive, skipping message: %v", err)
+		return
+	}
+
 	entryWSJson, err := json.Marshal(message)
 	if err != nil {
 		log.Error("Failed to marshal websocket message: %v", err)
 		return
 	}
 
-	s.WSCommunicationLock.Lock()
-	defer s.WSCommunicationLock.Unlock()
-
 	if err := s.WSCommunication.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		log.Warning("Failed to set websocket write deadline: %v", err)
 	}
 
 	if err := s.WSCommunication.WriteMessage(websocket.TextMessage, entryWSJson); err != nil {
-		log.Error("Failed to write websocket message: %v", err)
+		log.Debug("Failed to write websocket message: %v", err)
 	}
 }
