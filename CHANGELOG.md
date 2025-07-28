@@ -1,3 +1,10 @@
+## [0.60.6](https://github.com/pommee/goaway/compare/v0.60.5...v0.60.6) (2025-07-28)
+
+
+### Bug Fixes
+
+* improve 'export database' performance using chunk based streaming ([91bb777](https://github.com/pommee/goaway/commit/91bb777d1d89f469c620460c170eaf735a4c20c8))
+
 ## [0.60.5](https://github.com/pommee/goaway/compare/v0.60.4...v0.60.5) (2025-07-23)
 
 
