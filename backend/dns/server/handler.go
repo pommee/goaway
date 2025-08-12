@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	arp "goaway/backend/dns"
 	"goaway/backend/dns/database"
@@ -8,6 +10,8 @@ import (
 	notification "goaway/backend/notifications"
 	"net"
 	"os"
+	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -98,7 +102,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	}
 
 	macAddress := arp.GetMacAddress(clientIP)
-	hostname := "unknown"
+	hostname := s.resolveHostname(clientIP)
 	resultIP := clientIP
 
 	vendor, err := s.GetVendor(macAddress)
@@ -127,8 +131,6 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 		} else {
 			hostname = "localhost"
 		}
-	} else if hostnames, err := net.LookupAddr(clientIP); err == nil && len(hostnames) > 0 {
-		hostname = strings.TrimSuffix(hostnames[0], ".")
 	}
 
 	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
@@ -139,6 +141,103 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	}
 
 	return &client
+}
+
+func (s *DNSServer) resolveHostname(clientIP string) string {
+	if hostname := s.avahiLookup(clientIP); hostname != "unknown" {
+		return hostname
+	}
+
+	if hostname := s.reverseDNSLookup(clientIP); hostname != "unknown" {
+		return hostname
+	}
+
+	if hostname := s.sshBannerLookup(clientIP); hostname != "unknown" {
+		return hostname
+	}
+
+	return "unknown"
+}
+
+func (s *DNSServer) avahiLookup(clientIP string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "avahi-resolve-address", clientIP)
+	output, err := cmd.Output()
+	if err == nil {
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, clientIP) {
+				parts := strings.Fields(line)
+				if len(parts) >= 2 {
+					hostname := strings.TrimSuffix(parts[1], ".local")
+					if hostname != "" && hostname != clientIP {
+						log.Debug("Found hostname via avahi-resolve: %s -> %s", clientIP, hostname)
+						return hostname
+					}
+				}
+			}
+		}
+	}
+
+	return "unknown"
+}
+
+func (s *DNSServer) reverseDNSLookup(clientIP string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	resolver := &net.Resolver{}
+	if hostnames, err := resolver.LookupAddr(ctx, clientIP); err == nil && len(hostnames) > 0 {
+		hostname := strings.TrimSuffix(hostnames[0], ".")
+		if hostname != clientIP &&
+			!strings.Contains(hostname, "in-addr.arpa") && !strings.HasPrefix(hostname, clientIP) {
+			log.Debug("Found hostname via reverse DNS: %s -> %s", clientIP, hostname)
+			return hostname
+		}
+	}
+	return "unknown"
+}
+
+func (s *DNSServer) sshBannerLookup(clientIP string) string {
+	conn, err := net.DialTimeout("tcp", clientIP+":22", 1*time.Second)
+	if err != nil {
+		return "unknown"
+	}
+	defer conn.Close()
+
+	err = conn.SetDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
+		log.Warning("Failed to set deadline for SSH banner lookup: %v", err)
+		_ = conn.Close()
+		return "unknown"
+	}
+
+	reader := bufio.NewReader(conn)
+	banner, err := reader.ReadString('\n')
+	if err != nil {
+		return "unknown"
+	}
+
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`SSH-2\.0-OpenSSH_[0-9.]+.*?(\w+)`),
+		regexp.MustCompile(`SSH.*?(\w+)\.local`),
+		regexp.MustCompile(`(\w+)@(\w+)`),
+	}
+
+	for _, pattern := range patterns {
+		matches := pattern.FindStringSubmatch(banner)
+		if len(matches) > 1 {
+			hostname := matches[1]
+			if hostname != clientIP && len(hostname) > 1 && hostname != "SSH" {
+				log.Debug("Found hostname via SSH banner: %s -> %s", clientIP, hostname)
+				return hostname
+			}
+		}
+	}
+
+	return "unknown"
 }
 
 func getLocalIP() (string, error) {
@@ -177,9 +276,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 
 	hostname := database.GetClientNameFromRequestLog(s.DBManager.Conn, ipStr)
 	if hostname == "unknown" {
-		if names, err := net.LookupAddr(ipStr); err == nil && len(names) > 0 {
-			hostname = strings.TrimSuffix(names[0], ".")
-		}
+		hostname = s.resolveHostname(ipStr)
 	}
 
 	if hostname != "unknown" {
@@ -599,75 +696,27 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 
 	switch request.Question.Qtype {
 	case dns.TypeA:
-		if len(request.Msg.Answer) == 1 {
-			if a, ok := request.Msg.Answer[0].(*dns.A); ok {
-				a.Hdr.Name = request.Question.Name
-				a.Hdr.Ttl = cacheTTL
-				a.A = blackholeIPv4
-			} else {
-				request.Msg.Answer[0] = &dns.A{
-					Hdr: dns.RR_Header{
-						Name:   request.Question.Name,
-						Rrtype: dns.TypeA,
-						Class:  dns.ClassINET,
-						Ttl:    cacheTTL,
-					},
-					A: blackholeIPv4,
-				}
-			}
-		} else {
-			request.Msg.Answer = []dns.RR{&dns.A{
-				Hdr: dns.RR_Header{
-					Name:   request.Question.Name,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    cacheTTL,
-				},
-				A: blackholeIPv4,
-			}}
-		}
-		resolved = []model.ResolvedIP{
-			{
-				IP:    blackholeIPv4.String(),
-				RType: "A",
+		request.Msg.Answer = []dns.RR{&dns.A{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    cacheTTL,
 			},
-		}
-
+			A: blackholeIPv4,
+		}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv4.String(), RType: "A"}}
 	case dns.TypeAAAA:
-		if len(request.Msg.Answer) == 1 {
-			if aaaa, ok := request.Msg.Answer[0].(*dns.AAAA); ok {
-				aaaa.Hdr.Name = request.Question.Name
-				aaaa.Hdr.Ttl = cacheTTL
-				aaaa.AAAA = blackholeIPv6
-			} else {
-				request.Msg.Answer[0] = &dns.AAAA{
-					Hdr: dns.RR_Header{
-						Name:   request.Question.Name,
-						Rrtype: dns.TypeAAAA,
-						Class:  dns.ClassINET,
-						Ttl:    cacheTTL,
-					},
-					AAAA: blackholeIPv6,
-				}
-			}
-		} else {
-			request.Msg.Answer = []dns.RR{&dns.AAAA{
-				Hdr: dns.RR_Header{
-					Name:   request.Question.Name,
-					Rrtype: dns.TypeAAAA,
-					Class:  dns.ClassINET,
-					Ttl:    cacheTTL,
-				},
-				AAAA: blackholeIPv6,
-			}}
-		}
-		resolved = []model.ResolvedIP{
-			{
-				IP:    blackholeIPv6.String(),
-				RType: "AAAA",
+		request.Msg.Answer = []dns.RR{&dns.AAAA{
+			Hdr: dns.RR_Header{
+				Name:   request.Question.Name,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    cacheTTL,
 			},
-		}
-
+			AAAA: blackholeIPv6,
+		}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv6.String(), RType: "AAAA"}}
 	default:
 		request.Msg.Rcode = dns.RcodeNameError
 		request.Msg.Answer = nil
