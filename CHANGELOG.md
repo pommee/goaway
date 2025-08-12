@@ -1,3 +1,10 @@
+## [0.60.8](https://github.com/pommee/goaway/compare/v0.60.7...v0.60.8) (2025-08-12)
+
+
+### Bug Fixes
+
+* fixes to finding hostnames of clients ([b4a7a10](https://github.com/pommee/goaway/commit/b4a7a106e105467b5df70bed9c4440a80b0b0109))
+
 ## [0.60.7](https://github.com/pommee/goaway/compare/v0.60.6...v0.60.7) (2025-07-28)
 
 
