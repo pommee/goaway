@@ -22,6 +22,8 @@ func (api *API) registerListsRoutes() {
 	api.routes.GET("/toggleBlocklist", api.toggleBlocklist)
 	api.routes.GET("/updateBlockStatus", api.handleUpdateBlockStatus)
 
+	api.routes.PATCH("/listName", api.updateListName)
+
 	api.routes.DELETE("/list", api.removeList)
 }
 
@@ -101,16 +103,9 @@ func (api *API) addList(c *gin.Context) {
 		return
 	}
 
-	if api.Blacklist.BlocklistURL[request.Name] != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "List with the same name already exists"})
+	if api.Blacklist.URLExists(request.URL) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List with the same URL already exists"})
 		return
-	}
-
-	for _, blocklistUrl := range api.Blacklist.BlocklistURL {
-		if request.URL == blocklistUrl {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "List with the same URL already exists"})
-			return
-		}
 	}
 
 	if err := api.Blacklist.FetchAndLoadHosts(request.URL, request.Name); err != nil {
@@ -125,7 +120,12 @@ func (api *API) addList(c *gin.Context) {
 		return
 	}
 
-	api.Blacklist.BlocklistURL[request.Name] = request.URL
+	if err := api.Blacklist.AddSource(request.Name, request.URL); err != nil {
+		log.Error("Failed to add source: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	if !request.Active {
 		if err := api.Blacklist.ToggleBlocklistStatus(request.Name); err != nil {
 			log.Error("Failed to toggle blocklist status: %v", err)
@@ -145,15 +145,41 @@ func (api *API) addList(c *gin.Context) {
 		Topic:   audit.TopicList,
 		Message: fmt.Sprintf("New blacklist with name '%s' was added", request.Name),
 	})
+
 	c.JSON(http.StatusOK, newList)
+}
+
+func (api *API) updateListName(c *gin.Context) {
+	oldName := c.Query("old")
+	newName := c.Query("new")
+	url := c.Query("url")
+
+	if oldName == "" || newName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New and old names are required"})
+		return
+	}
+
+	if !api.Blacklist.NameExists(oldName, url) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List with that name and url combination does not exist"})
+		return
+	}
+
+	err := api.Blacklist.UpdateSourceName(oldName, newName, url)
+	if err != nil {
+		log.Warning("%s", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (api *API) fetchUpdatedList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")
 
-	if api.Blacklist.BlocklistURL[name] == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
+	if !api.Blacklist.NameExists(name, url) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List with that name and url combination does not exist"})
 		return
 	}
 
@@ -180,7 +206,7 @@ func (api *API) runUpdateList(c *gin.Context) {
 	name := c.Query("name")
 	url := c.Query("url")
 
-	if api.Blacklist.BlocklistURL[name] == "" {
+	if !api.Blacklist.NameExists(name, url) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
 		return
 	}
@@ -190,7 +216,7 @@ func (api *API) runUpdateList(c *gin.Context) {
 		return
 	}
 
-	err := api.Blacklist.RemoveSourceAndDomains(name)
+	err := api.Blacklist.RemoveSourceAndDomains(name, url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -199,12 +225,6 @@ func (api *API) runUpdateList(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-	_, err = api.Blacklist.PopulateBlocklistCache()
-	if err != nil {
-		message := fmt.Sprintf("Unable to re-populate the blocklist cache: %v", err)
-		log.Warning("%s", message)
-		c.JSON(http.StatusBadGateway, gin.H{"error": message})
 	}
 
 	c.Status(http.StatusOK)
@@ -261,18 +281,24 @@ func (api *API) handleUpdateBlockStatus(c *gin.Context) {
 
 func (api *API) removeList(c *gin.Context) {
 	name := c.Query("name")
+	url := c.Query("url")
 
-	if api.Blacklist.BlocklistURL[name] == "" {
+	if !api.Blacklist.NameExists(name, url) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
 		return
 	}
 
-	err := api.Blacklist.RemoveSourceAndDomains(name)
+	err := api.Blacklist.RemoveSourceAndDomains(name, url)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	delete(api.Blacklist.BlocklistURL, name)
+
+	if removed := api.Blacklist.RemoveSourceByNameAndURL(name, url); !removed {
+		log.Error("Failed to remove source with name '%s' and url '%s'", name, url)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to remove the list"})
+		return
+	}
 
 	api.DNSServer.Audits.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicList,

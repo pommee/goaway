@@ -38,9 +38,10 @@ export function Blacklist() {
         })
       );
 
-      setLists(listArray);
+      const sortedListArray = sortLists(listArray);
+      setLists(sortedListArray);
 
-      const totalBlockedDomains = listArray
+      const totalBlockedDomains = sortedListArray
         .filter((list) => list.active)
         .reduce((total, list) => total + list.blockedCount, 0);
 
@@ -50,28 +51,59 @@ export function Blacklist() {
     fetchLists();
   }, []);
 
-  const handleDelete = (name: string) => {
-    setDeleting((prev) => new Set(prev).add(name));
+  const sortLists = (lists: ListEntry[]) => {
+    return lists.sort((a, b) => {
+      if (a.name === "Custom") return -1;
+      if (b.name === "Custom") return 1;
+      return a.name.localeCompare(b.name);
+    });
+  };
+
+  const handleDelete = (name: string, url: string) => {
+    setDeleting((prev) => new Set(prev).add(name + url));
     setTimeout(() => {
-      setFadingOut((prev) => new Set(prev).add(name));
+      setFadingOut((prev) => new Set(prev).add(name + url));
       setTimeout(() => {
-        setLists((prevLists) => prevLists.filter((list) => list.name !== name));
+        setLists((prevLists) =>
+          prevLists.filter((list) => !(list.name === name && list.url === url))
+        );
         setDeleting((prev) => {
           const next = new Set(prev);
-          next.delete(name);
+          next.delete(name + url);
           return next;
         });
         setFadingOut((prev) => {
           const next = new Set(prev);
-          next.delete(name);
+          next.delete(name + url);
           return next;
         });
       }, 400);
     }, 0);
   };
 
+  const handleRename = (oldName: string, url: string, newName: string) => {
+    setLists((prevLists) =>
+      prevLists.map((list) =>
+        list.name === oldName && list.url === url
+          ? { ...list, name: newName }
+          : list
+      )
+    );
+    setSelected((prev) => {
+      const oldKey = oldName;
+      const newKey = newName;
+      if (prev.has(oldKey)) {
+        const next = new Set(prev);
+        next.delete(oldKey);
+        next.add(newKey);
+        return next;
+      }
+      return prev;
+    });
+  };
+
   const handleListAdded = (newList: ListEntry) => {
-    setLists((prev) => [...prev, newList]);
+    setLists((prev) => sortLists([...prev, newList]));
 
     if (newList.active) {
       setBlockedDomains((prev) => prev + newList.blockedCount);
@@ -207,7 +239,8 @@ export function Blacklist() {
           <ListCard
             key={index}
             {...list}
-            onDelete={handleDelete}
+            onDelete={() => handleDelete(list.name, list.url)}
+            onRename={handleRename}
             editMode={editMode}
             selected={selected.has(list.name)}
             onSelect={() => handleSelect(list.name)}

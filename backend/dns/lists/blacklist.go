@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"goaway/backend/dns/database"
-	"goaway/backend/logging"
 	"io"
 	"net/http"
 	"sort"
@@ -17,15 +16,19 @@ import (
 	"time"
 )
 
-var log = logging.GetLogger()
+type BlocklistSource struct {
+	Name string
+	URL  string
+}
 
 type Blacklist struct {
 	DBManager      *database.DatabaseManager
-	BlocklistURL   map[string]string
+	BlocklistURL   []BlocklistSource
 	BlacklistCache map[string]bool
 }
 
 type SourceStats struct {
+	Name         string `json:"name"`
 	URL          string `json:"url"`
 	BlockedCount int    `json:"blockedCount"`
 	LastUpdated  int64  `json:"lastUpdated"`
@@ -45,8 +48,8 @@ type ListUpdateAvailable struct {
 func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error) {
 	b := &Blacklist{
 		DBManager: dbManager,
-		BlocklistURL: map[string]string{
-			"StevenBlack": "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts",
+		BlocklistURL: []BlocklistSource{
+			{Name: "StevenBlack", URL: "https://raw.githubusercontent.com/StevenBlack/hosts/refs/heads/master/hosts"},
 		},
 		BlacklistCache: map[string]bool{},
 	}
@@ -77,11 +80,11 @@ func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error
 }
 
 func (b *Blacklist) initializeBlockedDomains() error {
-	for source, url := range b.BlocklistURL {
-		if source == "Custom" {
+	for _, source := range b.BlocklistURL {
+		if source.Name == "Custom" {
 			continue
 		}
-		if err := b.FetchAndLoadHosts(url, source); err != nil {
+		if err := b.FetchAndLoadHosts(source.URL, source.Name); err != nil {
 			return err
 		}
 	}
@@ -97,7 +100,7 @@ func (b *Blacklist) Vacuum() {
 	}
 }
 
-func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
+func (b *Blacklist) GetBlocklistUrls() ([]BlocklistSource, error) {
 	rows, err := b.DBManager.Conn.Query(`SELECT name, url FROM sources WHERE name != 'Custom'`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sources: %w", err)
@@ -106,13 +109,13 @@ func (b *Blacklist) GetBlocklistUrls() (map[string]string, error) {
 		_ = rows.Close()
 	}(rows)
 
-	blocklistURL := make(map[string]string)
+	var blocklistURL []BlocklistSource
 	for rows.Next() {
 		var name, url string
 		if err := rows.Scan(&name, &url); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		blocklistURL[name] = url
+		blocklistURL = append(blocklistURL, BlocklistSource{Name: name, URL: url})
 	}
 
 	b.BlocklistURL = blocklistURL
@@ -217,7 +220,7 @@ func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
 		return fmt.Errorf("failed to add domains to database: %w", err)
 	}
 
-	log.Info("Added %d domains from %s", len(domains), url)
+	log.Info("Added %d domains from list '%s' with url '%s'", len(domains), name, url)
 	return nil
 }
 
@@ -382,6 +385,54 @@ func (b *Blacklist) RemoveDomain(domain string) error {
 	return nil
 }
 
+func (b *Blacklist) UpdateSourceName(oldName, newName, url string) error {
+	if strings.TrimSpace(newName) == "" {
+		return fmt.Errorf("new name cannot be empty")
+	}
+
+	if oldName == newName {
+		return fmt.Errorf("new name is the same as the old name")
+	}
+
+	result, err := b.DBManager.Conn.Exec(`UPDATE sources SET name = ? WHERE name = ? AND url = ?`, newName, oldName, url)
+	if err != nil {
+		return fmt.Errorf("failed to update source name: %w", err)
+	}
+
+	affected, _ := result.RowsAffected()
+	if affected == 0 {
+		return fmt.Errorf("list with name '%s' not found", oldName)
+	}
+
+	for i, source := range b.BlocklistURL {
+		if source.Name == oldName {
+			b.BlocklistURL[i].Name = newName
+		}
+	}
+
+	log.Info("Updated blocklist name from '%s' to '%s'", oldName, newName)
+	return nil
+}
+
+func (b *Blacklist) NameExists(name, url string) bool {
+	for _, source := range b.BlocklistURL {
+		if source.Name == name && source.URL == url {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *Blacklist) URLExists(url string) bool {
+	for _, source := range b.BlocklistURL {
+		if source.URL == url {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *Blacklist) IsBlacklisted(domain string) bool {
 	return b.BlacklistCache[domain]
 }
@@ -544,16 +595,16 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 	return nil
 }
 
-func (b *Blacklist) GetAllListStatistics() (map[string]SourceStats, error) {
+func (b *Blacklist) GetAllListStatistics() ([]SourceStats, error) {
 	query := `
-		SELECT s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
+		SELECT s.id, s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
 		FROM sources s
 		LEFT JOIN (
 			SELECT source_id, COUNT(*) as blocked_count
 			FROM blacklist
 			GROUP BY source_id
 		) bc ON s.id = bc.source_id
-		ORDER BY s.name
+		ORDER BY s.name, s.id
 	`
 
 	rows, err := b.DBManager.Conn.Query(query)
@@ -564,24 +615,26 @@ func (b *Blacklist) GetAllListStatistics() (map[string]SourceStats, error) {
 		_ = rows.Close()
 	}(rows)
 
-	stats := make(map[string]SourceStats, 10)
+	var stats []SourceStats
 
 	for rows.Next() {
+		var id int
 		var name, url string
 		var blockedCount int
 		var lastUpdated int64
 		var active bool
 
-		if err := rows.Scan(&name, &url, &lastUpdated, &active, &blockedCount); err != nil {
+		if err := rows.Scan(&id, &name, &url, &lastUpdated, &active, &blockedCount); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		stats[name] = SourceStats{
+		stats = append(stats, SourceStats{
+			Name:         name,
 			URL:          url,
 			BlockedCount: blockedCount,
 			LastUpdated:  lastUpdated,
 			Active:       active,
-		}
+		})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -665,17 +718,17 @@ func (b *Blacklist) ToggleBlocklistStatus(name string) error {
 	return nil
 }
 
-func (b *Blacklist) RemoveSourceAndDomains(source string) error {
+func (b *Blacklist) RemoveSourceAndDomains(name, url string) error {
 	tx, err := b.DBManager.Conn.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	var sourceID int
-	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, source).Scan(&sourceID)
+	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ? AND url = ?`, name, url).Scan(&sourceID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("source '%s' not found", source)
+			return fmt.Errorf("source '%s' not found", name)
 		}
 		return fmt.Errorf("failed to get source ID: %w", err)
 	}
@@ -683,20 +736,24 @@ func (b *Blacklist) RemoveSourceAndDomains(source string) error {
 	_, err = tx.Exec(`DELETE FROM blacklist WHERE source_id = ?`, sourceID)
 	if err != nil {
 		_ = tx.Rollback()
-		return fmt.Errorf("failed to remove domains for source '%s': %w", source, err)
+		return fmt.Errorf("failed to remove domains for source '%s': %w", name, err)
 	}
 
 	_, err = tx.Exec(`DELETE FROM sources WHERE id = ?`, sourceID)
 	if err != nil {
 		_ = tx.Rollback()
-		return fmt.Errorf("failed to remove source '%s': %w", source, err)
+		return fmt.Errorf("failed to remove source '%s': %w", name, err)
 	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	log.Info("Removed all domains and source '%s'", source)
+	if _, err := b.PopulateBlocklistCache(); err != nil {
+		log.Warning("Failed to clear blocklist cache after removing source: %v", err)
+	}
+
+	log.Info("Removed all domains and source '%s'", name)
 	return nil
 }
 
@@ -706,36 +763,74 @@ func (b *Blacklist) ScheduleAutomaticListUpdates() {
 		log.Info("Next auto-update for lists scheduled for: %s", next.Format(time.DateTime))
 		time.Sleep(time.Until(next))
 
-		for name, url := range b.BlocklistURL {
-			if name == "Custom" {
+		for _, source := range b.BlocklistURL {
+			if source.Name == "Custom" {
 				continue
 			}
-			log.Info("Checking for updates for blocklist %s from %s", name, url)
+			log.Info("Checking for updates for blocklist %s from %s", source.Name, source.URL)
 
-			availableUpdate, err := b.CheckIfUpdateAvailable(url, name)
+			availableUpdate, err := b.CheckIfUpdateAvailable(source.URL, source.Name)
 			if err != nil {
-				log.Warning("Failed to check for updates for %s: %v", name, err)
+				log.Warning("Failed to check for updates for %s: %v", source.Name, err)
 				continue
 			}
 
 			if !availableUpdate.UpdateAvailable {
-				log.Info("No updates available for %s", name)
+				log.Info("No updates available for %s", source.Name)
 				continue
 			}
 
-			if err := b.RemoveSourceAndDomains(name); err != nil {
-				log.Warning("Failed to remove old domains for %s: %v", name, err)
+			if err := b.RemoveSourceAndDomains(source.Name, source.URL); err != nil {
+				log.Warning("Failed to remove old domains for %s: %v", source.Name, err)
 				continue
 			}
-			if err := b.FetchAndLoadHosts(url, name); err != nil {
-				log.Warning("Failed to fetch and load hosts for %s: %v", name, err)
+			if err := b.FetchAndLoadHosts(source.URL, source.Name); err != nil {
+				log.Warning("Failed to fetch and load hosts for %s: %v", source.Name, err)
 				continue
 			}
 
-			log.Info("Successfully updated %s with %d new domains", name, len(availableUpdate.DiffAdded))
+			log.Info("Successfully updated %s with %d new domains", source.Name, len(availableUpdate.DiffAdded))
 		}
 		if _, err := b.PopulateBlocklistCache(); err != nil {
 			log.Warning("Failed to populate blocklist cache after auto-update: %v", err)
 		}
 	}
+}
+
+func (b *Blacklist) AddSource(name, url string) error {
+	if strings.TrimSpace(name) == "" || strings.TrimSpace(url) == "" {
+		return fmt.Errorf("name and url cannot be empty")
+	}
+
+	_, err := b.DBManager.Conn.Exec(
+		`INSERT OR IGNORE INTO sources (name, url, lastUpdated, active) VALUES (?, ?, ?, ?)`,
+		name, url, time.Now().Unix(), true,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert source: %w", err)
+	}
+
+	found := false
+	for _, source := range b.BlocklistURL {
+		if source.Name == name && source.URL == url {
+			found = true
+			break
+		}
+	}
+	if !found {
+		b.BlocklistURL = append(b.BlocklistURL, BlocklistSource{Name: name, URL: url})
+	}
+
+	return nil
+}
+
+func (b *Blacklist) RemoveSourceByNameAndURL(name, url string) bool {
+	for i := len(b.BlocklistURL) - 1; i >= 0; i-- {
+		if b.BlocklistURL[i].Name == name && b.BlocklistURL[i].URL == url {
+			b.BlocklistURL = append(b.BlocklistURL[:i], b.BlocklistURL[i+1:]...)
+			return true
+		}
+	}
+
+	return false
 }

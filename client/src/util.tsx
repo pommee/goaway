@@ -101,6 +101,35 @@ export async function GetRequest(url: string, ignoreError?: boolean) {
   }
 }
 
+export async function PatchRequest(url: string, ignoreError?: boolean) {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
+      method: "PATCH",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      await isAuthenticated(res);
+      const data = await res.json();
+      if (ignoreError !== true) {
+        showToast(data.error);
+      }
+      return [res.status, data.error];
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      return [res.status, null];
+    }
+    return [res.status, data];
+  } catch {
+    showToast("Could not reach server, try again later.");
+    return [500, null];
+  }
+}
+
 export async function PutRequest(
   url: string,
   bodyData: unknown,

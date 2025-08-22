@@ -8,12 +8,15 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ListEntry } from "@/pages/blacklist";
-import { DeleteRequest, GetRequest } from "@/util";
+import { DeleteRequest, GetRequest, PatchRequest } from "@/util";
 import {
   ArrowsClockwiseIcon,
   EraserIcon,
   EyeIcon,
-  ToggleLeftIcon
+  ToggleLeftIcon,
+  PencilIcon,
+  CheckIcon,
+  XIcon
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import TimeAgo from "react-timeago";
@@ -21,7 +24,10 @@ import { toast } from "sonner";
 import BlockedDomainsList from "./blockedDomains";
 
 export function CardDetails(
-  listEntry: ListEntry & { onDelete?: (name: string) => void }
+  listEntry: ListEntry & {
+    onDelete?: (name: string) => void;
+    onRename?: (name: string, url: string) => void;
+  }
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fetchingDiff, setFetchingDiff] = useState(false);
@@ -33,6 +39,9 @@ export function CardDetails(
   });
   const [showDiff, setShowDiff] = useState(false);
   const [listUpdating, setListUpdating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(listEntry.name);
+  const [updatingName, setUpdatingName] = useState(false);
 
   const toggleBlocklist = async () => {
     const [code, response] = await GetRequest(
@@ -107,7 +116,7 @@ export function CardDetails(
     setDeletingList(true);
     try {
       const [code, response] = await DeleteRequest(
-        `list?name=${encodeURIComponent(listEntry.name)}`,
+        `list?name=${listEntry.name}&url=${listEntry.url}`,
         null
       );
 
@@ -130,6 +139,53 @@ export function CardDetails(
     setDeletingList(false);
   };
 
+  const updateListName = async () => {
+    if (editedName.trim() === "") {
+      toast.warning("List name cannot be empty");
+      setIsEditing(false);
+      setEditedName(listEntry.name);
+      return;
+    }
+
+    if (editedName === listEntry.name) {
+      toast.info("List name was not changed");
+      setIsEditing(false);
+      setEditedName(listEntry.name);
+      return;
+    }
+
+    setUpdatingName(true);
+    try {
+      const [code, response] = await PatchRequest(
+        `listName?old=${listEntry.name}&new=${editedName.trim()}&url=${
+          listEntry.url
+        }`
+      );
+
+      if (code === 200) {
+        toast.success(`List renamed to "${editedName.trim()}"`);
+        listEntry.onRename?.(editedName.trim(), listEntry.url);
+        setIsEditing(false);
+      } else {
+        toast.error(response.error || "Failed to update list name");
+        setEditedName(listEntry.name);
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error updating list name");
+      setEditedName(listEntry.name);
+      setIsEditing(false);
+    }
+
+    setUpdatingName(false);
+  };
+
+  const cancelEdit = () => {
+    setEditedName(listEntry.name);
+    setIsEditing(false);
+  };
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
@@ -143,7 +199,54 @@ export function CardDetails(
       </DialogTrigger>
       <DialogContent className="rounded-xl w-2/3 max-w-200">
         <DialogHeader>
-          <DialogTitle>{listEntry.name} </DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isEditing ? (
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="flex-1 px-2 py-1 text-lg font-semibold bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
+                  autoFocus
+                  disabled={updatingName}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={updateListName}
+                  disabled={updatingName}
+                  className="h-8 w-8 p-0 hover:bg-green-100"
+                >
+                  {updatingName ? (
+                    <ArrowsClockwiseIcon className="animate-spin" size={16} />
+                  ) : (
+                    <CheckIcon className="text-green-600" size={16} />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={cancelEdit}
+                  disabled={updatingName}
+                  className="h-8 w-8 p-0 hover:bg-red-100"
+                >
+                  <XIcon className="text-red-600" size={16} />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span>{listEntry.name}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8 w-8 p-0 hover:bg-accent"
+                >
+                  <PencilIcon className="text-muted-foreground" size={16} />
+                </Button>
+              </>
+            )}
+          </DialogTitle>
           {listEntry.url && (
             <a
               href={listEntry.url}

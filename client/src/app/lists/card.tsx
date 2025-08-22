@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export function ListCard(
   props: ListEntry & {
-    onDelete: (name: string) => void;
+    onDelete: (name: string, url: string) => void;
+    onRename: (oldName: string, url: string, newName: string) => void;
     editMode?: boolean;
     selected?: boolean;
     onSelect?: () => void;
@@ -81,7 +82,10 @@ export function ListCard(
               )}
             </p>
           </h2>
-          <Separator />
+          <p className="text-center text-xs text-muted-foreground truncate">
+            {listEntry.url}
+          </p>
+          <Separator className="mt-1" />
         </div>
 
         <div className="flex items-center justify-between">
@@ -96,7 +100,13 @@ export function ListCard(
           </div>
         </div>
 
-        <CardDetails {...listEntry} onDelete={listEntry.onDelete} />
+        <CardDetails
+          {...listEntry}
+          onDelete={() => props.onDelete(listEntry.name, listEntry.url)}
+          onRename={(newName: string, url: string) =>
+            props.onRename(listEntry.name, url, newName)
+          }
+        />
       </div>
     </Card>
   );
