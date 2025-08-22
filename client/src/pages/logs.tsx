@@ -46,7 +46,8 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   QuestionIcon,
-  WarningIcon
+  WarningIcon,
+  MagnifyingGlassIcon
 } from "@phosphor-icons/react";
 import {
   ColumnFiltersState,
@@ -147,13 +148,34 @@ async function fetchQueries(
   }
 }
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export function Logs() {
   const [queries, setQueries] = useState<Queries[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(15);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
+
+  const [domainInputValue, setDomainInputValue] = useState("");
   const [domainFilter, setDomainFilter] = useState("");
+  const debouncedDomainFilter = useDebounce(domainInputValue, 200);
+
   const [wsConnected, setWsConnected] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -175,24 +197,20 @@ export function Logs() {
     setIsClientDetailsOpen(true);
   }, []);
 
-  const debounce = (func: (...args: unknown[]) => void, delay: number) => {
-    let timeoutId: NodeJS.Timeout | undefined;
-    return (...args: unknown[]) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
+  const handleDomainInputChange = (value: string) => {
+    setDomainInputValue(value);
+    if (value !== domainFilter) {
+      setFilterLoading(true);
+    }
   };
 
-  const debouncedSetDomainFilter = useMemo(
-    () =>
-      debounce((value: string) => {
-        setDomainFilter(value);
-        setPageIndex(0);
-      }, 500),
-    []
-  );
+  useEffect(() => {
+    if (debouncedDomainFilter !== domainFilter) {
+      setDomainFilter(debouncedDomainFilter);
+      setPageIndex(0);
+      setFilterLoading(false);
+    }
+  }, [debouncedDomainFilter, domainFilter]);
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -345,21 +363,53 @@ export function Logs() {
       <div className="flex items-center">
         <QuestionIcon
           size={20}
-          className="mr-4 hover:text-orange-400 cursor-pointer"
+          className="mr-4 hover:text-orange-400 cursor-pointer transition-colors"
           onClick={() => setShowHelp(true)}
         />
 
-        <Input
-          placeholder="Filter domain..."
-          onChange={(event) => debouncedSetDomainFilter(event.target.value)}
-          className="max-w-sm"
-        />
+        <div className="relative max-w-sm">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Filter domain..."
+            value={domainInputValue}
+            onChange={(event) => handleDomainInputChange(event.target.value)}
+            className="pl-10 pr-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          />
+          {(filterLoading || domainInputValue !== domainFilter) && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+            </div>
+          )}
+          {domainInputValue &&
+            !filterLoading &&
+            domainInputValue === domainFilter && (
+              <button
+                onClick={() => {
+                  setDomainInputValue("");
+                  setDomainFilter("");
+                  setPageIndex(0);
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="sr-only">Clear filter</span>×
+              </button>
+            )}
+        </div>
+
+        {domainFilter && (
+          <div className="ml-3 flex items-center text-sm text-muted-foreground animate-in fade-in-50 slide-in-from-left-2 duration-200">
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md border">
+              Filtered: "{domainFilter}"
+            </span>
+          </div>
+        )}
+
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild className="ml-5">
             <Button
               disabled={queries.length === 0}
               variant="outline"
-              className="bg-red-950 hover:bg-red-900 border-1 border-red-900 text-white"
+              className="bg-red-950 hover:bg-red-900 border-1 border-red-900 text-white transition-all duration-200 hover:scale-105"
             >
               Clear logs
             </Button>
@@ -382,7 +432,7 @@ export function Logs() {
               <div className="flex gap-4">
                 <Button
                   variant="outline"
-                  className="hover:font-bold"
+                  className="hover:font-bold transition-all duration-200"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancel
@@ -396,7 +446,10 @@ export function Logs() {
         </Dialog>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button
+              variant="outline"
+              className="ml-auto transition-all duration-200 hover:scale-105"
+            >
               Columns <CaretDownIcon />
             </Button>
           </DropdownMenuTrigger>
@@ -418,7 +471,10 @@ export function Logs() {
         </DropdownMenu>
       </div>
 
-      <div className="rounded-md border mt-4">
+      <div
+        className="rounded-md border mt-4 transition-opacity duration-200"
+        style={{ opacity: loading ? 0.7 : 1 }}
+      >
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -443,7 +499,10 @@ export function Logs() {
                   colSpan={columnsWithClientHandler.length}
                   className="h-24 text-center"
                 >
-                  Loading...
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+                    <span>Loading...</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : queries.length > 0 ? (
@@ -453,7 +512,7 @@ export function Logs() {
                   className={
                     row.index === 0 && wsConnected
                       ? "bg-zinc-700 bg-opacity-40 transition-colors duration-1000"
-                      : ""
+                      : "transition-colors duration-200 hover:bg-muted/50"
                   }
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -553,7 +612,26 @@ export function Logs() {
                   colSpan={columnsWithClientHandler.length}
                   className="h-24 text-center"
                 >
-                  No queries saved in the database.
+                  {domainFilter ? (
+                    <div className="flex flex-col items-center space-y-2">
+                      <span>
+                        No queries found matching <b>{domainFilter}</b>
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDomainInputValue("");
+                          setDomainFilter("");
+                          setPageIndex(0);
+                        }}
+                      >
+                        Clear filter
+                      </Button>
+                    </div>
+                  ) : (
+                    "No queries saved in the database."
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -613,7 +691,7 @@ export function Logs() {
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
+              className="hidden h-8 w-8 p-0 lg:flex transition-all duration-200 hover:scale-110"
               onClick={() => setPageIndex(0)}
               disabled={pageIndex === 0 || loading}
             >
@@ -622,7 +700,7 @@ export function Logs() {
             </Button>
             <Button
               variant="outline"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110"
               onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
               disabled={pageIndex === 0 || loading}
             >
@@ -631,7 +709,7 @@ export function Logs() {
             </Button>
             <Button
               variant="outline"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110"
               onClick={() =>
                 setPageIndex((prev) => Math.min(totalPages - 1, prev + 1))
               }
@@ -642,7 +720,7 @@ export function Logs() {
             </Button>
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
+              className="hidden h-8 w-8 p-0 lg:flex transition-all duration-200 hover:scale-110"
               onClick={() => setPageIndex(totalPages - 1)}
               disabled={pageIndex >= totalPages - 1 || loading}
             >
@@ -673,7 +751,7 @@ export function Logs() {
 
       {showHelp && (
         <Dialog open={showHelp} onOpenChange={setShowHelp}>
-          <DialogContent className="max-w-4xl max-h-4/5 overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-4/5 overflow-y-auto bg-transparent backdrop-blur-sm">
             <DialogTitle>Log Table Help</DialogTitle>
             <DialogDescription>
               The log table contains a couple of columns which sometimes serves
