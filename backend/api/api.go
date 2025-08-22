@@ -96,7 +96,7 @@ func (api *API) configureCORS() {
 	var (
 		corsConfig = cors.Config{
 			AllowOrigins:     []string{},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowMethods:     []string{"POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Content-Type", "Authorization", "Cookie"},
 			ExposeHeaders:    []string{"Set-Cookie"},
 			AllowCredentials: true,
