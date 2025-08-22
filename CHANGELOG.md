@@ -1,3 +1,17 @@
+# [0.61.0](https://github.com/pommee/goaway/compare/v0.60.8...v0.61.0) (2025-08-22)
+
+
+### Bug Fixes
+
+* correct color vars for update custom list modal ([792c5f7](https://github.com/pommee/goaway/commit/792c5f731c6dbbe146e0ad3c41bf1050ff148be6))
+* list url is now unique, requires old one to be removed and regenerated ([077de61](https://github.com/pommee/goaway/commit/077de613502bbad59118317c704d432d442ac277))
+* ui improvements to the logs page when searching ([342d54a](https://github.com/pommee/goaway/commit/342d54ac61a474f5690ba0a85e6e932a740b43df))
+
+
+### Features
+
+* added ability to update list names, select multiple to then update or delete ([d8fc63d](https://github.com/pommee/goaway/commit/d8fc63d38c8c0459428482c031f21ca027b9fc11))
+
 ## [0.60.8](https://github.com/pommee/goaway/compare/v0.60.7...v0.60.8) (2025-08-12)
 
 
