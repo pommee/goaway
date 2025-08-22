@@ -205,7 +205,9 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	if err != nil {
 		return "unknown"
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	err = conn.SetDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
