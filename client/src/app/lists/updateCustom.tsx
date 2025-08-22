@@ -80,7 +80,7 @@ export function UpdateCustom() {
           <DialogHeader className="space-y-4 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full">
-                <ShieldIcon size={24} className="text-blue-600" />
+                <ShieldIcon size={24} className="text-primary" />
               </div>
               <div>
                 <DialogTitle className="text-xl font-semibold">
@@ -94,20 +94,17 @@ export function UpdateCustom() {
           </DialogHeader>
 
           <div className="space-y-6">
-            <div className="bg-blue-800/40 rounded-lg p-4">
+            <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
               <div className="flex items-start gap-3">
                 <InfoIcon
                   size={20}
-                  className="text-blue-400 mt-0.5 flex-shrink-0"
+                  className="text-primary mt-0.5 flex-shrink-0"
                 />
-                <div className="text-sm text-blue-400">
-                  <p className="font-medium mb-1">How it works:</p>
-                  <p>
-                    Add domain names (one per line) to your custom blocklist.
-                    These domains will be automatically blocked across your
-                    network.
-                  </p>
-                </div>
+                <p className="text-sm text-primary">
+                  Add domain names (one per line) to your custom blocklist.
+                  These domains will be automatically blocked across your
+                  network.
+                </p>
               </div>
             </div>
 
@@ -117,7 +114,7 @@ export function UpdateCustom() {
                   htmlFor="domains-textarea"
                   className="text-sm font-medium text-muted-foreground"
                 >
-                  Domain List
+                  Custom domains
                 </Label>
                 {domainCount > 0 && (
                   <span className="text-xs text-muted-foreground bg-accent px-2 py-1 rounded-full">
@@ -148,7 +145,7 @@ export function UpdateCustom() {
             <Button
               onClick={handleSave}
               disabled={isLoading || domainCount === 0}
-              className="order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+              className="order-1 sm:order-2 shadow-sm hover:shadow-md transition-all duration-200"
             >
               {isLoading ? (
                 <>
