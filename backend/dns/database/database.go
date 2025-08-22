@@ -142,8 +142,8 @@ func NewSourcesTable(db *sql.DB) error {
 	_, err := db.Exec(`
         CREATE TABLE IF NOT EXISTS sources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            url TEXT,
+            name TEXT,
+            url TEXT UNIQUE,
 			active INTEGER,
             lastUpdated INTEGER
         )
