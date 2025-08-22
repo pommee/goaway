@@ -9,12 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"goaway/backend/dns/database"
+	"goaway/backend/logging"
 	"io"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 )
+
+var log = logging.GetLogger()
 
 type BlocklistSource struct {
 	Name string
