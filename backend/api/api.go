@@ -129,6 +129,7 @@ func (api *API) setupRoutes() {
 	api.registerResolutionRoutes()
 	api.registerSettingsRoutes()
 	api.registerNotificationRoutes()
+	api.registerAlertRoutes()
 }
 
 func (api *API) setupAuthAndMiddleware() {

@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"goaway/backend/alert"
 	"goaway/backend/api/user"
 	"goaway/backend/audit"
 	"io"
@@ -132,7 +134,12 @@ func (api *API) updatePassword(c *gin.Context) {
 
 	api.DNSServer.Audits.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUser,
-		Message: fmt.Sprintf("Password was changed for user '%s'", existingUser.Username),
+		Message: logMsg,
+	})
+	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+		Title:    "System",
+		Content:  logMsg,
+		Severity: SeverityWarning,
 	})
 	log.Info("Password has been changed!")
 	c.Status(http.StatusOK)
@@ -162,6 +169,13 @@ func (api *API) createAPIKey(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
+
+	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+		Title:    "System",
+		Content:  fmt.Sprintf("New API key created with the name '%s'", request.Name),
+		Severity: SeverityWarning,
+	})
+
 	c.JSON(http.StatusOK, apiKey)
 }
 

@@ -1,8 +1,10 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"goaway/backend/alert"
 	"goaway/backend/audit"
 	"io"
 	"net/http"
@@ -226,6 +228,12 @@ func (api *API) runUpdateList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+		Title:    "System",
+		Content:  fmt.Sprintf("List '%s' with url '%s' was updated! ", name, url),
+		Severity: SeveritySuccess,
+	})
 
 	c.Status(http.StatusOK)
 }

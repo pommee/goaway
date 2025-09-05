@@ -12,6 +12,7 @@ import {
   DownloadIcon,
   KeyIcon,
   LockIcon,
+  NotificationIcon,
   ShuffleIcon,
   SpinnerIcon,
   TextAlignCenterIcon,
@@ -32,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Root } from "@radix-ui/react-slot";
 import { Switch } from "@/components/ui/switch";
+import { AlertDialog } from "@/components/Alert";
 
 const parseLogLevel = (level: number | string) => {
   const levels = ["Debug", "Info", "Warning", "Error"];
@@ -73,7 +75,8 @@ export function Settings() {
   const [modals, setModals] = useState({
     password: false,
     apiKey: false,
-    importConfirm: false
+    importConfirm: false,
+    notifications: false
   });
   const [file, setFile] = useState<File | null>(null);
   const [passwords, setPasswords] = useState({
@@ -470,6 +473,25 @@ export function Settings() {
               </>
             )}
 
+            {title === "Alerts" && (
+              <>
+                <SettingRow
+                  title="Configure"
+                  description="Set up how you receive notifications for important events."
+                  action={
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setModals((prev) => ({ ...prev, notifications: true }))
+                      }
+                    >
+                      Open
+                    </Button>
+                  }
+                />
+              </>
+            )}
+
             {settings.map(
               ({ label, key, explanation, options, widgetType: Widget }) => {
                 const keyMap = {
@@ -553,6 +575,13 @@ export function Settings() {
         open={modals.apiKey}
         onOpenChange={(open) =>
           setModals((prev) => ({ ...prev, apiKey: open }))
+        }
+      />
+
+      <AlertDialog
+        open={modals.notifications}
+        onOpenChange={(open) =>
+          setModals((prev) => ({ ...prev, notifications: open }))
         }
       />
     </div>
@@ -772,6 +801,13 @@ const SETTINGS_SECTIONS = [
         widgetType: Switch
       }
     ]
+  },
+  {
+    title: "Alerts",
+    description:
+      "Configure how the system notifies you about important events.",
+    icon: <NotificationIcon />,
+    settings: []
   },
   {
     title: "DNS Server",

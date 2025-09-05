@@ -99,6 +99,11 @@ func Initialize() (*DatabaseManager, error) {
 		return nil, fmt.Errorf("failed to create audit table: %w", err)
 	}
 
+	err = NewAlertTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create audit table: %w", err)
+	}
+
 	return &DatabaseManager{Conn: db, Mutex: &sync.RWMutex{}}, nil
 }
 
@@ -292,6 +297,20 @@ func NewAuditTable(db *sql.DB) error {
 		topic TEXT,
 		message TEXT,
 		created_at DATETIME NOT NULL
+	)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewAlertTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS alert (
+		type TEXT PRIMARY KEY,
+		enabled BOOLEAN,
+		name TEXT,
+		webhook TEXT
 	)`)
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"goaway/backend/alert"
 	"goaway/backend/audit"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/lists"
@@ -41,6 +42,7 @@ type DNSServer struct {
 	WSCommunicationLock sync.Mutex
 	dnsClient           *dns.Client
 	Notifications       *notification.Manager
+	Alerts              *alert.Manager
 	Audits              *audit.Manager
 }
 
@@ -70,7 +72,7 @@ type communicationMessage struct {
 	Ip       string `json:"ip"`
 }
 
-func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager, auditManager *audit.Manager, cert tls.Certificate) (*DNSServer, error) {
+func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager, alertManager *alert.Manager, auditManager *audit.Manager, cert tls.Certificate) (*DNSServer, error) {
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize whitelist: %w", err)
@@ -90,6 +92,7 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
 		dnsClient:          &client,
 		Notifications:      notificationsManager,
+		Alerts:             alertManager,
 		Audits:             auditManager,
 	}
 

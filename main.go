@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"embed"
 	"fmt"
+	"goaway/backend/alert"
 	"goaway/backend/api"
 	"goaway/backend/asciiart"
 	"goaway/backend/audit"
@@ -144,6 +145,8 @@ func startServer(config *settings.Config, ansi bool) {
 	}
 
 	notificationManager := notification.NewNotificationManager(dbManager)
+	alertManager := alert.NewManager(dbManager.Conn)
+	alertManager.Load()
 	auditManager := audit.NewAuditManager(dbManager)
 
 	cert, err := config.GetCertificate()
@@ -151,7 +154,7 @@ func startServer(config *settings.Config, ansi bool) {
 		log.Fatal("%s", err)
 	}
 
-	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, auditManager, cert)
+	dnsServer, err := server.NewDNSServer(config, dbManager, notificationManager, alertManager, auditManager, cert)
 	if err != nil {
 		log.Fatal("Failed to initialize server: %s", err)
 	}
