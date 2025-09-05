@@ -1,3 +1,18 @@
+# [0.62.0](https://github.com/pommee/goaway/compare/v0.61.0...v0.62.0) (2025-09-05)
+
+
+### Bug Fixes
+
+* added futher logging ([eddf0ad](https://github.com/pommee/goaway/commit/eddf0ad24a4b06bfc09d07ac05f95b4f525219f7))
+* smoother navigation bar ([9110c07](https://github.com/pommee/goaway/commit/9110c07a0b98764252fa036edba63cd01e3e8022))
+* update client dependencies ([d4a349a](https://github.com/pommee/goaway/commit/d4a349ad0997263ba26444ba5e349b0bbdd5a428))
+* upgrade go to 1.25 ([b38e210](https://github.com/pommee/goaway/commit/b38e21065bf75c3f419cb23f7b8b59dacb74e8dc))
+
+
+### Features
+
+* added alerts, currently only enabled for discord webhooks ([fa37c8d](https://github.com/pommee/goaway/commit/fa37c8d5c94cfe72de4c464c171674c6960da21c))
+
 # [0.61.0](https://github.com/pommee/goaway/compare/v0.60.8...v0.61.0) (2025-08-22)
 
 
