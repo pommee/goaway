@@ -302,7 +302,9 @@ func (api *API) importDatabase(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Critical error: restored database is not functional"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Imported database is not functional, restored from backup"})
+
+		log.Info("Database restored successfully from backup %s", backupPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to use imported database, restored from backup %s", backupPath)})
 		return
 	}
 

@@ -127,6 +127,8 @@ func (m *ApiKeyManager) CreateKey(name string) (string, error) {
 	m.keyCache[name] = ApiKey{Name: name, Key: apiKey, CreatedAt: createdAt}
 	m.cacheMu.Unlock()
 
+	log.Info("Created new API key with name: %s", name)
+
 	return apiKey, nil
 }
 

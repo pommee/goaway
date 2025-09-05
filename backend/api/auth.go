@@ -132,6 +132,7 @@ func (api *API) updatePassword(c *gin.Context) {
 		return
 	}
 
+	logMsg := fmt.Sprintf("Password changed for user '%s'", existingUser.Username)
 	api.DNSServer.Audits.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUser,
 		Message: logMsg,
@@ -141,7 +142,7 @@ func (api *API) updatePassword(c *gin.Context) {
 		Content:  logMsg,
 		Severity: SeverityWarning,
 	})
-	log.Info("Password has been changed!")
+	log.Warning(logMsg)
 	c.Status(http.StatusOK)
 }
 
