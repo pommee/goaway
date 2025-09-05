@@ -51,7 +51,9 @@ export function NavMain({
                   asChild
                   tooltip={item.title}
                   className={clsx({
-                    "bg-accent font-semibold": isActive
+                    "bg-accent font-semibold": isActive,
+                    "hover:bg-accent/50 transition-colors duration-200":
+                      !isActive
                   })}
                 >
                   <a href={item.url}>
