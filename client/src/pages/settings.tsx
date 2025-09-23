@@ -682,27 +682,93 @@ const ImportModal = ({
   onClose: () => void;
   onConfirm: () => void;
   filename?: string;
-}) => (
-  <Dialog open={open} onOpenChange={onClose}>
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>Confirm Import</DialogTitle>
-        <DialogDescription>
-          Replace current database with <strong>{filename}</strong>? A backup
-          will be created for your current database.
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="destructive" onClick={onConfirm}>
-          Import
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
+}) => {
+  const [fileDetails, setFileDetails] = useState<{
+    name: string;
+    size: number;
+    lastModified: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (filename) {
+      const input = document.querySelector(
+        "input[type='file']"
+      ) as HTMLInputElement;
+      const file = input?.files?.[0];
+      if (file) {
+        setFileDetails({
+          name: file.name,
+          size: file.size,
+          lastModified: file.lastModified
+        });
+      }
+    }
+  }, [filename]);
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
+  };
+
+  const formatDate = (timestamp: number) =>
+    new Date(timestamp).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Confirm Import</DialogTitle>
+          <DialogDescription>
+            <p>
+              Replace the current database with <strong>{filename}</strong>?
+            </p>
+            A backup of your current database will be created.
+            {fileDetails && (
+              <div className="mt-4 p-2 rounded text-sm">
+                <p>
+                  <strong>File Details:</strong>
+                </p>
+                <ul className="mt-1 list-disc ml-4 space-y-1">
+                  <li>
+                    <strong>Name:</strong> {fileDetails.name}
+                  </li>
+                  <li>
+                    <strong>Size:</strong> {formatBytes(fileDetails.size)}
+                  </li>
+                  <li>
+                    <strong>Last Modified:</strong>{" "}
+                    {formatDate(fileDetails.lastModified)}
+                  </li>
+                </ul>
+              </div>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            className="hover:font-bold transition-all duration-200 bg-destructive/20"
+          >
+            Import
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export interface Root {
   dns: Dns;
