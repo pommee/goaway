@@ -101,32 +101,24 @@ func (api *API) getAuthentication(c *gin.Context) {
 }
 
 func (api *API) updatePassword(c *gin.Context) {
-	type PasswordChange struct {
+	type passwordChange struct {
 		CurrentPassword string `json:"currentPassword"`
 		NewPassword     string `json:"newPassword"`
 	}
 
-	updatedList, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	var newCredentials passwordChange
+	if err := c.BindJSON(&newCredentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	var request PasswordChange
-	if err := json.Unmarshal(updatedList, &request); err != nil {
-		log.Error("Failed to parse JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-		return
-	}
-
-	if !api.validateCredentials("admin", request.CurrentPassword) {
+	if !api.validateCredentials("admin", newCredentials.CurrentPassword) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is not valid"})
 		return
 	}
 
-	existingUser := user.User{Username: "admin", Password: request.NewPassword}
-	if err = existingUser.UpdatePassword(api.DBManager.Conn); err != nil {
+	existingUser := user.User{Username: "admin", Password: newCredentials.NewPassword}
+	if err := existingUser.UpdatePassword(api.DBManager.Conn); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to update password"})
 		return
 	}
@@ -141,7 +133,8 @@ func (api *API) updatePassword(c *gin.Context) {
 		Content:  logMsg,
 		Severity: SeverityWarning,
 	})
-	log.Warning(logMsg)
+
+	log.Warning("%s", logMsg)
 	c.Status(http.StatusOK)
 }
 
