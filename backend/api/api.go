@@ -147,8 +147,6 @@ func (api *API) SetupAuth() {
 		return
 	}
 
-	log.Info("Creating a new admin user")
-
 	password := api.getOrGeneratePassword()
 	newUser.Password = password
 
