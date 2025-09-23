@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"goaway/backend/dns/database"
 	"goaway/backend/logging"
@@ -18,18 +19,29 @@ type Credentials struct {
 }
 
 func (user *User) Create(db *gorm.DB) error {
+	log.Info("Creating a new user with name '%s'", user.Username)
+
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
 		log.Error("Failed to hash password: %v", err)
 		return err
 	}
 
-	tx := db.Create(&database.User{
-		Username: user.Username,
-		Password: hashedPassword,
-	})
+	user.Password = hashedPassword
 
-	return tx.Commit().Error
+	result := db.Create(user)
+	if result.Error != nil {
+		log.Error("Failed to create user: %v", result.Error)
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		log.Error("User creation failed: no rows affected")
+		return errors.New("user creation failed: no rows affected")
+	}
+
+	log.Debug("User created successfully")
+	return nil
 }
 
 func hashPassword(password string) (string, error) {
@@ -38,9 +50,9 @@ func hashPassword(password string) (string, error) {
 }
 
 func (user *User) Exists(db *gorm.DB) bool {
-	query := database.User{Username: user.Username}
-	result := db.First(&query)
-	return result.RowsAffected > 0
+	query := database.User{}
+	db.Where("username = ?", user.Username).Find(&query)
+	return query.Username != ""
 }
 
 func (user *User) Authenticate(db *gorm.DB) bool {
@@ -67,11 +79,19 @@ func (user *User) UpdatePassword(db *gorm.DB) error {
 		return err
 	}
 
-	tx := db.Save(&database.User{
-		Password: hashedPassword,
-	})
+	affected, err := gorm.G[database.User](db).Where("username = ?", user.Username).Update(context.Background(), "password", hashedPassword)
+	if err != nil {
+		log.Error("Failed to update password: %v", err)
+		return err
+	}
 
-	return tx.Commit().Error
+	if affected == 0 {
+		log.Error("Password update failed: no rows affected")
+		return errors.New("password update failed: no rows affected")
+	}
+
+	log.Debug("Password updated successfully")
+	return nil
 }
 
 func (c *Credentials) Validate() error {
