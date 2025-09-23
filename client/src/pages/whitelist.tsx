@@ -146,8 +146,16 @@ export function Whitelist() {
                       onChange={(e) => setDomainName(e.target.value)}
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    Enter the domain you want to whitelist.
+                  <span className="text-sm text-muted-foreground">
+                    Enter the domain you want to whitelist. Make sure it's a{" "}
+                    <a
+                      href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline hover:text-primary"
+                    >
+                      FQDN
+                    </a>
                   </span>
                 </div>
                 <div className="flex items-end mb-8">
