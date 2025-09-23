@@ -96,6 +96,7 @@ async function fetchQueries(
   page: number,
   pageSize: number,
   domainFilter: string = "",
+  clientFilter: string = "",
   sortField: string = "timestamp",
   sortDirection: string = "desc"
 ): Promise<QueryResponse> {
@@ -103,8 +104,13 @@ async function fetchQueries(
     let url = `queries?page=${page}&pageSize=${pageSize}&sortColumn=${encodeURIComponent(
       sortField
     )}&sortDirection=${encodeURIComponent(sortDirection)}`;
+
     if (domainFilter) {
       url += `&search=${encodeURIComponent(domainFilter)}`;
+    }
+
+    if (clientFilter) {
+      url += `&client=${encodeURIComponent(clientFilter)}`;
     }
 
     const [, response] = await GetRequest(url);
@@ -176,6 +182,10 @@ export function Logs() {
   const [domainFilter, setDomainFilter] = useState("");
   const debouncedDomainFilter = useDebounce(domainInputValue, 200);
 
+  const [clientInputValue, setClientInputValue] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
+  const debouncedClientFilter = useDebounce(clientInputValue, 200);
+
   const [wsConnected, setWsConnected] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -204,13 +214,29 @@ export function Logs() {
     }
   };
 
+  const handleClientInputChange = (value: string) => {
+    setClientInputValue(value);
+    if (value !== clientFilter) {
+      setFilterLoading(true);
+    }
+  };
+
   useEffect(() => {
-    if (debouncedDomainFilter !== domainFilter) {
+    if (
+      debouncedDomainFilter !== domainFilter ||
+      debouncedClientFilter !== clientFilter
+    ) {
       setDomainFilter(debouncedDomainFilter);
+      setClientFilter(debouncedClientFilter);
       setPageIndex(0);
       setFilterLoading(false);
     }
-  }, [debouncedDomainFilter, domainFilter]);
+  }, [
+    debouncedDomainFilter,
+    domainFilter,
+    debouncedClientFilter,
+    clientFilter
+  ]);
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -290,6 +316,7 @@ export function Logs() {
       pageIndex + 1,
       pageSize,
       domainFilter,
+      clientFilter,
       sortField,
       sortDirection
     );
@@ -297,7 +324,7 @@ export function Logs() {
     setQueries(result.queries);
     setTotalRecords(result.recordsFiltered);
     setLoading(false);
-  }, [pageIndex, pageSize, domainFilter, sorting]);
+  }, [pageIndex, pageSize, domainFilter, clientFilter, sorting]);
 
   useEffect(() => {
     fetchData();
@@ -396,10 +423,34 @@ export function Logs() {
             )}
         </div>
 
-        {domainFilter && (
+        <div className="ml-5 relative max-w-sm">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Filter client..."
+            value={clientInputValue}
+            onChange={(event) => handleClientInputChange(event.target.value)}
+            className="pl-10 pr-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          />
+          {clientInputValue &&
+            !filterLoading &&
+            clientInputValue === clientFilter && (
+              <button
+                onClick={() => {
+                  setClientInputValue("");
+                  setClientFilter("");
+                  setPageIndex(0);
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="sr-only">Clear filter</span>×
+              </button>
+            )}
+        </div>
+
+        {clientFilter && (
           <div className="ml-3 flex items-center text-sm text-muted-foreground animate-in fade-in-50 slide-in-from-left-2 duration-200">
             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md border">
-              Filtered: "{domainFilter}"
+              Filtered: "{clientFilter}"
             </span>
           </div>
         )}
@@ -421,11 +472,11 @@ export function Logs() {
                 Confirm Log Clearance
               </DialogTitle>
               <DialogDescription className="text-base mb-6">
-                <div className="bg-red-500/40 border-1 border-red-500 text-red-400 p-4 rounded-xl">
+                <div className="bg-destructive/20 border-1 border-destructive text-destructive p-4 rounded-xl">
                   <p>Are you sure you want to clear all logs?</p>{" "}
                   <p>
-                    This action is
-                    <span className="font-semibold"> irreversible</span>.
+                    This action is{" "}
+                    <span className="font-bold underline">irreversible</span>.
                   </p>
                 </div>
               </DialogDescription>
@@ -437,7 +488,11 @@ export function Logs() {
                 >
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={clearLogs}>
+                <Button
+                  variant="destructive"
+                  onClick={clearLogs}
+                  className="hover:font-bold transition-all duration-200 bg-destructive/20"
+                >
                   Yes, clear logs
                 </Button>
               </div>
