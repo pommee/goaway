@@ -28,36 +28,8 @@ function PageLoader() {
 }
 
 function PageTransition({ children }) {
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      scale: 0.98
-    },
-    in: {
-      opacity: 1,
-      scale: 1
-    },
-    out: {
-      opacity: 0,
-      scale: 0.98
-    }
-  };
-
-  const pageTransition = {
-    type: "tween",
-    ease: "easeOut",
-    duration: 0.4
-  };
-
   return (
-    <motion.div
-      initial="initial"
-      animate="in"
-      exit="out"
-      variants={pageVariants}
-      transition={pageTransition}
-      className="h-full"
-    >
+    <motion.div initial="initial" animate="in" exit="out" className="h-full">
       <Suspense fallback={<PageLoader />}>{children}</Suspense>
     </motion.div>
   );
