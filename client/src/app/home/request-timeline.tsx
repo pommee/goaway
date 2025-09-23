@@ -177,21 +177,21 @@ export default function RequestTimeline() {
           <div className="grid sm:text-left">
             <CardTitle className="flex text-xl">
               <ChartLineIcon className="mt-1 mr-2" /> Request Timeline
+              <p className="text-sm text-muted-foreground mt-1 ml-4">
+                {timelineInterval}-Minute Intervals,{" "}
+                {filteredData.length > 0
+                  ? "Last Updated: " +
+                    new Date().toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: false
+                    })
+                  : "No data available"}
+              </p>
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {timelineInterval}-Minute Intervals,{" "}
-              {filteredData.length > 0
-                ? "Last Updated: " +
-                  new Date().toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false
-                  })
-                : "No data available"}
-            </p>
           </div>
           <div className="flex gap-2">
             {isZoomed && (
