@@ -186,21 +186,23 @@ export default function ResponseSizeTimeline() {
       <Card className="overflow-hidden py-2 gap-0">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
           <div className="grid sm:text-left">
-            <CardTitle className="text-xl">Response Size Timeline</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {timelineInterval}-Minute Intervals,{" "}
-              {filteredData.length > 0
-                ? "Last Updated: " +
-                  new Date().toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false
-                  })
-                : "No data available"}
-            </p>
+            <CardTitle className="flex text-xl">
+              Response Size Timeline
+              <p className="text-sm text-muted-foreground mt-1 ml-4">
+                {timelineInterval}-Minute Intervals,{" "}
+                {filteredData.length > 0
+                  ? "Last Updated: " +
+                    new Date().toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: false
+                    })
+                  : "No data available"}
+              </p>
+            </CardTitle>
           </div>
           <div className="flex gap-2">
             {isZoomed && (
