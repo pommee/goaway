@@ -2,19 +2,15 @@ package alert
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"goaway/backend/dns/database"
 	"goaway/backend/logging"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var log = logging.GetLogger()
-
-type Alert struct {
-	Type    string
-	Enabled bool
-	Name    string
-	Webhook string
-}
 
 type Message struct {
 	Content  string
@@ -30,11 +26,11 @@ type MessageSender interface {
 }
 
 type Manager struct {
-	DB       *sql.DB
+	DB       *gorm.DB
 	services []MessageSender
 }
 
-func NewManager(db *sql.DB) *Manager {
+func NewManager(db *gorm.DB) *Manager {
 	return &Manager{
 		DB:       db,
 		services: make([]MessageSender, 0),
@@ -71,57 +67,23 @@ func (m *Manager) Load() {
 	log.Debug("Alert Manager loaded with %d services", len(m.services))
 }
 
-func (m *Manager) SaveAlert(alert Alert) error {
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
+func (m *Manager) SaveAlert(alert database.Alert) error {
+	result := m.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "type"}},
+		DoUpdates: clause.AssignmentColumns([]string{"enabled", "name", "webhook"}),
+	}).Create(&alert)
 
-	query := `
-        INSERT INTO alert (type, enabled, name, webhook)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(type) DO UPDATE SET
-            enabled=excluded.enabled,
-            name=excluded.name,
-            webhook=excluded.webhook;
-    `
-	_, err = tx.Exec(query, alert.Type, alert.Enabled, alert.Name, alert.Webhook)
-	if err != nil {
-		return fmt.Errorf("failed to save alert: %w", err)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to save alert: %w", result.Error)
 	}
 
 	m.Load()
 	return nil
 }
 
-func (m *Manager) GetAllAlerts() ([]Alert, error) {
-	query := "SELECT type, enabled, name, webhook FROM alert"
-	rows, err := m.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var alerts []Alert
-	for rows.Next() {
-		var alert Alert
-		err := rows.Scan(&alert.Type, &alert.Enabled, &alert.Name, &alert.Webhook)
-		if err != nil {
-			return nil, err
-		}
-		alerts = append(alerts, alert)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return alerts, nil
+func (m *Manager) GetAllAlerts() ([]database.Alert, error) {
+	ctx := context.Background()
+	return gorm.G[database.Alert](m.DB).Find(ctx)
 }
 
 func (m *Manager) RegisterService(service MessageSender) {

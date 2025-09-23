@@ -1,12 +1,13 @@
 package user
 
 import (
-	"database/sql"
 	"errors"
+	"goaway/backend/dns/database"
 	"goaway/backend/logging"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var log = logging.GetLogger()
@@ -16,30 +17,19 @@ type Credentials struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (user *User) Create(db *sql.DB) error {
+func (user *User) Create(db *gorm.DB) error {
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
 		log.Error("Failed to hash password: %v", err)
 		return err
 	}
 
-	query := "INSERT INTO user (username, password) VALUES (?, ?)"
+	tx := db.Create(&database.User{
+		Username: user.Username,
+		Password: hashedPassword,
+	})
 
-	tx, err := db.Begin()
-	if err != nil {
-		log.Error("Could not start transaction: %v", err)
-		return err
-	}
-	defer func(tx *sql.Tx) {
-		_ = tx.Rollback()
-	}(tx)
-
-	if _, err := tx.Exec(query, user.Username, hashedPassword); err != nil {
-		log.Error("Insert failed: %v", err)
-		return err
-	}
-
-	return tx.Commit()
+	return tx.Commit().Error
 }
 
 func hashPassword(password string) (string, error) {
@@ -47,25 +37,16 @@ func hashPassword(password string) (string, error) {
 	return string(hashed), err
 }
 
-func (user *User) Exists(db *sql.DB) bool {
-	query := "SELECT 1 FROM user WHERE username = ? LIMIT 1"
-	var exists int
-	if err := db.QueryRow(query, user.Username).Scan(&exists); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false
-		}
-		log.Error("Query error: %v", err)
-		return false
-	}
-	return true
+func (user *User) Exists(db *gorm.DB) bool {
+	query := database.User{Username: user.Username}
+	result := db.First(&query)
+	return result.RowsAffected > 0
 }
 
-func (user *User) Authenticate(db *sql.DB) bool {
-	query := "SELECT password FROM user WHERE username = ?"
-
-	var hashedPassword string
-	if err := db.QueryRow(query, user.Username).Scan(&hashedPassword); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+func (user *User) Authenticate(db *gorm.DB) bool {
+	var dbUser User
+	if err := db.Where("username = ?", user.Username).First(&dbUser).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Error("User not found: %s", user.Username)
 			return false
 		}
@@ -73,36 +54,24 @@ func (user *User) Authenticate(db *sql.DB) bool {
 		return false
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password)); err != nil {
 		return false
 	}
-
 	return true
 }
 
-func (user *User) UpdatePassword(db *sql.DB) error {
+func (user *User) UpdatePassword(db *gorm.DB) error {
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
 		log.Error("Failed to hash new password: %v", err)
 		return err
 	}
 
-	query := "UPDATE user SET password = ? WHERE username = ?"
-	tx, err := db.Begin()
-	if err != nil {
-		log.Error("Could not start transaction: %v", err)
-		return err
-	}
-	defer func(tx *sql.Tx) {
-		_ = tx.Rollback()
-	}(tx)
+	tx := db.Save(&database.User{
+		Password: hashedPassword,
+	})
 
-	if _, err := tx.Exec(query, hashedPassword, user.Username); err != nil {
-		log.Error("Password update failed: %v", err)
-		return err
-	}
-
-	return tx.Commit()
+	return tx.Commit().Error
 }
 
 func (c *Credentials) Validate() error {

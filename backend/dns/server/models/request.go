@@ -32,13 +32,14 @@ type ResolvedIP struct {
 }
 
 type RequestLogIntervalSummary struct {
-	IntervalStart time.Time `json:"start"`
-	BlockedCount  int       `json:"blocked"`
-	CachedCount   int       `json:"cached"`
-	AllowedCount  int       `json:"allowed"`
+	IntervalStart string `json:"start"`
+	BlockedCount  int    `json:"blocked"`
+	CachedCount   int    `json:"cached"`
+	AllowedCount  int    `json:"allowed"`
 }
 
 type ResponseSizeSummary struct {
+	StartUnix            int64     `json:"-"`
 	Start                time.Time `json:"start"`
 	TotalSizeBytes       int       `json:"total_size_bytes"`
 	AvgResponseSizeBytes int       `json:"avg_response_size_bytes"`

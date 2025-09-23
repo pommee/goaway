@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -15,6 +14,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var log = logging.GetLogger()
@@ -96,7 +98,11 @@ func (b *Blacklist) initializeBlockedDomains() error {
 
 func (b *Blacklist) Vacuum() {
 	b.DBManager.Mutex.Lock()
-	_, err := b.DBManager.Conn.Exec("VACUUM")
+	tx := b.DBManager.Conn.Raw("VACUUM")
+	if err := tx.Error; err != nil {
+		log.Warning("Error while vacuuming database: %v", err)
+	}
+	err := tx.Commit().Error
 	b.DBManager.Mutex.Unlock()
 	if err != nil {
 		log.Warning("Error while vacuuming database: %v", err)
@@ -104,21 +110,19 @@ func (b *Blacklist) Vacuum() {
 }
 
 func (b *Blacklist) GetBlocklistUrls() ([]BlocklistSource, error) {
-	rows, err := b.DBManager.Conn.Query(`SELECT name, url FROM sources WHERE name != 'Custom'`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query sources: %w", err)
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	var sources []database.Source
 
-	var blocklistURL []BlocklistSource
-	for rows.Next() {
-		var name, url string
-		if err := rows.Scan(&name, &url); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+	result := b.DBManager.Conn.Where("name != ?", "Custom").Find(&sources)
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to query sources: %w", result.Error)
+	}
+
+	blocklistURL := make([]BlocklistSource, len(sources))
+	for i, source := range sources {
+		blocklistURL[i] = BlocklistSource{
+			Name: source.Name,
+			URL:  source.URL,
 		}
-		blocklistURL = append(blocklistURL, BlocklistSource{Name: name, URL: url})
 	}
 
 	b.BlocklistURL = blocklistURL
@@ -266,70 +270,68 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 }
 
 func (b *Blacklist) AddBlacklistedDomain(domain string) error {
-	result, err := b.DBManager.Conn.Exec(`INSERT OR IGNORE INTO blacklist (domain) VALUES (?)`, domain)
-	if err != nil {
-		return fmt.Errorf("failed to add domain to blacklist: %w", err)
+	blacklistEntry := database.Blacklist{Domain: domain}
+
+	result := b.DBManager.Conn.Create(&blacklistEntry)
+	if result.Error != nil {
+		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") ||
+			strings.Contains(result.Error.Error(), "duplicate key") {
+			return fmt.Errorf("%s is already blacklisted", domain)
+		}
+		return fmt.Errorf("failed to add domain to blacklist: %w", result.Error)
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("%s is already blacklisted", domain)
-	}
 	b.BlacklistCache[domain] = true
 	return nil
 }
 
 func (b *Blacklist) AddDomains(domains []string, url string) error {
-	tx, err := b.DBManager.Conn.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
+	return b.DBManager.Conn.Transaction(func(tx *gorm.DB) error {
+		var source database.Source
+		currentTime := time.Now().Unix()
 
-	var sourceID int
-	currentTime := time.Now().Unix()
-	err = tx.QueryRow(`UPDATE sources SET lastUpdated = (?) WHERE url IS (?) RETURNING id`, currentTime, url).Scan(&sourceID)
-	if err != nil {
-		return fmt.Errorf("failed to insert source: %w", err)
-	}
-
-	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO blacklist (domain, source_id) VALUES (?, ?)`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer func(stmt *sql.Stmt) {
-		_ = stmt.Close()
-	}(stmt)
-
-	for _, domain := range domains {
-		if _, err := stmt.Exec(domain, sourceID); err != nil {
-			err = tx.Rollback()
-			return fmt.Errorf("failed to add domain '%s': %w", domain, err)
+		result := tx.Model(&source).Where("url = ?", url).Update("last_updated", currentTime)
+		if result.Error != nil {
+			return fmt.Errorf("failed to update source: %w", result.Error)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	return nil
+
+		if err := tx.Where("url = ?", url).First(&source).Error; err != nil {
+			return fmt.Errorf("failed to find source: %w", err)
+		}
+
+		blacklistEntries := make([]database.Blacklist, 0, len(domains))
+		for _, domain := range domains {
+			blacklistEntries = append(blacklistEntries, database.Blacklist{
+				Domain:   domain,
+				SourceID: source.ID,
+			})
+		}
+
+		if len(blacklistEntries) > 0 {
+			if err := tx.CreateInBatches(blacklistEntries, 1000).Error; err != nil {
+				if !strings.Contains(err.Error(), "UNIQUE constraint failed") &&
+					!strings.Contains(err.Error(), "duplicate key") {
+					return fmt.Errorf("failed to add domains: %w", err)
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 func (b *Blacklist) PopulateBlocklistCache() (int, error) {
 	b.BlacklistCache = map[string]bool{}
 
-	rows, err := b.DBManager.Conn.Query("SELECT domain FROM blacklist")
-	if err != nil {
-		return 0, fmt.Errorf("failed to query blacklist: %w", err)
+	var blacklistEntries []database.Blacklist
+	result := b.DBManager.Conn.Select("domain").Find(&blacklistEntries)
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to query blacklist: %w", result.Error)
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	domains := make(map[string]bool)
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			return 0, fmt.Errorf("failed to scan row: %w", err)
-		}
-		domains[domain] = true
+	domains := make(map[string]bool, len(blacklistEntries))
+	for _, entry := range blacklistEntries {
+		domains[entry.Domain] = true
 	}
 	b.BlacklistCache = domains
 
@@ -337,54 +339,52 @@ func (b *Blacklist) PopulateBlocklistCache() (int, error) {
 }
 
 func (b *Blacklist) CountDomains() (int, error) {
-	var count int
-	err := b.DBManager.Conn.QueryRow(`SELECT COUNT(*) FROM blacklist`).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count domains: %w", err)
+	var count int64
+	result := b.DBManager.Conn.Model(&database.Blacklist{}).Count(&count)
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to count domains: %w", result.Error)
 	}
-	return count, nil
+	return int(count), nil
 }
 
 func (b *Blacklist) GetAllowedAndBlocked() (allowed, blocked int, err error) {
-	rows, err := b.DBManager.Conn.Query(`SELECT blocked, COUNT(*) FROM request_log GROUP BY blocked`)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to query request_log: %w", err)
+	type RequestStats struct {
+		Blocked bool
+		Count   int
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	for rows.Next() {
-		var blockedFlag bool
-		var count int
-		if err := rows.Scan(&blockedFlag, &count); err != nil {
-			return 0, 0, fmt.Errorf("failed to scan row: %w", err)
-		}
-		if blockedFlag {
-			blocked = count
+	var stats []RequestStats
+	result := b.DBManager.Conn.Model(&database.RequestLog{}).
+		Select("blocked, COUNT(*) as count").
+		Group("blocked").
+		Scan(&stats)
+
+	if result.Error != nil {
+		return 0, 0, fmt.Errorf("failed to query request_logs: %w", result.Error)
+	}
+
+	for _, stat := range stats {
+		if stat.Blocked {
+			blocked = stat.Count
 		} else {
-			allowed = count
+			allowed = stat.Count
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return 0, 0, fmt.Errorf("row iteration error: %w", err)
 	}
 
 	return allowed, blocked, nil
 }
 
 func (b *Blacklist) RemoveDomain(domain string) error {
-	result, err := b.DBManager.Conn.Exec(`DELETE FROM blacklist WHERE domain = ?`, domain)
-	if err != nil {
-		return fmt.Errorf("failed to remove domain from blacklist: %w", err)
+	result := b.DBManager.Conn.Where("domain = ?", domain).Delete(&database.Blacklist{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove domain from blacklist: %w", result.Error)
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("%s is already whitelisted", domain)
 	}
-	b.BlacklistCache[domain] = true
+
+	delete(b.BlacklistCache, domain)
 	return nil
 }
 
@@ -397,13 +397,15 @@ func (b *Blacklist) UpdateSourceName(oldName, newName, url string) error {
 		return fmt.Errorf("new name is the same as the old name")
 	}
 
-	result, err := b.DBManager.Conn.Exec(`UPDATE sources SET name = ? WHERE name = ? AND url = ?`, newName, oldName, url)
-	if err != nil {
-		return fmt.Errorf("failed to update source name: %w", err)
+	result := b.DBManager.Conn.Model(&database.Source{}).
+		Where("name = ? AND url = ?", oldName, url).
+		Update("name", newName)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update source name: %w", result.Error)
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("list with name '%s' not found", oldName)
 	}
 
@@ -441,106 +443,97 @@ func (b *Blacklist) IsBlacklisted(domain string) bool {
 }
 
 func (b *Blacklist) LoadPaginatedBlacklist(page, pageSize int, search string) ([]string, int, error) {
-	query := `
-		SELECT domain
-		FROM blacklist
-		WHERE domain LIKE ?
-		ORDER BY domain DESC
-		LIMIT ? OFFSET ?
-	`
 	searchPattern := "%" + search + "%"
 	offset := (page - 1) * pageSize
 
-	rows, err := b.DBManager.Conn.Query(query, searchPattern, pageSize, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query blacklist: %w", err)
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	var blacklistEntries []database.Blacklist
+	result := b.DBManager.Conn.Select("domain").
+		Where("domain LIKE ?", searchPattern).
+		Order("domain DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&blacklistEntries)
 
-	var domains []string
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			return nil, 0, fmt.Errorf("failed to scan row: %w", err)
-		}
-		domains = append(domains, domain)
+	if result.Error != nil {
+		return nil, 0, fmt.Errorf("failed to query blacklist: %w", result.Error)
 	}
 
-	countQuery := `SELECT COUNT(*) FROM blacklist WHERE domain LIKE ?`
-	var total int
-	err = b.DBManager.Conn.QueryRow(countQuery, searchPattern).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count domains: %w", err)
+	domains := make([]string, len(blacklistEntries))
+	for i, entry := range blacklistEntries {
+		domains[i] = entry.Domain
 	}
 
-	return domains, total, rows.Err()
+	var total int64
+	countResult := b.DBManager.Conn.Model(&database.Blacklist{}).
+		Where("domain LIKE ?", searchPattern).
+		Count(&total)
+
+	if countResult.Error != nil {
+		return nil, 0, fmt.Errorf("failed to count domains: %w", countResult.Error)
+	}
+
+	return domains, int(total), nil
 }
 
 func (b *Blacklist) InitializeBlocklist(name, url string) error {
-	tx, err := b.DBManager.Conn.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
+	return b.DBManager.Conn.Transaction(func(tx *gorm.DB) error {
+		source := database.Source{
+			Name:        name,
+			URL:         url,
+			LastUpdated: time.Now().Unix(),
+			Active:      true,
+		}
 
-	_, err = tx.Exec(`INSERT OR IGNORE INTO sources (name, url, lastUpdated, active) VALUES (?, ?, ?, ?)`, name, url, time.Now().Unix(), true)
-	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to initialize new blocklist: %w", err)
-	}
+		result := tx.Where(database.Source{Name: name, URL: url}).FirstOrCreate(&source)
+		if result.Error != nil {
+			return fmt.Errorf("failed to initialize new blocklist: %w", result.Error)
+		}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	return nil
+		return nil
+	})
 }
 
 func (b *Blacklist) AddCustomDomains(domains []string) error {
-	tx, err := b.DBManager.Conn.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
+	return b.DBManager.Conn.Transaction(func(tx *gorm.DB) error {
+		var source database.Source
+		currentTime := time.Now().Unix()
 
-	var sourceID int
-	currentTime := time.Now().Unix()
-	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, "Custom").Scan(&sourceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = tx.QueryRow(`INSERT INTO sources (name, lastUpdated) VALUES (?, ?) RETURNING id`, "Custom", currentTime).Scan(&sourceID)
-			if err != nil {
-				return fmt.Errorf("failed to insert custom source: %w", err)
+		err := tx.Where("name = ?", "Custom").First(&source).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				source = database.Source{
+					Name:        "Custom",
+					LastUpdated: currentTime,
+				}
+				if err := tx.Create(&source).Error; err != nil {
+					return fmt.Errorf("failed to insert custom source: %w", err)
+				}
+			} else {
+				return fmt.Errorf("failed to get custom source ID: %w", err)
 			}
 		} else {
-			return fmt.Errorf("failed to get custom source ID: %w", err)
+			if err := tx.Model(&source).Update("last_updated", currentTime).Error; err != nil {
+				return fmt.Errorf("failed to update lastUpdated for custom source: %w", err)
+			}
 		}
-	} else {
-		_, err = tx.Exec(`UPDATE sources SET lastUpdated = ? WHERE id = ?`, currentTime, sourceID)
-		if err != nil {
-			return fmt.Errorf("failed to update lastUpdated for custom source: %w", err)
+
+		blacklistEntries := make([]database.Blacklist, 0, len(domains))
+		for _, domain := range domains {
+			blacklistEntries = append(blacklistEntries, database.Blacklist{
+				Domain:   domain,
+				SourceID: source.ID,
+			})
 		}
-	}
 
-	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO blacklist (domain, source_id) VALUES (?, ?)`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer func(stmt *sql.Stmt) {
-		_ = stmt.Close()
-	}(stmt)
-
-	for _, domain := range domains {
-		if _, err := stmt.Exec(domain, sourceID); err != nil {
-			err = tx.Rollback()
-			return fmt.Errorf("failed to add custom domain '%s': %w", domain, err)
+		for _, entry := range blacklistEntries {
+			if err := tx.Where(database.Blacklist{Domain: entry.Domain, SourceID: entry.SourceID}).FirstOrCreate(&entry).Error; err != nil {
+				return fmt.Errorf("failed to add custom domain '%s': %w", entry.Domain, err)
+			}
+			b.BlacklistCache[entry.Domain] = true
 		}
-		b.BlacklistCache[domain] = true
-	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	return nil
+		return nil
+	})
 }
 
 func (b *Blacklist) RemoveCustomDomain(domain string) error {
@@ -550,206 +543,163 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	tx, err := b.DBManager.Conn.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-	defer func() {
+	return b.DBManager.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var source database.Source
+		err := tx.Where("name = ?", "Custom").First(&source).Error
 		if err != nil {
-			_ = tx.Rollback()
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("custom source not found")
+			}
+			return fmt.Errorf("failed to get custom source ID: %w", err)
 		}
-	}()
 
-	var sourceID int
-	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ?`, "Custom").Scan(&sourceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("custom source not found")
+		result := tx.Where("domain = ? AND source_id = ?", domain, source.ID).Delete(&database.Blacklist{})
+		if result.Error != nil {
+			return fmt.Errorf("failed to delete domain '%s': %w", domain, result.Error)
 		}
-		return fmt.Errorf("failed to get custom source ID: %w", err)
-	}
 
-	result, err := tx.Exec(`DELETE FROM blacklist WHERE domain = ? AND source_id = ?`, domain, sourceID)
-	if err != nil {
-		return fmt.Errorf("failed to delete domain '%s': %w", domain, err)
-	}
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("domain '%s' not found in custom blacklist", domain)
+		}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+		delete(b.BlacklistCache, domain)
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("domain '%s' not found in custom blacklist", domain)
-	}
+		currentTime := time.Now().Unix()
+		if err := tx.Model(&source).Update("last_updated", currentTime).Error; err != nil {
+			return fmt.Errorf("failed to update lastUpdated for custom source: %w", err)
+		}
 
-	delete(b.BlacklistCache, domain)
-
-	currentTime := time.Now().Unix()
-	_, err = tx.Exec(`UPDATE sources SET lastUpdated = ? WHERE id = ?`, currentTime, sourceID)
-	if err != nil {
-		return fmt.Errorf("failed to update lastUpdated for custom source: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (b *Blacklist) GetAllListStatistics() ([]SourceStats, error) {
-	query := `
-		SELECT s.id, s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
-		FROM sources s
-		LEFT JOIN (
-			SELECT source_id, COUNT(*) as blocked_count
-			FROM blacklist
-			GROUP BY source_id
-		) bc ON s.id = bc.source_id
-		ORDER BY s.name, s.id
-	`
-
-	rows, err := b.DBManager.Conn.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query source statistics: %w", err)
+	type SourceWithCount struct {
+		ID           int    `json:"id"`
+		Name         string `json:"name"`
+		URL          string `json:"url"`
+		LastUpdated  int64  `json:"last_updated"`
+		Active       bool   `json:"active"`
+		BlockedCount int    `json:"blocked_count"`
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	var stats []SourceStats
+	var results []SourceWithCount
+	result := b.DBManager.Conn.Table("sources s").
+		Select("s.id, s.name, s.url, s.last_updated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count").
+		Joins("LEFT JOIN (SELECT source_id, COUNT(*) as blocked_count FROM blacklists GROUP BY source_id) bc ON s.id = bc.source_id").
+		Order("s.name, s.id").
+		Scan(&results)
 
-	for rows.Next() {
-		var id int
-		var name, url string
-		var blockedCount int
-		var lastUpdated int64
-		var active bool
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to query source statistics: %w", result.Error)
+	}
 
-		if err := rows.Scan(&id, &name, &url, &lastUpdated, &active, &blockedCount); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+	stats := make([]SourceStats, len(results))
+	for i, r := range results {
+		stats[i] = SourceStats{
+			Name:         r.Name,
+			URL:          r.URL,
+			BlockedCount: r.BlockedCount,
+			LastUpdated:  r.LastUpdated,
+			Active:       r.Active,
 		}
-
-		stats = append(stats, SourceStats{
-			Name:         name,
-			URL:          url,
-			BlockedCount: blockedCount,
-			LastUpdated:  lastUpdated,
-			Active:       active,
-		})
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("row iteration error: %w", err)
 	}
 
 	return stats, nil
 }
 
 func (b *Blacklist) GetListStatistics(listname string) (string, SourceStats, error) {
-	query := `
-		SELECT s.name, s.url, s.lastUpdated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count
-		FROM sources s
-		LEFT JOIN (
-			SELECT source_id, COUNT(*) as blocked_count
-			FROM blacklist
-			GROUP BY source_id
-		) bc ON s.id = bc.source_id
-		WHERE s.name = ?
-	`
+	type SourceWithCount struct {
+		Name         string `json:"name"`
+		URL          string `json:"url"`
+		LastUpdated  int64  `json:"last_updated"`
+		Active       bool   `json:"active"`
+		BlockedCount int    `json:"blocked_count"`
+	}
 
-	var stats SourceStats
-	var name, url string
-	var blockedCount int
-	var lastUpdated int64
-	var active bool
+	var result SourceWithCount
+	err := b.DBManager.Conn.Table("sources s").
+		Select("s.name, s.url, s.last_updated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count").
+		Joins("LEFT JOIN (SELECT source_id, COUNT(*) as blocked_count FROM blacklist GROUP BY source_id) bc ON s.id = bc.source_id").
+		Where("s.name = ?", listname).
+		First(&result).Error
 
-	err := b.DBManager.Conn.QueryRow(query, listname).Scan(&name, &url, &lastUpdated, &active, &blockedCount)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", SourceStats{}, fmt.Errorf("list not found")
 		}
 		return "", SourceStats{}, fmt.Errorf("failed to query list statistics: %w", err)
 	}
 
-	stats = SourceStats{
-		URL:          url,
-		BlockedCount: blockedCount,
-		LastUpdated:  lastUpdated,
-		Active:       active,
+	stats := SourceStats{
+		URL:          result.URL,
+		BlockedCount: result.BlockedCount,
+		LastUpdated:  result.LastUpdated,
+		Active:       result.Active,
 	}
 
-	return name, stats, nil
+	return result.Name, stats, nil
 }
 
 func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
-	query := `
-		SELECT domain
-		FROM blacklist
-		JOIN sources ON blacklist.source_id = sources.id
-		WHERE sources.name = ?
-	`
-	rows, err := b.DBManager.Conn.Query(query, list)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query domains for list: %w", err)
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	var blacklistEntries []database.Blacklist
+	result := b.DBManager.Conn.Select("blacklist.domain").
+		Joins("JOIN sources ON blacklist.source_id = sources.id").
+		Where("sources.name = ?", list).
+		Find(&blacklistEntries)
 
-	domains := make([]string, 0)
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-		domains = append(domains, domain)
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to query domains for list: %w", result.Error)
 	}
 
-	return domains, rows.Err()
+	domains := make([]string, len(blacklistEntries))
+	for i, entry := range blacklistEntries {
+		domains[i] = entry.Domain
+	}
+
+	return domains, nil
 }
 
 func (b *Blacklist) ToggleBlocklistStatus(name string) error {
-	query := `UPDATE sources SET active = NOT active WHERE name = ?`
+	var source database.Source
+	if err := b.DBManager.Conn.Where("name = ?", name).First(&source).Error; err != nil {
+		return fmt.Errorf("failed to find source %s: %w", name, err)
+	}
 
-	_, err := b.DBManager.Conn.Exec(query, name)
-	if err != nil {
-		return fmt.Errorf("failed to toggle status for %s: %w", name, err)
+	result := b.DBManager.Conn.Model(&source).Update("active", !source.Active)
+	if result.Error != nil {
+		return fmt.Errorf("failed to toggle status for %s: %w", name, result.Error)
 	}
 
 	return nil
 }
 
 func (b *Blacklist) RemoveSourceAndDomains(name, url string) error {
-	tx, err := b.DBManager.Conn.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-
-	var sourceID int
-	err = tx.QueryRow(`SELECT id FROM sources WHERE name = ? AND url = ?`, name, url).Scan(&sourceID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("source '%s' not found", name)
+	return b.DBManager.Conn.Transaction(func(tx *gorm.DB) error {
+		var source database.Source
+		err := tx.Where("name = ? AND url = ?", name, url).First(&source).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("source '%s' not found", name)
+			}
+			return fmt.Errorf("failed to get source ID: %w", err)
 		}
-		return fmt.Errorf("failed to get source ID: %w", err)
-	}
 
-	_, err = tx.Exec(`DELETE FROM blacklist WHERE source_id = ?`, sourceID)
-	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to remove domains for source '%s': %w", name, err)
-	}
+		if err := tx.Where("source_id = ?", source.ID).Delete(&database.Blacklist{}).Error; err != nil {
+			return fmt.Errorf("failed to remove domains for source '%s': %w", name, err)
+		}
 
-	_, err = tx.Exec(`DELETE FROM sources WHERE id = ?`, sourceID)
-	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("failed to remove source '%s': %w", name, err)
-	}
+		if err := tx.Delete(&source).Error; err != nil {
+			return fmt.Errorf("failed to remove source '%s': %w", name, err)
+		}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return nil
+	})
+}
+
+func (b *Blacklist) RemoveSourceAndDomainsWithCacheRefresh(name, url string) error {
+	if err := b.RemoveSourceAndDomains(name, url); err != nil {
+		return err
 	}
 
 	if _, err := b.PopulateBlocklistCache(); err != nil {
@@ -759,7 +709,6 @@ func (b *Blacklist) RemoveSourceAndDomains(name, url string) error {
 	log.Info("Removed all domains and source '%s'", name)
 	return nil
 }
-
 func (b *Blacklist) ScheduleAutomaticListUpdates() {
 	for {
 		next := time.Now().Add(24 * time.Hour).Truncate(24 * time.Hour)
@@ -805,17 +754,23 @@ func (b *Blacklist) AddSource(name, url string) error {
 		return fmt.Errorf("name and url cannot be empty")
 	}
 
-	_, err := b.DBManager.Conn.Exec(
-		`INSERT OR IGNORE INTO sources (name, url, lastUpdated, active) VALUES (?, ?, ?, ?)`,
-		name, url, time.Now().Unix(), true,
-	)
-	if err != nil {
+	if err := b.DBManager.Conn.Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "name"}, {Name: "url"}},
+			DoNothing: true,
+		},
+	).Create(&database.Source{
+		Name:        name,
+		URL:         url,
+		LastUpdated: time.Now().Unix(),
+		Active:      true,
+	}).Error; err != nil {
 		return fmt.Errorf("failed to insert source: %w", err)
 	}
 
 	found := false
-	for _, source := range b.BlocklistURL {
-		if source.Name == name && source.URL == url {
+	for _, s := range b.BlocklistURL {
+		if s.Name == name && s.URL == url {
 			found = true
 			break
 		}

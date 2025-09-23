@@ -153,34 +153,29 @@ func (s *DNSServer) detectProtocol(w dns.ResponseWriter) model.Protocol {
 	return model.UDP
 }
 
-func (s *DNSServer) PopulateHostnameCache() (err error) {
-	rows, err := s.DBManager.Conn.Query(`
-		SELECT DISTINCT client_ip, client_name
-		FROM request_log
-		WHERE client_name IS NOT NULL AND client_name != 'unknown'
-	`)
-	if err != nil {
-		return err
+func (s *DNSServer) PopulateHostnameCache() error {
+	type Result struct {
+		ClientIP   string
+		ClientName string
 	}
-	defer func() {
-		closeErr := rows.Close()
-		if err == nil {
-			err = closeErr
-		}
-	}()
 
-	for rows.Next() {
-		var ip, name string
-		if scanErr := rows.Scan(&ip, &name); scanErr != nil {
-			return scanErr
-		}
+	var results []Result
 
-		if _, exists := s.hostnameCache.Load(name); !exists {
-			s.hostnameCache.Store(name, ip)
+	if err := s.DBManager.Conn.
+		Model(&database.RequestLog{}).
+		Select("DISTINCT client_ip, client_name").
+		Where("client_name IS NOT NULL AND client_name != ?", "unknown").
+		Find(&results).Error; err != nil {
+		return fmt.Errorf("failed to fetch hostnames: %w", err)
+	}
+
+	for _, r := range results {
+		if _, exists := s.hostnameCache.Load(r.ClientName); !exists {
+			s.hostnameCache.Store(r.ClientName, r.ClientIP)
 		}
 	}
 
-	return rows.Err()
+	return nil
 }
 
 func (s *DNSServer) WSCom(message communicationMessage) {

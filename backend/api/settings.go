@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	_ "modernc.org/sqlite"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func (api *API) registerSettingsRoutes() {
@@ -63,8 +64,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 	_ = os.Remove(tempExport)
 
 	// Create a new connection to a temp file and vacuum into it
-	_, err := api.DBManager.Conn.Exec(fmt.Sprintf("VACUUM INTO '%s';", tempExport))
-	if err != nil {
+	if err := api.DBManager.Conn.Exec(fmt.Sprintf("VACUUM INTO '%s';", tempExport)).Error; err != nil {
 		log.Error("Failed to write WAL to temp export: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare database for export"})
 		return
@@ -181,27 +181,10 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temporary file"})
 		return
 	}
-	defer func() {
-		_ = os.Remove(tempImport)
-	}()
-
 	_, err = io.Copy(tempFile, file)
+	tempFile.Close()
 	if err != nil {
 		log.Error("Failed to copy uploaded file: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
-		return
-	}
-
-	err = tempFile.Sync()
-	if err != nil {
-		log.Error("Failed to sync temporary file: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
-		return
-	}
-
-	err = tempFile.Close()
-	if err != nil {
-		log.Error("Failed to close temporary file: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
 		return
 	}
@@ -218,95 +201,60 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid database file"})
 		return
 	}
+	defer testDB.Close()
 
-	err = testDB.Ping()
-	if err != nil {
-		_ = testDB.Close()
+	if err := testDB.Ping(); err != nil {
 		log.Error("Failed to ping uploaded database: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Corrupted or invalid database file: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Corrupted or invalid database file"})
 		return
 	}
 
 	var integrityResult string
-	err = testDB.QueryRow("PRAGMA integrity_check").Scan(&integrityResult)
-	if err != nil {
-		_ = testDB.Close()
+	if err := testDB.QueryRow("PRAGMA integrity_check").Scan(&integrityResult); err != nil {
 		log.Error("Failed to run integrity check: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Database integrity check failed"})
 		return
 	}
-
 	if integrityResult != "ok" {
-		_ = testDB.Close()
 		log.Error("Database integrity check failed: %s", integrityResult)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Database integrity check failed: " + integrityResult})
 		return
 	}
 
-	defer func() {
-		_ = testDB.Close()
-	}()
-
-	err = api.DBManager.Conn.Close()
+	sqlDB, err := api.DBManager.Conn.DB()
 	if err != nil {
-		log.Error("Failed to close current database connection: %v", err)
+		log.Error("Failed to get underlying sql.DB: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close current database"})
 		return
 	}
+	sqlDB.Close()
 
 	currentDBPath := filepath.Join("data", "database.db")
 	backupPath := currentDBPath + ".backup." + time.Now().UTC().Format("2006-01-02_15:04:05")
 
-	err = copyFile(currentDBPath, backupPath)
-	if err != nil {
+	if err := copyFile(currentDBPath, backupPath); err != nil {
 		log.Error("Failed to create backup: %v", err)
-		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create backup of current database"})
 		return
 	}
 
-	err = copyFile(tempImport, currentDBPath)
-	if err != nil {
+	if err := copyFile(tempImport, currentDBPath); err != nil {
 		log.Error("Failed to replace database: %v", err)
 		_ = copyFile(backupPath, currentDBPath)
-		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to import database, restored from backup"})
 		return
 	}
 
-	api.DBManager.Conn, err = sql.Open("sqlite", currentDBPath)
+	newDB, err := gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
 	if err != nil {
-		log.Error("Failed to reopen database after import: %v", err)
+		log.Error("Failed to open imported database with GORM: %v", err)
 		_ = copyFile(backupPath, currentDBPath)
-		api.DBManager.Conn, _ = sql.Open("sqlite", currentDBPath)
+		api.DBManager.Conn, _ = gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open imported database, restored from backup"})
 		return
 	}
 
-	err = api.DBManager.Conn.Ping()
-	if err != nil {
-		log.Error("Failed to ping new database: %v", err)
-		_ = api.DBManager.Conn.Close()
-		_ = copyFile(backupPath, currentDBPath)
-
-		api.DBManager.Conn, err = sql.Open("sqlite", currentDBPath)
-		if err != nil {
-			log.Error("Failed to reconnect to restored database: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Critical error: failed to restore database connection"})
-			return
-		}
-
-		err = api.DBManager.Conn.Ping()
-		if err != nil {
-			log.Error("Failed to ping restored database: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Critical error: restored database is not functional"})
-			return
-		}
-
-		log.Info("Database restored successfully from backup %s", backupPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to use imported database, restored from backup %s", backupPath)})
-		return
-	}
+	api.DBManager.Conn = newDB
 
 	log.Info("Database imported successfully from %s", header.Filename)
 	api.DNSServer.Audits.CreateAudit(&audit.Entry{

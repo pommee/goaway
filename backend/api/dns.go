@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"gorm.io/gorm"
 )
 
 func (api *API) registerDNSRoutes() {
@@ -119,6 +120,7 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 	search := c.DefaultQuery("search", "")
 	sortColumn := c.DefaultQuery("sortColumn", "timestamp")
 	sortDirection := c.DefaultQuery("sortDirection", "desc")
+	filterClient := c.DefaultQuery("client", "")
 
 	validColumns := map[string]string{
 		"timestamp":         "timestamp",
@@ -144,12 +146,13 @@ func parseQueryParams(c *gin.Context) models.QueryParams {
 	}
 
 	return models.QueryParams{
-		Page:      page,
-		PageSize:  pageSize,
-		Search:    search,
-		Column:    column,
-		Direction: strings.ToUpper(sortDirection),
-		Offset:    (page - 1) * pageSize,
+		Page:         page,
+		PageSize:     pageSize,
+		Search:       search,
+		Column:       column,
+		Direction:    strings.ToUpper(sortDirection),
+		Offset:       (page - 1) * pageSize,
+		FilterClient: filterClient,
 	}
 }
 
@@ -206,15 +209,13 @@ func (api *API) getQueryTypes(c *gin.Context) {
 }
 
 func (api *API) clearQueries(c *gin.Context) {
-	_, err := api.DBManager.Conn.Exec("DELETE FROM request_log")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
+	if err := api.DBManager.Conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLog{}).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear query logs", "reason": err.Error()})
 		return
 	}
 
-	_, err = api.DBManager.Conn.Exec("DELETE FROM request_log_ips")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear logs", "reason": err.Error()})
+	if err := api.DBManager.Conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLogIP{}).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear IP logs", "reason": err.Error()})
 		return
 	}
 

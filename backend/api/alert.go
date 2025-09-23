@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"goaway/backend/alert"
+	"goaway/backend/dns/database"
 	"io"
 	"net/http"
 
@@ -48,7 +48,7 @@ func (api *API) setAlert(c *gin.Context) {
 		return
 	}
 
-	err = api.DNSServer.Alerts.SaveAlert(alert.Alert{
+	err = api.DNSServer.Alerts.SaveAlert(database.Alert{
 		Type:    "discord",
 		Enabled: request.Discord.Enabled,
 		Name:    request.Discord.Name,

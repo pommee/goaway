@@ -1,7 +1,6 @@
 package prefetch
 
 import (
-	"database/sql"
 	"fmt"
 	"goaway/backend/dns/database"
 	"goaway/backend/dns/server"
@@ -27,24 +26,17 @@ type PrefetchedDomain struct {
 }
 
 func (manager *Manager) LoadPrefetchedDomains() {
-	rows, err := manager.dbManager.Conn.Query("SELECT domain, refresh, qtype FROM prefetch")
-	if err != nil {
-		log.Warning("Failed to query prefetch table")
+	var prefetched []database.Prefetch
+	if err := manager.dbManager.Conn.Find(&prefetched).Error; err != nil {
+		log.Warning("Failed to query prefetch table: %v", err)
+		return
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	for rows.Next() {
-		var domain string
-		var refresh, qtype int
-		if err := rows.Scan(&domain, &refresh, &qtype); err != nil {
-			log.Warning("Failed to scan row while loading in prefetched domains, error: %v", err)
-		}
-		manager.Domains[domain] = PrefetchedDomain{
-			Domain:  domain,
-			Refresh: refresh,
-			Qtype:   qtype,
+	for _, p := range prefetched {
+		manager.Domains[p.Domain] = PrefetchedDomain{
+			Domain:  p.Domain,
+			Refresh: p.Refresh,
+			Qtype:   p.QType,
 		}
 	}
 
@@ -54,13 +46,18 @@ func (manager *Manager) LoadPrefetchedDomains() {
 }
 
 func (manager *Manager) AddPrefetchedDomain(domain string, refresh, qtype int) error {
-	result, err := manager.dbManager.Conn.Exec(`INSERT OR IGNORE INTO prefetch (domain, refresh, qtype) VALUES (?, ?, ?)`, domain, refresh, qtype)
-	if err != nil {
-		return fmt.Errorf("failed to add new domain to prefetch table")
+	prefetch := database.Prefetch{
+		Domain:  domain,
+		Refresh: refresh,
+		QType:   qtype,
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	result := manager.dbManager.Conn.FirstOrCreate(&prefetch, database.Prefetch{Domain: domain})
+	if result.Error != nil {
+		return fmt.Errorf("failed to add new domain to prefetch table: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("%s already exists", domain)
 	}
 
@@ -75,13 +72,12 @@ func (manager *Manager) AddPrefetchedDomain(domain string, refresh, qtype int) e
 }
 
 func (manager *Manager) RemovePrefetchedDomain(domain string) error {
-	result, err := manager.dbManager.Conn.Exec(`DELETE FROM prefetch WHERE domain = ?`, domain)
-	if err != nil {
-		return fmt.Errorf("failed to remove %s from prefetch table", domain)
+	result := manager.dbManager.Conn.Delete(&database.Prefetch{}, "domain = ?", domain)
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove %s from prefetch table: %w", domain, result.Error)
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("%s does not exist in the database", domain)
 	}
 

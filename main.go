@@ -139,11 +139,7 @@ func startServer(config *settings.Config, ansi bool) {
 		}()
 	}
 
-	dbManager, err := database.Initialize()
-	if err != nil {
-		log.Fatal("failed while initializing database: %v", err)
-	}
-
+	dbManager := database.Initialize()
 	notificationManager := notification.NewNotificationManager(dbManager)
 	alertManager := alert.NewManager(dbManager.Conn)
 	alertManager.Load()

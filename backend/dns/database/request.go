@@ -9,147 +9,122 @@ import (
 	"goaway/backend/logging"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 var log = logging.GetLogger()
 
-func GetClientNameFromRequestLog(db *sql.DB, ip string) string {
-	hostname := "unknown"
+func GetClientNameFromRequestLog(db *gorm.DB, ip string) string {
+	var hostname string
 
-	rows, err := db.Query("SELECT client_name FROM request_log WHERE client_ip = ? AND client_name != 'unknown' LIMIT 1", ip)
-	if err == nil {
-		defer func(rows *sql.Rows) {
-			_ = rows.Close()
-		}(rows)
-		if rows.Next() {
-			_ = rows.Scan(&hostname)
-			hostname = strings.TrimSuffix(hostname, ".")
-		}
+	err := db.Model(&RequestLog{}).
+		Select("client_name").
+		Where("client_ip = ? AND client_name != ?", ip, "unknown").
+		Limit(1).
+		Scan(&hostname).Error
+
+	if err != nil || hostname == "" {
+		return "unknown"
 	}
 
-	return hostname
+	return strings.TrimSuffix(hostname, ".")
 }
 
-func GetDistinctRequestIP(db *sql.DB) int {
-	query := "SELECT COUNT(DISTINCT client_ip) FROM request_log"
-	var clientCount int
+func GetDistinctRequestIP(db *gorm.DB) int {
+	var count int64
 
-	err := db.QueryRow(query).Scan(&clientCount)
+	err := db.Model(&RequestLog{}).
+		Select("COUNT(DISTINCT client_ip)").
+		Scan(&count).Error
 	if err != nil {
-		clientCount = 0
+		return 0
 	}
 
-	return clientCount
+	return int(count)
 }
 
-func GetRequestSummaryByInterval(interval int, db *sql.DB) ([]model.RequestLogIntervalSummary, error) {
+func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogIntervalSummary, error) {
 	minutes := interval * 60
-	summaries := make([]model.RequestLogIntervalSummary, 0, 1440/minutes)
 
-	query := `
-        SELECT
-            interval_start,
-            SUM(blocked) AS blocked_count,
-            SUM(cached) AS cached_count,
-            SUM(1 - blocked - cached) AS allowed_count
-        FROM (
-            SELECT
-                (timestamp / ?) * ? AS interval_start,
-                blocked,
-                cached
-            FROM request_log
-            WHERE timestamp >= (strftime('%s', 'now') - 86400)
-        )
-        GROUP BY interval_start
-        ORDER BY interval_start`
-
-	rows, err := db.Query(query, minutes, minutes)
+	var rawSummaries []model.RequestLogIntervalSummary
+	err := db.Table("request_logs").
+		Select(`
+			DATETIME((STRFTIME('%s', timestamp) / ?) * ?, 'unixepoch') AS interval_start,
+			SUM(CASE WHEN blocked THEN 1 ELSE 0 END) AS blocked_count,
+			SUM(CASE WHEN cached THEN 1 ELSE 0 END) AS cached_count,
+			SUM(CASE WHEN (NOT blocked AND NOT cached) THEN 1 ELSE 0 END) AS allowed_count
+		`, minutes, minutes).
+		Where("timestamp >= DATETIME('now', '-1 day')").
+		Group("interval_start").
+		Order("interval_start").
+		Scan(&rawSummaries).Error
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		_ = rows.Close()
-	}()
 
-	for rows.Next() {
-		var ts int64
-		var blockedCount, cachedCount, allowedCount int
-		if err := rows.Scan(&ts, &blockedCount, &cachedCount, &allowedCount); err != nil {
+	summaries := make([]model.RequestLogIntervalSummary, len(rawSummaries))
+	for i, r := range rawSummaries {
+		t, err := time.Parse("2006-01-02 15:04:05", r.IntervalStart)
+		if err != nil {
 			return nil, err
 		}
-		summaries = append(summaries, model.RequestLogIntervalSummary{
-			IntervalStart: time.Unix(ts, 0),
-			BlockedCount:  blockedCount,
-			CachedCount:   cachedCount,
-			AllowedCount:  allowedCount,
-		})
-	}
-
-	return summaries, rows.Err()
-}
-
-func GetResponseSizeSummaryByInterval(intervalMinutes int, db *sql.DB) ([]model.ResponseSizeSummary, error) {
-	intervalSeconds := int64(intervalMinutes * 60)
-	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour).Unix()
-
-	query := `
-		SELECT 
-			(timestamp / ?) * ? as start,
-			SUM(response_size_bytes) as total_response_size_bytes,
-			ROUND(AVG(response_size_bytes)) as avg_response_size_bytes,
-			MIN(response_size_bytes) as min_response_size_bytes,
-			MAX(response_size_bytes) as max_response_size_bytes
-		FROM request_log 
-		WHERE timestamp >= ? AND response_size_bytes IS NOT NULL
-		GROUP BY (timestamp / ?)
-		ORDER BY start ASC
-	`
-
-	rows, err := db.Query(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query response size summary: %w", err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-
-	var summaries []model.ResponseSizeSummary
-	for rows.Next() {
-		var summary model.ResponseSizeSummary
-		var startUnix int64
-
-		err := rows.Scan(
-			&startUnix,
-			&summary.TotalSizeBytes,
-			&summary.AvgResponseSizeBytes,
-			&summary.MinResponseSizeBytes,
-			&summary.MaxResponseSizeBytes,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan response size summary row: %w", err)
+		summaries[i] = model.RequestLogIntervalSummary{
+			IntervalStart: t.String(),
+			BlockedCount:  r.BlockedCount,
+			CachedCount:   r.CachedCount,
+			AllowedCount:  r.AllowedCount,
 		}
-
-		summary.Start = time.Unix(startUnix, 0)
-		summaries = append(summaries, summary)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating response size summary rows: %w", err)
 	}
 
 	return summaries, nil
 }
 
-func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
-	query := "SELECT COUNT(*) AS count, query_type FROM request_log WHERE query_type <> '' GROUP BY query_type ORDER BY count DESC"
-	rows, err := db.Query(query)
+func GetResponseSizeSummaryByInterval(intervalMinutes int, db *gorm.DB) ([]model.ResponseSizeSummary, error) {
+	intervalSeconds := int64(intervalMinutes * 60)
+	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour).Unix()
+
+	var summaries []model.ResponseSizeSummary
+
+	query := `
+		SELECT
+			((strftime('%s', timestamp) / ?) * ?) AS start_unix,
+			SUM(response_size_bytes) AS total_size_bytes,
+			ROUND(AVG(response_size_bytes)) AS avg_response_size_bytes,
+			MIN(response_size_bytes) AS min_response_size_bytes,
+			MAX(response_size_bytes) AS max_response_size_bytes
+		FROM request_logs
+		WHERE strftime('%s', timestamp) >= ? AND response_size_bytes IS NOT NULL
+		GROUP BY (strftime('%s', timestamp) / ?)
+		ORDER BY start_unix ASC
+	`
+
+	err := db.Raw(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds).
+		Scan(&summaries).Error
 	if err != nil {
-		log.Error("Error: %v", err)
+		return nil, fmt.Errorf("failed to query response size summary: %w", err)
+	}
+
+	for i := range summaries {
+		summaries[i].Start = time.Unix(summaries[i].StartUnix, 0)
+	}
+
+	return summaries, nil
+}
+
+func GetUniqueQueryTypes(db *gorm.DB) ([]interface{}, error) {
+	query := `
+		SELECT COUNT(*) AS count, query_type
+		FROM request_logs
+		WHERE query_type <> ''
+		GROUP BY query_type
+		ORDER BY count DESC`
+
+	rows, err := db.Raw(query).Rows()
+	if err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	defer rows.Close()
 
 	var queries []any
 	for rows.Next() {
@@ -172,412 +147,280 @@ func GetUniqueQueryTypes(db *sql.DB) ([]interface{}, error) {
 	return queries, nil
 }
 
-func FetchQueries(db *sql.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
-	var query string
-	var args []interface{}
-
-	baseQuery := `
-        SELECT rl.id, rl.timestamp, rl.domain, rl.blocked, rl.cached, rl.response_time_ns,
-               rl.client_ip, rl.client_name, rl.status, rl.query_type, rl.response_size_bytes, rl.protocol
-        FROM request_log rl`
+func FetchQueries(db *gorm.DB, q models.QueryParams) ([]model.RequestLogEntry, error) {
+	var logs []RequestLog
+	query := db.Model(&RequestLog{})
 
 	if q.Column == "ip" {
-		baseQuery += ` LEFT JOIN resolved_ips ri ON rl.id = ri.request_log_id`
+		query = query.Joins("LEFT JOIN request_log_ips ri ON request_logs.id = ri.request_log_id")
 	}
 
-	whereClause := ""
 	if q.Search != "" {
-		whereClause = " WHERE rl.domain LIKE ?"
-		args = append(args, "%"+q.Search+"%")
+		query = query.Where("request_logs.domain LIKE ?", "%"+q.Search+"%")
 	}
 
-	orderClause := " ORDER BY rl." + q.Column + " " + q.Direction
+	if q.FilterClient != "" {
+		query = query.Where("request_logs.client_ip LIKE ? OR request_logs.client_name LIKE ?",
+			"%"+q.FilterClient+"%", "%"+q.FilterClient+"%")
+	}
 
 	if q.Column == "ip" {
-		orderClause = " ORDER BY MAX(ri.ip) " + q.Direction
+		query = query.Group("request_logs.id").Order("MAX(ri.ip) " + q.Direction)
+	} else {
+		query = query.Order("request_logs." + q.Column + " " + q.Direction)
 	}
 
-	limitClause := " LIMIT ? OFFSET ?"
-	args = append(args, q.PageSize, q.Offset)
-
-	query = baseQuery + whereClause + orderClause + limitClause
-
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare statement: %w", err)
+	if q.PageSize > 0 {
+		query = query.Limit(q.PageSize)
 	}
-	defer func() {
-		_ = stmt.Close()
-	}()
-
-	rows, err := stmt.Query(args...)
-	if err != nil {
-		return nil, fmt.Errorf("database query error: %w", err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-
-	queries := make([]model.RequestLogEntry, 0, q.PageSize)
-	var requestLogIDs []int64
-
-	for rows.Next() {
-		var query model.RequestLogEntry
-		var timestamp int64
-		var requestLogID int64
-
-		query.ClientInfo = &model.Client{}
-
-		if err := rows.Scan(
-			&requestLogID, &timestamp, &query.Domain, &query.Blocked, &query.Cached,
-			&query.ResponseTime, &query.ClientInfo.IP, &query.ClientInfo.Name,
-			&query.Status, &query.QueryType, &query.ResponseSizeBytes, &query.Protocol,
-		); err != nil {
-			return nil, fmt.Errorf("scan error: %w", err)
-		}
-
-		query.Timestamp = time.Unix(timestamp, 0)
-		query.ID = requestLogID
-		queries = append(queries, query)
-		requestLogIDs = append(requestLogIDs, requestLogID)
+	if q.Offset > 0 {
+		query = query.Offset(q.Offset)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
-	}
+	query = query.Preload("IPs")
 
-	if len(requestLogIDs) > 0 {
-		ipMap, err := fetchResolvedIPs(db, requestLogIDs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch resolved IPs: %w", err)
-		}
-
-		for i := range queries {
-			if ips, exists := ipMap[queries[i].ID]; exists {
-				queries[i].IP = ips
-			}
-		}
-	}
-
-	return queries, nil
-}
-
-func fetchResolvedIPs(db *sql.DB, requestLogIDs []int64) (map[int64][]model.ResolvedIP, error) {
-	if len(requestLogIDs) == 0 {
-		return nil, nil
-	}
-
-	placeholders := make([]string, len(requestLogIDs))
-	args := make([]interface{}, len(requestLogIDs))
-	for i, id := range requestLogIDs {
-		placeholders[i] = "?"
-		args[i] = id
-	}
-
-	query := `
-		SELECT request_log_id, ip, rtype 
-		FROM request_log_ips 
-		WHERE request_log_id IN (` + strings.Join(placeholders, ",") + `)`
-
-	rows, err := db.Query(query, args...)
-	if err != nil {
+	if err := query.Find(&logs).Error; err != nil {
 		return nil, err
 	}
-	defer func() {
-		_ = rows.Close()
-	}()
 
-	ipMap := make(map[int64][]model.ResolvedIP)
-	for rows.Next() {
-		var requestLogID int64
-		var resolvedIP model.ResolvedIP
-
-		if err := rows.Scan(&requestLogID, &resolvedIP.IP, &resolvedIP.RType); err != nil {
-			return nil, err
+	results := make([]model.RequestLogEntry, len(logs))
+	for i, log := range logs {
+		results[i] = model.RequestLogEntry{
+			ID:                int64(log.ID),
+			Timestamp:         log.Timestamp,
+			Domain:            log.Domain,
+			Blocked:           log.Blocked,
+			Cached:            log.Cached,
+			ResponseTime:      time.Duration(log.ResponseTimeNs),
+			ClientInfo:        &model.Client{IP: log.ClientIP, Name: log.ClientName},
+			Status:            log.Status,
+			QueryType:         log.QueryType,
+			ResponseSizeBytes: log.ResponseSizeBytes,
+			Protocol:          model.Protocol(log.Protocol),
+			IP:                make([]model.ResolvedIP, len(log.IPs)),
 		}
 
-		ipMap[requestLogID] = append(ipMap[requestLogID], resolvedIP)
+		for j, ip := range log.IPs {
+			results[i].IP[j] = model.ResolvedIP{IP: ip.IP, RType: ip.RType}
+		}
 	}
 
-	return ipMap, rows.Err()
+	return results, nil
 }
 
-func FetchAllClients(db *sql.DB) (map[string]dbModel.Client, error) {
+func FetchAllClients(db *gorm.DB) (map[string]dbModel.Client, error) {
+	var rows []struct {
+		ClientIP   string         `gorm:"column:client_ip"`
+		ClientName string         `gorm:"column:client_name"`
+		Timestamp  time.Time      `gorm:"column:timestamp"`
+		Mac        sql.NullString `gorm:"column:mac"`
+		Vendor     sql.NullString `gorm:"column:vendor"`
+	}
+
+	if err := db.Table("request_logs r").
+		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor").
+		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
 	uniqueClients := make(map[string]dbModel.Client)
-
-	rows, err := db.Query(`
-		SELECT r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor
-		FROM request_log r
-		LEFT JOIN mac_addresses m ON r.client_ip = m.ip
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
-
-	for rows.Next() {
-		var ip, name string
-		var dbTimestamp int
-		var mac, vendor sql.NullString
-
-		if err := rows.Scan(&ip, &name, &dbTimestamp, &mac, &vendor); err != nil {
-			return nil, err
+	for _, row := range rows {
+		macStr, vendorStr := "", ""
+		if row.Mac.Valid {
+			macStr = row.Mac.String
 		}
-
-		macStr := ""
-		vendorStr := ""
-		if mac.Valid {
-			macStr = mac.String
+		if row.Vendor.Valid {
+			vendorStr = row.Vendor.String
 		}
-		if vendor.Valid {
-			vendorStr = vendor.String
-		}
-
-		timestamp := time.Unix(int64(dbTimestamp), 0)
-		if existing, exists := uniqueClients[ip]; !exists || timestamp.After(existing.LastSeen) {
-			uniqueClients[ip] = dbModel.Client{
-				Name:     name,
-				LastSeen: timestamp,
+		if existing, exists := uniqueClients[row.ClientIP]; !exists || row.Timestamp.After(existing.LastSeen) {
+			uniqueClients[row.ClientIP] = dbModel.Client{
+				Name:     row.ClientName,
+				LastSeen: row.Timestamp,
 				Mac:      macStr,
 				Vendor:   vendorStr,
 			}
 		}
 	}
-
 	return uniqueClients, nil
 }
 
-func GetClientRequestDetails(db *sql.DB, clientIP string) (dbModel.ClientRequestDetails, error) {
-	query := `
-		SELECT
-			COUNT(*),
-			COUNT(DISTINCT domain),
-			SUM(CASE WHEN blocked THEN 1 ELSE 0 END),
-			SUM(CASE WHEN cached THEN 1 ELSE 0 END),
-			AVG(response_time_ns) / 1e6,
-			MAX(timestamp)
-		FROM request_log
-		WHERE client_ip LIKE ?`
+func GetClientRequestDetails(db *gorm.DB, clientIP string) (dbModel.ClientRequestDetails, error) {
 	searchPattern := "%" + clientIP + "%"
 
-	crd := dbModel.ClientRequestDetails{}
-	err := db.QueryRow(query, searchPattern).Scan(
-		&crd.TotalRequests, &crd.UniqueDomains, &crd.BlockedRequests,
-		&crd.CachedRequests, &crd.AvgResponseTimeMs, &crd.LastSeen)
-	if err != nil {
-		return crd, err
-	}
+	var crd dbModel.ClientRequestDetails
+	err := db.Table("request_logs").
+		Select(`
+			COUNT(*) as total_requests,
+			COUNT(DISTINCT domain) as unique_domains,
+			SUM(CASE WHEN blocked THEN 1 ELSE 0 END) as blocked_requests,
+			SUM(CASE WHEN cached THEN 1 ELSE 0 END) as cached_requests,
+			AVG(response_time_ns) / 1e6 as avg_response_time_ms,
+			MAX(timestamp) as last_seen`).
+		Where("client_ip LIKE ?", searchPattern).
+		Scan(&crd).Error
 
-	return crd, nil
+	return crd, err
 }
 
-func GetMostQueriedDomainByIP(db *sql.DB, clientIP string) (string, error) {
-	query := `
-		SELECT domain FROM request_log
-		WHERE client_ip LIKE ?
-		GROUP BY domain
-		ORDER BY COUNT(*) DESC
-		LIMIT 1`
+func GetMostQueriedDomainByIP(db *gorm.DB, clientIP string) (string, error) {
 	searchPattern := "%" + clientIP + "%"
-
-	mostQueriedDomain := ""
-	err := db.QueryRow(query, searchPattern).Scan(&mostQueriedDomain)
-	if err != nil {
-		return "", err
-	}
-
-	return mostQueriedDomain, nil
+	var domain string
+	err := db.Table("request_logs").
+		Select("domain").
+		Where("client_ip LIKE ?", searchPattern).
+		Group("domain").
+		Order("COUNT(*) DESC").
+		Limit(1).
+		Scan(&domain).Error
+	return domain, err
 }
 
-func GetAllQueriedDomainsByIP(db *sql.DB, clientIP string) (map[string]int, error) {
-	query := `
-		SELECT domain, COUNT(*) as query_count
-		FROM request_log
-		WHERE client_ip LIKE ?
-		GROUP BY domain
-		ORDER BY query_count DESC`
+func GetAllQueriedDomainsByIP(db *gorm.DB, clientIP string) (map[string]int, error) {
 	searchPattern := "%" + clientIP + "%"
+	var rows []struct {
+		Domain string `gorm:"column:domain"`
+		Count  int    `gorm:"column:query_count"`
+	}
 
-	rows, err := db.Query(query, searchPattern)
-	if err != nil {
+	if err := db.Table("request_logs").
+		Select("domain, COUNT(*) as query_count").
+		Where("client_ip LIKE ?", searchPattern).
+		Group("domain").
+		Order("query_count DESC").
+		Scan(&rows).Error; err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
 	domainQueryCounts := make(map[string]int)
-	for rows.Next() {
-		var domain string
-		var count int
-		if err := rows.Scan(&domain, &count); err != nil {
-			return nil, err
-		}
-		domainQueryCounts[domain] = count
+	for _, r := range rows {
+		domainQueryCounts[r.Domain] = r.Count
 	}
-
 	return domainQueryCounts, nil
 }
 
-func GetTopBlockedDomains(db *sql.DB, blockedRequests int) ([]map[string]interface{}, error) {
-	query := `
-	SELECT domain, COUNT(*) as hits
-	FROM request_log
-	WHERE blocked = 1
-	GROUP BY domain
-	ORDER BY hits DESC
-	LIMIT 5
-	`
-	rows, err := db.Query(query)
-	if err != nil {
+func GetTopBlockedDomains(db *gorm.DB, blockedRequests int) ([]map[string]interface{}, error) {
+	var rows []struct {
+		Domain string `gorm:"column:domain"`
+		Hits   int    `gorm:"column:hits"`
+	}
+
+	if err := db.Table("request_logs").
+		Select("domain, COUNT(*) as hits").
+		Where("blocked = ?", true).
+		Group("domain").
+		Order("hits DESC").
+		Limit(5).
+		Scan(&rows).Error; err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
 	var topBlockedDomains []map[string]interface{}
-	for rows.Next() {
-		var (
-			domain string
-			hits   int
-			freq   int
-		)
-		if err := rows.Scan(&domain, &hits); err != nil {
-			return nil, err
-		}
+	for _, r := range rows {
+		freq := 0
 		if blockedRequests > 0 {
-			freq = (hits * 100) / blockedRequests
+			freq = (r.Hits * 100) / blockedRequests
 		}
-		topBlockedDomains = append(topBlockedDomains, map[string]any{
-			"name":      domain,
-			"hits":      hits,
+		topBlockedDomains = append(topBlockedDomains, map[string]interface{}{
+			"name":      r.Domain,
+			"hits":      r.Hits,
 			"frequency": freq,
 		})
 	}
-
 	return topBlockedDomains, nil
 }
 
-func GetTopClients(db *sql.DB) ([]map[string]interface{}, error) {
-	query := `
-	SELECT client_ip, COUNT(*) AS request_count,
-	(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM request_log)) AS frequency
-	FROM request_log
-	GROUP BY client_ip
-	ORDER BY request_count DESC
-	LIMIT 5;
-	`
-	rows, err := db.Query(query)
-	if err != nil {
+func GetTopClients(db *gorm.DB) ([]map[string]interface{}, error) {
+	var total int64
+	if err := db.Table("request_logs").Count(&total).Error; err != nil {
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	var clients []map[string]interface{}
-	for rows.Next() {
-		var clientIp string
-		var requestCount int
-		var frequency float32
-
-		if err := rows.Scan(&clientIp, &requestCount, &frequency); err != nil {
-			return nil, err
-		}
-
-		clients = append(clients, map[string]interface{}{
-			"client":       clientIp,
-			"requestCount": requestCount,
-			"frequency":    frequency,
-		})
+	var rows []struct {
+		ClientIP     string  `gorm:"column:client_ip"`
+		RequestCount int     `gorm:"column:request_count"`
+		Frequency    float32 `gorm:"column:frequency"`
 	}
 
+	if err := db.Table("request_logs").
+		Select("? as frequency, client_ip, COUNT(*) as request_count", 0).
+		Group("client_ip").
+		Order("request_count DESC").
+		Limit(5).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	clients := make([]map[string]interface{}, 0, len(rows))
+	for _, r := range rows {
+		freq := float32(r.RequestCount) * 100 / float32(total)
+		clients = append(clients, map[string]interface{}{
+			"client":       r.ClientIP,
+			"requestCount": r.RequestCount,
+			"frequency":    freq,
+		})
+	}
 	return clients, nil
 }
 
-func CountQueries(db *sql.DB, search string) (int, error) {
-	query := "SELECT COUNT(*) FROM request_log WHERE domain LIKE ?"
-	var total int
-	err := db.QueryRow(query, "%"+search+"%").Scan(&total)
-	return total, err
+func CountQueries(db *gorm.DB, search string) (int, error) {
+	var total int64
+	err := db.Table("request_logs").
+		Where("domain LIKE ?", "%"+search+"%").
+		Count(&total).Error
+	return int(total), err
 }
 
-func SaveRequestLog(db *sql.DB, entries []model.RequestLogEntry) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			log.Warning("Could not save request log, performing rollback. Error: %s", p)
-		} else if err != nil {
-			_ = tx.Rollback()
-		} else if commitErr := tx.Commit(); commitErr != nil {
-			log.Warning("Commit error: %v", commitErr)
-		}
-	}()
+func SaveRequestLog(db *gorm.DB, entries []model.RequestLogEntry) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, entry := range entries {
+			rl := RequestLog{
+				Timestamp:         entry.Timestamp,
+				Domain:            entry.Domain,
+				Blocked:           entry.Blocked,
+				Cached:            entry.Cached,
+				ResponseTimeNs:    entry.ResponseTime.Nanoseconds(),
+				ClientIP:          entry.ClientInfo.IP,
+				ClientName:        entry.ClientInfo.Name,
+				Status:            entry.Status,
+				QueryType:         entry.QueryType,
+				ResponseSizeBytes: entry.ResponseSizeBytes,
+				Protocol:          string(entry.Protocol),
+			}
 
-	for _, entry := range entries {
-		var logID int64
-		err = tx.QueryRow(`
-            INSERT INTO request_log (timestamp, domain, blocked, cached, response_time_ns, 
-                                   client_ip, client_name, status, query_type, response_size_bytes, protocol)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-            RETURNING id`,
-			entry.Timestamp.Unix(),
-			entry.Domain,
-			entry.Blocked,
-			entry.Cached,
-			entry.ResponseTime,
-			entry.ClientInfo.IP,
-			entry.ClientInfo.Name,
-			entry.Status,
-			entry.QueryType,
-			entry.ResponseSizeBytes,
-			entry.Protocol,
-		).Scan(&logID)
+			for _, resolvedIP := range entry.IP {
+				rl.IPs = append(rl.IPs, RequestLogIP{
+					IP:    resolvedIP.IP,
+					RType: resolvedIP.RType,
+				})
+			}
 
-		if err != nil {
-			return fmt.Errorf("could not save request log: %v", err)
-		}
-
-		for _, resolvedIP := range entry.IP {
-			_, err = tx.Exec(`
-                INSERT INTO request_log_ips (request_log_id, ip, rtype) 
-                VALUES ($1, $2, $3)`,
-				logID, resolvedIP.IP, resolvedIP.RType)
-
-			if err != nil {
-				return fmt.Errorf("could not save resolved IP: %v", err)
+			if err := tx.Create(&rl).Error; err != nil {
+				return fmt.Errorf("could not save request log: %v", err)
 			}
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 type vacuumFunc func()
 
-func DeleteRequestLogsTimebased(vacuum vacuumFunc, db *sql.DB, requestThreshold, maxRetries int, retryDelay time.Duration) {
-	query := fmt.Sprintf("DELETE FROM request_log WHERE strftime('%%s', 'now') - timestamp > %d", requestThreshold)
+func DeleteRequestLogsTimebased(vacuum vacuumFunc, db *gorm.DB, requestThreshold, maxRetries int, retryDelay time.Duration) {
+	cutoffTime := time.Now().Add(-time.Duration(requestThreshold) * time.Second)
 
 	for retryCount := range maxRetries {
-		result, err := db.Exec(query)
-		if err != nil {
-			if err.Error() == "database is locked" {
+		result := db.Where("timestamp < ?", cutoffTime).Delete(&RequestLog{})
+		if result.Error != nil {
+			if result.Error.Error() == "database is locked" {
 				log.Warning("Database is locked; retrying (%d/%d)", retryCount+1, maxRetries)
 				time.Sleep(retryDelay)
 				continue
 			}
-			log.Error("Failed to clear old entries: %s", err)
+			log.Error("Failed to clear old entries: %s", result.Error)
 			break
 		}
 
-		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+		if affected := result.RowsAffected; affected > 0 {
 			vacuum()
 			log.Debug("Cleared %d old entries", affected)
 		}

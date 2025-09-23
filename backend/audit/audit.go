@@ -1,7 +1,6 @@
 package audit
 
 import (
-	"database/sql"
 	"goaway/backend/dns/database"
 	"goaway/backend/logging"
 	"time"
@@ -41,38 +40,38 @@ func NewAuditManager(dbManager *database.DatabaseManager) *Manager {
 }
 
 func (nm *Manager) CreateAudit(newAudit *Entry) {
-	createdAt := time.Now()
-	_, err := nm.dbManager.Conn.Exec(
-		`INSERT INTO audit (topic, message, created_at) VALUES (?, ?, ?)`,
-		newAudit.Topic, newAudit.Message, createdAt,
-	)
-	if err != nil {
-		logger.Warning("Unable to create new audit, error: %v", err)
+	audit := database.Audit{
+		Topic:     string(newAudit.Topic),
+		Message:   newAudit.Message,
+		CreatedAt: time.Now(),
+	}
+
+	result := nm.dbManager.Conn.Create(&audit)
+	if result.Error != nil {
+		logger.Warning("Unable to create new audit, error: %v", result.Error)
+		return
 	}
 
 	logger.Debug("Created new audit, %+v", newAudit)
 }
 
 func (nm *Manager) ReadAudits() ([]Entry, error) {
-	rows, err := nm.dbManager.Conn.Query("SELECT id, topic, message, created_at FROM audit ORDER BY created_at DESC")
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	var audits []database.Audit
 
-	var audits = make([]Entry, 0)
-	for rows.Next() {
-		var id int
-		var topic Topic
-		var message string
-		var createdAt time.Time
-		if err := rows.Scan(&id, &topic, &message, &createdAt); err != nil {
-			return nil, err
+	result := nm.dbManager.Conn.Order("created_at DESC").Find(&audits)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	entries := make([]Entry, len(audits))
+	for i, audit := range audits {
+		entries[i] = Entry{
+			Id:        int(audit.ID),
+			Topic:     Topic(audit.Topic),
+			Message:   audit.Message,
+			CreatedAt: audit.CreatedAt,
 		}
-		audits = append(audits, Entry{id, topic, message, createdAt})
 	}
 
-	return audits, nil
+	return entries, nil
 }
