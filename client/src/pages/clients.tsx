@@ -38,7 +38,7 @@ export function Clients() {
       const [code, response] = await GetRequest("clients");
 
       if (code !== 200) {
-        toast.warning(response.error);
+        toast.warning(response);
         return;
       }
 
