@@ -68,9 +68,11 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
       "esbuild"
     ],
     "ignoredBuiltDependencies": [
+      "@tailwindcss/oxide",
       "@tsparticles/engine"
     ]
   }
