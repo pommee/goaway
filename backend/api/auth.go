@@ -2,18 +2,19 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"goaway/backend/alert"
 	"goaway/backend/api/user"
 	"goaway/backend/audit"
+	"goaway/backend/dns/database"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func (api *API) registerAuthRoutes() {
@@ -75,12 +76,10 @@ func (api *API) handleLogin(c *gin.Context) {
 }
 
 func (api *API) authenticateUser(username, password string) bool {
-	query := "SELECT password FROM user WHERE username = ?"
+	var user database.User
 
-	var hashedPassword string
-	err := api.DBManager.Conn.QueryRow(query, username).Scan(&hashedPassword)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	if err := api.DBManager.Conn.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Info("Authentication attempt for non-existent or invalid credentials")
 		} else {
 			log.Warning("Database error during authentication: %v", err)
@@ -88,7 +87,7 @@ func (api *API) authenticateUser(username, password string) bool {
 		return false
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		log.Info("Password comparison failed for user: %s", username)
 		return false
 	}

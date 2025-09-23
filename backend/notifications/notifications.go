@@ -1,11 +1,8 @@
 package notification
 
 import (
-	"database/sql"
-	"fmt"
 	"goaway/backend/dns/database"
 	"goaway/backend/logging"
-	"strings"
 	"time"
 )
 
@@ -49,36 +46,27 @@ func NewNotificationManager(dbManager *database.DatabaseManager) *Manager {
 }
 
 func (nm *Manager) CreateNotification(newNotification *Notification) {
-	createdAt := time.Now()
-	_, err := nm.dbManager.Conn.Exec(`INSERT INTO notifications (severity, category, text, read, created_at) VALUES (?, ?, ?, ?, ?)`, newNotification.Severity, newNotification.Category, newNotification.Text, false, createdAt)
-	if err != nil {
-		logger.Warning("Unable to create new notification, error: %v", err)
+	tx := nm.dbManager.Conn.Create(&database.Notification{
+		Severity:  string(newNotification.Severity),
+		Category:  string(newNotification.Category),
+		Text:      newNotification.Text,
+		Read:      false,
+		CreatedAt: time.Now(),
+	})
+	if tx.Error != nil {
+		logger.Warning("Unable to create new notification, error: %v", tx.Error)
+		return
 	}
 
 	logger.Debug("Created new notification, %+v", newNotification)
 }
 
-func (nm *Manager) ReadNotifications() ([]Notification, error) {
-	rows, err := nm.dbManager.Conn.Query(`SELECT id, severity, category, text, read, created_at FROM notifications WHERE read = 0`)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+func (nm *Manager) ReadNotifications() ([]database.Notification, error) {
+	var notifications []database.Notification
 
-	var notifications = make([]Notification, 0)
-	for rows.Next() {
-		var id int
-		var severity Severity
-		var category Category
-		var text string
-		var read bool
-		var createdAt time.Time
-		if err := rows.Scan(&id, &severity, &category, &text, &read, &createdAt); err != nil {
-			return nil, err
-		}
-		notifications = append(notifications, Notification{id, severity, category, text, read, createdAt})
+	result := nm.dbManager.Conn.Where("read = ?", true).Find(&notifications)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
 	return notifications, nil
@@ -89,20 +77,12 @@ func (nm *Manager) MarkNotificationsAsRead(notificationIDs []int) error {
 		return nil
 	}
 
-	placeholders := make([]string, len(notificationIDs))
-	args := make([]any, len(notificationIDs))
+	result := nm.dbManager.Conn.Model(&database.Notification{}).
+		Where("id IN ?", notificationIDs).
+		Update("read", true)
 
-	for i, id := range notificationIDs {
-		placeholders[i] = "?"
-		args[i] = id
-	}
-
-	query := fmt.Sprintf(`UPDATE notifications SET read = true WHERE id IN (%s)`,
-		strings.Join(placeholders, ","))
-
-	_, err := nm.dbManager.Conn.Exec(query, args...)
-	if err != nil {
-		return err
+	if result.Error != nil {
+		return result.Error
 	}
 
 	return nil

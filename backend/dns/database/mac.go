@@ -1,25 +1,34 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
+
+	"gorm.io/gorm"
 )
 
-func FindVendor(db *sql.DB, mac string) (string, error) {
-	var vendor string
-	err := db.QueryRow("SELECT vendor FROM mac_addresses WHERE mac = ?", mac).Scan(&vendor)
-	if errors.Is(err, sql.ErrNoRows) {
+func FindVendor(db *gorm.DB, mac string) (string, error) {
+	var query MacAddress
+	tx := db.Find(&query, "mac = ?", mac)
+
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 		return "", nil
-	} else if err != nil {
-		return "", err
+	}
+	if tx.Error != nil {
+		return "", tx.Error
 	}
 
-	return vendor, nil
+	return query.Vendor, nil
 }
 
-func SaveMacEntry(db *sql.DB, clientIP, mac, vendor string) {
-	query := "INSERT INTO mac_addresses (ip, mac, vendor) VALUES (?, ?, ?)"
-	_, err := db.Exec(query, clientIP, mac, vendor)
+func SaveMacEntry(db *gorm.DB, clientIP, mac, vendor string) {
+	entry := MacAddress{
+		MAC:    mac,
+		IP:     clientIP,
+		Vendor: vendor,
+	}
+	tx := db.Create(&entry)
 
-	log.Warning("Unable to save new MAC entry %v", err)
+	if tx.Error != nil {
+		log.Warning("Unable to save new MAC entry %v", tx.Error)
+	}
 }

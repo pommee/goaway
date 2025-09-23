@@ -1,320 +1,148 @@
 package database
 
 import (
-	"database/sql"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
-	_ "modernc.org/sqlite"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 type DatabaseManager struct {
-	Conn  *sql.DB
+	Conn  *gorm.DB
 	Mutex *sync.RWMutex
 }
 
-func Initialize() (*DatabaseManager, error) {
+type Source struct {
+	ID          uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name        string `json:"name"`
+	URL         string `gorm:"unique" json:"url"`
+	Active      bool   `json:"active"`
+	LastUpdated int64  `json:"lastUpdated"`
+}
+
+type Blacklist struct {
+	Domain   string `gorm:"primaryKey" json:"domain"`
+	SourceID uint   `gorm:"primaryKey" json:"source_id"`
+	Source   Source `gorm:"foreignKey:SourceID;references:ID" json:"source"`
+}
+
+type Whitelist struct {
+	Domain string `gorm:"primaryKey" json:"domain"`
+}
+
+type RequestLog struct {
+	ID                uint           `gorm:"primaryKey;autoIncrement" json:"id"`
+	Timestamp         time.Time      `gorm:"not null;index:idx_request_log_timestamp_covering,priority:1;index:idx_request_log_timestamp_desc;index:idx_request_log_domain_timestamp,priority:2" json:"timestamp"`
+	Domain            string         `gorm:"type:varchar(255);not null;index:idx_request_log_domain_timestamp,priority:1" json:"domain"`
+	Blocked           bool           `gorm:"not null;index:idx_request_log_timestamp_covering,priority:2" json:"blocked"`
+	Cached            bool           `gorm:"not null;index:idx_request_log_timestamp_covering,priority:3" json:"cached"`
+	ResponseTimeNs    int64          `gorm:"not null" json:"response_time_ns"`
+	ClientIP          string         `gorm:"type:varchar(45)" json:"client_ip"`
+	ClientName        string         `gorm:"type:varchar(255)" json:"client_name"`
+	Status            string         `gorm:"type:varchar(50)" json:"status"`
+	QueryType         string         `gorm:"type:varchar(10)" json:"query_type"`
+	ResponseSizeBytes int            `json:"response_size_bytes"`
+	Protocol          string         `gorm:"type:varchar(10)" json:"protocol"`
+	IPs               []RequestLogIP `gorm:"foreignKey:RequestLogID;constraint:OnDelete:CASCADE" json:"ips"`
+}
+
+type RequestLogIP struct {
+	ID           uint       `gorm:"primaryKey;autoIncrement" json:"id"`
+	RequestLogID uint       `gorm:"not null;index" json:"request_log_id"`
+	IP           string     `gorm:"type:varchar(45);not null" json:"ip"`
+	RType        string     `gorm:"type:varchar(10);not null" json:"rtype"`
+	RequestLog   RequestLog `gorm:"foreignKey:RequestLogID;references:ID" json:"request_log"`
+}
+
+type Resolution struct {
+	Domain string `gorm:"primaryKey" json:"domain"`
+	IP     string `json:"ip"`
+}
+
+type MacAddress struct {
+	MAC    string `gorm:"primaryKey" json:"mac"`
+	IP     string `json:"ip"`
+	Vendor string `json:"vendor"`
+}
+
+type User struct {
+	Username string `gorm:"primaryKey" json:"username"`
+	Password string `json:"password"`
+}
+
+type APIKey struct {
+	Name      string    `gorm:"primaryKey" json:"name"`
+	Key       string    `json:"key"`
+	CreatedAt time.Time `gorm:"not null" json:"created_at"`
+}
+
+type Notification struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Severity  string    `json:"severity"`
+	Category  string    `json:"category"`
+	Text      string    `json:"text"`
+	Read      bool      `json:"read"`
+	CreatedAt time.Time `gorm:"not null" json:"created_at"`
+}
+
+type Prefetch struct {
+	Domain  string `gorm:"primaryKey" json:"domain"`
+	Refresh int    `json:"refresh"`
+	QType   int    `json:"qtype"`
+}
+
+type Audit struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Topic     string    `json:"topic"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `gorm:"not null" json:"created_at"`
+}
+
+type Alert struct {
+	Type    string `gorm:"primaryKey" json:"type"`
+	Enabled bool   `json:"enabled"`
+	Name    string `json:"name"`
+	Webhook string `json:"webhook"`
+}
+
+func Initialize() *DatabaseManager {
 	if err := os.MkdirAll("data", 0755); err != nil {
-		return nil, fmt.Errorf("failed to create data directory %s: %w", "data", err)
+		log.Fatal("failed to create data directory: %v", err)
 	}
 
 	databasePath := filepath.Join("data", "database.db")
-	db, err := sql.Open("sqlite", databasePath)
+	db, err := gorm.Open(sqlite.Open(databasePath), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		log.Fatal("failed while initializing database: %v", err)
 	}
 
-	pragmas := []string{
-		"PRAGMA journal_mode=WAL;",
-		"PRAGMA cache_size=10000;",    // 10MB cache instead of default 2MB
-		"PRAGMA temp_store=MEMORY;",   // Store temp tables in memory
-		"PRAGMA mmap_size=268435456;", // 256MB memory mapping
+	if err := AutoMigrate(db); err != nil {
+		log.Fatal("auto migrate failed: %v", err)
 	}
 
-	for _, pragma := range pragmas {
-		if _, err := db.Exec(pragma); err != nil {
-			log.Warning("Failed to set pragma (ignoring) %s: %v\n", pragma, err)
-		}
+	return &DatabaseManager{
+		Conn:  db,
+		Mutex: &sync.RWMutex{},
 	}
-
-	_, err = db.Exec("PRAGMA journal_mode=WAL;")
-	if err != nil {
-		log.Warning("failed to set journal_mode to WAL")
-	}
-
-	err = NewBlacklistTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create blacklist table: %w", err)
-	}
-
-	err = NewWhitelistTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create whitelist table: %w", err)
-	}
-
-	err = NewSourcesTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sources table: %w", err)
-	}
-
-	err = NewRequestLogTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request_log table: %w", err)
-	}
-
-	err = NewResolutionTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create resolution table: %w", err)
-	}
-
-	err = NewMacTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create mac_addresses table: %w", err)
-	}
-
-	err = NewUserTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create user table: %w", err)
-	}
-
-	err = NewAPIKeyTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create api key table: %w", err)
-	}
-
-	err = NewNotificationsTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create notifications table: %w", err)
-	}
-
-	err = NewPrefetchTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create prefetch table: %w", err)
-	}
-
-	err = NewAuditTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create audit table: %w", err)
-	}
-
-	err = NewAlertTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create audit table: %w", err)
-	}
-
-	return &DatabaseManager{Conn: db, Mutex: &sync.RWMutex{}}, nil
 }
 
-func NewBlacklistTable(db *sql.DB) error {
-	_, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS blacklist (
-            domain TEXT,
-            source_id INTEGER,
-            PRIMARY KEY (domain, source_id),
-            FOREIGN KEY (source_id) REFERENCES sources(id)
-        )
-    `)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`
-        CREATE INDEX IF NOT EXISTS idx_blacklist_source_id ON blacklist(source_id)
-    `)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewWhitelistTable(db *sql.DB) error {
-	_, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS whitelist (
-            domain TEXT PRIMARY KEY
-        )
-    `)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewSourcesTable(db *sql.DB) error {
-	_, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS sources (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            url TEXT UNIQUE,
-			active INTEGER,
-            lastUpdated INTEGER
-        )
-	`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewRequestLogTable(db *sql.DB) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	_, err = tx.Exec(`
-		CREATE TABLE IF NOT EXISTS request_log (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			timestamp INTEGER NOT NULL,
-			domain TEXT NOT NULL,
-			blocked BOOLEAN NOT NULL,
-			cached BOOLEAN NOT NULL,
-			response_time_ns INTEGER NOT NULL,
-			client_ip TEXT,
-			client_name TEXT,
-			status TEXT,
-			query_type TEXT,
-			response_size_bytes INTEGER,
-			protocol TEXT
-		);
-		
-		CREATE TABLE IF NOT EXISTS request_log_ips (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			request_log_id INTEGER NOT NULL REFERENCES request_log(id) ON DELETE CASCADE,
-			ip TEXT NOT NULL,
-			rtype TEXT NOT NULL
-		);
-	`)
-	if err != nil {
-		return err
-	}
-
-	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_request_log_timestamp_covering ON request_log(timestamp, blocked, cached);",
-		"CREATE INDEX IF NOT EXISTS idx_request_log_timestamp_desc ON request_log(timestamp DESC);",
-		"CREATE INDEX IF NOT EXISTS idx_request_log_domain_timestamp ON request_log(domain, timestamp DESC);",
-		"CREATE INDEX IF NOT EXISTS idx_request_log_ips_request_id ON request_log_ips(request_log_id);",
-	}
-
-	for _, indexSQL := range indexes {
-		if _, err := tx.Exec(indexSQL); err != nil {
-			return fmt.Errorf("failed to create index: %w", err)
-		}
-	}
-
-	return tx.Commit()
-}
-
-func NewResolutionTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS resolution (
-		domain TEXT NOT NULL PRIMARY KEY,
-		ip TEXT
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewMacTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS mac_addresses (
-		mac TEXT PRIMARY KEY,
-		ip TEXT,
-		vendor TEXT
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewUserTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
-		username TEXT PRIMARY KEY,
-		password TEXT
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewAPIKeyTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS apikey (
-		name TEXT PRIMARY KEY,
-		key TEXT,
-		created_at DATETIME NOT NULL
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewNotificationsTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS notifications (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		severity TEXT,
-		category TEXT,
-		text TEXT,
-		read BOOLEAN,
-		created_at DATETIME NOT NULL
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewPrefetchTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS prefetch (
-		domain TEXT PRIMARY KEY,
-		refresh INTEGER,
-		qtype INTEGER
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewAuditTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS audit (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		topic TEXT,
-		message TEXT,
-		created_at DATETIME NOT NULL
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewAlertTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS alert (
-		type TEXT PRIMARY KEY,
-		enabled BOOLEAN,
-		name TEXT,
-		webhook TEXT
-	)`)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func AutoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&Source{},
+		&Blacklist{},
+		&Whitelist{},
+		&RequestLog{},
+		&RequestLogIP{},
+		&Resolution{},
+		&MacAddress{},
+		&User{},
+		&APIKey{},
+		&Notification{},
+		&Prefetch{},
+		&Audit{},
+		&Alert{},
+	)
 }

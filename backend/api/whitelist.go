@@ -1,8 +1,8 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
+	"goaway/backend/dns/database"
 	"io"
 	"net/http"
 
@@ -44,24 +44,12 @@ func (api *API) addWhitelisted(c *gin.Context) {
 }
 
 func (api *API) getWhitelistedDomains(c *gin.Context) {
-	query := "SELECT domain FROM whitelist"
-	rows, err := api.DBManager.Conn.Query(query)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
+	var domains []string
 
-	var domains = make([]string, 0)
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		domains = append(domains, domain)
+	err := api.DBManager.Conn.Model(&database.Whitelist{}).Pluck("domain", &domains).Error
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to retrieve whitelisted domains"})
+		return
 	}
 
 	c.JSON(http.StatusOK, domains)

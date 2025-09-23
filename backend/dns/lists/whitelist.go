@@ -1,9 +1,10 @@
 package lists
 
 import (
-	"database/sql"
 	"fmt"
 	"goaway/backend/dns/database"
+
+	"gorm.io/gorm/clause"
 )
 
 type Whitelist struct {
@@ -17,7 +18,7 @@ func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error
 		Cache:     map[string]bool{},
 	}
 
-	err := w.getDomains()
+	_, err := w.GetDomains()
 	if err != nil {
 		log.Error("Failed to initialize whitelist cache")
 	}
@@ -26,30 +27,26 @@ func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error
 }
 
 func (w *Whitelist) AddDomain(domain string) error {
-	w.DBManager.Mutex.Lock()
-	defer w.DBManager.Mutex.Unlock()
+	result := w.DBManager.Conn.Clauses(clause.OnConflict{DoNothing: true}).Create(&database.Whitelist{Domain: domain})
 
-	result, err := w.DBManager.Conn.Exec(`INSERT OR IGNORE INTO whitelist (domain) VALUES (?)`, domain)
-	if err != nil {
-		return fmt.Errorf("failed to add domain to whitelist: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("failed to add domain to whitelist: %w", result.Error)
 	}
-
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("%s is already whitelisted", domain)
 	}
+
 	w.Cache[domain] = true
 	return nil
 }
 
 func (w *Whitelist) RemoveDomain(domain string) error {
-	result, err := w.DBManager.Conn.Exec(`DELETE FROM whitelist WHERE domain = ?`, domain)
-	if err != nil {
-		return fmt.Errorf("failed to remove domain from whitelist: %w", err)
-	}
+	result := w.DBManager.Conn.Delete(&database.Whitelist{}, "domain = ?", domain)
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove domain from whitelist: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("%s does not exist", domain)
 	}
 
@@ -57,27 +54,18 @@ func (w *Whitelist) RemoveDomain(domain string) error {
 	return nil
 }
 
-func (w *Whitelist) getDomains() error {
-	w.Cache = map[string]bool{}
-
-	rows, err := w.DBManager.Conn.Query("SELECT domain FROM whitelist")
-	if err != nil {
-		return fmt.Errorf("failed to query whitelist: %w", err)
+func (w *Whitelist) GetDomains() (map[string]bool, error) {
+	var records []database.Whitelist
+	if err := w.DBManager.Conn.Find(&records).Error; err != nil {
+		return nil, fmt.Errorf("failed to query whitelist: %w", err)
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
-	domains := make(map[string]bool)
-	for rows.Next() {
-		var domain string
-		if err := rows.Scan(&domain); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
-		}
-		domains[domain] = true
+	domains := make(map[string]bool, len(records))
+	for _, rec := range records {
+		domains[rec.Domain] = true
 	}
-	w.Cache = domains
-	return nil
+
+	return domains, nil
 }
 
 func (w *Whitelist) IsWhitelisted(domain string) bool {

@@ -2,7 +2,6 @@ package key
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"goaway/backend/dns/database"
@@ -51,27 +50,19 @@ func (m *ApiKeyManager) refreshCache() error {
 		return nil
 	}
 
-	rows, err := m.dbManager.Conn.Query(`SELECT name, key, created_at FROM apikey`)
-	if err != nil {
-		return err
+	var apiKeys []database.APIKey
+	result := m.dbManager.Conn.Find(&apiKeys)
+	if result.Error != nil {
+		return result.Error
 	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
 
 	newCache := make(map[string]ApiKey)
-	for rows.Next() {
-		var name string
-		var key string
-		var createdAt time.Time
-		if err := rows.Scan(&name, &key, &createdAt); err != nil {
-			return err
+	for _, apiKey := range apiKeys {
+		newCache[apiKey.Key] = ApiKey{
+			Name:      apiKey.Name,
+			Key:       apiKey.Key,
+			CreatedAt: apiKey.CreatedAt,
 		}
-		newCache[key] = ApiKey{Name: name, Key: key, CreatedAt: createdAt}
-	}
-
-	if err := rows.Err(); err != nil {
-		return err
 	}
 
 	m.keyCache = newCache
@@ -83,13 +74,13 @@ func (m *ApiKeyManager) VerifyKey(apiKey string) bool {
 	if err := m.refreshCache(); err != nil {
 		log.Warning("Failed to refresh API key cache: %v", err)
 
-		var exists bool
-		err := m.dbManager.Conn.QueryRow(`SELECT EXISTS(SELECT 1 FROM apikey WHERE key = ?)`, apiKey).Scan(&exists)
-		if err != nil {
-			log.Warning("Failed to verify API key in database: %v", err)
+		var count int64
+		result := m.dbManager.Conn.Model(&database.APIKey{}).Where("key = ?", apiKey).Count(&count)
+		if result.Error != nil {
+			log.Warning("Failed to verify API key in database: %v", result.Error)
 			return false
 		}
-		return exists
+		return count > 0
 	}
 
 	m.cacheMu.RLock()
@@ -117,14 +108,23 @@ func (m *ApiKeyManager) CreateKey(name string) (string, error) {
 		return "", err
 	}
 
-	createdAt := time.Now()
-	_, err = m.dbManager.Conn.Exec(`INSERT INTO apikey (name, key, created_at) VALUES (?, ?, ?)`, name, apiKey, createdAt)
-	if err != nil {
+	newAPIKey := database.APIKey{
+		Name:      name,
+		Key:       apiKey,
+		CreatedAt: time.Now(),
+	}
+
+	result := m.dbManager.Conn.Create(&newAPIKey)
+	if result.Error != nil {
 		return "", fmt.Errorf("key with name '%s' already exists", name)
 	}
 
 	m.cacheMu.Lock()
-	m.keyCache[name] = ApiKey{Name: name, Key: apiKey, CreatedAt: createdAt}
+	m.keyCache[apiKey] = ApiKey{
+		Name:      name,
+		Key:       apiKey,
+		CreatedAt: newAPIKey.CreatedAt,
+	}
 	m.cacheMu.Unlock()
 
 	log.Info("Created new API key with name: %s", name)
@@ -133,13 +133,18 @@ func (m *ApiKeyManager) CreateKey(name string) (string, error) {
 }
 
 func (m *ApiKeyManager) DeleteKey(keyName string) error {
-	_, err := m.dbManager.Conn.Exec("DELETE FROM apikey WHERE name = ?", keyName)
-	if err != nil {
-		return err
+	result := m.dbManager.Conn.Where("name = ?", keyName).Delete(&database.APIKey{})
+	if result.Error != nil {
+		return result.Error
 	}
 
 	m.cacheMu.Lock()
-	delete(m.keyCache, keyName)
+	for key, value := range m.keyCache {
+		if value.Name == keyName {
+			delete(m.keyCache, key)
+			break
+		}
+	}
 	m.cacheMu.Unlock()
 
 	if err := m.refreshCache(); err != nil {
