@@ -5,6 +5,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     restart: unless-stopped
+    user: 1000:1000
+    volumes:
+      - ./:/app
     environment:
       - DNS_PORT=6121
       - WEBSITE_PORT=8080
