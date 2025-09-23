@@ -45,6 +45,7 @@ func (api *API) updateSettings(c *gin.Context) {
 		Message: "Settings was updated",
 	})
 
+	log.Info("Settings have been updated")
 	c.JSON(http.StatusOK, gin.H{
 		"config": api.Config,
 	})
