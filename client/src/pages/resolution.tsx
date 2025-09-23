@@ -156,13 +156,21 @@ export function Resolution() {
                 <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="domain"
-                  placeholder="example.local"
+                  placeholder="example.local."
                   className="pl-9"
                   value={domainName}
                   onChange={(e) => setDomainName(e.target.value)}
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Domain name to use, supports wildcard.
+                  Domain name to use, supports wildcard. Make sure it's a{" "}
+                  <a
+                    href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-primary"
+                  >
+                    FQDN
+                  </a>
                 </p>
               </div>
             </div>
@@ -202,9 +210,8 @@ export function Resolution() {
             </div>
           </div>
 
-          <div className="mt-4 bg-accent border rounded-xl p-3">
+          <div className="mt-4">
             <div className="flex items-start gap-3">
-              <InfoIcon className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="space-y-2 flex-1">
                 <div>
                   <h4 className="font-medium mb-1">Wildcard Matching</h4>
@@ -213,11 +220,10 @@ export function Resolution() {
                     rule
                   </p>
                 </div>
-
-                <div className="bg-background rounded-lg p-3">
+                <div className="bg-accent/50 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <code className="text-sm font-mono bg-accent px-2 py-1 rounded text-blue-400 font-medium">
-                      *.example.local
+                      *.example.local.
                     </code>
                     <div className="flex items-center gap-1.5 text-emerald-400">
                       <CheckCircleIcon className="h-3 w-3" />
@@ -227,9 +233,9 @@ export function Resolution() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                     {[
-                      "app.example.local",
-                      "my.app.example.local",
-                      "sub1.sub2.sub3.example.local"
+                      "app.example.local.",
+                      "my.app.example.local.",
+                      "sub1.sub2.sub3.example.local."
                     ].map((domain, index) => (
                       <div
                         key={index}
