@@ -1,3 +1,16 @@
+## [0.62.1](https://github.com/pommee/goaway/compare/v0.62.0...v0.62.1) (2025-09-24)
+
+
+### Bug Fixes
+
+* add log updated logs ([0cc22b0](https://github.com/pommee/goaway/commit/0cc22b0f4e36070507d4e8e4523824ee7b5c0a74))
+* add soa record type and default unhandled record type ([9209fa8](https://github.com/pommee/goaway/commit/9209fa840bfc4a6b4d1159c7a8efe17f294c6c26))
+* add validation when adding a new prefetched domain ([f12adb9](https://github.com/pommee/goaway/commit/f12adb916ce087c81057d8fb736d2da245a793f3))
+* added ability to test discord webhook for alerts ([324db21](https://github.com/pommee/goaway/commit/324db21a643b03dde78d35ae9afa7afc0a628207))
+* database layer rewritten to use gorm ([2c9c832](https://github.com/pommee/goaway/commit/2c9c8325f2b8b1a71f33c709401d9ae46e052f4f))
+* update server dependencies ([b4e2dd1](https://github.com/pommee/goaway/commit/b4e2dd1e244c388c768e01df69d8491af316ac82))
+* update to golang 1.25.1 ([8a32e33](https://github.com/pommee/goaway/commit/8a32e33ffe54df7ed79b960788957ea9ee600dc3))
+
 # [0.62.0](https://github.com/pommee/goaway/compare/v0.61.0...v0.62.0) (2025-09-05)
 
 
