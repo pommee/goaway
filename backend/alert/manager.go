@@ -150,16 +150,23 @@ func (m *Manager) SendTest(ctx context.Context, alertType, name, webhook string)
 	for _, service := range m.services {
 		if service.GetServiceName() == alertType {
 			log.Info("Sending test alert via %s", service.GetServiceName())
-			service.SendMessage(ctx, Message{
+			err = service.SendMessage(ctx, Message{
 				Title:    "System",
 				Content:  "This is a test alert from GoAway",
 				Severity: "info",
 			})
+			if err != nil {
+				log.Error("Failed to send test alert via %s: %v", service.GetServiceName(), err)
+			}
 			break
 		}
 	}
 
-	m.RemoveAlert(alertType)
+	err = m.RemoveAlert(alertType)
+	if err != nil {
+		log.Error("Failed to remove test alert settings: %v", err)
+		return err
+	}
 
 	return nil
 }

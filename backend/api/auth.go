@@ -128,11 +128,13 @@ func (api *API) updatePassword(c *gin.Context) {
 		Topic:   audit.TopicUser,
 		Message: logMsg,
 	})
-	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
-		Title:    "System",
-		Content:  logMsg,
-		Severity: SeverityWarning,
-	})
+	go func() {
+		_ = api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+			Title:    "System",
+			Content:  logMsg,
+			Severity: SeverityWarning,
+		})
+	}()
 
 	log.Warning("%s", logMsg)
 	c.Status(http.StatusOK)
@@ -163,11 +165,13 @@ func (api *API) createAPIKey(c *gin.Context) {
 		return
 	}
 
-	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
-		Title:    "System",
-		Content:  fmt.Sprintf("New API key created with the name '%s'", request.Name),
-		Severity: SeverityWarning,
-	})
+	go func() {
+		_ = api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+			Title:    "System",
+			Content:  fmt.Sprintf("New API key created with the name '%s'", request.Name),
+			Severity: SeverityWarning,
+		})
+	}()
 
 	c.JSON(http.StatusOK, apiKey)
 }

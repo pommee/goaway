@@ -14,7 +14,6 @@ import {
   CheckCircleIcon,
   DatabaseIcon,
   GlobeIcon,
-  InfoIcon,
   MagnifyingGlassIcon,
   NetworkIcon,
   PlusIcon,
