@@ -498,6 +498,13 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				IP:    rr.Ns,
 				RType: "NS",
 			})
+		case *dns.SOA:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Ns,
+				RType: "SOA",
+			})
+		default:
+			log.Warning("Unhandled record type '%s' while requesting '%s'", dns.TypeToString[rr.Header().Rrtype], request.Question.Name)
 		}
 	}
 
