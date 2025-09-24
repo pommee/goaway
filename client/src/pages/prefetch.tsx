@@ -55,6 +55,79 @@ function qtypeExpanded(qtype: number) {
   }
 }
 
+function validateFQDN(domain: string): { isValid: boolean; error?: string } {
+  if (!domain || domain.trim() === "") {
+    return { isValid: false, error: "Domain is required" };
+  }
+
+  const trimmedDomain = domain.trim();
+  if (!trimmedDomain.endsWith(".")) {
+    return {
+      isValid: false,
+      error:
+        "Domain must end with a dot (.) to be a fully qualified domain name"
+    };
+  }
+
+  const domainWithoutDot = trimmedDomain.slice(0, -1);
+  if (domainWithoutDot.length === 0) {
+    return { isValid: false, error: "Domain cannot be just a dot" };
+  }
+
+  if (domainWithoutDot.length > 253) {
+    return {
+      isValid: false,
+      error: "Domain name is too long (max 253 characters)"
+    };
+  }
+
+  // Check for valid characters and structure
+  const domainRegex =
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/;
+
+  if (!domainRegex.test(domainWithoutDot)) {
+    return {
+      isValid: false,
+      error:
+        "Invalid domain format. Use only letters, numbers, dots, and hyphens"
+    };
+  }
+
+  const labels = domainWithoutDot.split(".");
+  for (const label of labels) {
+    if (label.length > 63) {
+      return {
+        isValid: false,
+        error: "Each part of the domain must be 63 characters or less"
+      };
+    }
+    if (label.startsWith("-") || label.endsWith("-")) {
+      return {
+        isValid: false,
+        error: "Domain parts cannot start or end with hyphens"
+      };
+    }
+  }
+
+  if (!domainWithoutDot.includes(".")) {
+    return {
+      isValid: false,
+      error: "Domain must contain at least one dot (e.g., example.com.)"
+    };
+  }
+
+  const tld = labels[labels.length - 1];
+  if (!/^[a-zA-Z]{2,}$/.test(tld)) {
+    return {
+      isValid: false,
+      error:
+        "Top-level domain must contain only letters and be at least 2 characters"
+    };
+  }
+
+  return { isValid: true };
+}
+
 async function CreatePrefetch(domain: string, refresh: number, qtype: number) {
   const [code, response] = await PostRequest("prefetch", {
     domain,
@@ -92,6 +165,7 @@ export function Prefetch() {
   const [refresh, setrefresh] = useState(0);
   const [qtype, setQType] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
+  const [domainError, setDomainError] = useState<string>("");
 
   const fetchPrefetches = async () => {
     setLoading(true);
@@ -110,9 +184,21 @@ export function Prefetch() {
     fetchPrefetches();
   }, []);
 
+  useEffect(() => {
+    if (domainName) {
+      const validation = validateFQDN(domainName);
+      setDomainError(validation.error || "");
+    } else {
+      setDomainError("");
+    }
+  }, [domainName]);
+
   const handleSave = async () => {
-    if (!domainName) {
-      toast.warning("Domain is required");
+    const validation = validateFQDN(domainName);
+
+    if (!validation.isValid) {
+      toast.error(validation.error);
+      setDomainError(validation.error || "");
       return;
     }
 
@@ -121,6 +207,7 @@ export function Prefetch() {
     if (success) {
       await fetchPrefetches();
       setDomainName("");
+      setDomainError("");
     }
     setSubmitting(false);
   };
@@ -145,6 +232,8 @@ export function Prefetch() {
         prefetch.domain.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : prefetches;
+
+  const isFormValid = domainName && !domainError;
 
   return (
     <div className="space-y-8">
@@ -188,11 +277,19 @@ export function Prefetch() {
                   <Input
                     id="domain"
                     placeholder="example.com."
-                    className="pl-9"
+                    className={`pl-9 ${
+                      domainError ? "border-destructive" : ""
+                    }`}
                     value={domainName}
                     onChange={(e) => setDomainName(e.target.value)}
                   />
                 </div>
+                {domainError && (
+                  <span className="text-xs text-red-500 font-medium">
+                    {domainError}
+                    <br />
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   Enter the domain you want to pre-resolve.
                 </span>
@@ -202,7 +299,7 @@ export function Prefetch() {
                 </span>
                 <span className="text-xs text-muted-foreground">
                   A dot must be added at the end in order for the domain to be
-                  fully qualified
+                  fully qualified (FQDN)
                 </span>
               </div>
               <div className="space-y-2">
@@ -258,7 +355,7 @@ export function Prefetch() {
             variant="default"
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleSave}
-            disabled={submitting || !domainName}
+            disabled={submitting || !isFormValid}
           >
             {submitting ? (
               <>
