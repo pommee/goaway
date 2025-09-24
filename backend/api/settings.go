@@ -183,7 +183,11 @@ func (api *API) importDatabase(c *gin.Context) {
 		return
 	}
 	_, err = io.Copy(tempFile, file)
-	tempFile.Close()
+
+	defer func(tempfile *os.File) {
+		_ = tempFile.Close()
+	}(tempFile)
+
 	if err != nil {
 		log.Error("Failed to copy uploaded file: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process uploaded file"})
@@ -202,7 +206,10 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid database file"})
 		return
 	}
-	defer testDB.Close()
+
+	defer func(testDB *sql.DB) {
+		_ = testDB.Close()
+	}(testDB)
 
 	if err := testDB.Ping(); err != nil {
 		log.Error("Failed to ping uploaded database: %v", err)
@@ -228,7 +235,10 @@ func (api *API) importDatabase(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close current database"})
 		return
 	}
-	sqlDB.Close()
+
+	defer func(sqlDB *sql.DB) {
+		_ = sqlDB.Close()
+	}(sqlDB)
 
 	currentDBPath := filepath.Join("data", "database.db")
 	backupPath := currentDBPath + ".backup." + time.Now().UTC().Format("2006-01-02_15:04:05")

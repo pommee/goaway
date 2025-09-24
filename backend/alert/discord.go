@@ -92,7 +92,9 @@ func (d *DiscordService) SendMessage(ctx context.Context, msg Message) error {
 	if err != nil {
 		return fmt.Errorf("failed to send Discord webhook: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(resp *http.Response) {
+		_ = resp.Body.Close()
+	}(resp)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("discord webhook failed with status: %d", resp.StatusCode)

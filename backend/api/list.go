@@ -229,11 +229,13 @@ func (api *API) runUpdateList(c *gin.Context) {
 		return
 	}
 
-	go api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
-		Title:    "System",
-		Content:  fmt.Sprintf("List '%s' with url '%s' was updated! ", name, url),
-		Severity: SeveritySuccess,
-	})
+	go func() {
+		_ = api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+			Title:    "System",
+			Content:  fmt.Sprintf("List '%s' with url '%s' was updated! ", name, url),
+			Severity: SeveritySuccess,
+		})
+	}()
 
 	c.Status(http.StatusOK)
 }

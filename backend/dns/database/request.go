@@ -124,7 +124,12 @@ func GetUniqueQueryTypes(db *gorm.DB) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func(rows *sql.Rows) {
+		if err := rows.Close(); err != nil {
+			log.Error("Failed to close rows: %v", err)
+		}
+	}(rows)
 
 	var queries []any
 	for rows.Next() {
