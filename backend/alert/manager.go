@@ -77,6 +77,28 @@ func (m *Manager) SaveAlert(alert database.Alert) error {
 		return fmt.Errorf("failed to save alert: %w", result.Error)
 	}
 
+	log.Info("Alert settings saved for type: %s", alert.Type)
+
+	m.Load()
+	return nil
+}
+
+func (m *Manager) RemoveAlert(alertType string) error {
+	if alertType == "" {
+		return fmt.Errorf("alert type cannot be empty")
+	}
+
+	result := m.DB.Where("type = ?", alertType).Delete(&database.Alert{})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove alert: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		log.Warning("No alert found with type: %s", alertType)
+		return fmt.Errorf("no alert found with type: %s", alertType)
+	}
+
 	m.Load()
 	return nil
 }
@@ -109,6 +131,35 @@ func (m *Manager) SendToAll(ctx context.Context, msg Message) error {
 	if len(errors) > 0 {
 		return fmt.Errorf("failed to send to some services: %v", errors)
 	}
+
+	return nil
+}
+
+func (m *Manager) SendTest(ctx context.Context, alertType, name, webhook string) error {
+	err := m.SaveAlert(database.Alert{
+		Type:    alertType,
+		Enabled: true,
+		Name:    name,
+		Webhook: webhook,
+	})
+	if err != nil {
+		log.Error("Failed to save test alert settings: %v", err)
+		return err
+	}
+
+	for _, service := range m.services {
+		if service.GetServiceName() == alertType {
+			log.Info("Sending test alert via %s", service.GetServiceName())
+			service.SendMessage(ctx, Message{
+				Title:    "System",
+				Content:  "This is a test alert from GoAway",
+				Severity: "info",
+			})
+			break
+		}
+	}
+
+	m.RemoveAlert(alertType)
 
 	return nil
 }

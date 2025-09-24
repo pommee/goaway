@@ -159,7 +159,7 @@ func (d *DiscordService) IsEnabled() bool {
 }
 
 func (d *DiscordService) GetServiceName() string {
-	return "Discord"
+	return "discord"
 }
 
 func (d *DiscordService) UpdateConfig(config DiscordConfig) {

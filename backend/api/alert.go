@@ -1,9 +1,8 @@
 package api
 
 import (
-	"encoding/json"
+	"context"
 	"goaway/backend/dns/database"
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,23 +27,17 @@ type AlertSettings struct {
 
 func (api *API) registerAlertRoutes() {
 	api.routes.POST("/alert", api.setAlert)
+	api.routes.POST("/alert/test", api.testAlert)
 
 	api.routes.GET("/alert", api.getAlert)
 }
 
 func (api *API) setAlert(c *gin.Context) {
-
-	alerts, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
 	var request AlertSettings
-	if err := json.Unmarshal(alerts, &request); err != nil {
-		log.Error("Failed to parse JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+	err := c.Bind(&request)
+	if err != nil {
+		log.Error("Failed to parse alert settings: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
@@ -83,4 +76,28 @@ func (api *API) getAlert(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (api *API) testAlert(c *gin.Context) {
+	var request AlertSettings
+	err := c.Bind(&request)
+	if err != nil {
+		log.Error("Failed to parse alert settings: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	err = api.DNSServer.Alerts.SendTest(
+		context.Background(),
+		"discord",
+		request.Discord.Name,
+		request.Discord.Webhook,
+	)
+	if err != nil {
+		log.Error("Failed to save alert settings: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save alert settings"})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
