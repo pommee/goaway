@@ -1,3 +1,16 @@
+## [0.62.2](https://github.com/pommee/goaway/compare/v0.62.1...v0.62.2) (2025-09-25)
+
+
+### Bug Fixes
+
+* add gateway to settings ([4598b39](https://github.com/pommee/goaway/commit/4598b3998c8c3e0db7cc9f8afb168828a22b5e39))
+* added local lookup of clients ([ab61a9a](https://github.com/pommee/goaway/commit/ab61a9aec7c616e3ad678ea78bbc7448670d4e6d))
+
+
+### Performance Improvements
+
+* faster loading of blacklists from database ([7a544cc](https://github.com/pommee/goaway/commit/7a544ccad60018a7d8016eaf67be3e1ced18bdd4))
+
 ## [0.62.1](https://github.com/pommee/goaway/compare/v0.62.0...v0.62.1) (2025-09-24)
 
 
