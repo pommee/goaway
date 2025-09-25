@@ -23,6 +23,11 @@ dns:
   # Primary DNS server to forward queries to.
   preferredUpstream: 8.8.8.8:53
 
+  # Gateway address used when performing local lookups.
+  # Mostly used to find hostnames of local clients.
+  # Will be populated if not set upon first startup.
+  # gateway: 192.168.0.1:53
+
   # List of available DNS servers to forward queries to.
   upstreamDNS:
     - 8.8.8.8:53

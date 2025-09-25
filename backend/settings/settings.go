@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goaway/backend/api/ratelimit"
 	"goaway/backend/logging"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,6 +29,7 @@ type DNSConfig struct {
 	DoHPort           int      `yaml:"dohPort" json:"dohPort"`
 	CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
 	PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
+	Gateway           string   `yaml:"gateway" json:"gateway"`
 	UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
 	UDPSize           int      `yaml:"udpSize" json:"udpSize"`
 	Status            Status   `yaml:"-" json:"status"`
@@ -139,6 +141,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig.DNS.DoHPort = GetEnvAsIntWithDefault("DOH_PORT", 443)
 	defaultConfig.DNS.CacheTTL = 3600
 	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
+	defaultConfig.DNS.Gateway = GetDefaultGateway()
 	defaultConfig.DNS.UpstreamDNS = []string{
 		"1.1.1.1:53",
 		"8.8.8.8:53",
@@ -234,4 +237,24 @@ func (config *Config) GetCertificate() (tls.Certificate, error) {
 	}
 
 	return tls.Certificate{}, nil
+}
+
+func GetDefaultGateway() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "192.168.0.1:53"
+	}
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	if localAddr.IP.IsPrivate() {
+		ip := localAddr.IP.To4()
+		if ip != nil {
+			return fmt.Sprintf("%d.%d.%d.1:53", ip[0], ip[1], ip[2])
+		}
+	}
+
+	return "192.168.0.1:53"
 }
