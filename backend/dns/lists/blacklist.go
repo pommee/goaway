@@ -321,21 +321,21 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 }
 
 func (b *Blacklist) PopulateBlocklistCache() (int, error) {
-	b.BlacklistCache = map[string]bool{}
+	var databaseDomains []string
+	result := b.DBManager.Conn.Model(&database.Blacklist{}).
+		Distinct("domain").
+		Pluck("domain", &databaseDomains)
 
-	var blacklistEntries []database.Blacklist
-	result := b.DBManager.Conn.Select("domain").Find(&blacklistEntries)
 	if result.Error != nil {
 		return 0, fmt.Errorf("failed to query blacklist: %w", result.Error)
 	}
 
-	domains := make(map[string]bool, len(blacklistEntries))
-	for _, entry := range blacklistEntries {
-		domains[entry.Domain] = true
+	b.BlacklistCache = make(map[string]bool, len(databaseDomains))
+	for _, domain := range databaseDomains {
+		b.BlacklistCache[domain] = true
 	}
-	b.BlacklistCache = domains
 
-	return len(domains), nil
+	return len(b.BlacklistCache), nil
 }
 
 func (b *Blacklist) CountDomains() (int, error) {
