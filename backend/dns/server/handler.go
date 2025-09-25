@@ -65,6 +65,15 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 		return s.handleBlacklisted(request)
 	}
 
+	if isLocalLookup(request.Question.Name) {
+		val, err := s.LocalForwardLookup(request)
+		if err != nil {
+			log.Debug("Reverse lookup failed for %s: %v", request.Question.Name, err)
+		} else {
+			return val
+		}
+	}
+
 	return s.handleStandardQuery(request)
 }
 
@@ -144,11 +153,11 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 }
 
 func (s *DNSServer) resolveHostname(clientIP string) string {
-	if hostname := s.avahiLookup(clientIP); hostname != "unknown" {
+	if hostname := s.reverseDNSLookup(clientIP); hostname != "unknown" {
 		return hostname
 	}
 
-	if hostname := s.reverseDNSLookup(clientIP); hostname != "unknown" {
+	if hostname := s.avahiLookup(clientIP); hostname != "unknown" {
 		return hostname
 	}
 
@@ -692,6 +701,70 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		log.Warning("DNS lookup for %s timed out", req.Question.Name)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
+}
+
+func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, error) {
+	hostname := strings.ReplaceAll(req.Question.Name, ".in-addr.arpa.", "")
+	hostname = strings.ReplaceAll(hostname, ".ip6.arpa.", "")
+	if !strings.HasSuffix(hostname, ".") {
+		hostname += "."
+	}
+
+	dnsMsg := new(dns.Msg)
+	dnsMsg.SetQuestion(hostname, dns.TypeA)
+
+	client := &dns.Client{Net: "udp"}
+	start := time.Now()
+	in, _, err := client.Exchange(dnsMsg, s.Config.DNS.Gateway)
+	responseTime := time.Since(start)
+
+	if err != nil {
+		log.Error("DNS exchange error for %s: %v", hostname, err)
+		return model.RequestLogEntry{}, fmt.Errorf("forward DNS query failed: %w", err)
+	}
+
+	if in.Rcode != dns.RcodeSuccess {
+		status := dns.RcodeToString[in.Rcode]
+		log.Info("DNS query for %s returned status %s", hostname, status)
+		return model.RequestLogEntry{}, fmt.Errorf("forward lookup failed with status: %s", status)
+	}
+
+	var ips []model.ResolvedIP
+	for _, answer := range in.Answer {
+		if a, ok := answer.(*dns.A); ok {
+			ips = append(ips, model.ResolvedIP{IP: a.A.String()})
+		}
+	}
+
+	if len(ips) == 0 {
+		return model.RequestLogEntry{}, fmt.Errorf("no A records found for hostname: %s", hostname)
+	}
+
+	req.Msg.Rcode = in.Rcode
+	req.Msg.Answer = in.Answer
+	if writeErr := req.ResponseWriter.WriteMsg(req.Msg); writeErr != nil {
+		log.Error("failed to write DNS response: %v", writeErr)
+	}
+
+	entry := model.RequestLogEntry{
+		Domain:            req.Question.Name,
+		Status:            dns.RcodeToString[in.Rcode],
+		QueryType:         dns.TypeToString[dns.TypeA],
+		IP:                ips,
+		ResponseSizeBytes: in.Len(),
+		Timestamp:         start,
+		ResponseTime:      responseTime,
+		Blocked:           false,
+		Cached:            false,
+		ClientInfo:        req.Client,
+		Protocol:          model.UDP,
+	}
+
+	return entry, nil
+}
+
+func isLocalLookup(qname string) bool {
+	return strings.HasSuffix(qname, ".in-addr.arpa.") || strings.HasSuffix(qname, ".ip6.arpa.")
 }
 
 func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
