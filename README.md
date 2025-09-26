@@ -103,6 +103,12 @@ go build -o goaway
 ./goaway
 ```
 
+### Option 4: Proxmox
+
+If you are planning on running via Proxmox, then there is a helper-script available [here](https://community-scripts.github.io/ProxmoxVE/scripts?id=goaway).
+It's a helper script created by [Proxmox VE Helper-Scripts (Community Edition)](https://github.com/community-scripts/ProxmoxVE).
+Great alternative if you don't want to go through an as manual process and prefer not to use Docker.
+
 ## 🚀 Getting Started
 
 ### Basic Usage
