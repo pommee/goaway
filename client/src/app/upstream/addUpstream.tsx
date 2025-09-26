@@ -67,11 +67,11 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
             <span>
               Default is{" "}
               <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
-                1.1.1.1 (Google)
+                1.1.1.1 (Cloudflare)
               </span>
               and{" "}
               <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
-                8.8.8.8 (Cloudflare)
+                8.8.8.8 (Google)
               </span>
             </span>
           </DialogDescription>
