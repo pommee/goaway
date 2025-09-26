@@ -108,6 +108,23 @@ const RECOMMENDED_SOURCES = [
         description: "Ultimate domain list"
       }
     ]
+  },
+  {
+    name: "Phishing Army",
+    website: "https://phishing.army",
+    description: "Blocklist to filter Phishing domain",
+    lists: [
+      {
+        name: "Phishing Army",
+        url: "https://phishing.army/download/phishing_army_blocklist.txt",
+        description: "Blocklist of phishing domains"
+      },
+      {
+        name: "Phishing Army - Extended",
+        url: "https://phishing.army/download/phishing_army_blocklist_extended.txt",
+        description: "Extended blocklist of phishing domains"
+      }
+    ]
   }
 ];
 
