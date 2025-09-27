@@ -68,7 +68,7 @@ dashboard: true
 
 # Enable or disable automatic updates for blacklists.
 # If enabled, the server will check for updates to blacklists daily at midnight.
-scheduledBlacklistUpdates: false
+scheduledBlacklistUpdates: true
 
 # Number of days to retain statistics and query logs.
 # Lower values save disk space but provide less historical data.

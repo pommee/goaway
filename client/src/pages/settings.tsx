@@ -63,7 +63,7 @@ export function Settings() {
       port: 8080,
       authentication: true
     },
-    scheduledBlacklistUpdates: false,
+    scheduledBlacklistUpdates: true,
     statisticsRetention: 7,
     loggingEnabled: true,
     logLevel: 1,
@@ -964,7 +964,7 @@ const SETTINGS_SECTIONS = [
         label: "Scheduled Blacklist Updates *",
         key: "scheduledBlacklistUpdates",
         explanation: "Automatically update blacklists on a regular schedule.",
-        default: false,
+        default: true,
         widgetType: Switch
       },
       {

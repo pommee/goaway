@@ -151,7 +151,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig.DNS.TLSKeyFile = ""
 
 	defaultConfig.Dashboard = true
-	defaultConfig.ScheduledBlacklistUpdates = false
+	defaultConfig.ScheduledBlacklistUpdates = true
 	defaultConfig.API.Port = GetEnvAsIntWithDefault("WEBSITE_PORT", 8080)
 	defaultConfig.API.Authentication = true
 	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}
