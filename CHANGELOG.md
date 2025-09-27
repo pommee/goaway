@@ -1,3 +1,11 @@
+## [0.62.3](https://github.com/pommee/goaway/compare/v0.62.2...v0.62.3) (2025-09-27)
+
+
+### Bug Fixes
+
+* set scheduled blacklist updates to true by default ([4cecb94](https://github.com/pommee/goaway/commit/4cecb942660828964b7d993ec7a89f18ac6daa80))
+* use correct table when fetching domains for blacklist ([487c0ce](https://github.com/pommee/goaway/commit/487c0ce5ba365345509cb302c6fc9ed83370430e))
+
 ## [0.62.2](https://github.com/pommee/goaway/compare/v0.62.1...v0.62.2) (2025-09-25)
 
 
