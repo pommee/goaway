@@ -167,7 +167,11 @@ export async function PutRequest(
   }
 }
 
-export async function DeleteRequest(url: string, body, ignoreError?: boolean) {
+export async function DeleteRequest(
+  url: string,
+  body: unknown,
+  ignoreError?: boolean
+) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",

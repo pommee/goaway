@@ -1,6 +1,6 @@
-import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
+import { useTheme } from "./use-theme";
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();

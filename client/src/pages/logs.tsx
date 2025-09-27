@@ -1,7 +1,8 @@
 "use client";
 
 import { CardDetails } from "@/app/clients/details";
-import { columns, Queries } from "@/app/logs/columns";
+import { Queries } from "@/app/logs/columns";
+import { columns } from "@/app/logs/columnsData";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

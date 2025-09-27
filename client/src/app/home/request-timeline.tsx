@@ -30,7 +30,7 @@ import {
   MagnifyingGlassPlusIcon,
   WarningIcon
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 
 const chartConfig = {
@@ -65,7 +65,7 @@ export default function RequestTimeline() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [timelineInterval, setTimelineInterval] = useState("2");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsRefreshing(true);
       const [, responseData] = await GetRequest(
@@ -87,13 +87,13 @@ export default function RequestTimeline() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [timelineInterval]);
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [timelineInterval]);
+  }, [fetchData]);
 
   const getFilteredData = () => {
     if (!chartData.length) return [];

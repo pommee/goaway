@@ -297,7 +297,7 @@ export default function DNSServerVisualizer() {
       if (ws.readyState === WebSocket.OPEN) ws.close();
       wsRef.current = null;
     };
-  }, [viewSettings.clusterBySubnet]);
+  }, [createPulse, viewSettings.clusterBySubnet]);
 
   useEffect(() => {
     const interval = setInterval(() => {

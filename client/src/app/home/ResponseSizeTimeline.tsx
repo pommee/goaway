@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@radix-ui/react-select";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -67,7 +67,7 @@ export default function ResponseSizeTimeline() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [timelineInterval, setTimelineInterval] = useState("2");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsRefreshing(true);
       const [, responseData] = await GetRequest(
@@ -90,13 +90,13 @@ export default function ResponseSizeTimeline() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [timelineInterval]);
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [timelineInterval]);
+  }, [fetchData]);
 
   const getFilteredData = () => {
     if (!chartData.length) return [];
