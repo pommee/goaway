@@ -234,7 +234,7 @@ export default function ResponseSizeTimeline() {
               </Select>
             </div>
             <Button
-              className="bg-transparent border-1 text-white hover:bg-stone-800"
+              variant={"outline"}
               onClick={fetchData}
               disabled={isRefreshing}
             >
