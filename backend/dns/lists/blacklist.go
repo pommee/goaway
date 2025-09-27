@@ -643,8 +643,8 @@ func (b *Blacklist) GetListStatistics(listname string) (string, SourceStats, err
 
 func (b *Blacklist) GetDomainsForList(list string) ([]string, error) {
 	var blacklistEntries []database.Blacklist
-	result := b.DBManager.Conn.Select("blacklist.domain").
-		Joins("JOIN sources ON blacklist.source_id = sources.id").
+	result := b.DBManager.Conn.Select("blacklists.domain").
+		Joins("JOIN sources ON blacklists.source_id = sources.id").
 		Where("sources.name = ?", list).
 		Find(&blacklistEntries)
 
