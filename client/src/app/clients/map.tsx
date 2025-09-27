@@ -384,7 +384,7 @@ export default function DNSServerVisualizer() {
 
         nodes.push({
           id: client.ip,
-          name: client.name || client.ip,
+          name: client.name !== "unknown" ? client.name : client.ip,
           type: "client",
           ip: client.ip,
           lastSeen: client.lastSeen,
@@ -489,7 +489,7 @@ export default function DNSServerVisualizer() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-2 p-2 rounded-lg">
+      <div className="mb-2 rounded-lg">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
