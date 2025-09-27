@@ -32,7 +32,6 @@ dist-ssr
 config
 data
 
-client/pnpm-lock.yaml
 test/benchmark.new
 test/benchmark.old
 benchmark.prof
