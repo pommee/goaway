@@ -21,13 +21,14 @@ import { type ISourceOptions } from "@tsparticles/engine";
 import { loadStarsPreset } from "@tsparticles/preset-stars";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 
-const FloatingTitle = () => {
+function FloatingTitle({ quote }: string) {
   return (
-    <h1 className="text-6xl font-bold text-indigo-300 relative inline-block animate-float">
-      <span className="animate-glow">GoAway</span>
-    </h1>
+    <div className="relative animate-float">
+      <p className="font-bold animate-glow text-blue-300 text-6xl">GoAway</p>
+      <p className="text-white">{quote}</p>
+    </div>
   );
-};
+}
 
 const MemoizedParticles = () => {
   const [, setInit] = useState(false);
@@ -51,10 +52,11 @@ const MemoizedParticles = () => {
 };
 const MP = memo(MemoizedParticles);
 
-export function Login({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+interface LoginProps extends React.ComponentPropsWithoutRef<"div"> {
+  quote?: string;
+}
+
+export default function Login({ className, quote, ...props }: LoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -136,7 +138,7 @@ export function Login({
     <div className="flex min-h-screen w-full items-center justify-center p-4 overflow-hidden">
       <MP />
       <div className="w-full max-w-md text-center">
-        <FloatingTitle />
+        <FloatingTitle quote={quote} />
 
         <div className={cn("flex flex-col", className)} {...props}>
           <Card className="z-10 mt-10 border shadow-xl backdrop-blur-lg transition-all duration-300 hover:shadow-glow animate-card-appear">

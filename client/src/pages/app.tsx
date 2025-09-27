@@ -8,13 +8,14 @@ import { Blacklist } from "./blacklist";
 import Changelog from "./changelog";
 import { Clients } from "./clients";
 import { Home } from "./home";
-import { Login } from "./login";
 import { Logs } from "./logs";
 import { Prefetch } from "./prefetch";
 import { Resolution } from "./resolution";
 import { Settings } from "./settings";
 import { Upstream } from "./upstream";
 import { Whitelist } from "./whitelist";
+import { GenerateQuote } from "@/quotes";
+import Login from "./login";
 
 function PageLoader() {
   return (
@@ -46,7 +47,7 @@ function App() {
             path="/login"
             element={
               <PageTransition>
-                <Login />
+                <Login quote={GenerateQuote()} />
               </PageTransition>
             }
           />
