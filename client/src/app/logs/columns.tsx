@@ -52,3 +52,7 @@ export function SortableHeader({ column, title }: Props) {
     </Button>
   );
 }
+
+function something() {
+  return "awd";
+}
