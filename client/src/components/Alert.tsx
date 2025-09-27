@@ -13,7 +13,8 @@ import {
   MailboxIcon,
   NotificationIcon,
   SlackLogoIcon,
-  TelegramLogoIcon
+  TelegramLogoIcon,
+  TestTubeIcon
 } from "@phosphor-icons/react";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
@@ -60,6 +61,24 @@ async function saveAlerts(
   }
 }
 
+async function testAlert(discord: AlertDiscordSettings) {
+  try {
+    const [code, response] = await PostRequest("alert/test", {
+      discord: discord
+    });
+
+    if (code !== 200) {
+      toast.error("Failed to send test alert", {
+        description: `${response.error}`
+      });
+    }
+  } catch (error) {
+    toast.error("Error sending test alert", {
+      description: `${error}`
+    });
+  }
+}
+
 async function fetchAlertSettings(): Promise<AlertDiscordSettings> {
   try {
     const [code, response] = await GetRequest("alert");
@@ -94,6 +113,10 @@ export function AlertDialog({ open, onOpenChange }: AlertsDialogProps) {
 
   const handleSave = () => {
     saveAlerts(onOpenChange, discordSettings);
+  };
+
+  const handleTestWebhook = () => {
+    testAlert(discordSettings);
   };
 
   const updateDiscordSettings = (updates: Partial<AlertDiscordSettings>) => {
@@ -218,6 +241,14 @@ export function AlertDialog({ open, onOpenChange }: AlertsDialogProps) {
         </div>
 
         <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleTestWebhook}
+            className="mr-2"
+          >
+            <TestTubeIcon />
+            Test
+          </Button>
           <Button onClick={handleSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
