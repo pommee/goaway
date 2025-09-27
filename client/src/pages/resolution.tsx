@@ -7,7 +7,6 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
@@ -135,122 +134,119 @@ export function Resolution() {
         </div>
       </div>
 
-      <Card className="shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <PlusIcon className="h-5 w-5 text-green-500" />
-            Add New Resolution
-          </CardTitle>
-          <CardDescription>
-            Create a custom domain-to-IP mapping for your network
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="domain" className="font-medium">
-                Domain name
-              </Label>
-              <div className="relative">
-                <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="domain"
-                  placeholder="example.local."
-                  className="pl-9"
-                  value={domainName}
-                  onChange={(e) => setDomainName(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Domain name to use, supports wildcard. Make sure it's a{" "}
-                  <a
-                    href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-primary"
-                  >
-                    FQDN
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ip" className="font-medium">
-                IP Address
-              </Label>
-              <Input
-                id="ip"
-                placeholder="192.168.1.100"
-                value={ip}
-                onChange={(e) => setIP(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                IPv4 / IPv6 address where domains will resolve
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="font-medium text-transparent">Action</Label>
-              <Button
-                variant="default"
-                className="w-full"
-                onClick={handleSave}
-                disabled={submitting || !domainName || !ip}
-              >
-                {submitting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Resolution"
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <div className="flex items-start gap-3">
-              <div className="space-y-2 flex-1">
-                <div>
-                  <h4 className="font-medium mb-1">Wildcard Matching</h4>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    Use wildcards to match multiple subdomains with a single
-                    rule
+      <div className="grid grid-cols-2 gap-5">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PlusIcon className="h-5 w-5 text-primary" />
+              Add New Resolution
+            </CardTitle>
+            <CardDescription>
+              Create a custom domain-to-IP mapping for your network
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div>
+                <div className="relative">
+                  <GlobeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="domain"
+                    placeholder="example.local."
+                    className="pl-9"
+                    value={domainName}
+                    onChange={(e) => setDomainName(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Domain name to use, supports wildcard. Make sure it's a{" "}
+                    <a
+                      href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline hover:text-primary"
+                    >
+                      FQDN
+                    </a>
+                    .
                   </p>
                 </div>
-                <div className="bg-accent/50 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <code className="text-sm font-mono bg-accent px-2 py-1 rounded text-blue-400 font-medium">
-                      *.example.local.
-                    </code>
-                    <div className="flex items-center gap-1.5 text-emerald-400">
-                      <CheckCircleIcon className="h-3 w-3" />
-                      <span className="text-xs font-medium">Matches</span>
-                    </div>
-                  </div>
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
-                    {[
-                      "app.example.local.",
-                      "my.app.example.local.",
-                      "sub1.sub2.sub3.example.local."
-                    ].map((domain, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                      >
-                        <div className="w-1 h-1 bg-accent-foreground rounded-full" />
-                        <code className="font-mono truncate">{domain}</code>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div>
+                <Input
+                  id="ip"
+                  placeholder="192.168.1.100"
+                  value={ip}
+                  onChange={(e) => setIP(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  IPv4 / IPv6 address where domains will resolve.
+                </p>
+              </div>
+
+              <div>
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={handleSave}
+                  disabled={submitting || !domainName || !ip}
+                >
+                  {submitting ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Resolution"
+                  )}
+                </Button>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Wildcard Matching</CardTitle>
+            <CardDescription>
+              Use wildcards to match multiple subdomains with a single rule
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full" />
+                  <span className="text-sm font-medium">Pattern</span>
+                </div>
+              </div>
+
+              <code className="block px-3 py-2 rounded-md font-semibold border border-primary/50">
+                *.example.local.
+              </code>
+            </div>
+
+            <div className="space-y-2">
+              <div className="grid gap-2">
+                {["app.example.local.", "my.app.example.local."].map(
+                  (domain, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-2 rounded-md border"
+                    >
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                      <code className="text-sm font-mono truncate flex-1">
+                        {domain}
+                      </code>
+                      <CheckCircleIcon className="h-3 w-3 text-primary flex-shrink-0" />
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="py-4">
         <CardHeader className="pb-4 border-b">
