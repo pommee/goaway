@@ -123,8 +123,8 @@ You'll see a startup message confirming the services are running:
 
 ![Startup Screen](./resources/started.png)
 
-> [!IMPORTANT]
-> **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once - make sure to save it!
+> [!IMPORTANT]  
+> **First-time Setup:** GoAway runs in authenticated mode by default and generates a random password on first startup. This password is shown only once in the logs - make sure to save it!
 
 ### Accessing the Dashboard
 
