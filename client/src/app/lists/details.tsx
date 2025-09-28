@@ -317,8 +317,8 @@ export function CardDetails(
               <Button
                 disabled={deletingList}
                 onClick={deleteList}
-                variant="outline"
-                className="bg-red-600 border-none hover:bg-red-500 text-white flex-1 text-sm"
+                variant="destructive"
+                className="flex-1"
               >
                 {deletingList ? (
                   <div className="flex">

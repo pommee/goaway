@@ -211,7 +211,7 @@ export function AddList({
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogTrigger asChild>
-          <Button className="shadow-sm hover:shadow-md transition-all duration-200">
+          <Button>
             <PlusIcon className="mr-2" size={18} />
             Add List
           </Button>

@@ -67,11 +67,7 @@ export function UpdateCustom() {
     <div className="mb-5">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="shadow-sm hover:shadow-md transition-all duration-200 border-2 hover:border-blue-300"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setDialogOpen(true)}>
             <ArrowsClockwiseIcon className="mr-2" size={18} />
             Update Custom
           </Button>

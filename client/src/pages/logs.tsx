@@ -458,11 +458,7 @@ export function Logs() {
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild className="ml-5">
-            <Button
-              disabled={queries.length === 0}
-              variant="outline"
-              className="bg-red-950 hover:bg-red-900 border-1 border-red-900 text-white transition-all duration-200 hover:scale-105"
-            >
+            <Button disabled={queries.length === 0} variant="destructive">
               Clear logs
             </Button>
           </DialogTrigger>

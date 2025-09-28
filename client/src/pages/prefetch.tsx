@@ -353,7 +353,6 @@ export function Prefetch() {
         <div className="flex justify-end p-4">
           <Button
             variant="default"
-            className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleSave}
             disabled={submitting || !isFormValid}
           >
