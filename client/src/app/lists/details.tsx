@@ -115,10 +115,10 @@ export function CardDetails(
   const deleteList = async () => {
     setDeletingList(true);
     try {
-      // Base64 encode to support special characters
-      const base64EncodedListName = btoa(listEntry.name);
       const [code, response] = await DeleteRequest(
-        `list?name=${base64EncodedListName}&url=${listEntry.url}`,
+        `list?name=${encodeURIComponent(
+          listEntry.name
+        )}&url=${encodeURIComponent(listEntry.url)}`,
         null
       );
 
