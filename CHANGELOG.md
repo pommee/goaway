@@ -1,3 +1,17 @@
+## [0.62.6](https://github.com/pommee/goaway/compare/v0.62.5...v0.62.6) (2025-09-29)
+
+### Bug Fixes
+
+* added ability to add multiple blacklists at once and various other fixes to the page ([c8dcdbf](https://github.com/pommee/goaway/commit/c8dcdbfdb8909d5898f8c8c4cc658beac730a30b))
+
+### Documentation
+
+* update readme with instructions on where to find logs and credentials for lxc ([b0022fe](https://github.com/pommee/goaway/commit/b0022fe48499a347653afaf2a4c03029db6dc0dd))
+
+### UI/UX
+
+* base64 encode list name when deleting to support special characters ([88764dc](https://github.com/pommee/goaway/commit/88764dc0d49b4c4774bb8469975569423ff89ece))
+
 ## [0.62.5](https://github.com/pommee/goaway/compare/v0.62.4...v0.62.5) (2025-09-29)
 
 ### Bug Fixes
