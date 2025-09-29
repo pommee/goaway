@@ -620,7 +620,7 @@ func (b *Blacklist) GetListStatistics(listname string) (string, SourceStats, err
 	var result SourceWithCount
 	err := b.DBManager.Conn.Table("sources s").
 		Select("s.name, s.url, s.last_updated, s.active, COALESCE(bc.blocked_count, 0) as blocked_count").
-		Joins("LEFT JOIN (SELECT source_id, COUNT(*) as blocked_count FROM blacklist GROUP BY source_id) bc ON s.id = bc.source_id").
+		Joins("LEFT JOIN (SELECT source_id, COUNT(*) as blocked_count FROM blacklists GROUP BY source_id) bc ON s.id = bc.source_id").
 		Where("s.name = ?", listname).
 		First(&result).Error
 
@@ -756,8 +756,8 @@ func (b *Blacklist) AddSource(name, url string) error {
 
 	if err := b.DBManager.Conn.Clauses(
 		clause.OnConflict{
-			Columns:   []clause.Column{{Name: "name"}, {Name: "url"}},
-			DoNothing: true,
+			Columns:   []clause.Column{{Name: "url"}},
+			DoUpdates: clause.AssignmentColumns([]string{"name", "last_updated", "active"}),
 		},
 	).Create(&database.Source{
 		Name:        name,
