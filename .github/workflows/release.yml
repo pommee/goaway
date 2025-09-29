@@ -43,6 +43,10 @@ jobs:
         if: steps.semantic.outputs.new_release_published == 'true'
         run: make build
 
+      - name: Remove dirty git state (according to goreleaser)
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: rm package-lock.json package.json
+
       - name: Run GoReleaser
         if: steps.semantic.outputs.new_release_published == 'true'
         env:
