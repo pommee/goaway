@@ -1,3 +1,9 @@
+## [0.62.5](https://github.com/pommee/goaway/compare/v0.62.4...v0.62.5) (2025-09-29)
+
+### Bug Fixes
+
+* clean git state after semantic release ([fe5df12](https://github.com/pommee/goaway/commit/fe5df12c1b0c4cb3566a30d4a037de92a0d8cb7f))
+
 ## [0.62.4](https://github.com/pommee/goaway/compare/v0.62.3...v0.62.4) (2025-09-29)
 
 ### Bug Fixes
