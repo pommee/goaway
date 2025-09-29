@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"goaway/backend/alert"
@@ -290,15 +291,23 @@ func (api *API) handleUpdateBlockStatus(c *gin.Context) {
 }
 
 func (api *API) removeList(c *gin.Context) {
-	name := c.Query("name")
+	nameParam := c.Query("name")
 	url := c.Query("url")
+
+	nameBytes, err := base64.StdEncoding.DecodeString(nameParam)
+	if err != nil {
+		log.Error("Failed to decode list name: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list name encoding"})
+		return
+	}
+	name := string(nameBytes)
 
 	if !api.Blacklist.NameExists(name, url) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "List does not exist"})
 		return
 	}
 
-	err := api.Blacklist.RemoveSourceAndDomains(name, url)
+	err = api.Blacklist.RemoveSourceAndDomains(name, url)
 	if err != nil {
 		log.Error("%v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
