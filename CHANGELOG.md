@@ -1,3 +1,23 @@
+## [0.62.4](https://github.com/pommee/goaway/compare/v0.62.3...v0.62.4) (2025-09-29)
+
+### Bug Fixes
+
+* correct behavior of unique constraint on blacklists table ([d9b064e](https://github.com/pommee/goaway/commit/d9b064e59f30ad3f267eda8e54cf00b58a02191b))
+
+### Styles
+
+* update to destructive button variant and fix pointer cursor case ([4025b8b](https://github.com/pommee/goaway/commit/4025b8bfe954d291ee2bd236c2b9fbcf69c155ad))
+* update various buttons to align with global styling ([30ebcc9](https://github.com/pommee/goaway/commit/30ebcc9ed5e93638cfa659fa6bbfaf60a158ed1b))
+
+### UI/UX
+
+* add a test button for alert ([d6bc3e0](https://github.com/pommee/goaway/commit/d6bc3e0a2b8af493de4766290287cd93d54796d9))
+* add padding at the bottom of audit log widget ([456c4eb](https://github.com/pommee/goaway/commit/456c4eb326429f631e7c6ac8b5df45c1dab4bacf))
+* clean up resolution widgets ([f829585](https://github.com/pommee/goaway/commit/f829585518edd5f4fcd63e7f3d73dd9980b0fea2))
+* fix refresh button colors for request timeline and response size timeline widgets ([ecb6db1](https://github.com/pommee/goaway/commit/ecb6db1c16e92f5eae60122cbb2a0b712307691b))
+* generate quote for login page ([51b3a69](https://github.com/pommee/goaway/commit/51b3a694c36a17baffaf0ea6a2c9c8cff9ff8c04))
+* show ip of client if name is unknown in clients map ([bff094f](https://github.com/pommee/goaway/commit/bff094f1640ff0a41337676885466a6b561c5af0))
+
 ## [0.62.3](https://github.com/pommee/goaway/compare/v0.62.2...v0.62.3) (2025-09-27)
 
 
