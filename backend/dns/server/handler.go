@@ -512,6 +512,26 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				IP:    rr.Ns,
 				RType: "SOA",
 			})
+		case *dns.SRV:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("%s:%d", rr.Target, rr.Port),
+				RType: "SRV",
+			})
+		case *dns.HTTPS:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Target,
+				RType: "HTTPS",
+			})
+		case *dns.CAA:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("%s: %s", rr.Tag, rr.Value),
+				RType: "CAA",
+			})
+		case *dns.DNSKEY:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("flags:%d protocol:%d algorithm:%d", rr.Flags, rr.Protocol, rr.Algorithm),
+				RType: "DNSKEY",
+			})
 		default:
 			log.Warning("Unhandled record type '%s' while requesting '%s'", dns.TypeToString[rr.Header().Rrtype], request.Question.Name)
 		}
