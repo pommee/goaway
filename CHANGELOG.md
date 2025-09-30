@@ -1,3 +1,13 @@
+## [0.62.7](https://github.com/pommee/goaway/compare/v0.62.6...v0.62.7) (2025-09-30)
+
+### Performance Improvements
+
+* various performance improvements to database queries ([6c23aa6](https://github.com/pommee/goaway/commit/6c23aa639b99f388672a73cf9fdf1ba07c48034a))
+
+### UI/UX
+
+* add 'page not found' and remove unused page transition ([95d0678](https://github.com/pommee/goaway/commit/95d0678a4f4d9fa2142e981b956ffd17ee8aceaa))
+
 ## [0.62.6](https://github.com/pommee/goaway/compare/v0.62.5...v0.62.6) (2025-09-29)
 
 ### Bug Fixes
