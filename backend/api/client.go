@@ -1,8 +1,6 @@
 package api
 
 import (
-	"database/sql"
-	"errors"
 	"goaway/backend/dns/database"
 	"net/http"
 
@@ -38,19 +36,8 @@ func (api *API) getClients(c *gin.Context) {
 
 func (api *API) getClientDetails(c *gin.Context) {
 	clientIP := c.DefaultQuery("clientIP", "")
-	clientRequestDetails, err := database.GetClientRequestDetails(api.DBManager.Conn, clientIP)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 
-	mostQueriedDomain, err := database.GetMostQueriedDomainByIP(api.DBManager.Conn, clientIP)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	queriedDomains, err := database.GetAllQueriedDomainsByIP(api.DBManager.Conn, clientIP)
+	clientRequestDetails, mostQueriedDomain, domainQueryCounts, err := database.GetClientDetailsWithDomains(api.DBManager.Conn, clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -65,7 +52,7 @@ func (api *API) getClientDetails(c *gin.Context) {
 		"avgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
 		"mostQueriedDomain": mostQueriedDomain,
 		"lastSeen":          clientRequestDetails.LastSeen,
-		"allDomains":        queriedDomains,
+		"allDomains":        domainQueryCounts,
 	})
 }
 
