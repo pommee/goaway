@@ -1,7 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { AnimatePresence, motion } from "motion/react";
-import { Suspense } from "react";
+import { AnimatePresence } from "motion/react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import Layout from "../app/layout";
 import { Blacklist } from "./blacklist";
@@ -16,23 +15,23 @@ import { Upstream } from "./upstream";
 import { Whitelist } from "./whitelist";
 import { GenerateQuote } from "@/quotes";
 import Login from "./login";
+import { FileXIcon } from "@phosphor-icons/react";
 
-function PageLoader() {
+function NotFound() {
   return (
-    <div className="flex items-center justify-center h-full w-full">
-      <div className="flex flex-col items-center">
-        <div className="w-16 h-16 border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-400">Loading page...</p>
+    <div className="flex items-center justify-center mt-[20%] px-4">
+      <div className="flex flex-col items-center text-center max-w-md">
+        <FileXIcon className="w-16 h-16 text-muted-foreground mb-6" />
+        <h2 className="text-2xl font-semibold mb-3">Page Not Found</h2>
+        <p className="text-muted-foreground">
+          The page{" "}
+          <span className="inline-block bg-muted-foreground/10 px-2 py-0.5 rounded-sm text-sm">
+            {window.location.pathname}
+          </span>{" "}
+          does not exist.
+        </p>
       </div>
     </div>
-  );
-}
-
-function PageTransition({ children }) {
-  return (
-    <motion.div initial="initial" animate="in" exit="out" className="h-full">
-      <Suspense fallback={<PageLoader />}>{children}</Suspense>
-    </motion.div>
   );
 }
 
@@ -43,103 +42,20 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route
-            path="/login"
-            element={
-              <PageTransition>
-                <Login quote={GenerateQuote()} />
-              </PageTransition>
-            }
-          />
+          <Route path="/login" element={<Login quote={GenerateQuote()} />} />
           <Route element={<Layout />}>
-            <Route
-              path="/"
-              element={
-                <PageTransition>
-                  <Home />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/home"
-              element={
-                <PageTransition>
-                  <Home />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/logs"
-              element={
-                <PageTransition>
-                  <Logs />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/blacklist"
-              element={
-                <PageTransition>
-                  <Blacklist />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/whitelist"
-              element={
-                <PageTransition>
-                  <Whitelist />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/resolution"
-              element={
-                <PageTransition>
-                  <Resolution />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/prefetch"
-              element={
-                <PageTransition>
-                  <Prefetch />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/upstream"
-              element={
-                <PageTransition>
-                  <Upstream />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/clients"
-              element={
-                <PageTransition>
-                  <Clients />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <PageTransition>
-                  <Settings />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/changelog"
-              element={
-                <PageTransition>
-                  <Changelog />
-                </PageTransition>
-              }
-            />
+            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/blacklist" element={<Blacklist />} />
+            <Route path="/whitelist" element={<Whitelist />} />
+            <Route path="/resolution" element={<Resolution />} />
+            <Route path="/prefetch" element={<Prefetch />} />
+            <Route path="/upstream" element={<Upstream />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/changelog" element={<Changelog />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </AnimatePresence>
