@@ -1,3 +1,13 @@
+## [0.62.8](https://github.com/pommee/goaway/compare/v0.62.7...v0.62.8) (2025-10-01)
+
+### Bug Fixes
+
+* added support for 'x-real-ip' header to doh queries ([f558337](https://github.com/pommee/goaway/commit/f558337f239e057c5e2a3be3e39f0c2becd0ae6b))
+
+### UI/UX
+
+* correct wording for certificates in settings ([a09638c](https://github.com/pommee/goaway/commit/a09638c0490209507871e20a53fa57c11a471de1))
+
 ## [0.62.7](https://github.com/pommee/goaway/compare/v0.62.6...v0.62.7) (2025-09-30)
 
 ### Performance Improvements
