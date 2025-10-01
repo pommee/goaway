@@ -73,8 +73,16 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
-	go s.WSCom(communicationMessage{true, false, false, clientIP})
+	var (
+		clientIP, _, _ = net.SplitHostPort(r.RemoteAddr)
+		xRealIP        = r.Header.Get("X-Real-IP")
+		client         model.Client
+	)
+	if xRealIP != "" {
+		go s.WSCom(communicationMessage{true, false, false, xRealIP})
+	} else {
+		go s.WSCom(communicationMessage{true, false, false, clientIP})
+	}
 
 	var (
 		dnsQuery []byte
@@ -119,12 +127,20 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 		DoHPort:    s.Config.DNS.DoHPort,
 	}
 
+	if xRealIP != "" {
+		// TODO: Remove mock port once 'getClientInfo' handles real net.IP as input
+		client = *s.getClientInfo(xRealIP + ":")
+		clientIP = client.IP
+	} else {
+		client = *s.getClientInfo(r.RemoteAddr)
+	}
+
 	req := &Request{
 		ResponseWriter: responseWriter,
 		Msg:            msg,
 		Question:       msg.Question[0],
 		Sent:           time.Now(),
-		Client:         s.getClientInfo(r.RemoteAddr),
+		Client:         &client,
 		Prefetch:       false,
 		Protocol:       model.DoH,
 	}
