@@ -1,3 +1,10 @@
+## [0.62.9](https://github.com/pommee/goaway/compare/v0.62.8...v0.62.9) (2025-10-02)
+
+### Bug Fixes
+
+* add retries when starting api server ([dc9aca9](https://github.com/pommee/goaway/commit/dc9aca97dc88c94bae66a3414adda77310eaea3e))
+* respect port set for upstream over dot query ([ec08e44](https://github.com/pommee/goaway/commit/ec08e44fcbfeca91cdaab324638db86a77eb55bb))
+
 ## [0.62.8](https://github.com/pommee/goaway/compare/v0.62.7...v0.62.8) (2025-10-01)
 
 ### Bug Fixes
