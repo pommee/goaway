@@ -657,10 +657,11 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 
 		upstream := s.Config.DNS.PreferredUpstream
 		if s.dnsClient.Net == "tcp-tls" {
-			if !strings.Contains(upstream, ":") {
+			host, port, err := net.SplitHostPort(upstream)
+			if err != nil {
 				upstream = net.JoinHostPort(upstream, "853")
-			} else if strings.Contains(upstream, ":53") {
-				upstream = strings.ReplaceAll(upstream, ":53", ":853")
+			} else if port == "53" {
+				upstream = net.JoinHostPort(host, "853")
 			}
 		}
 
