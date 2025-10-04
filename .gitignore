@@ -35,3 +35,6 @@ data
 test/benchmark.new
 test/benchmark.old
 benchmark.prof
+
+*.crt
+*.key

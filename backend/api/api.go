@@ -167,29 +167,29 @@ func (api *API) getOrGeneratePassword() string {
 }
 
 func (api *API) startServer(errorChannel chan struct{}) {
-	go func() {
-		addr := fmt.Sprintf(":%d", api.Config.API.Port)
+	var (
+		addr     = fmt.Sprintf(":%d", api.Config.API.Port)
+		listener net.Listener
+		err      error
+	)
 
-		for attempt := 1; attempt <= maxRetries; attempt++ {
-			if api.attemptServerStart(addr, attempt, errorChannel) {
-				return
-			}
-
-			if attempt < maxRetries {
-				time.Sleep(retryDelay)
-			}
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		listener, err = net.Listen("tcp", addr)
+		if err == nil {
+			break
 		}
 
+		log.Error("Failed to bind to port (attempt %d/%d): %v", attempt, maxRetries, err)
+
+		if attempt < maxRetries {
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if err != nil {
 		log.Error("Failed to start server after %d attempts", maxRetries)
 		errorChannel <- struct{}{}
-	}()
-}
-
-func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan struct{}) bool {
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Error("Failed to start server (attempt %d/%d): %v", attempt, maxRetries, err)
-		return false
+		return
 	}
 
 	if serverIP, err := GetServerIP(); err == nil {
@@ -202,8 +202,6 @@ func (api *API) attemptServerStart(addr string, attempt int, errorChannel chan s
 		log.Error("Server error: %v", err)
 		errorChannel <- struct{}{}
 	}
-
-	return true
 }
 
 func (api *API) ServeEmbeddedContent(content embed.FS) {

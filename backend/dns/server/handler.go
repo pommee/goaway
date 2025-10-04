@@ -512,6 +512,26 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				IP:    rr.Ns,
 				RType: "SOA",
 			})
+		case *dns.SRV:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("%s:%d", rr.Target, rr.Port),
+				RType: "SRV",
+			})
+		case *dns.HTTPS:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Target,
+				RType: "HTTPS",
+			})
+		case *dns.CAA:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("%s: %s", rr.Tag, rr.Value),
+				RType: "CAA",
+			})
+		case *dns.DNSKEY:
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    fmt.Sprintf("flags:%d protocol:%d algorithm:%d", rr.Flags, rr.Protocol, rr.Algorithm),
+				RType: "DNSKEY",
+			})
 		default:
 			log.Warning("Unhandled record type '%s' while requesting '%s'", dns.TypeToString[rr.Header().Rrtype], request.Question.Name)
 		}
@@ -636,12 +656,15 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		upstreamMsg.Id = dns.Id()
 
 		upstream := s.Config.DNS.PreferredUpstream
-		if s.dnsClient.Net == "tcp-tls" && !strings.HasSuffix(upstream, ":853") {
-			host, _, err := net.SplitHostPort(upstream)
-			if err == nil {
+		if s.dnsClient.Net == "tcp-tls" {
+			host, port, err := net.SplitHostPort(upstream)
+			if err != nil {
+				upstream = net.JoinHostPort(upstream, "853")
+			} else if port == "53" {
 				upstream = net.JoinHostPort(host, "853")
 			}
 		}
+
 		in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
 		if err != nil {
 			errCh <- err

@@ -46,7 +46,6 @@ func GetDistinctRequestIP(db *gorm.DB) int {
 
 func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogIntervalSummary, error) {
 	minutes := interval * 60
-
 	var rawSummaries []model.RequestLogIntervalSummary
 
 	var query string
@@ -55,36 +54,34 @@ func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogI
 		query = `
 			SELECT
 				DATETIME((STRFTIME('%s', timestamp) / ?) * ?, 'unixepoch') AS interval_start,
-				SUM(CASE WHEN blocked THEN 1 ELSE 0 END) AS blocked_count,
-				SUM(CASE WHEN cached THEN 1 ELSE 0 END) AS cached_count,
-				SUM(CASE WHEN (NOT blocked AND NOT cached) THEN 1 ELSE 0 END) AS allowed_count
+				SUM(blocked) AS blocked_count,
+				SUM(cached) AS cached_count,
+				SUM(NOT blocked AND NOT cached) AS allowed_count
 			FROM request_logs
 			WHERE timestamp >= DATETIME('now', '-1 day')
-			GROUP BY interval_start
+			GROUP BY (STRFTIME('%s', timestamp) / ?)
 			ORDER BY interval_start
 		`
 	case "postgres":
 		query = `
 			SELECT
 				TO_CHAR(TO_TIMESTAMP(FLOOR(EXTRACT(EPOCH FROM timestamp) / $1) * $1), 'YYYY-MM-DD HH24:MI:SS') AS interval_start,
-				SUM(CASE WHEN blocked THEN 1 ELSE 0 END) AS blocked_count,
-				SUM(CASE WHEN cached THEN 1 ELSE 0 END) AS cached_count,
-				SUM(CASE WHEN (NOT blocked AND NOT cached) THEN 1 ELSE 0 END) AS allowed_count
+				SUM(blocked::int) AS blocked_count,
+				SUM(cached::int) AS cached_count,
+				SUM((NOT blocked AND NOT cached)::int) AS allowed_count
 			FROM request_logs
 			WHERE timestamp >= NOW() - INTERVAL '1 day'
-			GROUP BY interval_start
+			GROUP BY FLOOR(EXTRACT(EPOCH FROM timestamp) / $1)
 			ORDER BY interval_start
 		`
 	default:
 		return nil, fmt.Errorf("unsupported db type: %s", db.Dialector.Name())
 	}
 
-	// Use the correct param style for each SQL dialect
 	var err error
 	if db.Dialector.Name() == "sqlite" {
-		err = db.Raw(query, minutes, minutes).Scan(&rawSummaries).Error
+		err = db.Raw(query, minutes, minutes, minutes).Scan(&rawSummaries).Error
 	} else {
-		// For postgres: $1, so pass only one param
 		err = db.Raw(query, minutes).Scan(&rawSummaries).Error
 	}
 	if err != nil {
@@ -92,16 +89,16 @@ func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogI
 	}
 
 	summaries := make([]model.RequestLogIntervalSummary, len(rawSummaries))
-	for i, r := range rawSummaries {
-		t, err := time.Parse("2006-01-02 15:04:05", r.IntervalStart)
+	for i := range rawSummaries {
+		t, err := time.Parse("2006-01-02 15:04:05", rawSummaries[i].IntervalStart)
 		if err != nil {
 			return nil, err
 		}
 		summaries[i] = model.RequestLogIntervalSummary{
 			IntervalStart: t.String(),
-			BlockedCount:  r.BlockedCount,
-			CachedCount:   r.CachedCount,
-			AllowedCount:  r.AllowedCount,
+			BlockedCount:  rawSummaries[i].BlockedCount,
+			CachedCount:   rawSummaries[i].CachedCount,
+			AllowedCount:  rawSummaries[i].AllowedCount,
 		}
 	}
 
@@ -272,37 +269,41 @@ func FetchAllClients(db *gorm.DB) (map[string]dbModel.Client, error) {
 		Vendor     sql.NullString `gorm:"column:vendor"`
 	}
 
+	subquery := db.Table("request_logs").
+		Select("client_ip, MAX(timestamp) as max_timestamp").
+		Group("client_ip")
+
 	if err := db.Table("request_logs r").
 		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor").
+		Joins("INNER JOIN (?) latest ON r.client_ip = latest.client_ip AND r.timestamp = latest.max_timestamp", subquery).
 		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
 		Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
-	uniqueClients := make(map[string]dbModel.Client)
+	uniqueClients := make(map[string]dbModel.Client, len(rows))
 	for _, row := range rows {
-		macStr, vendorStr := "", ""
+		macStr := ""
+		vendorStr := ""
 		if row.Mac.Valid {
 			macStr = row.Mac.String
 		}
 		if row.Vendor.Valid {
 			vendorStr = row.Vendor.String
 		}
-		if existing, exists := uniqueClients[row.ClientIP]; !exists || row.Timestamp.After(existing.LastSeen) {
-			uniqueClients[row.ClientIP] = dbModel.Client{
-				Name:     row.ClientName,
-				LastSeen: row.Timestamp,
-				Mac:      macStr,
-				Vendor:   vendorStr,
-			}
+
+		uniqueClients[row.ClientIP] = dbModel.Client{
+			Name:     row.ClientName,
+			LastSeen: row.Timestamp,
+			Mac:      macStr,
+			Vendor:   vendorStr,
 		}
 	}
+
 	return uniqueClients, nil
 }
 
-func GetClientRequestDetails(db *gorm.DB, clientIP string) (dbModel.ClientRequestDetails, error) {
-	searchPattern := "%" + clientIP + "%"
-
+func GetClientDetailsWithDomains(db *gorm.DB, clientIP string) (dbModel.ClientRequestDetails, string, map[string]int, error) {
 	var crd dbModel.ClientRequestDetails
 	err := db.Table("request_logs").
 		Select(`
@@ -312,46 +313,44 @@ func GetClientRequestDetails(db *gorm.DB, clientIP string) (dbModel.ClientReques
 			SUM(CASE WHEN cached THEN 1 ELSE 0 END) as cached_requests,
 			AVG(response_time_ns) / 1e6 as avg_response_time_ms,
 			MAX(timestamp) as last_seen`).
-		Where("client_ip LIKE ?", searchPattern).
+		Where("client_ip = ?", clientIP).
 		Scan(&crd).Error
 
-	return crd, err
-}
+	if err != nil {
+		return crd, "", nil, err
+	}
 
-func GetMostQueriedDomainByIP(db *gorm.DB, clientIP string) (string, error) {
-	searchPattern := "%" + clientIP + "%"
-	var domain string
-	err := db.Table("request_logs").
-		Select("domain").
-		Where("client_ip LIKE ?", searchPattern).
-		Group("domain").
-		Order("COUNT(*) DESC").
-		Limit(1).
-		Scan(&domain).Error
-	return domain, err
-}
-
-func GetAllQueriedDomainsByIP(db *gorm.DB, clientIP string) (map[string]int, error) {
-	searchPattern := "%" + clientIP + "%"
 	var rows []struct {
 		Domain string `gorm:"column:domain"`
 		Count  int    `gorm:"column:query_count"`
 	}
 
-	if err := db.Table("request_logs").
+	err = db.Table("request_logs").
 		Select("domain, COUNT(*) as query_count").
-		Where("client_ip LIKE ?", searchPattern).
+		Where("client_ip = ?", clientIP).
 		Group("domain").
 		Order("query_count DESC").
-		Scan(&rows).Error; err != nil {
-		return nil, err
+		Scan(&rows).Error
+
+	if err != nil {
+		return crd, "", nil, err
 	}
 
-	domainQueryCounts := make(map[string]int)
+	domainQueryCounts := make(map[string]int, len(rows))
 	for _, r := range rows {
 		domainQueryCounts[r.Domain] = r.Count
 	}
-	return domainQueryCounts, nil
+
+	mostQueriedDomain := ""
+	maxCount := 0
+	for domain, count := range domainQueryCounts {
+		if count > maxCount {
+			maxCount = count
+			mostQueriedDomain = domain
+		}
+	}
+
+	return crd, mostQueriedDomain, domainQueryCounts, nil
 }
 
 func GetTopBlockedDomains(db *gorm.DB, blockedRequests int) ([]map[string]interface{}, error) {

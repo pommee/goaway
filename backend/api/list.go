@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +16,7 @@ import (
 func (api *API) registerListsRoutes() {
 	api.routes.POST("/custom", api.updateCustom)
 	api.routes.POST("/addList", api.addList)
+	api.routes.POST("/addLists", api.addLists)
 
 	api.routes.GET("/lists", api.getLists)
 	api.routes.GET("/fetchUpdatedList", api.fetchUpdatedList)
@@ -78,39 +78,20 @@ func (api *API) addList(c *gin.Context) {
 		Active bool   `json:"active"`
 	}
 
-	body, err := io.ReadAll(c.Request.Body)
+	var newList NewListRequest
+	err := c.Bind(&newList)
 	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	var request NewListRequest
-	if err := json.Unmarshal(body, &request); err != nil {
-		log.Error("Failed to parse JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+	err = api.ValidateURLAndName(newList.URL, newList.Name, c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	request.Name = strings.TrimSpace(request.Name)
-	request.URL = strings.TrimSpace(request.URL)
-
-	if request.Name == "" || request.URL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and URL are required"})
-		return
-	}
-
-	if _, err := url.ParseRequestURI(request.URL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL format"})
-		return
-	}
-
-	if api.Blacklist.URLExists(request.URL) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "List with the same URL already exists"})
-		return
-	}
-
-	if err := api.Blacklist.FetchAndLoadHosts(request.URL, request.Name); err != nil {
+	if err = api.Blacklist.FetchAndLoadHosts(newList.URL, newList.Name); err != nil {
 		log.Error("Failed to fetch and load hosts: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -122,21 +103,21 @@ func (api *API) addList(c *gin.Context) {
 		return
 	}
 
-	if err := api.Blacklist.AddSource(request.Name, request.URL); err != nil {
+	if err := api.Blacklist.AddSource(newList.Name, newList.URL); err != nil {
 		log.Error("Failed to add source: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if !request.Active {
-		if err := api.Blacklist.ToggleBlocklistStatus(request.Name); err != nil {
+	if !newList.Active {
+		if err := api.Blacklist.ToggleBlocklistStatus(newList.Name); err != nil {
 			log.Error("Failed to toggle blocklist status: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to toggle status for " + request.Name})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to toggle status for " + newList.Name})
 			return
 		}
 	}
 
-	_, newList, err := api.Blacklist.GetListStatistics(request.Name)
+	_, addedList, err := api.Blacklist.GetListStatistics(newList.Name)
 	if err != nil {
 		log.Error("Failed to get list statistics: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get list statistics"})
@@ -145,10 +126,72 @@ func (api *API) addList(c *gin.Context) {
 
 	api.DNSServer.Audits.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicList,
-		Message: fmt.Sprintf("New blacklist with name '%s' was added", request.Name),
+		Message: fmt.Sprintf("New blacklist with name '%s' was added", addedList.Name),
 	})
 
-	c.JSON(http.StatusOK, newList)
+	c.JSON(http.StatusOK, addedList)
+}
+
+func (api *API) addLists(c *gin.Context) {
+	type NewList struct {
+		Name   string `json:"name" binding:"required"`
+		URL    string `json:"url" binding:"required,url"`
+		Active bool   `json:"active"`
+	}
+	var payload struct {
+		Lists []NewList `json:"lists" binding:"required,dive"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var addedList []NewList
+	var ignoredList []NewList
+	for _, list := range payload.Lists {
+		if api.Blacklist.URLExists(list.URL) {
+			ignoredList = append(ignoredList, list)
+			continue
+		}
+
+		if err := api.Blacklist.FetchAndLoadHosts(list.URL, list.Name); err != nil {
+			log.Error("Failed to fetch and load hosts: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if _, err := api.Blacklist.PopulateBlocklistCache(); err != nil {
+			log.Error("Failed to populate blocklist cache: %v", err)
+			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := api.Blacklist.AddSource(list.Name, list.URL); err != nil {
+			log.Error("Failed to add source: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if !list.Active {
+			if err := api.Blacklist.ToggleBlocklistStatus(list.Name); err != nil {
+				log.Error("Failed to toggle blocklist status: %v", err)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to toggle status for " + list.Name})
+				return
+			}
+		}
+
+		addedList = append(addedList, list)
+	}
+
+	if len(addedList) > 0 {
+		api.DNSServer.Audits.CreateAudit(&audit.Entry{
+			Topic:   audit.TopicList,
+			Message: fmt.Sprintf("Added %d new blacklists in bulk", len(addedList)),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ignored": ignoredList})
 }
 
 func (api *API) updateListName(c *gin.Context) {
@@ -315,4 +358,20 @@ func (api *API) removeList(c *gin.Context) {
 		Message: fmt.Sprintf("Blacklist with name '%s' was deleted", name),
 	})
 	c.Status(http.StatusOK)
+}
+
+func (api *API) ValidateURLAndName(URL, name string, c *gin.Context) error {
+	if name == "" || URL == "" {
+		return fmt.Errorf("name and URL are required")
+	}
+
+	if _, err := url.ParseRequestURI(URL); err != nil {
+		return fmt.Errorf("invalid URL format")
+	}
+
+	if api.Blacklist.URLExists(URL) {
+		return fmt.Errorf("list with the same URL already exists")
+	}
+
+	return nil
 }

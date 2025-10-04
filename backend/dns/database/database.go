@@ -39,11 +39,11 @@ type Whitelist struct {
 type RequestLog struct {
 	ID                uint           `gorm:"primaryKey;autoIncrement" json:"id"`
 	Timestamp         time.Time      `gorm:"not null;index:idx_request_log_timestamp_covering,priority:1;index:idx_request_log_timestamp_desc;index:idx_request_log_domain_timestamp,priority:2" json:"timestamp"`
-	Domain            string         `gorm:"type:varchar(255);not null;index:idx_request_log_domain_timestamp,priority:1" json:"domain"`
+	Domain            string         `gorm:"type:varchar(255);not null;index:idx_request_log_domain_timestamp,priority:1;index:idx_client_ip_domain,priority:2" json:"domain"`
 	Blocked           bool           `gorm:"not null;index:idx_request_log_timestamp_covering,priority:2" json:"blocked"`
 	Cached            bool           `gorm:"not null;index:idx_request_log_timestamp_covering,priority:3" json:"cached"`
 	ResponseTimeNs    int64          `gorm:"not null" json:"response_time_ns"`
-	ClientIP          string         `gorm:"type:varchar(45)" json:"client_ip"`
+	ClientIP          string         `gorm:"type:varchar(45);index:idx_client_ip;index:idx_client_ip_domain,priority:1" json:"client_ip"`
 	ClientName        string         `gorm:"type:varchar(255)" json:"client_name"`
 	Status            string         `gorm:"type:varchar(50)" json:"status"`
 	QueryType         string         `gorm:"type:varchar(10)" json:"query_type"`

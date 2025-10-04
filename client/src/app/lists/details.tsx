@@ -116,7 +116,9 @@ export function CardDetails(
     setDeletingList(true);
     try {
       const [code, response] = await DeleteRequest(
-        `list?name=${listEntry.name}&url=${listEntry.url}`,
+        `list?name=${encodeURIComponent(
+          listEntry.name
+        )}&url=${encodeURIComponent(listEntry.url)}`,
         null
       );
 

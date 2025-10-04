@@ -110,36 +110,47 @@ export function Blacklist() {
     }
   };
 
-  const handleSelect = (name: string) => {
+  const handleSelect = (name: string, url: string) => {
     setSelected((prev) => {
+      const key = `${name}|${url}`;
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
 
   const handleRemoveSelected = async () => {
-    for (const name of selected) {
-      setDeleting((prev) => new Set(prev).add(name));
-      await DeleteRequest(`list?name=${encodeURIComponent(name)}`, null);
+    for (const key of selected) {
+      const [name, url] = key.split("|");
+      setDeleting((prev) => new Set(prev).add(key));
+
+      await DeleteRequest(
+        `list?name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`,
+        null
+      );
+
       setTimeout(() => {
-        setFadingOut((prev) => new Set(prev).add(name));
+        setFadingOut((prev) => new Set(prev).add(key));
         setTimeout(() => {
-          setLists((prev) => prev.filter((list) => list.name !== name));
+          setLists((prev) =>
+            prev.filter((list) => !(list.name === name && list.url === url))
+          );
+
           setDeleting((prev) => {
             const next = new Set(prev);
-            next.delete(name);
+            next.delete(key);
             return next;
           });
           setFadingOut((prev) => {
             const next = new Set(prev);
-            next.delete(name);
+            next.delete(key);
             return next;
           });
         }, 400);
       }, 0);
     }
+
     setSelected(new Set());
   };
 
@@ -242,11 +253,11 @@ export function Blacklist() {
             onDelete={() => handleDelete(list.name, list.url)}
             onRename={handleRename}
             editMode={editMode}
-            selected={selected.has(list.name)}
-            onSelect={() => handleSelect(list.name)}
+            onSelect={() => handleSelect(list.name, list.url)}
+            selected={selected.has(`${list.name}|${list.url}`)}
             updating={updating.has(list.name)}
-            deleting={deleting.has(list.name)}
-            fadingOut={fadingOut.has(list.name)}
+            deleting={deleting.has(`${list.name}|${list.url}`)}
+            fadingOut={fadingOut.has(`${list.name}|${list.url}`)}
           />
         ))}
       </div>

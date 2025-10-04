@@ -972,7 +972,7 @@ const SETTINGS_SECTIONS = [
   {
     title: "Certificate",
     description:
-      "Specify TLS certificates for encrypted communication with clients.",
+      "Specify TLS certificates used for DoH (dns-over-https) and DoT (dns-over-tls).",
     icon: <CertificateIcon />,
     settings: [
       {

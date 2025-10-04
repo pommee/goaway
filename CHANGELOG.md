@@ -1,3 +1,50 @@
+## [0.62.10](https://github.com/pommee/goaway/compare/v0.62.9...v0.62.10) (2025-10-04)
+
+### Bug Fixes
+
+* correctly set port for upstream query using dot ([4dd21eb](https://github.com/pommee/goaway/commit/4dd21eb082a33d41a184aa71da4a218a38558ee7))
+
+## [0.62.9](https://github.com/pommee/goaway/compare/v0.62.8...v0.62.9) (2025-10-02)
+
+### Bug Fixes
+
+* add retries when starting api server ([dc9aca9](https://github.com/pommee/goaway/commit/dc9aca97dc88c94bae66a3414adda77310eaea3e))
+* respect port set for upstream over dot query ([ec08e44](https://github.com/pommee/goaway/commit/ec08e44fcbfeca91cdaab324638db86a77eb55bb))
+
+## [0.62.8](https://github.com/pommee/goaway/compare/v0.62.7...v0.62.8) (2025-10-01)
+
+### Bug Fixes
+
+* added support for 'x-real-ip' header to doh queries ([f558337](https://github.com/pommee/goaway/commit/f558337f239e057c5e2a3be3e39f0c2becd0ae6b))
+
+### UI/UX
+
+* correct wording for certificates in settings ([a09638c](https://github.com/pommee/goaway/commit/a09638c0490209507871e20a53fa57c11a471de1))
+
+## [0.62.7](https://github.com/pommee/goaway/compare/v0.62.6...v0.62.7) (2025-09-30)
+
+### Performance Improvements
+
+* various performance improvements to database queries ([6c23aa6](https://github.com/pommee/goaway/commit/6c23aa639b99f388672a73cf9fdf1ba07c48034a))
+
+### UI/UX
+
+* add 'page not found' and remove unused page transition ([95d0678](https://github.com/pommee/goaway/commit/95d0678a4f4d9fa2142e981b956ffd17ee8aceaa))
+
+## [0.62.6](https://github.com/pommee/goaway/compare/v0.62.5...v0.62.6) (2025-09-29)
+
+### Bug Fixes
+
+* added ability to add multiple blacklists at once and various other fixes to the page ([c8dcdbf](https://github.com/pommee/goaway/commit/c8dcdbfdb8909d5898f8c8c4cc658beac730a30b))
+
+### Documentation
+
+* update readme with instructions on where to find logs and credentials for lxc ([b0022fe](https://github.com/pommee/goaway/commit/b0022fe48499a347653afaf2a4c03029db6dc0dd))
+
+### UI/UX
+
+* base64 encode list name when deleting to support special characters ([88764dc](https://github.com/pommee/goaway/commit/88764dc0d49b4c4774bb8469975569423ff89ece))
+
 ## [0.62.5](https://github.com/pommee/goaway/compare/v0.62.4...v0.62.5) (2025-09-29)
 
 ### Bug Fixes
