@@ -1,3 +1,9 @@
+## [0.62.10](https://github.com/pommee/goaway/compare/v0.62.9...v0.62.10) (2025-10-04)
+
+### Bug Fixes
+
+* correctly set port for upstream query using dot ([4dd21eb](https://github.com/pommee/goaway/commit/4dd21eb082a33d41a184aa71da4a218a38558ee7))
+
 ## [0.62.9](https://github.com/pommee/goaway/compare/v0.62.8...v0.62.9) (2025-10-02)
 
 ### Bug Fixes
