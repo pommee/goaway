@@ -59,6 +59,16 @@ export function Settings() {
       tlsCertFile: "",
       tlsKeyFile: ""
     },
+    db: {
+      dbType: "sqlite",
+      host: "",
+      port: 0,
+      database: "",
+      ssl: false,
+      timeZone: "",
+      user: "",
+      pass: ""
+    },
     api: {
       port: 8080,
       authentication: true
@@ -159,6 +169,15 @@ export function Settings() {
           dns: { ...prev.dns, tlsKeyFile: value }
         }),
 
+        dbType: () => ({ ...prev, db: { ...prev.db, dbType: value } }),
+        dbUser: () => ({ ...prev, db: { ...prev.db, user: value } }),
+        dbPassword: () => ({ ...prev, db: { ...prev.db, pass: value } }),
+        dbHost: () => ({ ...prev, db: { ...prev.db, host: value } }),
+        dbPort: () => ({ ...prev, db: { ...prev.db, port: value } }),
+        dbDatabase: () => ({ ...prev, db: { ...prev.db, database: value } }),
+        dbSSL: () => ({ ...prev, db: { ...prev.db, ssl: value } }),
+        dbTimeZone: () => ({ ...prev, db: { ...prev.db, timeZone: value } }),
+
         logging: () => ({ ...prev, loggingEnabled: value }),
 
         default: () => ({ ...prev, [key]: value })
@@ -220,7 +239,7 @@ export function Settings() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.name.endsWith(".db")) {
+    if (preferences.db.dbType != "sqlite" || file?.name.endsWith(".db")) {
       setFile(file);
       setModals((prev) => ({ ...prev, importConfirm: true }));
     } else {
@@ -235,7 +254,7 @@ export function Settings() {
     try {
       const formData = new FormData();
       formData.append("database", file);
-      const response = await fetch(`${getApiBaseUrl()}/api/importDatabase`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/${preferences.db.dbType}/import`, {
         method: "POST",
         body: formData
       });
@@ -277,7 +296,7 @@ export function Settings() {
     });
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/exportDatabase`);
+      const response = await fetch(`${getApiBaseUrl()}/api/${preferences.db.dbType}/export`);
       if (!response.ok)
         throw new Error(`Export failed: ${response.statusText}`);
       if (!response.body) throw new Error("ReadableStream not supported");
@@ -308,11 +327,24 @@ export function Settings() {
         });
       }
 
+      let download = "database";
+      switch (preferences.db.dbType) {
+        case "sqlite":
+          download = "database.db";
+          break;
+        case "postgres":
+          download = "database.dump";
+          break;
+      }
+
+      console.log(download);
+      console.log(preferences);
+
       const blob = new Blob(chunks, { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement("a"), {
         href: url,
-        download: "database.db"
+        download: download
       });
       document.body.appendChild(a).click();
       a.remove();
@@ -447,7 +479,7 @@ export function Settings() {
                       <input
                         ref={fileInput}
                         type="file"
-                        accept=".db"
+                        accept={preferences.db.dbType == "sqlite" ? ".db" : undefined}
                         onChange={handleFileUpload}
                         className="hidden"
                       />
@@ -773,6 +805,7 @@ const ImportModal = ({
 export interface Root {
   dns: Dns;
   api: Api;
+  db: Db;
   scheduledBlacklistUpdates: boolean;
   statisticsRetention: number;
   loggingEnabled: boolean;
@@ -792,6 +825,17 @@ export interface Dns {
   status: Status;
   tlsCertFile: string;
   tlsKeyFile: string;
+}
+
+export interface Db {
+  dbType: string;
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  pass: string;
+  ssl: boolean;
+  timeZone: string;
 }
 
 export interface Status {

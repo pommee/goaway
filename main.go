@@ -50,6 +50,14 @@ type Flags struct {
 	Ansi                bool
 	JSON                bool
 	InAppUpdate         bool
+	DbHost              string
+	DbPort              int
+	DbUser              string
+	DbPass              string
+	DbName              string
+	DbType              string
+	DbSSL               bool
+	DbTimeZone          string
 }
 
 func main() {
@@ -84,6 +92,14 @@ func createRootCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.Ansi, "ansi", true, "Toggle colorized logs. Only available in non-json formatted logs")
 	cmd.Flags().BoolVar(&flags.JSON, "json", false, "Toggle JSON formatted logs")
 	cmd.Flags().BoolVar(&flags.InAppUpdate, "in-app-update", false, "Toggle ability to update via dashboard")
+	cmd.Flags().StringVar(&flags.DbType, "db-type", "sqlite", "DbType of database to use")
+	cmd.Flags().StringVar(&flags.DbHost, "db-host", "localhost", "database host")
+	cmd.Flags().IntVar(&flags.DbPort, "db-port", 5432, "database port")
+	cmd.Flags().StringVar(&flags.DbUser, "db-user", "goaway", "database user")
+	cmd.Flags().StringVar(&flags.DbPass, "db-pass", "goaway", "database password")
+	cmd.Flags().StringVar(&flags.DbName, "db-name", "goaway", "database name")
+	cmd.Flags().BoolVar(&flags.DbSSL, "db-ssl", true, "Toggle DB SSL Connection")
+	cmd.Flags().StringVar(&flags.DbTimeZone, "db-timezone", "UTC", "UTC time zone to use")
 
 	return cmd
 }
@@ -127,6 +143,30 @@ func getSetFlags(cmd *cobra.Command, flags *Flags) *setup.SetFlags {
 	if cmd.Flags().Changed("in-app-update") {
 		setFlags.InAppUpdate = &flags.InAppUpdate
 	}
+	if cmd.Flags().Changed("db-type") {
+		setFlags.DbType = &flags.DbType
+	}
+	if cmd.Flags().Changed("db-host") {
+		setFlags.DbHost = &flags.DbHost
+	}
+	if cmd.Flags().Changed("db-port") {
+		setFlags.DbPort = &flags.DbPort
+	}
+	if cmd.Flags().Changed("db-user") {
+		setFlags.DbUser = &flags.DbUser
+	}
+	if cmd.Flags().Changed("db-pass") {
+		setFlags.DbPass = &flags.DbPass
+	}
+	if cmd.Flags().Changed("db-name") {
+		setFlags.DbName = &flags.DbName
+	}
+	if cmd.Flags().Changed("db-timezone") {
+		setFlags.DbTimeZone = &flags.DbTimeZone
+	}
+	if cmd.Flags().Changed("db-ssl") {
+		setFlags.DbSSL = &flags.DbSSL
+	}
 
 	return setFlags
 }
@@ -139,7 +179,7 @@ func startServer(config *settings.Config, ansi bool) {
 		}()
 	}
 
-	dbManager := database.Initialize()
+	dbManager := database.Initialize(config)
 	notificationManager := notification.NewNotificationManager(dbManager)
 	alertManager := alert.NewManager(dbManager.Conn)
 	alertManager.Load()

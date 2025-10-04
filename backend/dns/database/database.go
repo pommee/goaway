@@ -1,12 +1,15 @@
 package database
 
 import (
+	"fmt"
+	"goaway/backend/settings"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -108,15 +111,32 @@ type Alert struct {
 	Webhook string `json:"webhook"`
 }
 
-func Initialize() *DatabaseManager {
-	if err := os.MkdirAll("data", 0755); err != nil {
-		log.Fatal("failed to create data directory: %v", err)
-	}
+func Initialize(config *settings.Config) *DatabaseManager {
+	var db *gorm.DB
+	var err error
+	if config.DB.DbType == "postgres" {
+		sslMode := "disable"
+		if *config.DB.SSL {
+			sslMode = "enable"
+		}
+		dbString := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s", *config.DB.Host, *config.DB.User, *config.DB.Pass, *config.DB.Database, *config.DB.Port, sslMode, *config.DB.TimeZone)
+		db, err = gorm.Open(postgres.Open(dbString), &gorm.Config{})
+	} else if config.DB.DbType == "sqlite" {
+		if err := os.MkdirAll("data", 0755); err != nil {
+			log.Fatal("failed to create data directory: %v", err)
+		}
 
-	databasePath := filepath.Join("data", "database.db")
-	db, err := gorm.Open(sqlite.Open(databasePath), &gorm.Config{})
+		databasePath := filepath.Join("data", "database.db")
+		db, err = gorm.Open(sqlite.Open(databasePath), &gorm.Config{})
+	} else {
+		log.Fatal("invalid DB_TYPE")
+	}
 	if err != nil {
 		log.Fatal("failed while initializing database: %v", err)
+	}
+	if db == nil {
+		log.Fatal("failed to initialize database")
+		os.Exit(1)
 	}
 
 	if err := AutoMigrate(db); err != nil {

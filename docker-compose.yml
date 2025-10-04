@@ -1,14 +1,30 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS:-1234}
+      - POSTGRES_USER=${DB_USER:-goaway}
+      - POSTGRES_DB=${DB_NAME:-goaway}
+    # volumes:
+    #   - /path/to/db/data:/var/lib/postgresql/data
   goaway:
     image: pommee/goaway:latest
     container_name: goaway
     restart: unless-stopped
     # volumes:
     #   - /path/to/config:/app/config    # Custom settings.yaml configuration
-    #   - /path/to/data:/app/data        # Database storage location
+    #   - /path/to/data:/app/data        # Database storage/backup location
     environment:
       - DNS_PORT=${DNS_PORT:-53}
       - WEBSITE_PORT=${WEBSITE_PORT:-8080}
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-goaway}
+      - DB_PASS=${DB_PASS:-1234}
+      - DB_NAME=${DB_NAME:-goaway}
     ports:
       - "${DNS_PORT:-53}:${DNS_PORT:-53}/udp"
       - "${DNS_PORT:-53}:${DNS_PORT:-53}/tcp"
