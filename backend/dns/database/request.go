@@ -53,13 +53,13 @@ func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogI
 	case "sqlite":
 		query = `
 			SELECT
-				DATETIME((STRFTIME('%s', timestamp) / ?) * ?, 'unixepoch') AS interval_start,
+				DATETIME((STRFTIME('%s', timestamp) / $1) * $1, 'unixepoch') AS interval_start,
 				SUM(blocked) AS blocked_count,
 				SUM(cached) AS cached_count,
 				SUM(NOT blocked AND NOT cached) AS allowed_count
 			FROM request_logs
 			WHERE timestamp >= DATETIME('now', '-1 day')
-			GROUP BY (STRFTIME('%s', timestamp) / ?)
+			GROUP BY (STRFTIME('%s', timestamp) / $1)
 			ORDER BY interval_start
 		`
 	case "postgres":
@@ -78,12 +78,7 @@ func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogI
 		return nil, fmt.Errorf("unsupported db type: %s", db.Dialector.Name())
 	}
 
-	var err error
-	if db.Dialector.Name() == "sqlite" {
-		err = db.Raw(query, minutes, minutes, minutes).Scan(&rawSummaries).Error
-	} else {
-		err = db.Raw(query, minutes).Scan(&rawSummaries).Error
-	}
+	err := db.Raw(query, minutes).Scan(&rawSummaries).Error
 	if err != nil {
 		return nil, err
 	}
@@ -116,40 +111,35 @@ func GetResponseSizeSummaryByInterval(intervalMinutes int, db *gorm.DB) ([]model
 	case "sqlite":
 		query = `
 			SELECT
-				((strftime('%s', timestamp) / ?) * ?) AS start_unix,
+				((strftime('%s', timestamp) / $1) * $1) AS start_unix,
 				SUM(response_size_bytes) AS total_size_bytes,
 				ROUND(AVG(response_size_bytes)) AS avg_response_size_bytes,
 				MIN(response_size_bytes) AS min_response_size_bytes,
 				MAX(response_size_bytes) AS max_response_size_bytes
 			FROM request_logs
-			WHERE strftime('%s', timestamp) >= ? AND response_size_bytes IS NOT NULL
-			GROUP BY (strftime('%s', timestamp) / ?)
+			WHERE strftime('%s', timestamp) >= $2 AND response_size_bytes IS NOT NULL
+			GROUP BY (strftime('%s', timestamp) / $1)
 			ORDER BY start_unix ASC
 		`
-		err := db.Raw(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds).
-			Scan(&summaries).Error
-		if err != nil {
-			return nil, fmt.Errorf("failed to query response size summary: %w", err)
-		}
 	case "postgres":
 		query = `
 			SELECT
-				(FLOOR(EXTRACT(EPOCH FROM timestamp) / ?) * ?) AS start_unix,
+				(FLOOR(EXTRACT(EPOCH FROM timestamp) / $1) * $1) AS start_unix,
 				SUM(response_size_bytes) AS total_size_bytes,
 				ROUND(AVG(response_size_bytes))::bigint AS avg_response_size_bytes,
 				MIN(response_size_bytes) AS min_response_size_bytes,
 				MAX(response_size_bytes) AS max_response_size_bytes
 			FROM request_logs
-			WHERE EXTRACT(EPOCH FROM timestamp) >= ? AND response_size_bytes IS NOT NULL
+			WHERE EXTRACT(EPOCH FROM timestamp) >= $2 AND response_size_bytes IS NOT NULL
 			GROUP BY start_unix
 			ORDER BY start_unix ASC
 		`
-		err := db.Raw(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo).Scan(&summaries).Error
-		if err != nil {
-			return nil, fmt.Errorf("failed to query response size summary: %w", err)
-		}
 	default:
 		return nil, fmt.Errorf("unsupported db type: %s", db.Dialector.Name())
+	}
+	err := db.Raw(query, intervalSeconds, twentyFourHoursAgo).Scan(&summaries).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to query response size summary: %w", err)
 	}
 
 	for i := range summaries {
