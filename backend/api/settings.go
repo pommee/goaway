@@ -9,11 +9,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/postgres"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -56,6 +59,18 @@ func (api *API) getSettings(c *gin.Context) {
 }
 
 func (api *API) exportDatabase(c *gin.Context) {
+	switch api.Config.DB.DbType {
+	case "sqlite":
+		api.exportSQLiteDatabase(c)
+	case "postgres":
+		api.exportPostgresDatabase(c)
+	default:
+		log.Error("Unsupported database type configured: %s", api.Config.DB.DbType)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unsupported database type, configured"})
+	}
+}
+
+func (api *API) exportSQLiteDatabase(c *gin.Context) {
 	log.Debug("Starting export of database")
 
 	// Temporary filename for export the database into
@@ -154,7 +169,7 @@ func validateSQLiteFile(filePath string) error {
 	return nil
 }
 
-func (api *API) importDatabase(c *gin.Context) {
+func (api *API) importSQLiteDatabase(c *gin.Context) {
 	log.Info("Starting import of database")
 
 	file, header, err := c.Request.FormFile("database")
@@ -302,4 +317,227 @@ func copyFile(src, dst string) error {
 	}
 
 	return destFile.Sync()
+}
+
+func (api *API) importDatabase(c *gin.Context) {
+	switch api.Config.DB.DbType {
+	case "sqlite":
+		api.importSQLiteDatabase(c)
+	case "postgres":
+		api.importPostgresDatabase(c)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unsupported database type configured"})
+		log.Error("Unsupported database type configured %s", api.Config.DB.DbType)
+	}
+}
+
+func (api *API) exportPostgresDatabase(c *gin.Context) {
+	dbConfig := api.Config.DB
+
+	log.Debug("Starting export of database")
+
+	_, ok := api.DBManager.Conn.Dialector.(*postgres.Dialector)
+	if !ok {
+		log.Error("Failed to get postgres dialector")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get postgres dialector"})
+		return
+	}
+
+	// temp file for dump
+	tempFile, err := os.CreateTemp("", "db_export_*.dump")
+	if err != nil {
+		log.Error("Failed to create temp file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temp file"})
+		return
+	}
+	defer func() {
+		err := tempFile.Close()
+		if err != nil {
+			log.Error("Failed to close temp file: %v", err)
+		}
+		err = os.Remove(tempFile.Name())
+		if err != nil {
+			log.Error("Failed to remove temp file: %v", err)
+		}
+	}()
+
+	// run pg_dump into temp file
+	cmd := exec.Command(
+		"pg_dump", "-Fc",
+		"-f", tempFile.Name(),
+		"-h", *dbConfig.Host,
+		"-U", *dbConfig.User,
+		"-d", *dbConfig.Database,
+		"-p", strconv.Itoa(*dbConfig.Port), // you missed passing the port number!
+	)
+	cmd.Env = append(os.Environ(), "PGPASSWORD="+*dbConfig.Pass)
+	if err := cmd.Run(); err != nil {
+		log.Error("Postgres dump failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Postgres dump failed"})
+		return
+	}
+
+	// set headers
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename=database.dump")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Cache-Control", "no-cache")
+	info, err := tempFile.Stat()
+	if err != nil {
+		log.Error("Failed to stat temp file: %v", err)
+	} else {
+		c.Header("Content-Length", fmt.Sprintf("%d", info.Size()))
+	}
+
+	// stream temp file to client
+	_, err = tempFile.Seek(0, 0)
+	if err != nil {
+		log.Error("Failed to reset temp file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset temp file"})
+		return
+	}
+	if _, err := io.Copy(c.Writer, tempFile); err != nil {
+		log.Error("Failed to stream dump to client: %v", err)
+		return
+	}
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicDatabase,
+		Message: "Database was exported",
+	})
+
+}
+
+func (api *API) importPostgresDatabase(c *gin.Context) {
+	dbConfig := api.Config.DB
+
+	log.Debug("Starting import of database")
+
+	_, ok := api.DBManager.Conn.Dialector.(*postgres.Dialector)
+	if !ok {
+		log.Error("Failed to get postgres dialector")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get postgres dialector"})
+		return
+	}
+
+	file, _, err := c.Request.FormFile("database")
+	if err != nil {
+		log.Error("Failed to get uploaded file: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded or invalid file"})
+		return
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	tempFile, err := os.CreateTemp("", "db_import_*.dump")
+	if err != nil {
+		log.Error("Failed to create temp file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temp file"})
+		return
+	}
+	defer func() {
+		err := tempFile.Close()
+		if err != nil {
+			log.Error("Failed to close temp file: %v", err)
+		}
+		err = os.Remove(tempFile.Name())
+		if err != nil {
+			log.Error("Failed to remove temp file: %v", err)
+		}
+	}()
+
+	if _, err := io.Copy(tempFile, file); err != nil {
+		log.Error("Failed to save uploaded file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save uploaded file"})
+		return
+	}
+
+	checkCmd := exec.Command("pg_restore", "-l", tempFile.Name())
+	if output, err := checkCmd.CombinedOutput(); err != nil {
+		log.Error("Postgres dump validation failed: %v, output: %s", err, string(output))
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Database integrity check failed",
+			"details": string(output),
+		})
+		return
+	}
+
+	backupPath := filepath.Join("data", "database.dump") + ".backup." + time.Now().UTC().Format("2006-01-02_15:04:05")
+	backupFile, err := os.Create(backupPath)
+	if err != nil {
+		log.Error("Failed to create backup temp file: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create backup"})
+		return
+	}
+	defer func() {
+		err := backupFile.Close()
+		if err != nil {
+			log.Error("Failed to close backup file: %v", err)
+		}
+		err = os.Remove(backupFile.Name())
+		if err != nil {
+			log.Error("Failed to remove backup file: %v", err)
+		}
+	}()
+
+	backupCmd := exec.Command(
+		"pg_dump", "-Fc",
+		"-f", backupFile.Name(),
+		"-h", *dbConfig.Host,
+		"-U", *dbConfig.User,
+		"-d", *dbConfig.Database,
+		"-p", strconv.Itoa(*dbConfig.Port), // you missed passing the port number!
+	)
+	backupCmd.Env = append(os.Environ(), "PGPASSWORD="+*dbConfig.Pass)
+	if err := backupCmd.Run(); err != nil {
+		log.Error("Failed to backup current DB: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to backup current database"})
+		return
+	}
+
+	restoreTemplate := []string{
+		"-Fc",
+		"-c", "--if-exists",
+		"-h", *dbConfig.Host,
+		"-U", *dbConfig.User,
+		"-d", *dbConfig.Database,
+		"-p", strconv.Itoa(*dbConfig.Port),
+	}
+	// restore uploaded DB
+	restoreArgs := append(restoreTemplate, tempFile.Name())
+	restoreCmd := exec.Command(
+		"pg_restore", restoreArgs...,
+	)
+	restoreCmd.Env = append(os.Environ(), "PGPASSWORD="+*dbConfig.Pass)
+	if output, err := restoreCmd.CombinedOutput(); err != nil {
+		log.Error("Postgres restore failed: %v, output: %s", err, string(output))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Postgres restore failed",
+			"details": string(output),
+		})
+		// attempt restore from backup
+		restoreBackupArgs := append(restoreTemplate, tempFile.Name())
+		restoreCmd = exec.Command(
+			"pg_restore", restoreBackupArgs...,
+		)
+		restoreCmd.Env = append(os.Environ(), "PGPASSWORD="+*dbConfig.Pass)
+		err = restoreCmd.Run()
+		if err != nil {
+			log.Error("Postgres restore failed: %v, output: %s", err, string(output))
+			os.Exit(1)
+		}
+		return
+	}
+
+	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+		Topic:   audit.TopicDatabase,
+		Message: "Database was imported",
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Database imported successfully",
+		"backup_created": backupFile.Name(),
+	})
 }

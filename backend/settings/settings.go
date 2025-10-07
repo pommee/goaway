@@ -44,9 +44,21 @@ type APIConfig struct {
 	RateLimiterConfig ratelimit.RateLimiterConfig `yaml:"rateLimit" json:"-"`
 }
 
+type DBConfig struct {
+	DbType   string  `yaml:"dbType" json:"dbType"`
+	Host     *string `yaml:"host" json:"host"`
+	Port     *int    `yaml:"port" json:"port"`
+	Database *string `yaml:"database" json:"database"`
+	User     *string `yaml:"user" json:"user"`
+	Pass     *string `yaml:"pass" json:"pass"`
+	SSL      *bool   `yaml:"ssl" json:"ssl"`
+	TimeZone *string `yaml:"timeZone" json:"timeZone"`
+}
+
 type Config struct {
 	DNS DNSConfig `yaml:"dns" json:"dns"`
 	API APIConfig `yaml:"api" json:"api"`
+	DB  DBConfig  `yaml:"db"  json:"db"`
 
 	Dashboard                 bool             `yaml:"dashboard" json:"-"`
 	ScheduledBlacklistUpdates bool             `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
@@ -84,6 +96,7 @@ func LoadSettings() (Config, error) {
 	type configWithPtr struct {
 		DNS                       DNSConfig        `yaml:"dns" json:"dns"`
 		API                       APIConfig        `yaml:"api" json:"api"`
+		DB                        DBConfig         `yaml:"db" json:"db"`
 		Dashboard                 *bool            `yaml:"dashboard" json:"-"`
 		ScheduledBlacklistUpdates *bool            `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
 		StatisticsRetention       int              `yaml:"statisticsRetention" json:"statisticsRetention"`
@@ -99,6 +112,7 @@ func LoadSettings() (Config, error) {
 
 	config.DNS = temp.DNS
 	config.API = temp.API
+	config.DB = temp.DB
 	config.StatisticsRetention = temp.StatisticsRetention
 	config.LoggingEnabled = temp.LoggingEnabled
 	config.LogLevel = temp.LogLevel
@@ -156,6 +170,12 @@ func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig.API.Authentication = true
 	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}
 
+	defaultConfig.DB.DbType = "sqlite"
+	ssl := false
+	defaultConfig.DB.SSL = &ssl
+	timezone := "UTC"
+	defaultConfig.DB.TimeZone = &timezone
+
 	data, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to marshal default config: %w", err)
@@ -198,6 +218,14 @@ func (config *Config) UpdateSettings(updatedSettings Config) {
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
 	config.DNS.TLSCertFile = updatedSettings.DNS.TLSCertFile
 	config.DNS.TLSKeyFile = updatedSettings.DNS.TLSKeyFile
+
+	config.DB.DbType = updatedSettings.DB.DbType
+	config.DB.Host = updatedSettings.DB.Host
+	config.DB.Port = updatedSettings.DB.Port
+	config.DB.User = updatedSettings.DB.User
+	config.DB.Pass = updatedSettings.DB.Pass
+	config.DB.SSL = updatedSettings.DB.SSL
+	config.DB.TimeZone = updatedSettings.DB.TimeZone
 
 	config.LogLevel = updatedSettings.LogLevel
 	config.StatisticsRetention = updatedSettings.StatisticsRetention
