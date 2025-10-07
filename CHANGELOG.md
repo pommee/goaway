@@ -1,3 +1,9 @@
+## [0.62.11](https://github.com/pommee/goaway/compare/v0.62.10...v0.62.11) (2025-10-05)
+
+### Bug Fixes
+
+* switch go module for db import ([d6880b5](https://github.com/pommee/goaway/commit/d6880b50985c9e02747ae1ee62a4438bba471136))
+
 ## [0.62.10](https://github.com/pommee/goaway/compare/v0.62.9...v0.62.10) (2025-10-04)
 
 ### Bug Fixes

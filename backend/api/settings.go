@@ -17,7 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
