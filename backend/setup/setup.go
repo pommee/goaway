@@ -25,14 +25,6 @@ type SetFlags struct {
 	Ansi                *bool
 	JSON                *bool
 	InAppUpdate         *bool
-	DbHost              *string
-	DbPort              *int
-	DbUser              *string
-	DbPass              *string
-	DbName              *string
-	DbType              *string
-	DbSSL               *bool
-	DbTimeZone          *string
 }
 
 func UpdateConfig(config *settings.Config, flags *SetFlags) {
@@ -89,30 +81,24 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 			config.API.Port = *flags.WebserverPort
 		}
 	}
-	if flags.DbType != nil || os.Getenv("DB_TYPE") != "" {
+	if os.Getenv("DB_TYPE") != "" {
 		if dbType, found := os.LookupEnv("DB_TYPE"); found {
 			config.DB.DbType = dbType
-		} else {
-			config.DB.DbType = *flags.DbType
 		}
 	}
 	if config.DB.DbType != "sqlite" {
-		if flags.DbHost != nil || os.Getenv("DB_HOST") != "" {
+		if os.Getenv("DB_HOST") != "" {
 			if host, found := os.LookupEnv("DB_HOST"); found {
 				config.DB.Host = &host
-			} else {
-				config.DB.Host = flags.DbHost
 			}
 		}
-		if flags.DbPort != nil || os.Getenv("DB_PORT") != "" {
+		if os.Getenv("DB_PORT") != "" {
 			if port, found := os.LookupEnv("DB_PORT"); found {
 				dbPort, err := strconv.Atoi(port)
 				if err != nil {
 					log.Fatal("Could not parse DB_PORT environment variable")
 				}
 				config.DB.Port = &dbPort
-			} else {
-				config.DB.Port = flags.DbPort
 			}
 		} else {
 			var port int = 0
@@ -124,43 +110,33 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 			}
 			config.DB.Port = &port
 		}
-		if flags.DbUser != nil || os.Getenv("DB_USER") != "" {
+		if os.Getenv("DB_USER") != "" {
 			if user, found := os.LookupEnv("DB_USER"); found {
 				config.DB.User = &user
-			} else {
-				config.DB.User = flags.DbUser
 			}
 		}
-		if flags.DbPass != nil || os.Getenv("DB_PASS") != "" {
+		if os.Getenv("DB_PASS") != "" {
 			if password, found := os.LookupEnv("DB_PASS"); found {
 				config.DB.Pass = &password
-			} else {
-				config.DB.Pass = flags.DbPass
 			}
 		}
-		if flags.DbName != nil || os.Getenv("DB_NAME") != "" {
+		if os.Getenv("DB_NAME") != "" {
 			if dbName, found := os.LookupEnv("DB_NAME"); found {
 				config.DB.Database = &dbName
-			} else {
-				config.DB.Database = flags.DbName
 			}
 		}
-		if flags.DbSSL != nil || os.Getenv("DB_SSL") != "" {
+		if os.Getenv("DB_SSL") != "" {
 			if sslStr, found := os.LookupEnv("DB_SSL"); found {
 				ssl, err := strconv.ParseBool(sslStr)
 				if err != nil {
 					log.Fatal("Could not parse DB_SSL environment variable")
 				}
 				config.DB.SSL = &ssl
-			} else {
-				config.DB.SSL = flags.DbSSL
 			}
 		}
-		if flags.DbTimeZone != nil || os.Getenv("DB_TIME_ZONE") != "" {
+		if os.Getenv("DB_TIME_ZONE") != "" {
 			if timezone, found := os.LookupEnv("DB_TIME_ZONE"); found {
 				config.DB.TimeZone = &timezone
-			} else {
-				config.DB.TimeZone = flags.DbTimeZone
 			}
 		}
 	}
