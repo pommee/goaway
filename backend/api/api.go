@@ -87,7 +87,7 @@ func (api *API) initializeRouter() {
 	api.router = gin.New()
 
 	// Ignore compression on this route as otherwise it has problems with exposing the Content-Length header
-	ignoreCompression := gzip.WithExcludedPaths([]string{"/api/sqlite/export", "/api/postgres/export"})
+	ignoreCompression := gzip.WithExcludedPaths([]string{"/api/exportDatabase"})
 	api.router.Use(gzip.Gzip(gzip.DefaultCompression, ignoreCompression))
 	api.routes = api.router.Group("/api")
 }

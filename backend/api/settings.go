@@ -23,16 +23,10 @@ import (
 
 func (api *API) registerSettingsRoutes() {
 	api.routes.POST("/settings", api.updateSettings)
+	api.routes.POST("/importDatabase", api.importDatabase)
 
 	api.routes.GET("/settings", api.getSettings)
-	switch api.Config.DB.DbType {
-	case "sqlite":
-		api.routes.POST("/sqlite/import", api.importSQLiteDatabase)
-		api.routes.GET("/sqlite/export", api.exportSQLiteDatabase)
-	case "postgres":
-		api.routes.POST("/postgres/import", api.importPostgresDatabase)
-		api.routes.GET("/postgres/export", api.exportPostgresDatabase)
-	}
+	api.routes.GET("/exportDatabase", api.exportDatabase)
 }
 
 func (api *API) updateSettings(c *gin.Context) {
@@ -64,13 +58,19 @@ func (api *API) getSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, api.Config)
 }
 
-func (api *API) exportSQLiteDatabase(c *gin.Context) {
-	if api.Config.DB.DbType != "sqlite" {
-		log.Error("SQLite database is not active")
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "SQLite database is not active"})
-		return
+func (api *API) exportDatabase(c *gin.Context) {
+	switch api.Config.DB.DbType {
+	case "sqlite":
+		api.exportSQLiteDatabase(c)
+	case "postgres":
+		api.exportPostgresDatabase(c)
+	default:
+		log.Error("Unsupported database type configured: %s", api.Config.DB.DbType)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unsupported database type, configured"})
 	}
+}
 
+func (api *API) exportSQLiteDatabase(c *gin.Context) {
 	log.Debug("Starting export of database")
 
 	// Temporary filename for export the database into
@@ -170,10 +170,6 @@ func validateSQLiteFile(filePath string) error {
 }
 
 func (api *API) importSQLiteDatabase(c *gin.Context) {
-	if api.Config.DB.DbType != "sqlite" {
-		log.Error("SQLite database is not active")
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "SQLite database is not active"})
-	}
 	log.Info("Starting import of database")
 
 	file, header, err := c.Request.FormFile("database")
@@ -323,13 +319,20 @@ func copyFile(src, dst string) error {
 	return destFile.Sync()
 }
 
+func (api *API) importDatabase(c *gin.Context) {
+	switch api.Config.DB.DbType {
+	case "sqlite":
+		api.importSQLiteDatabase(c)
+	case "postgres":
+		api.importPostgresDatabase(c)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unsupported database type configured"})
+		log.Error("Unsupported database type configured %s", api.Config.DB.DbType)
+	}
+}
+
 func (api *API) exportPostgresDatabase(c *gin.Context) {
 	dbConfig := api.Config.DB
-	if dbConfig.DbType != "postgres" {
-		log.Error("Postgres database is not active")
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "Postgres database is not active"})
-		return
-	}
 
 	log.Debug("Starting export of database")
 
@@ -378,6 +381,8 @@ func (api *API) exportPostgresDatabase(c *gin.Context) {
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename=database.dump")
 	c.Header("Cache-Control", "no-cache")
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Cache-Control", "no-cache")
 	info, err := tempFile.Stat()
 	if err != nil {
 		log.Error("Failed to stat temp file: %v", err)
@@ -406,12 +411,6 @@ func (api *API) exportPostgresDatabase(c *gin.Context) {
 
 func (api *API) importPostgresDatabase(c *gin.Context) {
 	dbConfig := api.Config.DB
-
-	if dbConfig.DbType != "postgres" {
-		log.Error("Postgres database is not active")
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "Postgres database is not active"})
-		return
-	}
 
 	log.Debug("Starting import of database")
 
