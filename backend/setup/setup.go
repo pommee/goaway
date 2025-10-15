@@ -2,10 +2,11 @@ package setup
 
 import (
 	"fmt"
-	"goaway/backend/logging"
-	"goaway/backend/settings"
 	"os"
 	"strconv"
+
+	"goaway/backend/logging"
+	"goaway/backend/settings"
 
 	"github.com/Masterminds/semver"
 )
@@ -13,7 +14,7 @@ import (
 var log = logging.GetLogger()
 
 type SetFlags struct {
-	DnsPort             *int
+	DNSPort             *int
 	DoTPort             *int
 	DoHPort             *int
 	WebserverPort       *int
@@ -37,15 +38,15 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		fmt.Println("Flag --log-level can't be greater than 3 or below 0.")
 		os.Exit(1)
 	}
-	if flags.DnsPort != nil || os.Getenv("DNS_PORT") != "" {
+	if flags.DNSPort != nil || os.Getenv("DNS_PORT") != "" {
 		if port, found := os.LookupEnv("DNS_PORT"); found {
 			dnsPort, err := strconv.Atoi(port)
 			if err != nil {
 				log.Fatal("Could not parse DNS_PORT environment variable")
 			}
-			config.DNS.Port = dnsPort
+			config.DNS.Ports.TCPUDP = dnsPort
 		} else {
-			config.DNS.Port = *flags.DnsPort
+			config.DNS.Ports.TCPUDP = *flags.DNSPort
 		}
 	}
 	if flags.DoTPort != nil || os.Getenv("DOT_PORT") != "" {
@@ -54,9 +55,9 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 			if err != nil {
 				log.Fatal("Could not parse DOT_PORT environment variable")
 			}
-			config.DNS.DoTPort = dotPort
+			config.DNS.Ports.DoT = dotPort
 		} else {
-			config.DNS.DoTPort = *flags.DoTPort
+			config.DNS.Ports.DoT = *flags.DoTPort
 		}
 	}
 	if flags.DoHPort != nil || os.Getenv("DOH_PORT") != "" {
@@ -65,9 +66,9 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 			if err != nil {
 				log.Fatal("Could not parse DOH_PORT environment variable")
 			}
-			config.DNS.DoHPort = dohPort
+			config.DNS.Ports.DoH = dohPort
 		} else {
-			config.DNS.DoHPort = *flags.DoHPort
+			config.DNS.Ports.DoH = *flags.DoHPort
 		}
 	}
 	if flags.WebserverPort != nil || os.Getenv("WEBSITE_PORT") != "" {
@@ -82,27 +83,27 @@ func UpdateConfig(config *settings.Config, flags *SetFlags) {
 		}
 	}
 	if flags.StatisticsRetention != nil {
-		config.StatisticsRetention = *flags.StatisticsRetention
+		config.Misc.StatisticsRetention = *flags.StatisticsRetention
 	}
 	if flags.Authentication != nil {
 		config.API.Authentication = *flags.Authentication
 	}
 	if flags.Dashboard != nil {
-		config.Dashboard = *flags.Dashboard
+		config.Misc.Dashboard = *flags.Dashboard
 	}
 	if flags.LoggingEnabled != nil {
-		config.LoggingEnabled = *flags.LoggingEnabled
+		config.Logging.Enabled = *flags.LoggingEnabled
 	}
 	if flags.LogLevel != nil {
-		config.LogLevel = logging.LogLevel(*flags.LogLevel)
+		config.Logging.Level = *flags.LogLevel
 	}
 	if flags.InAppUpdate != nil {
-		config.InAppUpdate = *flags.InAppUpdate
+		config.Misc.InAppUpdate = *flags.InAppUpdate
 	}
 
 	if flags.JSON != nil {
 		log.JSON = *flags.JSON
-		log.SetJson(log.JSON)
+		log.SetJSON(log.JSON)
 	} else {
 		log.Ansi = flags.Ansi == nil || *flags.Ansi
 		log.SetAnsi(log.Ansi)

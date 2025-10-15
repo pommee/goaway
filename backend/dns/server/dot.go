@@ -10,7 +10,7 @@ import (
 
 func (s *DNSServer) InitDoT(cert tls.Certificate) (*dns.Server, error) {
 	notifyReady := func() {
-		log.Info("Started DoT (dns-over-tls) server on port %d", s.Config.DNS.DoTPort)
+		log.Info("Started DoT (dns-over-tls) server on port %d", s.Config.DNS.Ports.DoT)
 	}
 
 	tlsConfig := &tls.Config{
@@ -18,7 +18,7 @@ func (s *DNSServer) InitDoT(cert tls.Certificate) (*dns.Server, error) {
 		MinVersion:   tls.VersionTLS12,
 	}
 	server := &dns.Server{
-		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.DoTPort),
+		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Ports.DoT),
 		Net:               "tcp-tls",
 		Handler:           s,
 		TLSConfig:         tlsConfig,

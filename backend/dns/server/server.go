@@ -10,7 +10,9 @@ import (
 	"goaway/backend/dns/lists"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/logging"
+	"goaway/backend/mac"
 	notification "goaway/backend/notifications"
+	"goaway/backend/resolution"
 	"goaway/backend/settings"
 	"net"
 	"sync"
@@ -26,53 +28,59 @@ var (
 )
 
 type DNSServer struct {
-	Config              *settings.Config
-	Blacklist           *lists.Blacklist
 	Whitelist           *lists.Whitelist
-	DBManager           *database.DatabaseManager
-	logIntervalSeconds  int
-	lastLogTime         time.Time
-	Cache               sync.Map
-	clientCache         sync.Map
-	hostnameCache       sync.Map
+	DBManager           *database.Manager
+	Blacklist           *lists.Blacklist
+	dnsClient           *dns.Client
+	Notifications       *notification.Manager
+	Config              *settings.Config
 	WebServer           *gin.Engine
 	logEntryChannel     chan model.RequestLogEntry
 	WSQueries           *websocket.Conn
 	WSCommunication     *websocket.Conn
+	hostnameCache       sync.Map
+	clientCache         sync.Map
+	Cache               sync.Map
+	logIntervalSeconds  int
 	WSCommunicationLock sync.Mutex
-	dnsClient           *dns.Client
-	Notifications       *notification.Manager
-	Alerts              *alert.Manager
-	Audits              *audit.Manager
+
+	AuditService      *audit.Service
+	AlertService      *alert.Service
+	MACService        *mac.Service
+	ResolutionService *resolution.Service
 }
 
 type CachedRecord struct {
-	IPAddresses []dns.RR
 	ExpiresAt   time.Time
 	CachedAt    time.Time
-	OriginalTTL uint32
 	Key         string
 	Domain      string
+	IPAddresses []dns.RR
+	OriginalTTL uint32
 }
 
 type Request struct {
+	Sent           time.Time
 	ResponseWriter dns.ResponseWriter
 	Msg            *dns.Msg
-	Question       dns.Question
-	Sent           time.Time
 	Client         *model.Client
-	Prefetch       bool
 	Protocol       model.Protocol
+	Question       dns.Question
+	Prefetch       bool
 }
 
 type communicationMessage struct {
+	IP       string `json:"ip"`
 	Client   bool   `json:"client"`
 	Upstream bool   `json:"upstream"`
 	DNS      bool   `json:"dns"`
-	Ip       string `json:"ip"`
 }
 
-func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, notificationsManager *notification.Manager, alertManager *alert.Manager, auditManager *audit.Manager, cert tls.Certificate) (*DNSServer, error) {
+func NewDNSServer(config *settings.Config,
+	dbManager *database.Manager,
+	notificationsManager *notification.Manager,
+	cert tls.Certificate,
+) (*DNSServer, error) {
 	whitelistEntry, err := lists.InitializeWhitelist(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize whitelist: %w", err)
@@ -88,12 +96,10 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 		Whitelist:          whitelistEntry,
 		DBManager:          dbManager,
 		logIntervalSeconds: 1,
-		lastLogTime:        time.Now(),
 		logEntryChannel:    make(chan model.RequestLogEntry, 1000),
 		dnsClient:          &client,
 		Notifications:      notificationsManager,
-		Alerts:             alertManager,
-		Audits:             auditManager,
+		Cache:              sync.Map{},
 	}
 
 	return server, nil
@@ -101,7 +107,7 @@ func NewDNSServer(config *settings.Config, dbManager *database.DatabaseManager, 
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	if len(r.Question) != 1 {
-		log.Warning("Query container more than one question, ignoring!")
+		log.Warning("Query contains more than one question, ignoring!")
 		r.SetRcode(r, dns.RcodeFormatError)
 		_ = w.WriteMsg(r)
 		return
@@ -114,7 +120,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		Client:   true,
 		Upstream: false,
 		DNS:      false,
-		Ip:       client.IP,
+		IP:       client.IP,
 	})
 
 	entry := s.processQuery(&Request{
@@ -131,7 +137,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		Client:   false,
 		Upstream: false,
 		DNS:      true,
-		Ip:       client.IP,
+		IP:       client.IP,
 	})
 	s.logEntryChannel <- entry
 }
@@ -186,12 +192,7 @@ func (s *DNSServer) WSCom(message communicationMessage) {
 	s.WSCommunicationLock.Lock()
 	defer s.WSCommunicationLock.Unlock()
 
-	if err := s.WSCommunication.WriteControl(
-		websocket.PingMessage,
-		nil,
-		time.Now().Add(2*time.Second),
-	); err != nil {
-		log.Debug("Websocket connection not alive, skipping message: %v", err)
+	if s.WSCommunication == nil {
 		return
 	}
 
@@ -201,11 +202,13 @@ func (s *DNSServer) WSCom(message communicationMessage) {
 		return
 	}
 
-	if err := s.WSCommunication.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
+	if err := s.WSCommunication.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
 		log.Warning("Failed to set websocket write deadline: %v", err)
+		return
 	}
 
 	if err := s.WSCommunication.WriteMessage(websocket.TextMessage, entryWSJson); err != nil {
 		log.Debug("Failed to write websocket message: %v", err)
+		s.WSCommunication = nil
 	}
 }

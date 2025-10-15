@@ -2,40 +2,14 @@ package audit
 
 import (
 	"goaway/backend/dns/database"
-	"goaway/backend/logging"
 	"time"
 )
 
 type Manager struct {
-	dbManager *database.DatabaseManager
+	dbManager *database.Manager
 }
 
-type Topic string
-
-const (
-	TopicServer     Topic = "server"
-	TopicDNS        Topic = "dns"
-	TopicAPI        Topic = "api"
-	TopicResolution Topic = "resolution"
-	TopicPrefetch   Topic = "prefetch"
-	TopicUpstream   Topic = "upstream"
-	TopicUser       Topic = "user"
-	TopicList       Topic = "list"
-	TopicLogs       Topic = "logs"
-	TopicSettings   Topic = "settings"
-	TopicDatabase   Topic = "database"
-)
-
-type Entry struct {
-	Id        int       `json:"id"`
-	Topic     Topic     `json:"topic"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-var logger = logging.GetLogger()
-
-func NewAuditManager(dbManager *database.DatabaseManager) *Manager {
+func NewAuditManager(dbManager *database.Manager) *Manager {
 	return &Manager{dbManager: dbManager}
 }
 
@@ -66,7 +40,7 @@ func (nm *Manager) ReadAudits() ([]Entry, error) {
 	entries := make([]Entry, len(audits))
 	for i, audit := range audits {
 		entries[i] = Entry{
-			Id:        int(audit.ID),
+			ID:        audit.ID,
 			Topic:     Topic(audit.Topic),
 			Message:   audit.Message,
 			CreatedAt: audit.CreatedAt,

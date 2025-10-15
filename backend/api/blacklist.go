@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"goaway/backend/audit"
 	"goaway/backend/dns/database"
-	"goaway/backend/dns/server/prefetch"
 	"io"
 	"net/http"
 	"strconv"
@@ -44,13 +43,13 @@ func (api *API) createPrefetchedDomain(c *gin.Context) {
 		return
 	}
 
-	err = api.PrefetchedDomainsManager.AddPrefetchedDomain(prefetchedDomain.Domain, prefetchedDomain.Refresh, prefetchedDomain.QType)
+	err = api.PrefetchService.AddPrefetchedDomain(prefetchedDomain.Domain, prefetchedDomain.Refresh, prefetchedDomain.QType)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicPrefetch,
 		Message: fmt.Sprintf("Added new prefetch '%s'", prefetchedDomain.Domain),
 	})
@@ -58,8 +57,8 @@ func (api *API) createPrefetchedDomain(c *gin.Context) {
 }
 
 func (api *API) fetchPrefetchedDomains(c *gin.Context) {
-	prefetchedDomains := make([]prefetch.PrefetchedDomain, 0)
-	for _, b := range api.PrefetchedDomainsManager.Domains {
+	prefetchedDomains := make([]database.Prefetch, 0)
+	for _, b := range api.PrefetchService.Domains {
 		prefetchedDomains = append(prefetchedDomains, b)
 	}
 	c.JSON(http.StatusOK, prefetchedDomains)
@@ -74,7 +73,7 @@ func (api *API) removeDomainFromCustom(c *gin.Context) {
 
 	err := api.Blacklist.RemoveCustomDomain(domain)
 	if err != nil {
-		log.Debug("Error occured while removing domain from custom list: %v", err)
+		log.Debug("Error occurred while removing domain from custom list: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
 		return
 	}
@@ -143,19 +142,19 @@ func (api *API) getDomainsForList(c *gin.Context) {
 func (api *API) deletePrefetchedDomain(c *gin.Context) {
 	domainPrefetchToDelete := c.Query("domain")
 
-	domain := api.PrefetchedDomainsManager.Domains[domainPrefetchToDelete]
-	if (domain == prefetch.PrefetchedDomain{}) {
+	domain := api.PrefetchService.Domains[domainPrefetchToDelete]
+	if (domain == database.Prefetch{}) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s does not exist", domainPrefetchToDelete)})
 		return
 	}
 
-	err := api.PrefetchedDomainsManager.RemovePrefetchedDomain(domainPrefetchToDelete)
+	err := api.PrefetchService.RemovePrefetchedDomain(domainPrefetchToDelete)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicPrefetch,
 		Message: fmt.Sprintf("Removed prefetched domain '%s'", domainPrefetchToDelete),
 	})

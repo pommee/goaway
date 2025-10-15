@@ -17,18 +17,18 @@ import (
 var log = logging.GetLogger()
 
 type vendorResponse struct {
+	Company string `json:"company"`
 	Success bool   `json:"success"`
 	Found   bool   `json:"found"`
-	Company string `json:"company"`
 }
 
-type ARPCache struct {
-	mu    sync.RWMutex
+type Cache struct {
 	table map[string]string
+	mu    sync.RWMutex
 }
 
 var (
-	cache      = &ARPCache{table: make(map[string]string)}
+	cache      = &Cache{table: make(map[string]string)}
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
@@ -131,7 +131,7 @@ func GetMacVendor(mac string) (string, error) {
 	mac = strings.ToLower(mac)
 
 	url := fmt.Sprintf("https://api.maclookup.app/v2/macs/%s", mac)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

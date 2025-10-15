@@ -18,7 +18,7 @@ import (
 )
 
 func (api *API) registerDNSRoutes() {
-	api.setupWSLiveQueries(api.PrefetchedDomainsManager.DNS)
+	api.setupWSLiveQueries(api.DNS)
 
 	api.routes.POST("/pause", api.pauseBlocking)
 	api.routes.GET("/pause", api.getBlocking)
@@ -44,11 +44,20 @@ func (api *API) pauseBlocking(c *gin.Context) {
 		return
 	}
 
-	api.Config.DNS.Status = settings.Status{
-		Paused:    true,
-		PausedAt:  time.Now(),
-		PauseTime: blockTime.Time,
+	now := time.Now()
+	if blockTime.Time <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Time must be greater than 0",
+		})
+		return
 	}
+
+	duration := time.Duration(blockTime.Time) * time.Second
+	pauseTime := now.Add(duration)
+
+	api.Config.DNS.Status.Paused = true
+	api.Config.DNS.Status.PausedAt = now
+	api.Config.DNS.Status.PauseTime = pauseTime
 
 	log.Info("DNS blocking paused for %d seconds", blockTime.Time)
 	c.Status(http.StatusOK)
@@ -56,28 +65,30 @@ func (api *API) pauseBlocking(c *gin.Context) {
 
 func (api *API) getBlocking(c *gin.Context) {
 	if api.Config.DNS.Status.Paused {
-		elapsed := time.Since(api.Config.DNS.Status.PausedAt).Seconds()
-		remainingTime := api.Config.DNS.Status.PauseTime - int(elapsed)
+		now := time.Now()
+		remainingTime := api.Config.DNS.Status.PauseTime.Sub(now)
 
 		if remainingTime <= 0 {
+			api.Config.DNS.Status.Paused = false
 			c.JSON(http.StatusOK, gin.H{"paused": false})
+			return
 		} else {
-			c.JSON(http.StatusOK, gin.H{"paused": true, "timeLeft": remainingTime})
+			secondsLeft := int(remainingTime.Seconds())
+			c.JSON(http.StatusOK, gin.H{"paused": true, "timeLeft": secondsLeft})
+			return
 		}
 	}
 
-	if !api.Config.DNS.Status.Paused {
-		c.JSON(http.StatusOK, gin.H{"paused": false})
-	}
+	c.JSON(http.StatusOK, gin.H{"paused": false})
 }
 
 func (api *API) getQueries(c *gin.Context) {
 	query := parseQueryParams(c)
 
 	type result struct {
+		err     error
 		queries []model.RequestLogEntry
 		total   int
-		err     error
 	}
 
 	queryCh := make(chan result, 1)
@@ -221,7 +232,7 @@ func (api *API) clearQueries(c *gin.Context) {
 
 	api.Blacklist.Vacuum()
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicLogs,
 		Message: "Logs were cleared",
 	})

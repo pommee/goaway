@@ -21,15 +21,20 @@ import (
 
 var log = logging.GetLogger()
 
+const (
+	blacklistedIP = "0.0.0.0"
+	IPv4Loopback  = "127.0.0.1"
+)
+
 type BlocklistSource struct {
 	Name string
 	URL  string
 }
 
 type Blacklist struct {
-	DBManager      *database.DatabaseManager
-	BlocklistURL   []BlocklistSource
+	DBManager      *database.Manager
 	BlacklistCache map[string]bool
+	BlocklistURL   []BlocklistSource
 }
 
 type SourceStats struct {
@@ -41,16 +46,16 @@ type SourceStats struct {
 }
 
 type ListUpdateAvailable struct {
-	RemoteDomains   []string `json:"remoteDomains"`
-	DBDomains       []string `json:"dbDomains"`
 	RemoteChecksum  string   `json:"remoteChecksum"`
 	DBChecksum      string   `json:"dbChecksum"`
-	UpdateAvailable bool     `json:"updateAvailable"`
+	RemoteDomains   []string `json:"remoteDomains"`
+	DBDomains       []string `json:"dbDomains"`
 	DiffAdded       []string `json:"diffAdded"`
 	DiffRemoved     []string `json:"diffRemoved"`
+	UpdateAvailable bool     `json:"updateAvailable"`
 }
 
-func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error) {
+func InitializeBlacklist(dbManager *database.Manager) (*Blacklist, error) {
 	b := &Blacklist{
 		DBManager: dbManager,
 		BlocklistURL: []BlocklistSource{
@@ -75,7 +80,7 @@ func InitializeBlacklist(dbManager *database.DatabaseManager) (*Blacklist, error
 		log.Error("Failed to fetch blocklist URLs: %v", err)
 		return nil, fmt.Errorf("failed to fetch blocklist URLs: %w", err)
 	}
-	_, err = b.PopulateBlocklistCache()
+	err = b.PopulateBlocklistCache()
 	if err != nil {
 		log.Error("Failed to initialize blocklist cache")
 		return nil, fmt.Errorf("failed to initialize blocklist cache: %w", err)
@@ -174,7 +179,7 @@ func (b *Blacklist) CheckIfUpdateAvailable(remoteListURL, listName string) (List
 }
 
 func (b *Blacklist) FetchRemoteHostsList(url string) ([]string, string, error) {
-	resp, err := http.Get(url)
+	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
 	}
@@ -208,7 +213,7 @@ func calculateDomainsChecksum(domains []string) string {
 }
 
 func (b *Blacklist) FetchAndLoadHosts(url, name string) error {
-	resp, err := http.Get(url)
+	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to fetch hosts file from %s: %w", url, err)
 	}
@@ -243,13 +248,13 @@ func (b *Blacklist) ExtractDomains(body io.Reader) ([]string, error) {
 		}
 
 		domain := fields[0]
-		if (domain == "0.0.0.0" || domain == "127.0.0.1") && len(fields) > 1 {
+		if (domain == blacklistedIP || domain == IPv4Loopback) && len(fields) > 1 {
 			domain = fields[1]
 			switch domain {
-			case "localhost", "localhost.localdomain", "broadcasthost", "local", "0.0.0.0":
+			case "localhost", "localhost.localdomain", "broadcasthost", "local", blacklistedIP:
 				continue
 			}
-		} else if domain == "0.0.0.0" || domain == "127.0.0.1" {
+		} else if domain == blacklistedIP || domain == IPv4Loopback {
 			continue
 		}
 
@@ -320,14 +325,14 @@ func (b *Blacklist) AddDomains(domains []string, url string) error {
 	})
 }
 
-func (b *Blacklist) PopulateBlocklistCache() (int, error) {
+func (b *Blacklist) PopulateBlocklistCache() error {
 	var databaseDomains []string
 	result := b.DBManager.Conn.Model(&database.Blacklist{}).
 		Distinct("domain").
 		Pluck("domain", &databaseDomains)
 
 	if result.Error != nil {
-		return 0, fmt.Errorf("failed to query blacklist: %w", result.Error)
+		return fmt.Errorf("failed to query blacklist: %w", result.Error)
 	}
 
 	b.BlacklistCache = make(map[string]bool, len(databaseDomains))
@@ -335,7 +340,7 @@ func (b *Blacklist) PopulateBlocklistCache() (int, error) {
 		b.BlacklistCache[domain] = true
 	}
 
-	return len(b.BlacklistCache), nil
+	return nil
 }
 
 func (b *Blacklist) CountDomains() (int, error) {
@@ -575,12 +580,12 @@ func (b *Blacklist) RemoveCustomDomain(domain string) error {
 
 func (b *Blacklist) GetAllListStatistics() ([]SourceStats, error) {
 	type SourceWithCount struct {
-		ID           int    `json:"id"`
 		Name         string `json:"name"`
 		URL          string `json:"url"`
+		ID           int    `json:"id"`
 		LastUpdated  int64  `json:"last_updated"`
-		Active       bool   `json:"active"`
 		BlockedCount int    `json:"blocked_count"`
+		Active       bool   `json:"active"`
 	}
 
 	var results []SourceWithCount
@@ -702,7 +707,7 @@ func (b *Blacklist) RemoveSourceAndDomainsWithCacheRefresh(name, url string) err
 		return err
 	}
 
-	if _, err := b.PopulateBlocklistCache(); err != nil {
+	if err := b.PopulateBlocklistCache(); err != nil {
 		log.Warning("Failed to clear blocklist cache after removing source: %v", err)
 	}
 
@@ -743,7 +748,7 @@ func (b *Blacklist) ScheduleAutomaticListUpdates() {
 
 			log.Info("Successfully updated %s with %d new domains", source.Name, len(availableUpdate.DiffAdded))
 		}
-		if _, err := b.PopulateBlocklistCache(); err != nil {
+		if err := b.PopulateBlocklistCache(); err != nil {
 			log.Warning("Failed to populate blocklist cache after auto-update: %v", err)
 		}
 	}
