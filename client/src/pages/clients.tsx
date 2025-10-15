@@ -1,6 +1,7 @@
 import DNSServerVisualizer from "@/app/clients/map";
+import { NoContent } from "@/shared";
 import { GetRequest } from "@/util";
-import { InfoIcon, SpinnerIcon } from "@phosphor-icons/react";
+import { SpinnerIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -74,26 +75,11 @@ export function Clients() {
   }
 
   return (
-    <div>
+    <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
       {clients.length > 0 ? (
         <DNSServerVisualizer clients={clients} />
       ) : (
-        <div className="flex justify-center items-center py-32">
-          <div className="border rounded-lg p-6 max-w-md w-full">
-            <div className="flex items-center justify-center">
-              <div className="p-3">
-                <InfoIcon className="w-12 h-12 text-blue-400" />
-              </div>
-            </div>
-            <h3 className="text-lg font-medium text-center">
-              No Client Requests
-            </h3>
-            <p className="mt-2 text-center text-muted-foreground">
-              No clients have sent any requests yet. New client information will
-              appear here when available.
-            </p>
-          </div>
-        </div>
+        <NoContent text="No clients have sent any requests yet. Client information will appear here when available." />
       )}
     </div>
   );

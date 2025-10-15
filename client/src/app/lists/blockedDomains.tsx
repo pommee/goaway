@@ -20,8 +20,8 @@ async function removeDomain(domain: string) {
   }
 }
 
-export default function BlockedDomainsList({ listName }) {
-  const [domains, setDomains] = useState([]);
+export default function BlockedDomainsList({ listName }: { listName: string }) {
+  const [domains, setDomains] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 

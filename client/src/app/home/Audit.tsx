@@ -1,8 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NoContent } from "@/shared";
 import { GetRequest } from "@/util";
-import { ArticleIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArticleIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -87,16 +88,9 @@ export default function Audit() {
             ))}
           </div>
         ) : (
-          <EmptyState />
+          <NoContent text={"No audits created"} />
         )}
       </CardContent>
     </Card>
   );
 }
-
-const EmptyState = () => (
-  <div className="grid place-items-center py-8">
-    <WarningIcon size={32} className="text-destructive mb-2" />
-    <p className="text-sm text-muted-foreground">No audit entries found</p>
-  </div>
-);

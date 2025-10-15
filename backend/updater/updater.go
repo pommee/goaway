@@ -18,15 +18,15 @@ func SelfUpdate(sse sendSSE, binaryPath string) error {
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to create stdout pipe: %v", err)
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("failed to create stderr pipe: %v", err)
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start command: %v", err)
+		return fmt.Errorf("failed to start command: %w", err)
 	}
 
 	done := make(chan struct{})
@@ -55,7 +55,7 @@ func SelfUpdate(sse sendSSE, binaryPath string) error {
 		return nil
 	case err := <-waitCmd(cmd):
 		if err != nil {
-			return fmt.Errorf("update failed: %v", err)
+			return fmt.Errorf("update failed: %w", err)
 		}
 	}
 

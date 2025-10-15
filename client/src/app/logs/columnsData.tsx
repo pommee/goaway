@@ -103,7 +103,7 @@ export const columns: ColumnDef<Queries>[] = [
           ) : (
             <ShieldSlashIcon size={14} color="red" className="mt-1 mr-1" />
           )}
-          <div className="border-1 px-1 border-stone-800 rounded-sm mr-1">
+          <div className="border px-1 border-stone-800 rounded-sm mr-1">
             {wasOK}
           </div>
           <div>{query.status}</div>
@@ -157,14 +157,14 @@ export const columns: ColumnDef<Queries>[] = [
           {isBlocked === false ? (
             <div
               onClick={handleClick}
-              className="rounded-sm text-red-500 border-1 px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+              className="rounded-sm text-red-500 border px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
             >
               Block
             </div>
           ) : (
             <div
               onClick={handleClick}
-              className="rounded-sm text-green-500 border-1 px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+              className="rounded-sm text-green-500 border px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
             >
               Allow
             </div>

@@ -130,6 +130,59 @@ function calculateProgress(logs: string[]): {
   return { progress, currentStep };
 }
 
+const formatNumber = (num: number | undefined) => {
+  if (num === undefined || num === null || isNaN(num)) {
+    return "0.0";
+  }
+  return num.toFixed(1);
+};
+
+const MetricBar = ({
+  label,
+  value,
+  max,
+  unit,
+  icon: Icon,
+  showIcon = true
+}: {
+  label: string;
+  value: number | undefined;
+  max: number;
+  unit: string;
+  icon: React.ElementType;
+  showIcon?: boolean;
+}) => {
+  const safeValue = value ?? 0;
+  const percentage = Math.min((safeValue / max) * 100, 100);
+  const color = getColor(safeValue, max);
+
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      {showIcon && (
+        <Icon size={12} className="shrink-0 text-muted-foreground" />
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center mb-1">
+          <span className="truncate">{label}</span>
+          <span className="font-mono text-gray-100" style={{ color }}>
+            {formatNumber(value)}
+            {unit}
+          </span>
+        </div>
+        <div className="w-full bg-gray-700 rounded-full h-1">
+          <div
+            className="h-1 rounded-full transition-all duration-300"
+            style={{
+              width: `${percentage}%`,
+              backgroundColor: color
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function ServerStatistics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [updateNotified, setUpdateNotified] = useState(false);
@@ -197,6 +250,7 @@ export function ServerStatistics() {
 
   useEffect(() => {
     const { progress, currentStep } = calculateProgress(updateLogs);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUpdateProgress(progress);
     setCurrentStep(currentStep);
   }, [updateLogs]);
@@ -229,59 +283,6 @@ export function ServerStatistics() {
       eventSource.close();
     };
   }
-
-  const formatNumber = (num: number | undefined) => {
-    if (num === undefined || num === null || isNaN(num)) {
-      return "0.0";
-    }
-    return num.toFixed(1);
-  };
-
-  const MetricBar = ({
-    label,
-    value,
-    max,
-    unit,
-    icon: Icon,
-    showIcon = true
-  }: {
-    label: string;
-    value: number | undefined;
-    max: number;
-    unit: string;
-    icon: React.ElementType;
-    showIcon?: boolean;
-  }) => {
-    const safeValue = value ?? 0;
-    const percentage = Math.min((safeValue / max) * 100, 100);
-    const color = getColor(safeValue, max);
-
-    return (
-      <div className="flex items-center gap-2 text-xs">
-        {showIcon && (
-          <Icon size={12} className="flex-shrink-0 text-muted-foreground" />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center mb-1">
-            <span className="truncate">{label}</span>
-            <span className="font-mono text-gray-100" style={{ color }}>
-              {formatNumber(value)}
-              {unit}
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1">
-            <div
-              className="h-1 rounded-full transition-all duration-300"
-              style={{
-                width: `${percentage}%`,
-                backgroundColor: color
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const dockerCommands = `# Stop and remove the current container
 docker stop container-name
@@ -337,7 +338,7 @@ docker pull pommee/goaway:version`;
             <div className="flex items-center gap-2 text-xs mt-3">
               <DatabaseIcon
                 size={12}
-                className="flex-shrink-0 text-muted-foreground"
+                className="shrink-0 text-muted-foreground"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
@@ -447,118 +448,115 @@ docker pull pommee/goaway:version`;
               </DialogFooter>
             </>
           ) : (
-            <div className="py-2">
-              <div className="flex items-start gap-3 p-4 border rounded-lg w-full">
-                <div className="w-full">
-                  <h3 className="flex font-medium text-orange-400 mb-2">
-                    <InfoIcon className="mt-1 mr-2" />
-                    In-app Updates Disabled
-                  </h3>
-                  <div>
-                    <p className="text-sm mb-3">
-                      If you are running inside a Docker container, use the
-                      following commands to update:
-                    </p>
-                    <div className="relative">
-                      <div className="bg-popover rounded-md p-4 font-mono text-sm">
-                        <div className="text-muted-foreground space-y-1">
-                          <div># Stop and remove the current container</div>
-                          <div className="text-green-400">
-                            docker stop container-name
-                          </div>
-                          <div className="text-green-400">
-                            docker rm container-name
-                          </div>
-                          <br />
-                          <div className="mt-2">
-                            # Pull and run the new version
-                          </div>
-                          <div className="text-green-400">
-                            docker pull pommee/goaway:version
-                          </div>
+            <div className="flex items-start gap-3">
+              <div className="w-full">
+                <h3 className="flex font-medium text-orange-400 mb-2 underline">
+                  <InfoIcon className="mt-1 mr-2" />
+                  In-app updates are disabled
+                </h3>
+                <div>
+                  <p className="text-sm mb-3">
+                    If you are running inside a Docker container, use the
+                    following commands to update:
+                  </p>
+                  <div className="relative">
+                    <div className="bg-popover rounded-md p-4 font-mono text-sm">
+                      <div className="text-muted-foreground space-y-1">
+                        <div># Stop and remove the current container</div>
+                        <div className="text-green-400">
+                          docker stop container-name
+                        </div>
+                        <div className="text-green-400">
+                          docker rm container-name
+                        </div>
+                        <br />
+                        <div className="mt-2">
+                          # Pull and run the new version
+                        </div>
+                        <div className="text-green-400">
+                          docker pull pommee/goaway:version
                         </div>
                       </div>
-                      <button
-                        onClick={handleCopy}
-                        className="absolute top-2 right-2 p-2 bg-input rounded-md transition-colors duration-500 hover:text-green-500 cursor-pointer"
-                        title="Copy Docker commands"
-                      >
-                        {copied ? (
-                          <CheckCircleIcon className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <CopyIcon className="w-4 h-4" />
-                        )}
-                      </button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Replace{" "}
-                      <code className="bg-input px-1 py-0.5 rounded">
-                        container-name
-                      </code>{" "}
-                      and{" "}
-                      <code className="bg-input px-1 py-0.5 rounded">
-                        version
-                      </code>{" "}
-                      with your actual values.
-                    </p>
+                    <button
+                      onClick={handleCopy}
+                      className="absolute top-2 right-2 p-2 bg-input rounded-md transition-colors duration-500 hover:text-green-500 cursor-pointer"
+                      title="Copy Docker commands"
+                    >
+                      {copied ? (
+                        <CheckCircleIcon className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <CopyIcon className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Replace{" "}
+                    <code className="bg-accent px-1 py-0.5 rounded">
+                      container-name
+                    </code>{" "}
+                    and{" "}
+                    <code className="bg-accent px-1 py-0.5 rounded">
+                      version
+                    </code>{" "}
+                    with your actual values.
+                  </p>
+                </div>
 
-                  <Separator className="my-5" />
+                <Separator className="my-5" />
 
-                  <div>
-                    <p className="text-sm mb-3">
-                      If you are running the standalone binary, use the
-                      following commands to update:
-                    </p>
-                    <div className="bg-popover rounded-md p-4 font-mono text-sm overflow-x-auto">
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">
-                          # Stop the binary from running and run one of the
-                          following:
-                        </div>
-                        <br />
-                        <div className="text-muted-foreground">
-                          # Will install the latest version of goaway into
-                          ~/$USER/.local/bin
-                        </div>
-                        <div className="text-green-400">
-                          curl
-                          https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
-                          | sh
-                        </div>
-                        <div className="text-muted-foreground">
-                          # It's also possible to specify what version to
-                          install
-                        </div>
-                        <div className="text-green-400">
-                          curl
-                          https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
-                          | sh /dev/stdin 0.40.4
-                        </div>
-                        <br />
-                        <div className="text-muted-foreground">
-                          # Will replace your goaway binary in the current
-                          working directory with the latest version
-                        </div>
-                        <div className="text-green-400">
-                          https://raw.githubusercontent.com/pommee/goaway/refs/heads/main/updater.sh
-                          | bash
-                        </div>
+                <div>
+                  <p className="text-sm mb-3">
+                    If you are running the standalone binary, use the following
+                    commands to update:
+                  </p>
+                  <div className="bg-popover rounded-md p-4 font-mono text-sm overflow-x-auto">
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">
+                        # Stop the binary from running and run one of the
+                        following:
+                      </div>
+                      <br />
+                      <div className="text-muted-foreground">
+                        # Will install the latest version of goaway into
+                        ~/$USER/.local/bin
+                      </div>
+                      <div className="text-green-400">
+                        curl
+                        https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
+                        | sh
+                      </div>
+                      <div className="text-muted-foreground">
+                        # It's also possible to specify what version to install
+                      </div>
+                      <div className="text-green-400">
+                        curl
+                        https://raw.githubusercontent.com/pommee/goaway/main/installer.sh
+                        | sh /dev/stdin 0.40.4
+                      </div>
+                      <br />
+                      <div className="text-muted-foreground">
+                        # Will replace your goaway binary in the current working
+                        directory with the latest version
+                      </div>
+                      <div className="text-green-400">
+                        https://raw.githubusercontent.com/pommee/goaway/refs/heads/main/updater.sh
+                        | bash
                       </div>
                     </div>
                   </div>
                 </div>
+                <p className="text-xs italic text-muted-foreground mt-2">
+                  This information might be outdated, in that case refer to the{" "}
+                  <a
+                    className="font-bold underline"
+                    href="https://github.com/pommee/goaway/blob/main/README.md"
+                    target="_blank"
+                  >
+                    repository README
+                  </a>
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                This information might be outdated, in that case refer to the{" "}
-                <a
-                  className="font-bold underline"
-                  href="https://github.com/pommee/goaway/blob/main/README.md"
-                  target="_blank"
-                >
-                  repository README
-                </a>
-              </p>
             </div>
           )}
         </DialogContent>

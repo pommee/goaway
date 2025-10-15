@@ -15,12 +15,12 @@ type RateLimiterConfig struct {
 }
 
 type RateLimiter struct {
-	Config   RateLimiterConfig
 	mutex    *sync.RWMutex
 	attempts map[string][]time.Time
+	Config   RateLimiterConfig
 }
 
-func NewRateLimiter(enabled bool, maxTries int, window int) *RateLimiter {
+func NewRateLimiter(enabled bool, maxTries, window int) *RateLimiter {
 	config := RateLimiterConfig{
 		Enabled:  enabled,
 		MaxTries: maxTries,

@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"goaway/backend/dns/database"
+	"goaway/backend/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,14 +15,14 @@ const (
 	SeverityError   = "error"
 )
 
-type DiscordSettings struct {
-	Enabled bool   `json:"enabled"`
+type discordSettings struct {
 	Name    string `json:"name"`
 	Webhook string `json:"webhook"`
+	Enabled bool   `json:"enabled"`
 }
 
-type AlertSettings struct {
-	Discord DiscordSettings `json:"discord"`
+type alertSettings struct {
+	Discord discordSettings `json:"discord"`
 }
 
 func (api *API) registerAlertRoutes() {
@@ -33,7 +33,7 @@ func (api *API) registerAlertRoutes() {
 }
 
 func (api *API) setAlert(c *gin.Context) {
-	var request AlertSettings
+	var request alertSettings
 	err := c.Bind(&request)
 	if err != nil {
 		log.Error("Failed to parse alert settings: %v", err)
@@ -41,7 +41,7 @@ func (api *API) setAlert(c *gin.Context) {
 		return
 	}
 
-	err = api.DNSServer.Alerts.SaveAlert(database.Alert{
+	err = api.DNSServer.AlertService.SaveAlert(database.Alert{
 		Type:    "discord",
 		Enabled: request.Discord.Enabled,
 		Name:    request.Discord.Name,
@@ -57,17 +57,17 @@ func (api *API) setAlert(c *gin.Context) {
 }
 
 func (api *API) getAlert(c *gin.Context) {
-	alerts, err := api.DNSServer.Alerts.GetAllAlerts()
+	alerts, err := api.DNSServer.AlertService.GetAllAlerts()
 	if err != nil {
 		log.Error("Failed to retrieve alert settings: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve alert settings"})
 		return
 	}
 
-	var response AlertSettings
+	var response alertSettings
 	for _, alert := range alerts {
 		if alert.Type == "discord" {
-			response.Discord = DiscordSettings{
+			response.Discord = discordSettings{
 				Enabled: alert.Enabled,
 				Name:    alert.Name,
 				Webhook: alert.Webhook,
@@ -79,7 +79,7 @@ func (api *API) getAlert(c *gin.Context) {
 }
 
 func (api *API) testAlert(c *gin.Context) {
-	var request AlertSettings
+	var request alertSettings
 	err := c.Bind(&request)
 	if err != nil {
 		log.Error("Failed to parse alert settings: %v", err)
@@ -87,7 +87,7 @@ func (api *API) testAlert(c *gin.Context) {
 		return
 	}
 
-	err = api.DNSServer.Alerts.SendTest(
+	err = api.DNSServer.AlertService.SendTest(
 		context.Background(),
 		"discord",
 		request.Discord.Name,

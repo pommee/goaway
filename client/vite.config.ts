@@ -4,11 +4,18 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      babel: {
+        plugins: ["babel-plugin-react-compiler"]
+      }
+    }),
+    tailwindcss()
+  ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+      "@": path.resolve(__dirname, "./src")
+    }
   },
   build: {
     assetsDir: "assets",
@@ -33,8 +40,8 @@ export default defineConfig({
           }
 
           return null;
-        },
-      },
-    },
-  },
+        }
+      }
+    }
+  }
 });

@@ -6,6 +6,7 @@ import {
   ChartLegendContent,
   ChartTooltip
 } from "@/components/ui/chart";
+import { NoContent } from "@/shared";
 import { GetRequest } from "@/util";
 import {
   ArrowsClockwiseIcon,
@@ -93,9 +94,15 @@ export default function ResponseSizeTimeline() {
   }, [timelineInterval]);
 
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+
     const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [fetchData]);
 
   const getFilteredData = () => {
@@ -207,7 +214,7 @@ export default function ResponseSizeTimeline() {
           <div className="flex gap-2">
             {isZoomed && (
               <Button
-                className="bg-transparent border-1 text-white hover:bg-stone-800"
+                className="bg-transparent border text-white hover:bg-stone-800"
                 onClick={handleZoomOut}
               >
                 <MagnifyingGlassMinusIcon weight="bold" className="mr-1" />
@@ -444,13 +451,8 @@ export default function ResponseSizeTimeline() {
             </CardContent>
           </>
         ) : (
-          <CardContent className="flex h-[300px] items-center justify-center">
-            <div className="text-center">
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm text-muted-foreground">
-                No response size data recorded yet
-              </p>
-            </div>
+          <CardContent className="flex h-[220px] items-center justify-center">
+            <NoContent text={"No requests recorded"} />
           </CardContent>
         )}
       </Card>
