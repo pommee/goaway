@@ -8,11 +8,11 @@ import (
 )
 
 type Whitelist struct {
-	DBManager *database.DatabaseManager
+	DBManager *database.Manager
 	Cache     map[string]bool
 }
 
-func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error) {
+func InitializeWhitelist(dbManager *database.Manager) (*Whitelist, error) {
 	w := &Whitelist{
 		DBManager: dbManager,
 		Cache:     map[string]bool{},

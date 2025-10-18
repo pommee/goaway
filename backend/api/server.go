@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -18,7 +19,7 @@ import (
 )
 
 func (api *API) registerServerRoutes() {
-	api.setupWSLiveCommunication(api.PrefetchedDomainsManager.DNS)
+	api.setupWSLiveCommunication(api.DNS)
 
 	api.router.GET("/api/server", api.handleServer)
 	api.router.GET("/api/dnsMetrics", api.handleMetrics)
@@ -47,7 +48,7 @@ func (api *API) handleServer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"portDNS":           api.Config.DNS.Port,
+		"portDNS":           api.Config.DNS.Ports.TCPUDP,
 		"portWebsite":       api.DNSPort,
 		"totalMem":          float64(vMem.Total) / 1024 / 1024 / 1024,
 		"usedMem":           float64(vMem.Used) / 1024 / 1024 / 1024,
@@ -56,7 +57,7 @@ func (api *API) handleServer(c *gin.Context) {
 		"cpuTemp":           temp,
 		"dbSize":            dbSize,
 		"version":           api.Version,
-		"inAppUpdate":       api.Config.InAppUpdate,
+		"inAppUpdate":       api.Config.Misc.InAppUpdate,
 		"commit":            api.Commit,
 		"date":              api.Date,
 	})
@@ -169,16 +170,47 @@ func (api *API) setupWSLiveCommunication(dnsServer *server.DNSServer) {
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
+			CheckOrigin: func(_ *http.Request) bool {
+				return true
+			},
 		}
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			return
 		}
+
+		_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetPongHandler(func(string) error {
+			_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			return nil
+		})
+
 		api.WSCommunication = conn
 
 		if dnsServer != nil {
 			dnsServer.WSCommunication = conn
 		}
+
+		go func() {
+			defer func() {
+				_ = conn.Close()
+				if dnsServer != nil {
+					dnsServer.WSCommunicationLock.Lock()
+					dnsServer.WSCommunication = nil
+					dnsServer.WSCommunicationLock.Unlock()
+				}
+			}()
+
+			for {
+				_, _, err := conn.ReadMessage()
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						log.Warning("Websocket closed unexpectedly: %v", err)
+					}
+					break
+				}
+			}
+		}()
 	})
 }

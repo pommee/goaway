@@ -24,8 +24,13 @@ var (
 	blackholeIPv6 = net.ParseIP("::")
 )
 
+const (
+	IPv4Loopback    = "127.0.0.1"
+	unknownHostname = "unknown"
+)
+
 func trimDomainDot(name string) string {
-	if len(name) > 0 && name[len(name)-1] == '.' {
+	if name != "" && name[len(name)-1] == '.' {
 		return name[:len(name)-1]
 	}
 	return name
@@ -37,7 +42,7 @@ func isPTRQuery(request *Request, domainName string) bool {
 
 func (s *DNSServer) checkAndUpdatePauseStatus() {
 	if s.Config.DNS.Status.Paused &&
-		time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
+		s.Config.DNS.Status.PausedAt.After(s.Config.DNS.Status.PauseTime) {
 		s.Config.DNS.Status.Paused = false
 	}
 }
@@ -77,20 +82,6 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	return s.handleStandardQuery(request)
 }
 
-func (s *DNSServer) GetVendor(mac string) (string, error) {
-	s.DBManager.Mutex.Lock()
-	defer s.DBManager.Mutex.Unlock()
-	return database.FindVendor(s.DBManager.Conn, mac)
-}
-
-func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
-	s.DBManager.Mutex.Lock()
-	defer s.DBManager.Mutex.Unlock()
-
-	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	database.SaveMacEntry(s.DBManager.Conn, clientIP, mac, vendor)
-}
-
 func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, bool) {
 	trimmed := strings.TrimSuffix(requestedHostname, ".")
 
@@ -114,24 +105,24 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	hostname := s.resolveHostname(clientIP)
 	resultIP := clientIP
 
-	vendor, err := s.GetVendor(macAddress)
-	if macAddress != "unknown" {
+	vendor, err := s.MACService.FindVendor(macAddress)
+	if macAddress != unknownHostname {
 		if err != nil || vendor == "" {
 			log.Debug("Lookup vendor for mac %s", macAddress)
 			vendor, err = arp.GetMacVendor(macAddress)
 			if err == nil {
-				s.SaveMacVendor(clientIP, macAddress, vendor)
+				s.MACService.SaveMac(clientIP, macAddress, vendor)
 			} else {
 				log.Warning("Error while lookup mac address vendor: %v", err)
 			}
 		}
 	}
 
-	if clientIP == "127.0.0.1" || clientIP == "::1" || clientIP == "[" {
+	if clientIP == IPv4Loopback || clientIP == "::1" || clientIP == "[" {
 		localIP, err := getLocalIP()
 		if err != nil {
 			log.Warning("Failed to get local IP: %v", err)
-			localIP = "127.0.0.1"
+			localIP = IPv4Loopback
 		}
 		resultIP = localIP
 
@@ -145,7 +136,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
 	s.clientCache.Store(clientIP, &client)
 
-	if client.Name != "unknown" {
+	if client.Name != unknownHostname {
 		s.hostnameCache.Store(client.Name, client.IP)
 	}
 
@@ -153,19 +144,19 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 }
 
 func (s *DNSServer) resolveHostname(clientIP string) string {
-	if hostname := s.reverseDNSLookup(clientIP); hostname != "unknown" {
+	if hostname := s.reverseDNSLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	if hostname := s.avahiLookup(clientIP); hostname != "unknown" {
+	if hostname := s.avahiLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	if hostname := s.sshBannerLookup(clientIP); hostname != "unknown" {
+	if hostname := s.sshBannerLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) avahiLookup(clientIP string) string {
@@ -190,7 +181,7 @@ func (s *DNSServer) avahiLookup(clientIP string) string {
 		}
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) reverseDNSLookup(clientIP string) string {
@@ -206,13 +197,13 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 			return hostname
 		}
 	}
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	conn, err := net.DialTimeout("tcp", clientIP+":22", 1*time.Second)
 	if err != nil {
-		return "unknown"
+		return unknownHostname
 	}
 	defer func() {
 		_ = conn.Close()
@@ -222,13 +213,13 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	if err != nil {
 		log.Warning("Failed to set deadline for SSH banner lookup: %v", err)
 		_ = conn.Close()
-		return "unknown"
+		return unknownHostname
 	}
 
 	reader := bufio.NewReader(conn)
 	banner, err := reader.ReadString('\n')
 	if err != nil {
-		return "unknown"
+		return unknownHostname
 	}
 
 	patterns := []*regexp.Regexp{
@@ -248,7 +239,7 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 		}
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func getLocalIP() (string, error) {
@@ -265,7 +256,7 @@ func getLocalIP() (string, error) {
 		}
 	}
 
-	return "127.0.0.1", fmt.Errorf("no non-loopback IPv4 address found")
+	return IPv4Loopback, fmt.Errorf("no non-loopback IPv4 address found")
 }
 
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
@@ -277,7 +268,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 	ipStr := strings.Join(parts, ".")
 
-	if ipStr == "127.0.0.1" {
+	if ipStr == IPv4Loopback {
 		return s.respondWithLocalhost(request)
 	}
 
@@ -286,11 +277,11 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 
 	hostname := database.GetClientNameFromRequestLog(s.DBManager.Conn, ipStr)
-	if hostname == "unknown" {
+	if hostname == unknownHostname {
 		hostname = s.resolveHostname(ipStr)
 	}
 
-	if hostname != "unknown" {
+	if hostname != unknownHostname {
 		return s.respondWithHostnamePTR(request, hostname)
 	}
 
@@ -593,7 +584,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 		status  = dns.RcodeToString[dns.RcodeSuccess]
 	)
 
-	ipFound, err := database.FetchResolution(s.DBManager.Conn, domain)
+	ipFound, err := s.ResolutionService.GetResolution(domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
@@ -648,14 +639,14 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		go s.WSCom(communicationMessage{false, true, false, ""})
+		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
 		upstreamMsg := &dns.Msg{}
 		upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
 		upstreamMsg.RecursionDesired = true
 		upstreamMsg.Id = dns.Id()
 
-		upstream := s.Config.DNS.PreferredUpstream
+		upstream := s.Config.DNS.Upstream.Preferred
 		if s.dnsClient.Net == "tcp-tls" {
 			host, port, err := net.SplitHostPort(upstream)
 			if err != nil {
@@ -681,7 +672,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 
 	select {
 	case in := <-resultCh:
-		go s.WSCom(communicationMessage{false, false, true, ""})
+		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: false, DNS: true})
 
 		status := dns.RcodeToString[dns.RcodeServerFailure]
 		if statusStr, ok := dns.RcodeToString[in.Rcode]; ok {

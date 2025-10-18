@@ -37,10 +37,10 @@ func (api *API) updateSettings(c *gin.Context) {
 	}
 
 	api.Config.UpdateSettings(updatedSettings)
-	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
-	log.Debug("%s", string(settingsJson))
+	settingsJSON, _ := json.MarshalIndent(updatedSettings, "", "  ")
+	log.Debug("%s", string(settingsJSON))
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicSettings,
 		Message: "Settings was updated",
 	})
@@ -116,7 +116,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 		return n > 0
 	})
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicDatabase,
 		Message: "Database was exported",
 	})
@@ -125,7 +125,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 func validateSQLiteFile(filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("cannot open file: %v", err)
+		return fmt.Errorf("cannot open file: %w", err)
 	}
 	go func() {
 		_ = file.Close()
@@ -133,7 +133,7 @@ func validateSQLiteFile(filePath string) error {
 
 	stat, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("cannot stat file: %v", err)
+		return fmt.Errorf("cannot stat file: %w", err)
 	}
 
 	if stat.Size() < 50 {
@@ -143,7 +143,7 @@ func validateSQLiteFile(filePath string) error {
 	header := make([]byte, 16)
 	_, err = file.Read(header)
 	if err != nil {
-		return fmt.Errorf("cannot read file header: %v", err)
+		return fmt.Errorf("cannot read file header: %w", err)
 	}
 
 	expectedHeader := "SQLite format 3\x00"
@@ -184,7 +184,7 @@ func (api *API) importDatabase(c *gin.Context) {
 	}
 	_, err = io.Copy(tempFile, file)
 
-	defer func(tempfile *os.File) {
+	defer func(tempFile *os.File) {
 		_ = tempFile.Close()
 	}(tempFile)
 
@@ -268,7 +268,7 @@ func (api *API) importDatabase(c *gin.Context) {
 	api.DBManager.Conn = newDB
 
 	log.Info("Database imported successfully from %s", header.Filename)
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicDatabase,
 		Message: "Database was imported",
 	})

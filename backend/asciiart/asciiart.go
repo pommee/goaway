@@ -2,6 +2,7 @@ package asciiart
 
 import (
 	"fmt"
+	"goaway/backend/logging"
 	"goaway/backend/settings"
 )
 
@@ -15,9 +16,10 @@ const (
 	Magenta = "\033[35m"
 )
 
-func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool, ansi bool) {
+func AsciiArt(config *settings.Config, blockedDomains int, version string, disableAuth bool) {
 	const versionSpace = 7
 
+	var ansi = logging.GetLogger().Ansi
 	colorize := func(color, text string) string {
 		if !ansi {
 			return text
@@ -28,9 +30,9 @@ func AsciiArt(config *settings.Config, blockedDomains int, version string, disab
 	versionFormatted := fmt.Sprintf("%-*s%s%-*s", (versionSpace-len(version))/2, "",
 		colorize(Cyan, version), (versionSpace-len(version)+1)/2, "")
 
-	portFormatted := colorize(Green, fmt.Sprintf("%d", config.DNS.Port))
+	portFormatted := colorize(Green, fmt.Sprintf("%d", config.DNS.Ports.TCPUDP))
 	adminPanelFormatted := colorize(Red, fmt.Sprintf("%d", config.API.Port))
-	upstreamFormatted := colorize(Cyan, config.DNS.PreferredUpstream)
+	upstreamFormatted := colorize(Cyan, config.DNS.Upstream.Preferred)
 	authFormatted := colorize(Yellow, fmt.Sprintf("%v", disableAuth))
 	cacheTTLFormatted := colorize(Blue, fmt.Sprintf("%d", config.DNS.CacheTTL))
 	blockedDomainsFormatted := colorize(Magenta, fmt.Sprintf("%d", blockedDomains))

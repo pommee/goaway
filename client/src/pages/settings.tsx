@@ -31,44 +31,122 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Root } from "@radix-ui/react-slot";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog } from "@/components/Alert";
 
-const parseLogLevel = (level: number | string) => {
+export interface Root {
+  dns: Dns;
+  api: Api;
+  logging: Logging;
+  misc: Misc;
+}
+
+export interface Dns {
+  status: Status;
+  address: string;
+  gateway: string;
+  cacheTTL: number;
+  udpSize: number;
+  tls: Tls;
+  upstream: Upstream;
+  ports: Ports;
+}
+
+export interface Status {
+  pausedAt: string;
+  pauseTime: string;
+  paused: boolean;
+}
+
+export interface Tls {
+  enabled: boolean;
+  cert: string;
+  key: string;
+}
+
+export interface Upstream {
+  preferred: string;
+  fallback: string[];
+}
+
+export interface Ports {
+  udptcp: number;
+  dot: number;
+  doh: number;
+}
+
+export interface Api {
+  port: number;
+  authentication: boolean;
+  rateLimit: RateLimit;
+}
+
+export interface RateLimit {
+  enabled: boolean;
+  maxTries: number;
+  window: number;
+}
+
+export interface Logging {
+  enabled: boolean;
+  level: number;
+}
+
+export interface Misc {
+  inAppUpdate: boolean;
+  statisticsRetention: number;
+  dashboard: boolean;
+  scheduledBlacklistUpdates: boolean;
+}
+
+const parseLogLevel = (level: number | string): number | string => {
   const levels = ["Debug", "Info", "Warning", "Error"];
   return typeof level === "number" ? levels[level] : levels.indexOf(level);
 };
 
+const formatBytes = (bytes: number): string => {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
+};
+
+const formatDate = (timestamp: number): string =>
+  new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+
 export function Settings() {
   const [preferences, setPreferences] = useState<Root>({
     dns: {
+      status: { pausedAt: "", pauseTime: "", paused: false },
       address: "0.0.0.0",
-      port: 53,
-      dotPort: 853,
-      dohPort: 443,
-      cacheTTL: 60,
-      preferredUpstream: "8.8.8.8:53",
-      upstreamDNS: [],
+      gateway: "192.168.0.1:53",
+      cacheTTL: 3600,
       udpSize: 512,
-      status: {
-        paused: false,
-        pausedAt: "",
-        pauseTime: 0
-      },
-      tlsCertFile: "",
-      tlsKeyFile: ""
+      tls: { enabled: false, cert: "", key: "" },
+      upstream: { preferred: "8.8.8.8:53", fallback: ["1.1.1.1:53"] },
+      ports: { udptcp: 53, dot: 853, doh: 443 }
     },
     api: {
       port: 8080,
-      authentication: true
+      authentication: true,
+      rateLimit: { enabled: true, maxTries: 5, window: 5 }
     },
-    scheduledBlacklistUpdates: true,
-    statisticsRetention: 7,
-    loggingEnabled: true,
-    logLevel: 1,
-    inAppUpdate: false
+    logging: { enabled: true, level: 1 },
+    misc: {
+      inAppUpdate: false,
+      statisticsRetention: 7,
+      dashboard: true,
+      scheduledBlacklistUpdates: true
+    }
   });
+
   const originalPrefs = useRef("");
   const latestPreferences = useRef(preferences);
   const [isChanged, setIsChanged] = useState(false);
@@ -102,7 +180,10 @@ export function Settings() {
       if (status === 200) {
         const settings = {
           ...response,
-          logLevel: parseLogLevel(response.logLevel)
+          logging: {
+            ...response.logging,
+            level: parseLogLevel(response.logging.level)
+          }
         };
         setPreferences(settings);
         originalPrefs.current = JSON.stringify(settings);
@@ -123,24 +204,31 @@ export function Settings() {
     value: number | string | boolean
   ) => {
     setPreferences((prev) => {
-      let newPrefs = { ...prev };
-
-      const keyUpdaters = {
+      const updates: Record<string, () => Root> = {
         apiPort: () => ({ ...prev, api: { ...prev.api, port: Number(value) } }),
         authentication: () => ({
           ...prev,
-          api: { ...prev.api, authentication: value }
+          api: { ...prev.api, authentication: Boolean(value) }
         }),
 
-        dnsAddress: () => ({ ...prev, dns: { ...prev.dns, address: value } }),
-        dnsPort: () => ({ ...prev, dns: { ...prev.dns, port: Number(value) } }),
+        dnsAddress: () => ({
+          ...prev,
+          dns: { ...prev.dns, address: String(value) }
+        }),
+        dnsPort: () => ({
+          ...prev,
+          dns: {
+            ...prev.dns,
+            ports: { ...prev.dns.ports, udptcp: Number(value) }
+          }
+        }),
         dotPort: () => ({
           ...prev,
-          dns: { ...prev.dns, dotPort: Number(value) }
+          dns: { ...prev.dns, ports: { ...prev.dns.ports, dot: Number(value) } }
         }),
         dohPort: () => ({
           ...prev,
-          dns: { ...prev.dns, dohPort: Number(value) }
+          dns: { ...prev.dns, ports: { ...prev.dns.ports, doh: Number(value) } }
         }),
         cacheTTL: () => ({
           ...prev,
@@ -152,20 +240,37 @@ export function Settings() {
         }),
         tlsCertFile: () => ({
           ...prev,
-          dns: { ...prev.dns, tlsCertFile: value }
+          dns: { ...prev.dns, tls: { ...prev.dns.tls, cert: String(value) } }
         }),
         tlsKeyFile: () => ({
           ...prev,
-          dns: { ...prev.dns, tlsKeyFile: value }
+          dns: { ...prev.dns, tls: { ...prev.dns.tls, key: String(value) } }
         }),
 
-        logging: () => ({ ...prev, loggingEnabled: value }),
+        logLevel: () => ({
+          ...prev,
+          logging: { ...prev.logging, level: Number(value) }
+        }),
+        loggingEnabled: () => ({
+          ...prev,
+          logging: { ...prev.logging, enabled: Boolean(value) }
+        }),
+        statisticsRetention: () => ({
+          ...prev,
+          misc: { ...prev.misc, statisticsRetention: Number(value) }
+        }),
 
-        default: () => ({ ...prev, [key]: value })
+        scheduledBlacklistUpdates: () => ({
+          ...prev,
+          misc: { ...prev.misc, scheduledBlacklistUpdates: Boolean(value) }
+        }),
+        inAppUpdate: () => ({
+          ...prev,
+          misc: { ...prev.misc, inAppUpdate: Boolean(value) }
+        })
       };
 
-      newPrefs = keyUpdaters[key] ? keyUpdaters[key]() : keyUpdaters.default();
-      return newPrefs;
+      return updates[key] ? updates[key]() : prev;
     });
   };
 
@@ -189,7 +294,10 @@ export function Settings() {
       const currentPrefs = latestPreferences.current;
       await PostRequest("settings", {
         ...currentPrefs,
-        logLevel: parseLogLevel(currentPrefs.logLevel)
+        logging: {
+          ...currentPrefs.logging,
+          level: parseLogLevel(currentPrefs.logging.level)
+        }
       });
       originalPrefs.current = JSON.stringify(currentPrefs);
       setIsChanged(false);
@@ -219,9 +327,9 @@ export function Settings() {
   }, [isChanged, unsavedToastId, saveSettingsCallback]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file?.name.endsWith(".db")) {
-      setFile(file);
+    const uploadedFile = e.target.files?.[0];
+    if (uploadedFile?.name.endsWith(".db")) {
+      setFile(uploadedFile);
       setModals((prev) => ({ ...prev, importConfirm: true }));
     } else {
       toast.error("Please select a .db file");
@@ -260,13 +368,6 @@ export function Settings() {
       setFile(null);
       if (fileInput.current) fileInput.current.value = "";
     }
-  };
-
-  const formatBytes = (bytes: number) => {
-    if (!bytes) return "0 B";
-    const units = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
   };
 
   const exportDb = async () => {
@@ -358,8 +459,34 @@ export function Settings() {
     }
   };
 
-  if (loading.main)
+  const getSettingValue = (key: string): number | string | boolean => {
+    const valueMap: Record<string, number | string | boolean> = {
+      apiPort: preferences.api.port,
+      authentication: preferences.api.authentication,
+
+      dnsAddress: preferences.dns.address,
+      dnsPort: preferences.dns.ports.udptcp,
+      dotPort: preferences.dns.ports.dot,
+      dohPort: preferences.dns.ports.doh,
+      cacheTTL: preferences.dns.cacheTTL,
+      udpSize: preferences.dns.udpSize,
+      tlsCertFile: preferences.dns.tls.cert,
+      tlsKeyFile: preferences.dns.tls.key,
+
+      logLevel: preferences.logging.level,
+      loggingEnabled: preferences.logging.enabled,
+      statisticsRetention: preferences.misc.statisticsRetention,
+
+      scheduledBlacklistUpdates: preferences.misc.scheduledBlacklistUpdates,
+      inAppUpdate: preferences.misc.inAppUpdate
+    };
+
+    return valueMap[key] ?? "";
+  };
+
+  if (loading.main) {
     return <div className="container mx-auto py-8 text-center">Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto space-y-4 xl:w-1/2">
@@ -367,6 +494,7 @@ export function Settings() {
         Settings marked with an asterisk (*) require a full restart to take
         effect.
       </p>
+
       {SETTINGS_SECTIONS.map(({ title, description, icon, settings }) => (
         <Card key={title} className="p-4 gap-2">
           <CardTitle className="border-b-1 pb-1">
@@ -474,43 +602,25 @@ export function Settings() {
             )}
 
             {title === "Alerts" && (
-              <>
-                <SettingRow
-                  title="Configure"
-                  description="Set up how you receive notifications for important events."
-                  action={
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setModals((prev) => ({ ...prev, notifications: true }))
-                      }
-                    >
-                      Open
-                    </Button>
-                  }
-                />
-              </>
+              <SettingRow
+                title="Configure"
+                description="Set up how you receive notifications for important events."
+                action={
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setModals((prev) => ({ ...prev, notifications: true }))
+                    }
+                  >
+                    Open
+                  </Button>
+                }
+              />
             )}
 
             {settings.map(
               ({ label, key, explanation, options, widgetType: Widget }) => {
-                const keyMap = {
-                  apiPort: preferences?.api.port,
-                  authentication: preferences?.api.authentication,
-
-                  dnsAddress: preferences?.dns.address,
-                  dnsPort: preferences?.dns.port,
-                  dotPort: preferences?.dns.dotPort,
-                  dohPort: preferences?.dns.dohPort,
-                  cacheTTL: preferences?.dns.cacheTTL,
-                  udpSize: preferences?.dns.udpSize,
-                  tlsCertFile: preferences?.dns.tlsCertFile,
-                  tlsKeyFile: preferences?.dns.tlsKeyFile,
-
-                  logging: preferences?.loggingEnabled
-                };
-
-                const value = keyMap[key] ?? preferences[key];
+                const value = getSettingValue(key);
 
                 return (
                   <SettingRow
@@ -531,10 +641,7 @@ export function Settings() {
                             ? {
                                 checked: Boolean(value),
                                 onCheckedChange: (v: boolean) =>
-                                  handleSettingChange(
-                                    key === "logging" ? "loggingEnabled" : key,
-                                    v
-                                  )
+                                  handleSettingChange(key, v)
                               }
                             : {
                                 value: String(value),
@@ -705,23 +812,6 @@ const ImportModal = ({
     }
   }, [filename]);
 
-  const formatBytes = (bytes: number) => {
-    if (!bytes) return "0 B";
-    const units = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
-  };
-
-  const formatDate = (timestamp: number) =>
-    new Date(timestamp).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    });
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-xl">
@@ -731,7 +821,9 @@ const ImportModal = ({
             <p>
               Replace the current database with <strong>{filename}</strong>?
             </p>
-            A backup of your current database will be created.
+            <p className="mt-2">
+              A backup of your current database will be created.
+            </p>
             {fileDetails && (
               <div className="mt-4 p-2 rounded text-sm">
                 <p>
@@ -769,41 +861,6 @@ const ImportModal = ({
     </Dialog>
   );
 };
-
-export interface Root {
-  dns: Dns;
-  api: Api;
-  scheduledBlacklistUpdates: boolean;
-  statisticsRetention: number;
-  loggingEnabled: boolean;
-  logLevel: number;
-  inAppUpdate: boolean;
-}
-
-export interface Dns {
-  address: string;
-  port: number;
-  dotPort: number;
-  dohPort: number;
-  cacheTTL: number;
-  preferredUpstream: string;
-  upstreamDNS: string[];
-  udpSize: number;
-  status: Status;
-  tlsCertFile: string;
-  tlsKeyFile: string;
-}
-
-export interface Status {
-  paused: boolean;
-  pausedAt: string;
-  pauseTime: number;
-}
-
-export interface Api {
-  port: number;
-  authentication: boolean;
-}
 
 const SETTINGS_SECTIONS = [
   {
@@ -860,7 +917,7 @@ const SETTINGS_SECTIONS = [
       },
       {
         label: "Logging",
-        key: "logging",
+        key: "loggingEnabled",
         explanation: "Enable or disable logging across the system.",
         options: [true, false],
         default: true,

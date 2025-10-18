@@ -3,8 +3,10 @@ package models
 import "time"
 
 type Client struct {
-	Name, Mac, Vendor string
-	LastSeen          time.Time
+	LastSeen time.Time
+	Name     string
+	Mac      string
+	Vendor   string
 }
 
 type ClientDetails struct {
@@ -12,9 +14,13 @@ type ClientDetails struct {
 }
 
 type ClientRequestDetails struct {
-	TotalRequests, UniqueDomains, BlockedRequests, CachedRequests int
-	AvgResponseTimeMs                                             float64
-	LastSeen, MostQueriedDomain                                   string
+	LastSeen          string
+	MostQueriedDomain string
+	TotalRequests     int
+	UniqueDomains     int
+	BlockedRequests   int
+	CachedRequests    int
+	AvgResponseTimeMs float64
 }
 
 type Resolution struct {

@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"goaway/backend/audit"
-	"goaway/backend/dns/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -31,14 +30,14 @@ func (api *API) createResolution(c *gin.Context) {
 		return
 	}
 
-	err := database.CreateNewResolution(api.DBManager.Conn, newResolution.IP, newResolution.Domain)
+	err := api.ResolutionService.CreateResolution(newResolution.IP, newResolution.Domain)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	api.DNSServer.RemoveCachedDomain(newResolution.Domain)
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicResolution,
 		Message: fmt.Sprintf("Added new resolution '%s'", newResolution.Domain),
 	})
@@ -46,7 +45,7 @@ func (api *API) createResolution(c *gin.Context) {
 }
 
 func (api *API) getResolutions(c *gin.Context) {
-	resolutions, err := database.FetchResolutions(api.DBManager.Conn)
+	resolutions, err := api.ResolutionService.GetResolutions()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -59,7 +58,7 @@ func (api *API) deleteResolution(c *gin.Context) {
 	domain := c.Query("domain")
 	ip := c.Query("ip")
 
-	rowsAffected, err := database.DeleteResolution(api.DBManager.Conn, ip, domain)
+	rowsAffected, err := api.ResolutionService.DeleteResolution(ip, domain)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -74,7 +73,7 @@ func (api *API) deleteResolution(c *gin.Context) {
 
 	api.DNSServer.RemoveCachedDomain(domain)
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicResolution,
 		Message: fmt.Sprintf("Removed resolution '%s'", domain),
 	})

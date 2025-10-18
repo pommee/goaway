@@ -47,30 +47,36 @@ func GetDistinctRequestIP(db *gorm.DB) int {
 func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogIntervalSummary, error) {
 	minutes := interval * 60
 
-	var rawSummaries []model.RequestLogIntervalSummary
-	err := db.Table("request_logs").
-		Select(`
-			DATETIME((STRFTIME('%s', timestamp) / ?) * ?, 'unixepoch') AS interval_start,
+	type tempSummary struct {
+		IntervalStartUnix int64 `gorm:"column:interval_start_unix"`
+		BlockedCount      int   `gorm:"column:blocked_count"`
+		CachedCount       int   `gorm:"column:cached_count"`
+		AllowedCount      int   `gorm:"column:allowed_count"`
+	}
+
+	var rawSummaries []tempSummary
+
+	query := fmt.Sprintf(`
+		SELECT
+			((CAST(STRFTIME('%%s', timestamp) AS INTEGER) / %d) * %d) AS interval_start_unix,
 			SUM(blocked) AS blocked_count,
 			SUM(cached) AS cached_count,
 			SUM(NOT blocked AND NOT cached) AS allowed_count
-		`, minutes, minutes, minutes).
-		Where("timestamp >= DATETIME('now', '-1 day')").
-		Group("(STRFTIME('%s', timestamp) / ?)").
-		Order("interval_start").
-		Scan(&rawSummaries).Error
+		FROM request_logs
+		WHERE timestamp >= DATETIME('now', '-1 day')
+		GROUP BY (CAST(STRFTIME('%%s', timestamp) AS INTEGER) / %d)
+		ORDER BY interval_start_unix ASC
+	`, minutes, minutes, minutes)
+
+	err := db.Raw(query).Scan(&rawSummaries).Error
 	if err != nil {
 		return nil, err
 	}
 
 	summaries := make([]model.RequestLogIntervalSummary, len(rawSummaries))
 	for i := range rawSummaries {
-		t, err := time.Parse("2006-01-02 15:04:05", rawSummaries[i].IntervalStart)
-		if err != nil {
-			return nil, err
-		}
 		summaries[i] = model.RequestLogIntervalSummary{
-			IntervalStart: t.String(),
+			IntervalStart: time.Unix(rawSummaries[i].IntervalStartUnix, 0).Format("2006-01-02 15:04:05"),
 			BlockedCount:  rawSummaries[i].BlockedCount,
 			CachedCount:   rawSummaries[i].CachedCount,
 			AllowedCount:  rawSummaries[i].AllowedCount,
@@ -82,25 +88,36 @@ func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogI
 
 func GetResponseSizeSummaryByInterval(intervalMinutes int, db *gorm.DB) ([]model.ResponseSizeSummary, error) {
 	intervalSeconds := int64(intervalMinutes * 60)
-	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour).Unix()
+	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour)
 
 	var summaries []model.ResponseSizeSummary
 
 	query := `
+		WITH logs_unix AS (
+			SELECT
+				CAST(strftime('%s', timestamp) AS INTEGER) AS ts_unix,
+				response_size_bytes
+			FROM request_logs
+			WHERE timestamp >= ? AND response_size_bytes IS NOT NULL
+		)
 		SELECT
-			((strftime('%s', timestamp) / ?) * ?) AS start_unix,
+			(ts_unix / ?) * ? AS start_unix,
 			SUM(response_size_bytes) AS total_size_bytes,
 			ROUND(AVG(response_size_bytes)) AS avg_response_size_bytes,
 			MIN(response_size_bytes) AS min_response_size_bytes,
 			MAX(response_size_bytes) AS max_response_size_bytes
-		FROM request_logs
-		WHERE strftime('%s', timestamp) >= ? AND response_size_bytes IS NOT NULL
-		GROUP BY (strftime('%s', timestamp) / ?)
+		FROM logs_unix
+		GROUP BY ts_unix / ?
 		ORDER BY start_unix ASC
 	`
 
-	err := db.Raw(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds).
-		Scan(&summaries).Error
+	err := db.Raw(query,
+		twentyFourHoursAgo,
+		intervalSeconds,
+		intervalSeconds,
+		intervalSeconds,
+	).Scan(&summaries).Error
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to query response size summary: %w", err)
 	}
@@ -134,8 +151,8 @@ func GetUniqueQueryTypes(db *gorm.DB) ([]interface{}, error) {
 	var queries []any
 	for rows.Next() {
 		query := struct {
-			Count     int    `json:"count"`
 			QueryType string `json:"queryType"`
+			Count     int    `json:"count"`
 		}{}
 
 		if err := rows.Scan(&query.Count, &query.QueryType); err != nil {
@@ -191,7 +208,7 @@ func FetchQueries(db *gorm.DB, q models.QueryParams) ([]model.RequestLogEntry, e
 	results := make([]model.RequestLogEntry, len(logs))
 	for i, log := range logs {
 		results[i] = model.RequestLogEntry{
-			ID:                int64(log.ID),
+			ID:                log.ID,
 			Timestamp:         log.Timestamp,
 			Domain:            log.Domain,
 			Blocked:           log.Blocked,
@@ -403,7 +420,7 @@ func SaveRequestLog(db *gorm.DB, entries []model.RequestLogEntry) error {
 			}
 
 			if err := tx.Create(&rl).Error; err != nil {
-				return fmt.Errorf("could not save request log: %v", err)
+				return fmt.Errorf("could not save request log: %w", err)
 			}
 		}
 		return nil

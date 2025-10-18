@@ -2,6 +2,14 @@ import { toast } from "sonner";
 
 let lastToastMessage: string | null = null;
 
+declare global {
+  interface Window {
+    SERVER_CONFIG?: {
+      port: number;
+    };
+  }
+}
+
 export const getApiBaseUrl = () => {
   const serverIP = document.location.origin;
 

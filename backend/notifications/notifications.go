@@ -7,7 +7,7 @@ import (
 )
 
 type Manager struct {
-	dbManager *database.DatabaseManager
+	dbManager *database.Manager
 }
 
 type Severity string
@@ -31,17 +31,17 @@ const (
 )
 
 type Notification struct {
-	Id        int       `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
 	Severity  Severity  `json:"severity"`
 	Category  Category  `json:"category"`
 	Text      string    `json:"text"`
+	Id        int       `json:"id"`
 	Read      bool      `json:"read"`
-	CreatedAt time.Time `json:"createdAt"`
 }
 
 var logger = logging.GetLogger()
 
-func NewNotificationManager(dbManager *database.DatabaseManager) *Manager {
+func NewNotificationManager(dbManager *database.Manager) *Manager {
 	return &Manager{dbManager: dbManager}
 }
 

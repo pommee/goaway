@@ -129,8 +129,8 @@ export default function DNSServerVisualizer() {
   const [viewSettings, setViewSettings] = useState<ViewSettings>({
     clusterBySubnet: false,
     hideInactiveClients: false,
-    minNodeSize: 3,
-    maxNodeSize: 12,
+    minNodeSize: 2,
+    maxNodeSize: 10,
     showLabels: true,
     activityThresholdMinutes: 60
   });
@@ -319,14 +319,14 @@ export default function DNSServerVisualizer() {
         id: "dns-server",
         name: "DNS Server",
         type: "server",
-        color: "#3b82f6",
+        color: "cornflowerblue",
         size: viewSettings.maxNodeSize
       },
       {
         id: "upstream",
         name: "Upstream",
         type: "server",
-        color: "#008000",
+        color: "teal",
         size: viewSettings.maxNodeSize
       }
     ];
