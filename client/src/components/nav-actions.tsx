@@ -143,7 +143,11 @@ function CheckForUpdate() {
   });
 }
 
-export default function PauseBlockingDialog() {
+export default function PauseBlockingDialog({
+  onClose
+}: {
+  onClose: () => void;
+}) {
   type PausedResponse = {
     paused: boolean;
     timeLeft: number;
@@ -268,7 +272,11 @@ export default function PauseBlockingDialog() {
           </div>
 
           <DialogFooter className="flex justify-end gap-2">
-            <Button variant="outline" className="border-gray-300">
+            <Button
+              variant="outline"
+              className="border-gray-300"
+              onClick={onClose}
+            >
               Cancel
             </Button>
             <Button
@@ -299,8 +307,12 @@ export default function PauseBlockingDialog() {
 export function NavActions() {
   const [isOpen, setIsOpen] = useState(false);
   const [DialogComponent, setDialogComponent] = useState<
-    null | (() => JSX.Element)
+    null | ((props: { onClose: () => void }) => JSX.Element)
   >(null);
+
+  const closeDialog = () => {
+    setDialogComponent(null);
+  };
 
   return (
     <div>
@@ -354,7 +366,7 @@ export function NavActions() {
             if (!open) setDialogComponent(null);
           }}
         >
-          <DialogComponent />
+          <DialogComponent onClose={closeDialog} />
         </Dialog>
       )}
     </div>
