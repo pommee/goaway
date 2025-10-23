@@ -11,9 +11,9 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { NoContent } from "@/shared";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
-  ClockIcon,
   DatabaseIcon,
   GlobeIcon,
   PlusIcon,
@@ -52,27 +52,26 @@ async function DeleteWhitelistedDomain(domain: string) {
 }
 
 export function Whitelist() {
-  const [whitelistedDomains, setwhitelistedDomains] = useState<string[]>([]);
+  const [whitelistedDomains, setWhitelistedDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [domainName, setDomainName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchWhitelistedDomains = async () => {
-    setLoading(true);
-    const [code, response] = await GetRequest("whitelist");
-    if (code !== 200) {
-      toast.error("Unable to fetch whitelisted domains");
-      setLoading(false);
-      return;
-    }
-
-    setwhitelistedDomains(response || []);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchWhitelistedDomains();
+    const loadDomains = async () => {
+      setLoading(true);
+      const [code, data] = await GetRequest("whitelist");
+      if (code !== 200) {
+        toast.error("Unable to fetch whitelisted domains");
+        setWhitelistedDomains([]);
+      } else {
+        setWhitelistedDomains(data || []);
+      }
+      setLoading(false);
+    };
+
+    loadDomains();
   }, []);
 
   const handleSave = async () => {
@@ -84,7 +83,7 @@ export function Whitelist() {
     setSubmitting(true);
     const success = await CreateWhitelistedDomain(domainName);
     if (success) {
-      await fetchWhitelistedDomains();
+      setWhitelistedDomains(whitelistedDomains.concat(domainName));
       setDomainName("");
     }
     setSubmitting(false);
@@ -93,7 +92,9 @@ export function Whitelist() {
   const handleDelete = async (domain: string) => {
     const success = await DeleteWhitelistedDomain(domain);
     if (success) {
-      await fetchWhitelistedDomains();
+      setWhitelistedDomains((prev) => prev.filter((d) => d !== domain));
+    } else {
+      toast.error(`Failed to remove ${domain}`);
     }
   };
 
@@ -241,14 +242,12 @@ export function Whitelist() {
               </Table>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center">
-                <ClockIcon className="h-12 w-12 mb-4" />
-                <h3 className="text-lg font-medium">
-                  No whitelisted domains found
-                </h3>
                 <p className="text-muted-foreground mt-1">
-                  {searchTerm
-                    ? "No matching entries for your search"
-                    : "Add a whitelisted domain to get started"}
+                  {searchTerm ? (
+                    "No matching entries for your search"
+                  ) : (
+                    <NoContent text="Add a whitelisted domain to get started" />
+                  )}
                 </p>
               </div>
             )}

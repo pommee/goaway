@@ -1,7 +1,7 @@
 import { AddUpstream } from "@/app/upstream/addUpstream";
 import { UpstreamCard } from "@/app/upstream/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GetRequest } from "@/util";
-import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -17,16 +17,16 @@ export type UpstreamEntry = {
 export function Upstream() {
   const [upstreams, setUpstreams] = useState<UpstreamEntry[]>([]);
 
-  const fetchupstreams = async () => {
-    const [code, response] = await GetRequest("upstreams");
-    if (code !== 200) {
-      toast.warning("Unable to fetch upstreams");
-      return;
-    }
-    setUpstreams(response.upstreams);
-  };
-
   useEffect(() => {
+    const fetchupstreams = async () => {
+      const [code, response] = await GetRequest("upstreams");
+      if (code !== 200) {
+        toast.warning("Unable to fetch upstreams");
+        return;
+      }
+      setUpstreams(response.upstreams);
+    };
+
     fetchupstreams();
   }, []);
 
@@ -57,13 +57,23 @@ export function Upstream() {
           ))}
         </div>
       )) || (
-        <div className="flex justify-center items-center">
-          <div className="flex flex-col items-center space-y-4">
-            <ArrowClockwiseIcon className="w-12 h-12 text-blue-400 animate-spin" />
-            <p className="text-lg text-stone-400">Loading upstreams...</p>
-          </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 mt-6">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       )}
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="flex flex-col space-y-3">
+      <Skeleton className="h-[200px] w-[380px] rounded-xl" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-[200px]" />
+      </div>
     </div>
   );
 }

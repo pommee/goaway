@@ -7,6 +7,7 @@ import { XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
 import { CardDetails } from "./details";
+import { toast } from "sonner";
 
 interface ClientEntry {
   ip: string;
@@ -129,8 +130,8 @@ export default function DNSServerVisualizer() {
   const [viewSettings, setViewSettings] = useState<ViewSettings>({
     clusterBySubnet: false,
     hideInactiveClients: false,
-    minNodeSize: 3,
-    maxNodeSize: 12,
+    minNodeSize: 2,
+    maxNodeSize: 10,
     showLabels: true,
     activityThresholdMinutes: 60
   });
@@ -235,7 +236,7 @@ export default function DNSServerVisualizer() {
         setError(
           err instanceof Error ? err.message : "Failed to fetch clients"
         );
-        console.error("Error fetching clients:", err);
+        toast.warning("Error fetching clients", { description: `${err}` });
       }
     };
 
@@ -289,7 +290,9 @@ export default function DNSServerVisualizer() {
           });
         }
       } catch (error) {
-        console.error("Error handling WebSocket message:", error);
+        toast.warning("Error handling WebSocket message", {
+          description: `${error}`
+        });
       }
     };
 
@@ -319,14 +322,14 @@ export default function DNSServerVisualizer() {
         id: "dns-server",
         name: "DNS Server",
         type: "server",
-        color: "#3b82f6",
+        color: "cornflowerblue",
         size: viewSettings.maxNodeSize
       },
       {
         id: "upstream",
         name: "Upstream",
         type: "server",
-        color: "#008000",
+        color: "teal",
         size: viewSettings.maxNodeSize
       }
     ];
@@ -557,7 +560,7 @@ export default function DNSServerVisualizer() {
 
       <div
         ref={containerRef}
-        className="rounded-xl shadow-md p-4 w-full border-1 dark:bg-accent"
+        className="rounded-xl shadow-md p-4 w-full border dark:bg-accent"
       >
         <div className="grid grid-cols-4 gap-2 text-sm mb-4">
           {[
@@ -583,7 +586,7 @@ export default function DNSServerVisualizer() {
               ).length
             }
           ].map(({ label, plural, value }) => (
-            <div key={label} className="rounded-lg py-0.5 text-center border-1">
+            <div key={label} className="rounded-lg py-0.5 text-center border">
               <p className="text-sm font-medium">{value}</p>
               <p className="text-xs text-muted-foreground">
                 {value === 1 ? label : plural}

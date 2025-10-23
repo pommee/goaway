@@ -92,10 +92,7 @@ export function UpdateCustom() {
           <div className="space-y-6">
             <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
               <div className="flex items-start gap-3">
-                <InfoIcon
-                  size={20}
-                  className="text-primary mt-0.5 flex-shrink-0"
-                />
+                <InfoIcon size={20} className="text-primary mt-0.5 shrink-0" />
                 <p className="text-sm text-primary">
                   Add domain names (one per line) to your custom blocklist.
                   These domains will be automatically blocked across your

@@ -2,23 +2,27 @@ import { toast } from "sonner";
 
 let lastToastMessage: string | null = null;
 
+declare global {
+  interface Window {
+    SERVER_CONFIG?: {
+      port: number;
+    };
+  }
+}
+
 export const getApiBaseUrl = () => {
   const serverIP = document.location.origin;
 
   if (typeof window !== "undefined" && window.SERVER_CONFIG) {
-    const newBaseUrl = serverIP.replace(
-      /:\d+$/,
-      ":" + window.SERVER_CONFIG.port
-    );
-    return newBaseUrl;
+    return serverIP.replace(/:\d+$/, ":" + window.SERVER_CONFIG.port);
   }
 
   return "http://localhost:8080";
 };
 
-const showToast = (message: string) => {
+const showToast = (message: string, id: string) => {
   if (lastToastMessage !== message) {
-    toast.warning("Warning", { description: message });
+    toast.warning("Warning", { id: id, description: message });
     lastToastMessage = message;
 
     setTimeout(() => {
@@ -60,7 +64,7 @@ export async function PostRequest(
       }
       const data = await tryParseJson();
       if (ignoreError !== true) {
-        showToast(data.error || "Unknown error occurred");
+        showToast(data.error || "Unknown error occurred", "api-error");
       }
       return [res.status, data];
     }
@@ -68,7 +72,7 @@ export async function PostRequest(
     const data = await tryParseJson();
     return [res.status, data];
   } catch {
-    showToast("Could not reach server, try again later.");
+    showToast("Could not reach server, try again later.", "server-unreachable");
     return [500, null];
   }
 }
@@ -83,7 +87,7 @@ export async function GetRequest(url: string, ignoreError?: boolean) {
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error);
+        showToast(data.error, "api-error");
       }
       return [res.status, data.error];
     }
@@ -96,7 +100,7 @@ export async function GetRequest(url: string, ignoreError?: boolean) {
     }
     return [res.status, data];
   } catch {
-    showToast("Could not reach server, try again later.");
+    showToast("Could not reach server, try again later.", "server-unreachable");
     return [500, null];
   }
 }
@@ -112,7 +116,7 @@ export async function PatchRequest(url: string, ignoreError?: boolean) {
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error);
+        showToast(data.error, "api-error");
       }
       return [res.status, data.error];
     }
@@ -125,7 +129,7 @@ export async function PatchRequest(url: string, ignoreError?: boolean) {
     }
     return [res.status, data];
   } catch {
-    showToast("Could not reach server, try again later.");
+    showToast("Could not reach server, try again later.", "server-unreachable");
     return [500, null];
   }
 }
@@ -149,7 +153,7 @@ export async function PutRequest(
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error);
+        showToast(data.error, "api-error");
       }
       return [res.status, data.error];
     }
@@ -162,7 +166,7 @@ export async function PutRequest(
     }
     return [res.status, data];
   } catch {
-    showToast("Could not reach server, try again later.");
+    showToast("Could not reach server, try again later.", "server-unreachable");
     return [500, null];
   }
 }
@@ -183,7 +187,7 @@ export async function DeleteRequest(
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error);
+        showToast(data.error, "api-error");
       }
       return [res.status, null];
     }
@@ -196,7 +200,7 @@ export async function DeleteRequest(
     }
     return [res.status, data];
   } catch {
-    showToast("Could not reach server, try again later.");
+    showToast("Could not reach server, try again later.", "server-unreachable");
     return [500, null];
   }
 }
