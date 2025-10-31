@@ -1,5 +1,3 @@
-# GoAway - DNS Sinkhole
-
 ![GitHub Release](https://img.shields.io/github/v/release/pommee/goaway)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pommee/goaway/release.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/pommee/goaway/total?color=cornflowerblue)
@@ -7,7 +5,7 @@
 
 A lightweight DNS sinkhole for blocking unwanted domains at the network level. Block ads, trackers, and malicious domains before they reach your devices.
 
-![goaway Dashboard Preview](./resources/dashboard.png)
+![goaway banner](./resources/preview.png)
 
 **[View more screenshots](./resources/PREVIEW.md)**
 

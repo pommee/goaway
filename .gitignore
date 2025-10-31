@@ -2,7 +2,7 @@ tmp
 requests.json
 counters.json
 main
-goaway*
+goaway
 *.db**
 .vite
 dist
@@ -38,3 +38,5 @@ benchmark.prof
 
 *.crt
 *.key
+
+docs/site/**

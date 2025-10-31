@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { NoContent } from "@/shared";
 import { GetRequest } from "@/util";
 import { SetStateAction, useEffect, useState } from "react";
 import {
@@ -144,12 +145,7 @@ export default function RequestTypeChart() {
         </CardContent>
       ) : (
         <CardContent className="flex h-[200px] items-center justify-center">
-          <div className="text-center">
-            <p className="text-sm font-medium">No data available</p>
-            <p className="text-xs text-muted-foreground">
-              No query types have yet been identified
-            </p>
-          </div>
+          <NoContent text={"No query types has been identified"} />
         </CardContent>
       )}
     </Card>

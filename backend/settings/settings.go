@@ -3,61 +3,16 @@ package settings
 import (
 	"crypto/tls"
 	"fmt"
-	"goaway/backend/api/ratelimit"
 	"goaway/backend/logging"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 var log = logging.GetLogger()
-
-type Status struct {
-	Paused    bool      `json:"paused"`
-	PausedAt  time.Time `json:"pausedAt"`
-	PauseTime int       `json:"pauseTime"`
-}
-
-type DNSConfig struct {
-	Address           string   `yaml:"address" json:"address"`
-	Port              int      `yaml:"port" json:"port"`
-	DoTPort           int      `yaml:"dotPort" json:"dotPort"`
-	DoHPort           int      `yaml:"dohPort" json:"dohPort"`
-	CacheTTL          int      `yaml:"cacheTTL" json:"cacheTTL"`
-	PreferredUpstream string   `yaml:"preferredUpstream" json:"preferredUpstream"`
-	Gateway           string   `yaml:"gateway" json:"gateway"`
-	UpstreamDNS       []string `yaml:"upstreamDNS" json:"upstreamDNS"`
-	UDPSize           int      `yaml:"udpSize" json:"udpSize"`
-	Status            Status   `yaml:"-" json:"status"`
-
-	TLSCertFile string `yaml:"tlsCertFile" json:"tlsCertFile"`
-	TLSKeyFile  string `yaml:"tlsKeyFile" json:"tlsKeyFile"`
-}
-
-type APIConfig struct {
-	Port              int                         `yaml:"port" json:"port"`
-	Authentication    bool                        `yaml:"authentication" json:"authentication"`
-	RateLimiterConfig ratelimit.RateLimiterConfig `yaml:"rateLimit" json:"-"`
-}
-
-type Config struct {
-	DNS DNSConfig `yaml:"dns" json:"dns"`
-	API APIConfig `yaml:"api" json:"api"`
-
-	Dashboard                 bool             `yaml:"dashboard" json:"-"`
-	ScheduledBlacklistUpdates bool             `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
-	StatisticsRetention       int              `yaml:"statisticsRetention" json:"statisticsRetention"`
-	LoggingEnabled            bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
-	LogLevel                  logging.LogLevel `yaml:"logLevel" json:"logLevel"`
-	InAppUpdate               bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
-
-	// settings not visible in config file
-	BinaryPath string `yaml:"-" json:"-"`
-}
 
 func LoadSettings() (Config, error) {
 	var config Config
@@ -74,6 +29,7 @@ func LoadSettings() (Config, error) {
 		if err != nil {
 			return Config{}, err
 		}
+		return config, nil
 	}
 
 	data, err := os.ReadFile(path)
@@ -81,41 +37,8 @@ func LoadSettings() (Config, error) {
 		return Config{}, fmt.Errorf("could not read settings file: %w", err)
 	}
 
-	type configWithPtr struct {
-		DNS                       DNSConfig        `yaml:"dns" json:"dns"`
-		API                       APIConfig        `yaml:"api" json:"api"`
-		Dashboard                 *bool            `yaml:"dashboard" json:"-"`
-		ScheduledBlacklistUpdates *bool            `yaml:"scheduledBlacklistUpdates" json:"scheduledBlacklistUpdates"`
-		StatisticsRetention       int              `yaml:"statisticsRetention" json:"statisticsRetention"`
-		LoggingEnabled            bool             `yaml:"loggingEnabled" json:"loggingEnabled"`
-		LogLevel                  logging.LogLevel `yaml:"logLevel" json:"logLevel"`
-		InAppUpdate               bool             `yaml:"inAppUpdate" json:"inAppUpdate"`
-	}
-
-	var temp configWithPtr
-	if err := yaml.Unmarshal(data, &temp); err != nil {
+	if err := yaml.Unmarshal(data, &config); err != nil {
 		return Config{}, fmt.Errorf("invalid settings format: %w", err)
-	}
-
-	config.DNS = temp.DNS
-	config.API = temp.API
-	config.StatisticsRetention = temp.StatisticsRetention
-	config.LoggingEnabled = temp.LoggingEnabled
-	config.LogLevel = temp.LogLevel
-	config.InAppUpdate = temp.InAppUpdate
-
-	if temp.Dashboard == nil {
-		// true by default if the Dashboard field was not found in settings.yaml
-		config.Dashboard = true
-	} else {
-		config.Dashboard = *temp.Dashboard
-	}
-
-	if temp.ScheduledBlacklistUpdates == nil {
-		// false by default if the ScheduledBlacklistUpdates field was not found in settings.yaml
-		config.ScheduledBlacklistUpdates = false
-	} else {
-		config.ScheduledBlacklistUpdates = *temp.ScheduledBlacklistUpdates
 	}
 
 	binaryPath, err := os.Executable()
@@ -127,34 +50,83 @@ func LoadSettings() (Config, error) {
 	return config, nil
 }
 
+func (config *Config) Save() {
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		log.Error("Could not parse settings %v", err)
+		return
+	}
+
+	if err := os.WriteFile("./config/settings.yaml", data, 0644); err != nil {
+		log.Error("Could not save settings %v", err)
+	}
+}
+
+func (config *Config) Update(updatedSettings Config) {
+	config.API.Port = updatedSettings.API.Port
+	config.API.Authentication = updatedSettings.API.Authentication
+	config.API.RateLimit = updatedSettings.API.RateLimit
+
+	config.DNS.Address = updatedSettings.DNS.Address
+	config.DNS.Ports = updatedSettings.DNS.Ports
+	config.DNS.UDPSize = updatedSettings.DNS.UDPSize
+	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
+	config.DNS.TLS = updatedSettings.DNS.TLS
+	config.DNS.Upstream = updatedSettings.DNS.Upstream
+
+	config.Logging = updatedSettings.Logging
+	config.Misc = updatedSettings.Misc
+
+	log.ToggleLogging(config.Logging.Enabled)
+	log.SetLevel(logging.LogLevel(config.Logging.Level))
+
+	config.Save()
+}
+
 func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig := Config{
-		StatisticsRetention: 7,
-		LoggingEnabled:      true,
-		LogLevel:            logging.INFO,
-		InAppUpdate:         false,
+		DNS: DNSConfig{
+			Address:  "0.0.0.0",
+			Gateway:  getDefaultGateway(),
+			CacheTTL: 3600,
+			UDPSize:  512,
+			TLS: TLSConfig{
+				Enabled: false,
+				Cert:    "",
+				Key:     "",
+			},
+			Upstream: UpstreamConfig{
+				Preferred: "8.8.8.8:53",
+				Fallback: []string{
+					"1.1.1.1:53",
+				},
+			},
+			Ports: PortsConfig{
+				TCPUDP: getEnvAsIntWithDefault("DNS_PORT", 53),
+				DoT:    getEnvAsIntWithDefault("DOT_PORT", 853),
+				DoH:    getEnvAsIntWithDefault("DOH_PORT", 443),
+			},
+		},
+		API: APIConfig{
+			Port:           getEnvAsIntWithDefault("WEBSITE_PORT", 8080),
+			Authentication: true,
+			RateLimit: RateLimitConfig{
+				Enabled:  true,
+				MaxTries: 5,
+				Window:   5,
+			},
+		},
+		Logging: LoggingConfig{
+			Enabled: true,
+			Level:   int(logging.INFO),
+		},
+		Misc: MiscConfig{
+			InAppUpdate:               false,
+			StatisticsRetention:       7,
+			Dashboard:                 true,
+			ScheduledBlacklistUpdates: true,
+		},
 	}
-
-	defaultConfig.DNS.Address = "0.0.0.0"
-	defaultConfig.DNS.Port = GetEnvAsIntWithDefault("DNS_PORT", 53)
-	defaultConfig.DNS.DoTPort = GetEnvAsIntWithDefault("DOT_PORT", 853)
-	defaultConfig.DNS.DoHPort = GetEnvAsIntWithDefault("DOH_PORT", 443)
-	defaultConfig.DNS.CacheTTL = 3600
-	defaultConfig.DNS.PreferredUpstream = "8.8.8.8:53"
-	defaultConfig.DNS.Gateway = GetDefaultGateway()
-	defaultConfig.DNS.UpstreamDNS = []string{
-		"1.1.1.1:53",
-		"8.8.8.8:53",
-	}
-	defaultConfig.DNS.UDPSize = 512
-	defaultConfig.DNS.TLSCertFile = ""
-	defaultConfig.DNS.TLSKeyFile = ""
-
-	defaultConfig.Dashboard = true
-	defaultConfig.ScheduledBlacklistUpdates = true
-	defaultConfig.API.Port = GetEnvAsIntWithDefault("WEBSITE_PORT", 8080)
-	defaultConfig.API.Authentication = true
-	defaultConfig.API.RateLimiterConfig = ratelimit.RateLimiterConfig{Enabled: true, MaxTries: 5, Window: 5}
 
 	data, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
@@ -174,45 +146,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 	return defaultConfig, nil
 }
 
-func (config *Config) Save() {
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		log.Error("Could not parse settings %v", err)
-		return
-	}
-
-	if err := os.WriteFile("./config/settings.yaml", data, 0644); err != nil {
-		log.Error("Could not save settings %v", err)
-	}
-}
-
-func (config *Config) UpdateSettings(updatedSettings Config) {
-	config.API.Port = updatedSettings.API.Port
-	config.API.Authentication = updatedSettings.API.Authentication
-
-	config.DNS.Address = updatedSettings.DNS.Address
-	config.DNS.Port = updatedSettings.DNS.Port
-	config.DNS.DoTPort = updatedSettings.DNS.DoTPort
-	config.DNS.DoHPort = updatedSettings.DNS.DoHPort
-	config.DNS.UDPSize = updatedSettings.DNS.UDPSize
-	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
-	config.DNS.TLSCertFile = updatedSettings.DNS.TLSCertFile
-	config.DNS.TLSKeyFile = updatedSettings.DNS.TLSKeyFile
-
-	config.LogLevel = updatedSettings.LogLevel
-	config.StatisticsRetention = updatedSettings.StatisticsRetention
-	config.LoggingEnabled = updatedSettings.LoggingEnabled
-
-	config.ScheduledBlacklistUpdates = updatedSettings.ScheduledBlacklistUpdates
-	config.InAppUpdate = updatedSettings.InAppUpdate
-
-	log.ToggleLogging(config.LoggingEnabled)
-	log.SetLevel(config.LogLevel)
-
-	config.Save()
-}
-
-func GetEnvAsIntWithDefault(envVariable string, defaultValue int) int {
+func getEnvAsIntWithDefault(envVariable string, defaultValue int) int {
 	val, found := os.LookupEnv(envVariable)
 	if !found {
 		return defaultValue
@@ -227,10 +161,10 @@ func GetEnvAsIntWithDefault(envVariable string, defaultValue int) int {
 }
 
 func (config *Config) GetCertificate() (tls.Certificate, error) {
-	if config.DNS.TLSCertFile != "" && config.DNS.TLSKeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(config.DNS.TLSCertFile, config.DNS.TLSKeyFile)
+	if config.DNS.TLS.Enabled && config.DNS.TLS.Cert != "" && config.DNS.TLS.Key != "" {
+		cert, err := tls.LoadX509KeyPair(config.DNS.TLS.Cert, config.DNS.TLS.Key)
 		if err != nil {
-			return tls.Certificate{}, fmt.Errorf("failed to load TLS certificate: %s", err)
+			return tls.Certificate{}, fmt.Errorf("failed to load TLS certificate: %w", err)
 		}
 
 		return cert, nil
@@ -239,7 +173,7 @@ func (config *Config) GetCertificate() (tls.Certificate, error) {
 	return tls.Certificate{}, nil
 }
 
-func GetDefaultGateway() string {
+func getDefaultGateway() string {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return "192.168.0.1:53"

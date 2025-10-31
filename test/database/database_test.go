@@ -1,9 +1,7 @@
 package database
 
 import (
-	"goaway/backend/dns/database"
-	"os"
-	"path/filepath"
+	"goaway/backend/database"
 	"strings"
 	"testing"
 	"time"
@@ -15,10 +13,7 @@ import (
 )
 
 func setupTestDB(t *testing.T) (*gorm.DB, func()) {
-	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, "test.db")
-
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
 	err = database.AutoMigrate(db)
@@ -29,7 +24,6 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		if sqlDB != nil {
 			sqlDB.Close()
 		}
-		os.RemoveAll(tmpDir)
 	}
 
 	return db, cleanup
@@ -44,7 +38,7 @@ func TestSourceModel(t *testing.T) {
 			Name:        "Test Source",
 			URL:         "https://example.com/blocklist",
 			Active:      true,
-			LastUpdated: time.Now().Unix(),
+			LastUpdated: time.Now(),
 		}
 
 		err := db.Create(source).Error
@@ -72,6 +66,7 @@ func TestSourceModel(t *testing.T) {
 
 		err = db.Create(source2).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 
 	t.Run("QuerySource", func(t *testing.T) {
@@ -82,7 +77,7 @@ func TestSourceModel(t *testing.T) {
 			Name:        "Query Test Source",
 			URL:         "https://querytest.com",
 			Active:      true,
-			LastUpdated: time.Now().Unix(),
+			LastUpdated: time.Now(),
 		}
 
 		err := db.Create(source).Error
@@ -109,7 +104,7 @@ func TestSourceModel(t *testing.T) {
 		require.NoError(t, err)
 
 		source.Active = true
-		source.LastUpdated = time.Now().Unix()
+		source.LastUpdated = time.Now()
 
 		err = db.Save(source).Error
 		require.NoError(t, err)
@@ -211,6 +206,7 @@ func TestBlacklistModel(t *testing.T) {
 
 		err = db.Create(blacklist3).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 }
 
@@ -241,6 +237,7 @@ func TestWhitelistModel(t *testing.T) {
 
 		err = db.Create(whitelist2).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 }
 
@@ -262,8 +259,8 @@ func TestRequestLogModel(t *testing.T) {
 			ResponseSizeBytes: 64,
 			Protocol:          "UDP",
 			IPs: []database.RequestLogIP{
-				{IP: "11.222.333.44", RType: "A"},
-				{IP: "1111:2222:333:4:555:6666:7777:8888", RType: "AAAA"},
+				{IP: "11.222.333.44", RecordType: "A"},
+				{IP: "1111:2222:333:4:555:6666:7777:8888", RecordType: "AAAA"},
 			},
 		}
 
@@ -289,7 +286,7 @@ func TestRequestLogModel(t *testing.T) {
 			ClientIP:  "111.222.33.4",
 			QueryType: "A",
 			IPs: []database.RequestLogIP{
-				{IP: "111.222.33.4", RType: "A"},
+				{IP: "111.222.33.4", RecordType: "A"},
 			},
 		}
 
@@ -315,8 +312,8 @@ func TestRequestLogModel(t *testing.T) {
 			ClientIP:  "10.0.0.1",
 			QueryType: "A",
 			IPs: []database.RequestLogIP{
-				{IP: "111.222.33.4", RType: "A"},
-				{IP: "444.333.22.111", RType: "A"},
+				{IP: "111.222.33.4", RecordType: "A"},
+				{IP: "444.333.22.111", RecordType: "A"},
 			},
 		}
 
@@ -439,6 +436,7 @@ func TestMacAddressModel(t *testing.T) {
 
 		err = db.Create(mac2).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 }
 
@@ -476,6 +474,7 @@ func TestUserModel(t *testing.T) {
 
 		err = db.Create(user2).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 }
 
@@ -569,9 +568,9 @@ func TestPrefetchModel(t *testing.T) {
 		defer cleanup()
 
 		prefetch := &database.Prefetch{
-			Domain:  "frequent.com",
-			Refresh: 300,
-			QType:   1,
+			Domain:    "frequent.com",
+			Refresh:   300,
+			QueryType: 1,
 		}
 
 		err := db.Create(prefetch).Error
@@ -583,9 +582,9 @@ func TestPrefetchModel(t *testing.T) {
 		defer cleanup()
 
 		prefetches := []*database.Prefetch{
-			{Domain: "a-record.com", Refresh: 300, QType: 1},
-			{Domain: "aaaa-record.com", Refresh: 300, QType: 28},
-			{Domain: "mx-record.com", Refresh: 600, QType: 15},
+			{Domain: "a-record.com", Refresh: 300, QueryType: 1},
+			{Domain: "aaaa-record.com", Refresh: 300, QueryType: 28},
+			{Domain: "mx-record.com", Refresh: 600, QueryType: 15},
 		}
 
 		for _, pf := range prefetches {
@@ -594,7 +593,7 @@ func TestPrefetchModel(t *testing.T) {
 		}
 
 		var aRecords []database.Prefetch
-		err := db.Where("q_type = ?", 1).Find(&aRecords).Error
+		err := db.Where("query_type = ?", 1).Find(&aRecords).Error
 		require.NoError(t, err)
 		assert.Len(t, aRecords, 1)
 		assert.Equal(t, "a-record.com", aRecords[0].Domain)
@@ -700,6 +699,7 @@ func TestAlertModel(t *testing.T) {
 
 		err = db.Create(alert2).Error
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
 	})
 }
 
