@@ -2,14 +2,13 @@ package server
 
 import (
 	"encoding/json"
-	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-const BatchSize = 1000
+const batchSize = 1000
 
 func (s *DNSServer) ProcessLogEntries() {
 	var batch []model.RequestLogEntry
@@ -26,7 +25,7 @@ func (s *DNSServer) ProcessLogEntries() {
 			}
 
 			batch = append(batch, entry)
-			if len(batch) >= BatchSize {
+			if len(batch) >= batchSize {
 				s.saveBatch(batch)
 				batch = nil
 			}
@@ -40,14 +39,13 @@ func (s *DNSServer) ProcessLogEntries() {
 }
 
 func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
-	s.DBManager.Mutex.Lock()
-	err := database.SaveRequestLog(s.DBManager.Conn, entries)
-	s.DBManager.Mutex.Unlock()
+	err := s.RequestService.SaveRequestLog(entries)
 	if err != nil {
 		log.Warning("Error while saving logs, reason: %v", err)
 	}
 }
 
+// Removes old log entries based on the configured retention period.
 func (s *DNSServer) ClearOldEntries() {
 	const (
 		maxRetries      = 10
@@ -56,10 +54,10 @@ func (s *DNSServer) ClearOldEntries() {
 	)
 
 	for {
-		requestThreshold := ((60 * 60) * 24) * s.Config.StatisticsRetention
+		requestThreshold := ((60 * 60) * 24) * s.Config.Misc.StatisticsRetention
 		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
 		time.Sleep(cleanupInterval)
 
-		database.DeleteRequestLogsTimebased(s.Blacklist.Vacuum, s.DBManager.Conn, requestThreshold, maxRetries, retryDelay)
+		s.RequestService.DeleteRequestLogsTimebased(s.BlacklistService.Vacuum, requestThreshold, maxRetries, retryDelay)
 	}
 }

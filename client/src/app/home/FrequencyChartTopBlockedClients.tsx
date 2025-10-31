@@ -2,8 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NoContent } from "@/shared";
 import { GetRequest } from "@/util";
-import { UsersIcon, WarningIcon } from "@phosphor-icons/react";
+import { UsersIcon } from "@phosphor-icons/react";
 import { useEffect, useState, useRef } from "react";
 import {
   Bar,
@@ -57,17 +58,6 @@ const CustomTooltip = ({
   }
   return null;
 };
-
-const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center h-full w-full py-10">
-    <div className="mb-4">
-      <WarningIcon size={36} className="text-destructive" />
-    </div>
-    <p className="text-muted-foreground text-sm text-center">
-      Client data will appear here when requests are detected
-    </p>
-  </div>
-);
 
 const isNewData = (a: TopBlockedClients[], b: TopBlockedClients[]): boolean => {
   if (a.length !== b.length) return false;
@@ -214,7 +204,7 @@ export default function FrequencyChartTopBlockedClients() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <EmptyState />
+          <NoContent text={"No client data to show"} />
         )}
       </CardContent>
     </Card>

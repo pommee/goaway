@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoContent } from "@/shared";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
   CheckCircleIcon,
@@ -20,6 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { validateFQDN } from "./validation";
 
 type ListEntry = {
   ip: string;
@@ -27,10 +29,7 @@ type ListEntry = {
 };
 
 async function CreateResolution(domain: string, ip: string) {
-  const [code, response] = await PostRequest("resolution", {
-    ip,
-    domain
-  });
+  const [code, response] = await PostRequest("resolution", { ip, domain });
   if (code === 200) {
     toast.success(`${domain} has been added!`);
     return true;
@@ -61,30 +60,39 @@ export function Resolution() {
   const [domainName, setDomainName] = useState("");
   const [ip, setIP] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const fetchResolutions = async () => {
-    setLoading(true);
-    const [code, response] = await GetRequest("resolutions");
-    if (code !== 200) {
-      toast.error("Unable to fetch resolutions");
-      setLoading(false);
-      return;
-    }
-
-    const listArray: ListEntry[] = Object.entries(response || {}).map(
-      ([, details]) => ({
-        domain: details.domain,
-        ip: details.ip
-      })
-    );
-
-    setResolutions(listArray);
-    setLoading(false);
-  };
+  const [domainError, setDomainError] = useState<string | undefined>();
 
   useEffect(() => {
-    fetchResolutions();
+    (async () => {
+      setLoading(true);
+      const [code, response] = await GetRequest("resolutions");
+      if (code !== 200) {
+        toast.error("Unable to fetch resolutions");
+        setLoading(false);
+        return;
+      }
+
+      const listArray: ListEntry[] = Object.entries(response || {}).map(
+        ([, details]) => ({
+          domain: details.domain,
+          ip: details.ip
+        })
+      );
+
+      setResolutions(listArray);
+      setLoading(false);
+    })();
   }, []);
+
+  const handleDomainChange = (value: string) => {
+    setDomainName(value);
+    if (value.trim()) {
+      const validation = validateFQDN(value);
+      setDomainError(validation.error);
+    } else {
+      setDomainError(undefined);
+    }
+  };
 
   const handleSave = async () => {
     if (!domainName || !ip) {
@@ -92,12 +100,20 @@ export function Resolution() {
       return;
     }
 
+    const validation = validateFQDN(domainName);
+    if (!validation.isValid) {
+      toast.error(validation.error || "Invalid domain name");
+      setDomainError(validation.error);
+      return;
+    }
+
     setSubmitting(true);
     const success = await CreateResolution(domainName, ip);
     if (success) {
-      await fetchResolutions();
+      setResolutions((prev) => [...prev, { domain: domainName, ip }]);
       setDomainName("");
       setIP("");
+      setDomainError(undefined);
     }
     setSubmitting(false);
   };
@@ -105,7 +121,9 @@ export function Resolution() {
   const handleDelete = async (domain: string, ip: string) => {
     const success = await DeleteResolution(domain, ip);
     if (success) {
-      await fetchResolutions();
+      setResolutions((prev) =>
+        prev.filter((res) => !(res.domain === domain && res.ip === ip))
+      );
     }
   };
 
@@ -116,6 +134,8 @@ export function Resolution() {
           res.ip.includes(searchTerm)
       )
     : resolutions;
+
+  const isFormValid = domainName && ip && !domainError;
 
   return (
     <div className="space-y-8">
@@ -153,22 +173,26 @@ export function Resolution() {
                   <Input
                     id="domain"
                     placeholder="example.local."
-                    className="pl-9"
+                    className={`pl-9 ${domainError ? "border-red-500" : ""}`}
                     value={domainName}
-                    onChange={(e) => setDomainName(e.target.value)}
+                    onChange={(e) => handleDomainChange(e.target.value)}
                   />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Domain name to use, supports wildcard. Make sure it's a{" "}
-                    <a
-                      href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline hover:text-primary"
-                    >
-                      FQDN
-                    </a>
-                    .
-                  </p>
+                  {domainError ? (
+                    <p className="text-sm text-red-500 mt-1">{domainError}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Domain name to use, supports wildcard. Make sure it's a{" "}
+                      <a
+                        href="https://en.wikipedia.org/wiki/Fully_qualified_domain_name"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-primary"
+                      >
+                        FQDN
+                      </a>
+                      .
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -189,7 +213,7 @@ export function Resolution() {
                   variant="default"
                   className="w-full"
                   onClick={handleSave}
-                  disabled={submitting || !domainName || !ip}
+                  disabled={submitting || !isFormValid}
                 >
                   {submitting ? (
                     <>
@@ -238,7 +262,7 @@ export function Resolution() {
                       <code className="text-sm font-mono truncate flex-1">
                         {domain}
                       </code>
-                      <CheckCircleIcon className="h-3 w-3 text-primary flex-shrink-0" />
+                      <CheckCircleIcon className="h-3 w-3 text-primary shrink-0" />
                     </div>
                   )
                 )}
@@ -295,16 +319,16 @@ export function Resolution() {
             <div className="divide-y divide-stone">
               {filteredResolutions.map((resolution) => (
                 <div
-                  key={resolution.domain}
+                  key={`${resolution.domain}-${resolution.ip}`}
                   className="group flex items-center justify-between p-2 hover:bg-accent transition-all duration-200"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1">
-                        <GlobeIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                        <GlobeIcon className="h-4 w-4 text-blue-400 shrink-0" />
                         <span className="font-medium truncate">
                           {resolution.domain}
                         </span>
@@ -340,14 +364,12 @@ export function Resolution() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-4 text-center">
-              <div className="bg-accent p-4 rounded-full mb-4">
-                <DatabaseIcon className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">No resolutions found</h3>
-              <p className="text-muted-foreground max-w-sm">
-                {searchTerm
-                  ? "No matching entries for your search term. Try a different keyword."
-                  : "Get started by adding your first custom DNS resolution above."}
+              <p className="text-muted-foreground">
+                {searchTerm ? (
+                  "No matching entries for your search term. Try a different keyword."
+                ) : (
+                  <NoContent text="Get started by adding your first custom DNS resolution above" />
+                )}
               </p>
             </div>
           )}

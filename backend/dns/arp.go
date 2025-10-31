@@ -17,18 +17,34 @@ import (
 var log = logging.GetLogger()
 
 type vendorResponse struct {
+	Company string `json:"company"`
 	Success bool   `json:"success"`
 	Found   bool   `json:"found"`
-	Company string `json:"company"`
 }
 
-type ARPCache struct {
-	mu    sync.RWMutex
+type Cache struct {
 	table map[string]string
+	mu    sync.RWMutex
+}
+
+type vendorCacheEntry struct {
+	vendor    string
+	err       error
+	timestamp time.Time
+}
+
+type VendorCache struct {
+	entries map[string]*vendorCacheEntry
+	mu      sync.RWMutex
+	ttl     time.Duration
 }
 
 var (
-	cache      = &ARPCache{table: make(map[string]string)}
+	cache       = &Cache{table: make(map[string]string)}
+	vendorCache = &VendorCache{
+		entries: make(map[string]*vendorCacheEntry),
+		ttl:     60 * time.Second,
+	}
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
@@ -41,6 +57,14 @@ func ProcessARPTable() {
 
 	for range ticker.C {
 		updateARPTable()
+	}
+}
+
+func CleanVendorResponseCache() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		vendorCache.cleanup()
 	}
 }
 
@@ -130,39 +154,56 @@ func GetMacVendor(mac string) (string, error) {
 	mac = strings.ReplaceAll(mac, "-", "")
 	mac = strings.ToLower(mac)
 
+	if vendor, err, found := vendorCache.get(mac); found {
+		return vendor, err
+	}
+
 	url := fmt.Sprintf("https://api.maclookup.app/v2/macs/%s", mac)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		reqErr := fmt.Errorf("failed to create request: %w", err)
+		vendorCache.set(mac, "", reqErr)
+		return "", reqErr
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch MAC vendor: %w", err)
+		apiErr := fmt.Errorf("failed to fetch MAC vendor: %w", err)
+		vendorCache.set(mac, "", apiErr)
+		return "", apiErr
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		statusErr := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		vendorCache.set(mac, "", statusErr)
+		return "", statusErr
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		readErr := fmt.Errorf("failed to read response body: %w", err)
+		vendorCache.set(mac, "", readErr)
+		return "", readErr
 	}
 
 	var result vendorResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		unmarshalErr := fmt.Errorf("failed to unmarshal response: %w", err)
+		vendorCache.set(mac, "", unmarshalErr)
+		return "", unmarshalErr
 	}
 
 	if result.Found {
+		vendorCache.set(mac, result.Company, nil)
 		return result.Company, nil
 	}
 
-	return "", fmt.Errorf("vendor not found")
+	notFoundErr := fmt.Errorf("vendor not found for mac %s", mac)
+	vendorCache.set(mac, "", notFoundErr)
+	return "", notFoundErr
 }
 
 func isValidMAC(mac string) bool {
@@ -170,4 +211,43 @@ func isValidMAC(mac string) bool {
 	cleanMAC = strings.ReplaceAll(cleanMAC, "-", "")
 
 	return len(cleanMAC) == 12 && cleanMAC != "000000000000"
+}
+
+func (vc *VendorCache) get(mac string) (string, error, bool) {
+	vc.mu.RLock()
+	defer vc.mu.RUnlock()
+
+	entry, exists := vc.entries[mac]
+	if !exists {
+		return "", nil, false
+	}
+
+	if time.Since(entry.timestamp) > vc.ttl {
+		return "", nil, false
+	}
+
+	return entry.vendor, entry.err, true
+}
+
+func (vc *VendorCache) set(mac, vendor string, err error) {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+
+	vc.entries[mac] = &vendorCacheEntry{
+		vendor:    vendor,
+		err:       err,
+		timestamp: time.Now(),
+	}
+}
+
+func (vc *VendorCache) cleanup() {
+	vc.mu.Lock()
+	defer vc.mu.Unlock()
+
+	now := time.Now()
+	for mac, entry := range vc.entries {
+		if now.Sub(entry.timestamp) > vc.ttl {
+			delete(vc.entries, mac)
+		}
+	}
 }

@@ -18,14 +18,14 @@ import (
 	probing "github.com/prometheus-community/pro-bing"
 )
 
-type PingResult struct {
-	Duration   time.Duration
+type pingResult struct {
 	Error      error
 	Method     string
+	Duration   time.Duration
 	Successful bool
 }
 
-func (pr PingResult) String() string {
+func (pr pingResult) String() string {
 	if !pr.Successful {
 		return fmt.Sprintf("Failed (%s)", pr.Method)
 	}
@@ -68,16 +68,16 @@ func (api *API) createUpstream(c *gin.Context) {
 		upstream += ":53"
 	}
 
-	if slices.Contains(api.Config.DNS.UpstreamDNS, upstream) {
+	if slices.Contains(api.Config.DNS.Upstream.Fallback, upstream) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Upstream already exists"})
 		return
 	}
 
-	api.Config.DNS.UpstreamDNS = append(api.Config.DNS.UpstreamDNS, upstream)
+	api.Config.DNS.Upstream.Fallback = append(api.Config.DNS.Upstream.Fallback, upstream)
 	api.Config.Save()
 
 	log.Info("Added %s as a new upstream", upstream)
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUpstream,
 		Message: fmt.Sprintf("Added a new upstream '%s'", request.Upstream),
 	})
@@ -87,9 +87,9 @@ func (api *API) createUpstream(c *gin.Context) {
 
 func (api *API) getUpstreams(c *gin.Context) {
 	var (
-		upstreams         = api.Config.DNS.UpstreamDNS
+		upstreams         = api.Config.DNS.Upstream.Fallback
 		results           = make([]map[string]any, len(upstreams))
-		preferredUpstream = api.Config.DNS.PreferredUpstream
+		preferredUpstream = api.Config.DNS.Upstream.Preferred
 		wg                sync.WaitGroup
 	)
 	wg.Add(len(upstreams))
@@ -158,7 +158,7 @@ func resolveHostname(host string) string {
 	return "No IP found"
 }
 
-func measureDNSPing(upstream string) PingResult {
+func measureDNSPing(upstream string) pingResult {
 	var (
 		testDomains = []string{"google.com", "cloudflare.com", "quad9.net"}
 		client      = &dns.Client{
@@ -193,7 +193,7 @@ func measureDNSPing(upstream string) PingResult {
 	}
 
 	if successCount == 0 {
-		return PingResult{
+		return pingResult{
 			Duration:   0,
 			Error:      lastError,
 			Method:     "dns",
@@ -202,7 +202,7 @@ func measureDNSPing(upstream string) PingResult {
 	}
 
 	avgDuration := totalDuration / time.Duration(successCount)
-	return PingResult{
+	return pingResult{
 		Duration:   avgDuration,
 		Error:      nil,
 		Method:     "dns",
@@ -210,7 +210,7 @@ func measureDNSPing(upstream string) PingResult {
 	}
 }
 
-func measureICMPPing(host string) PingResult {
+func measureICMPPing(host string) pingResult {
 	icmpResult := tryICMPPing(host)
 	if icmpResult.Successful {
 		return icmpResult
@@ -220,10 +220,10 @@ func measureICMPPing(host string) PingResult {
 	return tcpResult
 }
 
-func tryICMPPing(host string) PingResult {
+func tryICMPPing(host string) pingResult {
 	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		return PingResult{
+		return pingResult{
 			Duration:   0,
 			Error:      err,
 			Method:     "icmp",
@@ -237,7 +237,7 @@ func tryICMPPing(host string) PingResult {
 
 	err = pinger.Run()
 	if err != nil {
-		return PingResult{
+		return pingResult{
 			Duration:   0,
 			Error:      err,
 			Method:     "icmp",
@@ -247,7 +247,7 @@ func tryICMPPing(host string) PingResult {
 
 	stats := pinger.Statistics()
 	if stats.PacketsRecv == 0 {
-		return PingResult{
+		return pingResult{
 			Duration:   0,
 			Error:      fmt.Errorf("no packets received"),
 			Method:     "icmp",
@@ -255,7 +255,7 @@ func tryICMPPing(host string) PingResult {
 		}
 	}
 
-	return PingResult{
+	return pingResult{
 		Duration:   stats.AvgRtt,
 		Error:      nil,
 		Method:     "icmp",
@@ -263,12 +263,12 @@ func tryICMPPing(host string) PingResult {
 	}
 }
 
-func tryTCPPing(host string) PingResult {
+func tryTCPPing(host string) pingResult {
 	start := time.Now()
 
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "53"), 2*time.Second)
 	if err != nil {
-		return PingResult{
+		return pingResult{
 			Duration:   0,
 			Error:      err,
 			Method:     "tcp",
@@ -281,7 +281,7 @@ func tryTCPPing(host string) PingResult {
 		_ = conn.Close()
 	}()
 
-	return PingResult{
+	return pingResult{
 		Duration:   duration,
 		Error:      nil,
 		Method:     "tcp",
@@ -333,22 +333,22 @@ func (api *API) updatePreferredUpstream(c *gin.Context) {
 		return
 	}
 
-	if !slices.Contains(api.Config.DNS.UpstreamDNS, request.Upstream) {
+	if !slices.Contains(api.Config.DNS.Upstream.Fallback, request.Upstream) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Upstream not found"})
 		return
 	}
 
-	if api.Config.DNS.PreferredUpstream == request.Upstream {
+	if api.Config.DNS.Upstream.Preferred == request.Upstream {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Preferred upstream already set to %s", request.Upstream)})
 		return
 	}
 
-	api.Config.DNS.PreferredUpstream = request.Upstream
+	api.Config.DNS.Upstream.Preferred = request.Upstream
 	message := fmt.Sprintf("Preferred upstream set to %s", request.Upstream)
 	log.Info("%s", message)
 
 	api.Config.Save()
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUpstream,
 		Message: fmt.Sprintf("New preferred upstream '%s'", request.Upstream),
 	})
@@ -364,23 +364,23 @@ func (api *API) deleteUpstream(c *gin.Context) {
 		return
 	}
 
-	if !slices.Contains(api.Config.DNS.UpstreamDNS, upstreamToDelete) {
+	if !slices.Contains(api.Config.DNS.Upstream.Fallback, upstreamToDelete) {
 		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Upstream %s not found", upstreamToDelete)})
 		return
 	}
 
 	var updatedUpstreams []string
-	for _, upstream := range api.Config.DNS.UpstreamDNS {
+	for _, upstream := range api.Config.DNS.Upstream.Fallback {
 		if upstream != upstreamToDelete {
 			updatedUpstreams = append(updatedUpstreams, upstream)
 		}
 	}
 
-	api.Config.DNS.UpstreamDNS = updatedUpstreams
+	api.Config.DNS.Upstream.Fallback = updatedUpstreams
 	api.Config.Save()
 	log.Info("Removed upstream: %s", upstreamToDelete)
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUpstream,
 		Message: fmt.Sprintf("Removed upstream '%s'", upstreamToDelete),
 	})

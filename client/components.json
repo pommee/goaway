@@ -17,5 +17,8 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "iconLibrary": "phosphor-icons/react"
+  "iconLibrary": "phosphor-icons/react",
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}.json"
+  }
 }

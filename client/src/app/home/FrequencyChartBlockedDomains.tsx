@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GetRequest } from "@/util";
-import { NetworkSlashIcon, WarningIcon } from "@phosphor-icons/react";
+import { NetworkSlashIcon } from "@phosphor-icons/react";
 import { useEffect, useState, useRef } from "react";
 import {
   Bar,
@@ -20,6 +20,7 @@ import {
   NameType,
   ValueType
 } from "recharts/types/component/DefaultTooltipContent";
+import { NoContent } from "@/shared";
 
 type TopBlockedDomains = {
   frequency: number;
@@ -57,17 +58,6 @@ const CustomTooltip = ({
   }
   return null;
 };
-
-const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center h-full w-full py-10">
-    <div className="mb-4">
-      <WarningIcon size={36} className="text-destructive" />
-    </div>
-    <p className="text-muted-foreground text-sm text-center">
-      Blocked domains will appear here when detected
-    </p>
-  </div>
-);
 
 const isNewData = (a: TopBlockedDomains[], b: TopBlockedDomains[]): boolean => {
   if (a.length !== b.length) return false;
@@ -211,7 +201,7 @@ export default function FrequencyChartBlockedDomains() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <EmptyState />
+          <NoContent text={"No domain has been blocked"} />
         )}
       </CardContent>
     </Card>

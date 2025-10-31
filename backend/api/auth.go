@@ -3,18 +3,14 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"goaway/backend/alert"
-	"goaway/backend/api/user"
 	"goaway/backend/audit"
-	"goaway/backend/dns/database"
+	"goaway/backend/user"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 func (api *API) registerAuthRoutes() {
@@ -27,11 +23,6 @@ func (api *API) registerAuthRoutes() {
 	api.routes.GET("/deleteApiKey", api.deleteAPIKey)
 }
 
-func (api *API) validateCredentials(username, password string) bool {
-	existingUser := &user.User{Username: username, Password: password}
-	return existingUser.Authenticate(api.DBManager.Conn)
-}
-
 func (api *API) handleLogin(c *gin.Context) {
 	allowed, timeUntilReset := api.RateLimiter.CheckLimit(c.ClientIP())
 	if !allowed {
@@ -42,21 +33,21 @@ func (api *API) handleLogin(c *gin.Context) {
 		return
 	}
 
-	var creds user.Credentials
-	if err := c.BindJSON(&creds); err != nil {
+	var loginUser user.User
+	if err := c.BindJSON(&loginUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	if err := creds.Validate(); err != nil {
+	if err := api.UserService.ValidateCredentials(loginUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	if api.authenticateUser(creds.Username, creds.Password) {
-		token, err := generateToken(creds.Username)
+	if api.UserService.Authenticate(loginUser.Username, loginUser.Password) {
+		token, err := generateToken(loginUser.Username)
 		if err != nil {
-			log.Info("Token generation failed for user %s: %v", creds.Username, err)
+			log.Info("Token generation failed for user %s: %v", loginUser.Username, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Authentication service temporarily unavailable",
 			})
@@ -75,27 +66,6 @@ func (api *API) handleLogin(c *gin.Context) {
 	}
 }
 
-func (api *API) authenticateUser(username, password string) bool {
-	var user database.User
-
-	if err := api.DBManager.Conn.Where("username = ?", username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Info("Authentication attempt for non-existent or invalid credentials")
-		} else {
-			log.Warning("Database error during authentication: %v", err)
-		}
-		return false
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		log.Info("Password comparison failed for user: %s", username)
-		return false
-	}
-
-	log.Info("Successful authentication for user: %s", username)
-	return true
-}
-
 func (api *API) getAuthentication(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"enabled": api.Authentication})
 }
@@ -112,24 +82,23 @@ func (api *API) updatePassword(c *gin.Context) {
 		return
 	}
 
-	if !api.validateCredentials("admin", newCredentials.CurrentPassword) {
+	if !api.UserService.Authenticate("admin", newCredentials.CurrentPassword) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is not valid"})
 		return
 	}
 
-	existingUser := user.User{Username: "admin", Password: newCredentials.NewPassword}
-	if err := existingUser.UpdatePassword(api.DBManager.Conn); err != nil {
+	if err := api.UserService.UpdatePassword("admin", newCredentials.NewPassword); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to update password"})
 		return
 	}
 
-	logMsg := fmt.Sprintf("Password changed for user '%s'", existingUser.Username)
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	logMsg := "Password changed for user 'admin'"
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicUser,
 		Message: logMsg,
 	})
 	go func() {
-		_ = api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+		_ = api.DNSServer.AlertService.SendToAll(context.Background(), alert.Message{
 			Title:    "System",
 			Content:  logMsg,
 			Severity: SeverityWarning,
@@ -141,7 +110,7 @@ func (api *API) updatePassword(c *gin.Context) {
 }
 
 func (api *API) createAPIKey(c *gin.Context) {
-	type NewApiKeyName struct {
+	type NewAPIKeyName struct {
 		Name string `json:"name"`
 	}
 
@@ -152,21 +121,21 @@ func (api *API) createAPIKey(c *gin.Context) {
 		return
 	}
 
-	var request NewApiKeyName
+	var request NewAPIKeyName
 	if err := json.Unmarshal(body, &request); err != nil {
 		log.Error("Failed to parse JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
-	apiKey, err := api.KeyManager.CreateKey(request.Name)
+	apiKey, err := api.KeyService.CreateKey(request.Name)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
 	go func() {
-		_ = api.DNSServer.Alerts.SendToAll(context.Background(), alert.Message{
+		_ = api.DNSServer.AlertService.SendToAll(context.Background(), alert.Message{
 			Title:    "System",
 			Content:  fmt.Sprintf("New API key created with the name '%s'", request.Name),
 			Severity: SeverityWarning,
@@ -177,7 +146,7 @@ func (api *API) createAPIKey(c *gin.Context) {
 }
 
 func (api *API) getAPIKeys(c *gin.Context) {
-	apiKeys, err := api.KeyManager.GetAllKeys()
+	apiKeys, err := api.KeyService.GetAllKeys()
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -188,7 +157,7 @@ func (api *API) getAPIKeys(c *gin.Context) {
 func (api *API) deleteAPIKey(c *gin.Context) {
 	keyName := c.Query("name")
 
-	err := api.KeyManager.DeleteKey(keyName)
+	err := api.KeyService.DeleteKey(keyName)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

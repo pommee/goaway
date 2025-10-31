@@ -40,7 +40,7 @@ export function SortableHeader({ column, title }: Props) {
     <Button
       variant="ghost"
       onClick={handleClick}
-      className="hover:text-green-400 hover:bg-stone-900 !p-0 h-auto cursor-pointer gap-1"
+      className="hover:text-primary hover:bg-transparent! p-0 h-fit gap-1"
     >
       {title}
       {isSorted === "asc" && (

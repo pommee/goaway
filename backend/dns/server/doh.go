@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	MaxDoHRequestSize = 4096
-	DoHTimeout        = 20 * time.Second
-	DoHReadTimeout    = 8 * time.Second
-	DoHWriteTimeout   = 8 * time.Second
-	MB                = 1 << 20
+	maxDoHRequestSize = 4096
+	doHTimeout        = 20 * time.Second
+	doHReadTimeout    = 8 * time.Second
+	doHWriteTimeout   = 8 * time.Second
+	megabyte          = 1 << 20
 )
 
 func (s *DNSServer) InitDoH(cert tls.Certificate) (*http.Server, error) {
@@ -29,7 +29,7 @@ func (s *DNSServer) InitDoH(cert tls.Certificate) (*http.Server, error) {
 	mux.HandleFunc("/health", s.handleHealthCheck)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.DoHPort),
+		Addr:    fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Ports.DoH),
 		Handler: mux,
 		TLSConfig: &tls.Config{
 			Certificates:             []tls.Certificate{cert},
@@ -38,17 +38,17 @@ func (s *DNSServer) InitDoH(cert tls.Certificate) (*http.Server, error) {
 			PreferServerCipherSuites: true,
 			NextProtos:               []string{"h2", "http/1.1"},
 		},
-		ReadTimeout:       DoHReadTimeout,
-		WriteTimeout:      DoHWriteTimeout,
+		ReadTimeout:       doHReadTimeout,
+		WriteTimeout:      doHWriteTimeout,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		MaxHeaderBytes:    1 * MB,
+		MaxHeaderBytes:    1 * megabyte,
 	}
 
 	return server, nil
 }
 
-func (s *DNSServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+func (s *DNSServer) handleHealthCheck(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(`{"status":"healthy"}`))
@@ -60,14 +60,14 @@ func (s *DNSServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), DoHTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), doHTimeout)
 	defer cancel()
 
 	r = r.WithContext(ctx)
 
 	log.Debug("DoH request received: %s %s from %s", r.Method, r.URL.String(), r.RemoteAddr)
 
-	if r.ContentLength > MaxDoHRequestSize {
+	if r.ContentLength > maxDoHRequestSize {
 		log.Warning("DoH request too large: %d bytes from %s", r.ContentLength, r.RemoteAddr)
 		http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
 		return
@@ -79,9 +79,9 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 		client         model.Client
 	)
 	if xRealIP != "" {
-		go s.WSCom(communicationMessage{true, false, false, xRealIP})
+		go s.WSCom(communicationMessage{IP: xRealIP, Client: true, Upstream: false, DNS: false})
 	} else {
-		go s.WSCom(communicationMessage{true, false, false, clientIP})
+		go s.WSCom(communicationMessage{IP: clientIP, Client: true, Upstream: false, DNS: false})
 	}
 
 	var (
@@ -90,9 +90,9 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 	)
 
 	switch r.Method {
-	case "GET":
+	case http.MethodGet:
 		dnsQuery, err = s.handleDoHGet(r)
-	case "POST":
+	case http.MethodPost:
 		dnsQuery, err = s.handleDoHPost(r)
 	default:
 		log.Warning("DoH request invalid method: %s from %s", r.Method, r.RemoteAddr)
@@ -124,7 +124,7 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 	responseWriter := &DoHResponseWriter{
 		httpWriter: w,
 		remoteAddr: r.RemoteAddr,
-		DoHPort:    s.Config.DNS.DoHPort,
+		DoHPort:    s.Config.DNS.Ports.DoH,
 	}
 
 	if xRealIP != "" {
@@ -147,7 +147,7 @@ func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
 
 	logEntry := s.processQuery(req)
 
-	go s.WSCom(communicationMessage{false, false, true, clientIP})
+	go s.WSCom(communicationMessage{IP: clientIP, Client: false, Upstream: false, DNS: true})
 
 	select {
 	case s.logEntryChannel <- logEntry:
@@ -162,7 +162,7 @@ func (s *DNSServer) handleDoHGet(r *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("missing dns parameter")
 	}
 
-	if len(dnsParam) > MaxDoHRequestSize {
+	if len(dnsParam) > maxDoHRequestSize {
 		return nil, fmt.Errorf("dns parameter too long")
 	}
 
@@ -184,7 +184,7 @@ func (s *DNSServer) handleDoHPost(r *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("invalid content type: %s", contentType)
 	}
 
-	limitedReader := io.LimitReader(r.Body, MaxDoHRequestSize)
+	limitedReader := io.LimitReader(r.Body, maxDoHRequestSize)
 	dnsQuery, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read request body: %w", err)
@@ -266,4 +266,4 @@ func (w *DoHResponseWriter) Header() http.Header { return nil }
 
 func (w *DoHResponseWriter) Network() string { return "tcp" }
 
-func (w *DoHResponseWriter) WriteHeader(statusCode int) {}
+func (w *DoHResponseWriter) WriteHeader(_ int) {}

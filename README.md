@@ -1,5 +1,3 @@
-# GoAway - DNS Sinkhole
-
 ![GitHub Release](https://img.shields.io/github/v/release/pommee/goaway)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pommee/goaway/release.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/pommee/goaway/total?color=cornflowerblue)
@@ -7,11 +5,19 @@
 
 A lightweight DNS sinkhole for blocking unwanted domains at the network level. Block ads, trackers, and malicious domains before they reach your devices.
 
-![goaway Dashboard Preview](./resources/dashboard.png)
+![goaway banner](./resources/preview.png)
 
 **[View more screenshots](./resources/PREVIEW.md)**
 
+<<<<<<< Updated upstream
 ## 🌟 Features
+=======
+## Getting started
+
+Instructions for installation, configuration and more can be found on the homepage: https://pommee.github.io/goaway
+
+## Features
+>>>>>>> Stashed changes
 
 - DNS-level domain blocking
 - Web-based admin dashboard
@@ -219,7 +225,7 @@ Contributions are welcomed! Here's how you can help:
 3. **Submit PRs:** Before any work is started, create a new issue explaining what is wanted, why it would fit, how it can be done, so on and so forth...  
    Once the topic has been discussed with a maintainer then either you or a maintainer starts with the implementation. This is done to prevent any collisions, save time and confusion. [Read more here](./CONTRIBUTING.md)
 
-## ⚠️ Platform Support
+## Platform Support
 
 | Platform | Architecture | Support Level |
 | -------- | ------------ | ------------- |
@@ -233,7 +239,7 @@ Contributions are welcomed! Here's how you can help:
 
 > **Note**: Primary testing is conducted on Linux (amd64). While the aim is to support all listed platforms, functionality on macOS and Windows may vary.
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -252,7 +258,7 @@ Contributions are welcomed! Here's how you can help:
 - Check device DNS settings point to GoAway's IP address
 - Test with `nslookup google.com <goaway-ip>` or `dig @<goaway-ip> google.com.`
 
-## 📈 Performance
+## Performance
 
 GoAway is designed to be lightweight and efficient:
 
@@ -261,10 +267,10 @@ GoAway is designed to be lightweight and efficient:
 - **Network:** Low latency DNS resolution
 - **Storage:** Logs and statistics use minimal disk space
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 This project is heavily inspired by [Pi-hole](https://github.com/pi-hole/pi-hole). Thanks to all people involved for their work.

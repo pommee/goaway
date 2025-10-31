@@ -39,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { NoContent } from "@/shared";
 import { DeleteRequest, GetRequest } from "@/util";
 import {
   CaretDoubleLeftIcon,
@@ -298,7 +299,6 @@ export function Logs() {
     };
 
     ws.onclose = () => {
-      console.log("WebSocket connection closed");
       setWsConnected(false);
     };
 
@@ -356,6 +356,7 @@ export function Logs() {
     });
   }, [showClientDetails]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: queries,
     columns: columnsWithClientHandler,
@@ -462,7 +463,7 @@ export function Logs() {
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild className="ml-5">
             <Button disabled={queries.length === 0} variant="destructive">
-              Clear logs
+              Clear
             </Button>
           </DialogTrigger>
           <DialogContent className="md:w-auto max-w-md p-6 rounded-xl shadow-lg">
@@ -472,7 +473,7 @@ export function Logs() {
                 Confirm Log Clearance
               </DialogTitle>
               <DialogDescription className="text-base mb-6">
-                <div className="bg-destructive/20 border-1 border-destructive text-destructive p-4 rounded-xl">
+                <div className="bg-destructive/20 border border-destructive text-destructive p-4 rounded-xl">
                   <p>Are you sure you want to clear all logs?</p>{" "}
                   <p>
                     This action is{" "}
@@ -610,7 +611,7 @@ export function Logs() {
                                             {ipValue[0]?.ip || ""}
                                           </span>
                                           {ipValue.length > 1 && (
-                                            <span className="text-xs text-muted-foreground border-1 px-1 rounded border-green-600/60 flex-shrink-0">
+                                            <span className="text-xs text-muted-foreground border px-1 rounded border-green-600/60 shrink-0">
                                               +{ipValue.length - 1}
                                             </span>
                                           )}
@@ -685,7 +686,7 @@ export function Logs() {
                       </Button>
                     </div>
                   ) : (
-                    "No queries saved in the database."
+                    <NoContent text="No queries recored" />
                   )}
                 </TableCell>
               </TableRow>
@@ -711,7 +712,7 @@ export function Logs() {
                 <>
                   <div className="w-3 h-3 bg-red-500/50 rounded-full mr-2"></div>
                   <span className="text-sm text-red-500/50">
-                    no websocket connection
+                    live feed disabled
                   </span>
                 </>
               )}

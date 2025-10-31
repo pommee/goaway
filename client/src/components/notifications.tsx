@@ -17,7 +17,7 @@ type NotificationsResponse = {
   category: string;
   text: string;
   read: boolean;
-  createdAt: string;
+  created_at: string;
 };
 
 export default function Notifications() {
@@ -31,9 +31,10 @@ export default function Notifications() {
     (notification) => !notification.read
   ).length;
 
-  const shouldAnimate = unreadCount > prevUnreadCountRef.current;
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
   useEffect(() => {
+    setShouldAnimate(unreadCount > prevUnreadCountRef.current);
     prevUnreadCountRef.current = unreadCount;
   }, [unreadCount]);
 
@@ -42,7 +43,9 @@ export default function Notifications() {
       try {
         const [code, response] = await GetRequest("notifications");
         if (code !== 200) {
-          toast.warning("Unable to fetch notifications");
+          toast.warning("Unable to fetch notifications", {
+            id: "fetch-notifications-error"
+          });
           return;
         }
 
@@ -100,7 +103,7 @@ export default function Notifications() {
     return `${diffDays} days ago`;
   };
 
-  const handleMarkAllAsRead = async (e) => {
+  const handleMarkAllAsRead = async (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     const updatedNotifications = notifications.map((notification) => ({
       ...notification,
@@ -144,7 +147,7 @@ export default function Notifications() {
 
       <DropdownMenuContent
         align="end"
-        className="w-96 p-0 border-1 shadow-xl rounded-lg"
+        className="w-96 p-0 border shadow-xl rounded-lg"
       >
         <DropdownMenuLabel className="flex justify-between items-center p-4 border-b">
           <span className="font-semibold text-lg">Notifications</span>
@@ -186,7 +189,9 @@ export default function Notifications() {
                       </p>
                       <div className="flex justify-between items-center">
                         <p className="text-xs text-muted-foreground">
-                          {getTimeAgo(notification.createdAt)}
+                          {getTimeAgo(
+                            new Date(notification.created_at).toString()
+                          )}
                         </p>
                         <span className="text-xs px-2 py-1 rounded-full bg-accent">
                           {notification.category}

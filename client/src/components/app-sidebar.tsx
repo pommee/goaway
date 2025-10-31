@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { GenerateQuote } from "@/quotes";
 import {
+  BrowserIcon,
   CloudArrowUpIcon,
   GearIcon,
   GithubLogoIcon,
@@ -23,7 +24,6 @@ import {
   UsersIcon
 } from "@phosphor-icons/react";
 import * as React from "react";
-import { Separator } from "./ui/separator";
 import { TextAnimate } from "./ui/text-animate";
 import { ServerStatistics } from "./server-statistics";
 
@@ -87,6 +87,12 @@ const data = {
   ],
   navSecondary: [
     {
+      title: "Website",
+      url: "https://pommee.github.io/goaway",
+      icon: BrowserIcon,
+      blank: "_blank"
+    },
+    {
       title: "GitHub",
       url: "https://github.com/pommee/goaway",
       icon: GithubLogoIcon,
@@ -103,16 +109,14 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <div className="border-r-1 border-accent">
+    <div className="border-r border-accent">
       <Sidebar variant="inset" {...props}>
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <a href="/home">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <img src={"/logo.png"} alt={""} />
-                  </div>
+                  <img src={"/logo.png"} alt={"project-mascot"} width={50} />
                   <div className="grid flex-1 text-left text-lg leading-tight">
                     <span className="truncate font-medium">GoAway</span>
                     <TextAnimate
@@ -130,7 +134,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <Separator />
         <ServerStatistics />
         <SidebarContent>
           <NavMain items={data.navMain} />

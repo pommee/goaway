@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	TokenDuration = 5 * time.Minute
-	Secret        = "kMNSRwKip7Yet4rb2z8"
+	tokenDuration = 5 * time.Minute
+	secret        = "kMNSRwKip7Yet4rb2z8"
 )
 
 func (api *API) authMiddleware() gin.HandlerFunc {
@@ -23,7 +23,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 		}
 
 		if apiKey := c.GetHeader("api-key"); apiKey != "" {
-			if api.KeyManager.VerifyKey(apiKey) {
+			if api.KeyService.VerifyKey(apiKey) {
 				c.Next()
 				return
 			}
@@ -62,7 +62,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		halfDurationSeconds := int64(TokenDuration.Seconds() / 2)
+		halfDurationSeconds := int64(tokenDuration.Seconds() / 2)
 		timeUntilExpiration := expiration - now
 
 		if timeUntilExpiration <= halfDurationSeconds {
@@ -85,7 +85,7 @@ func parseToken(tokenString string) (jwt.MapClaims, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return []byte(Secret), nil
+		return []byte(secret), nil
 	})
 	if err != nil || !token.Valid {
 		return nil, err
@@ -103,11 +103,11 @@ func generateToken(username string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"username": username,
-		"exp":      now.Add(TokenDuration).Unix(),
+		"exp":      now.Add(tokenDuration).Unix(),
 		"iat":      now.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(Secret))
+	return token.SignedString([]byte(secret))
 }
 
 func setAuthCookie(w http.ResponseWriter, token string) {
@@ -118,7 +118,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(TokenDuration),
-		MaxAge:   int(TokenDuration.Seconds()),
+		Expires:  time.Now().Add(tokenDuration),
+		MaxAge:   int(tokenDuration.Seconds()),
 	})
 }
