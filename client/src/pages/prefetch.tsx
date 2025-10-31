@@ -35,15 +35,17 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { validateFQDN } from "./validation";
+import { NoContent } from "@/shared";
 
 type PrefetchEntry = {
   domain: string;
   refresh: number;
-  qtype: number;
+  queryType: number;
 };
 
-function qtypeExpanded(qtype: number) {
-  switch (qtype) {
+function queryTypeExpanded(queryType: number) {
+  switch (queryType) {
     case 1:
       return "A";
     case 28:
@@ -55,84 +57,15 @@ function qtypeExpanded(qtype: number) {
   }
 }
 
-function validateFQDN(domain: string): { isValid: boolean; error?: string } {
-  if (!domain || domain.trim() === "") {
-    return { isValid: false, error: "Domain is required" };
-  }
-
-  const trimmedDomain = domain.trim();
-  if (!trimmedDomain.endsWith(".")) {
-    return {
-      isValid: false,
-      error:
-        "Domain must end with a dot (.) to be a fully qualified domain name"
-    };
-  }
-
-  const domainWithoutDot = trimmedDomain.slice(0, -1);
-  if (domainWithoutDot.length === 0) {
-    return { isValid: false, error: "Domain cannot be just a dot" };
-  }
-
-  if (domainWithoutDot.length > 253) {
-    return {
-      isValid: false,
-      error: "Domain name is too long (max 253 characters)"
-    };
-  }
-
-  // Check for valid characters and structure
-  const domainRegex =
-    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/;
-
-  if (!domainRegex.test(domainWithoutDot)) {
-    return {
-      isValid: false,
-      error:
-        "Invalid domain format. Use only letters, numbers, dots, and hyphens"
-    };
-  }
-
-  const labels = domainWithoutDot.split(".");
-  for (const label of labels) {
-    if (label.length > 63) {
-      return {
-        isValid: false,
-        error: "Each part of the domain must be 63 characters or less"
-      };
-    }
-    if (label.startsWith("-") || label.endsWith("-")) {
-      return {
-        isValid: false,
-        error: "Domain parts cannot start or end with hyphens"
-      };
-    }
-  }
-
-  if (!domainWithoutDot.includes(".")) {
-    return {
-      isValid: false,
-      error: "Domain must contain at least one dot (e.g., example.com.)"
-    };
-  }
-
-  const tld = labels[labels.length - 1];
-  if (!/^[a-zA-Z]{2,}$/.test(tld)) {
-    return {
-      isValid: false,
-      error:
-        "Top-level domain must contain only letters and be at least 2 characters"
-    };
-  }
-
-  return { isValid: true };
-}
-
-async function CreatePrefetch(domain: string, refresh: number, qtype: number) {
+async function CreatePrefetch(
+  domain: string,
+  refresh: number,
+  queryType: number
+) {
   const [code, response] = await PostRequest("prefetch", {
     domain,
     refresh,
-    qtype
+    queryType
   });
   if (code === 200) {
     toast.success(`${domain} has been added to prefetch list!`);
@@ -163,7 +96,7 @@ export function Prefetch() {
   const [submitting, setSubmitting] = useState(false);
   const [domainName, setDomainName] = useState("");
   const [refresh, setrefresh] = useState(0);
-  const [qtype, setQType] = useState("1");
+  const [queryType, setQueryType] = useState("1");
   const [searchTerm, setSearchTerm] = useState("");
   const [domainError, setDomainError] = useState<string>("");
 
@@ -181,15 +114,22 @@ export function Prefetch() {
   };
 
   useEffect(() => {
-    fetchPrefetches();
+    const id = setTimeout(() => {
+      void fetchPrefetches();
+    }, 0);
+    return () => clearTimeout(id);
   }, []);
 
   useEffect(() => {
     if (domainName) {
       const validation = validateFQDN(domainName);
-      setDomainError(validation.error || "");
+      setTimeout(() => {
+        setDomainError(validation.error || "");
+      }, 0);
     } else {
-      setDomainError("");
+      setTimeout(() => {
+        setDomainError("");
+      }, 0);
     }
   }, [domainName]);
 
@@ -203,7 +143,11 @@ export function Prefetch() {
     }
 
     setSubmitting(true);
-    const success = await CreatePrefetch(domainName, refresh, parseInt(qtype));
+    const success = await CreatePrefetch(
+      domainName,
+      refresh,
+      parseInt(queryType)
+    );
     if (success) {
       await fetchPrefetches();
       setDomainName("");
@@ -326,12 +270,12 @@ export function Prefetch() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="qtype" className="font-medium">
+                <Label htmlFor="queryType" className="font-medium">
                   Query Type
                 </Label>
                 <Select
-                  value={qtype}
-                  onValueChange={(value) => setQType(value)}
+                  value={queryType}
+                  onValueChange={(value) => setQueryType(value)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select query type" />
@@ -421,7 +365,7 @@ export function Prefetch() {
                       {formatRefresh(prefetch.refresh)}
                     </TableCell>
                     <TableCell className="">
-                      {qtypeExpanded(prefetch.qtype)}
+                      {queryTypeExpanded(prefetch.queryType)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -441,14 +385,12 @@ export function Prefetch() {
               </TableBody>
             </Table>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ClockIcon className="h-12 w-12 mb-4" />
-              <h3 className="text-lg font-medium">No prefetch domains found</h3>
-              <p className="text-muted-foreground mt-1">
-                {searchTerm
-                  ? "No matching entries for your search"
-                  : "Add a domain to prefetch to get started"}
-              </p>
+            <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
+              {searchTerm ? (
+                "No matching entries for your search"
+              ) : (
+                <NoContent text="Add a domain to prefetch to get started" />
+              )}
             </div>
           )}
         </CardContent>

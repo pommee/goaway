@@ -1,4 +1,4 @@
-import { AddList } from "@/app/lists/addList";
+import { AddList } from "@/app/lists/AddList";
 import { ListCard } from "@/app/lists/card";
 import { UpdateCustom } from "@/app/lists/updateCustom";
 import { DeleteRequest, GetRequest } from "@/util";
@@ -22,6 +22,14 @@ export function Blacklist() {
   const [updating, setUpdating] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [fadingOut, setFadingOut] = useState<Set<string>>(new Set());
+
+  const sortLists = (lists: ListEntry[]) => {
+    return lists.sort((a, b) => {
+      if (a.name === "Custom") return -1;
+      if (b.name === "Custom") return 1;
+      return a.name.localeCompare(b.name);
+    });
+  };
 
   useEffect(() => {
     async function fetchLists() {
@@ -50,14 +58,6 @@ export function Blacklist() {
 
     fetchLists();
   }, []);
-
-  const sortLists = (lists: ListEntry[]) => {
-    return lists.sort((a, b) => {
-      if (a.name === "Custom") return -1;
-      if (b.name === "Custom") return 1;
-      return a.name.localeCompare(b.name);
-    });
-  };
 
   const handleDelete = (name: string, url: string) => {
     setDeleting((prev) => new Set(prev).add(name + url));
@@ -192,26 +192,26 @@ export function Blacklist() {
         <AddList onListAdded={handleListAdded} />
         <UpdateCustom />
         <div className="flex gap-4 mb-4">
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-blue-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b rounded-t-sm border-b-blue-400">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-muted-foreground text-sm">Total Lists:</span>
             <span className="font-semibold">{lists.length}</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-green-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b rounded-t-sm border-b-green-400">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span className="text-muted-foreground text-sm">Active:</span>
             <span className="font-semibold">
               {lists.filter((list) => list.active).length}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-red-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b rounded-t-sm border-b-red-400">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             <span className="text-muted-foreground text-sm">Inactive:</span>
             <span className="font-semibold">
               {lists.filter((list) => !list.active).length}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b-1 rounded-t-sm border-b-orange-400">
+          <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b rounded-t-sm border-b-orange-400">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             <span className="text-muted-foreground text-sm">
               Blocked Domains:

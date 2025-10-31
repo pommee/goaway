@@ -1,9 +1,7 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +14,7 @@ func (api *API) registerNotificationRoutes() {
 }
 
 func (api *API) fetchNotifications(c *gin.Context) {
-	notifications, err := api.Notifications.ReadNotifications()
+	notifications, err := api.NotificationService.GetNotifications()
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 	}
@@ -28,21 +26,14 @@ func (api *API) markNotificationAsRead(c *gin.Context) {
 		NotificationIDs []int `json:"notificationIds"`
 	}
 
-	notificationsRead, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
 	var request NotificationsRead
-	if err := json.Unmarshal(notificationsRead, &request); err != nil {
-		log.Error("Failed to parse JSON: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to parse request"})
 		return
 	}
 
-	err = api.Notifications.MarkNotificationsAsRead(request.NotificationIDs)
+	err = api.NotificationService.MarkNotificationsAsRead(request.NotificationIDs)
 	if err != nil {
 		log.Warning("Unable to mark notifications as read %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("Unable to mark notifications as read %v", err.Error())})

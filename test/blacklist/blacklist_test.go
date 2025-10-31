@@ -1,7 +1,7 @@
 package blacklist
 
 import (
-	"goaway/backend/dns/lists"
+	"goaway/backend/blacklist"
 	"strings"
 	"testing"
 
@@ -61,10 +61,10 @@ func TestExtractDomains(t *testing.T) {
 		},
 	}
 
-	b := &lists.Blacklist{}
+	blacklistService := blacklist.Service{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := b.ExtractDomains(strings.NewReader(tt.input))
+			result, err := blacklistService.ExtractDomains(strings.NewReader(tt.input))
 
 			if tt.hasError {
 				require.Error(t, err)

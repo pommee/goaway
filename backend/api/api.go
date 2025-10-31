@@ -5,6 +5,18 @@ import (
 	"embed"
 	"encoding/base64"
 	"fmt"
+	"goaway/backend/api/key"
+	"goaway/backend/api/ratelimit"
+	"goaway/backend/blacklist"
+	"goaway/backend/dns/server"
+	"goaway/backend/logging"
+	"goaway/backend/notification"
+	"goaway/backend/prefetch"
+	"goaway/backend/request"
+	"goaway/backend/resolution"
+	"goaway/backend/settings"
+	"goaway/backend/user"
+	"goaway/backend/whitelist"
 	"io/fs"
 	"mime"
 	"net"
@@ -18,65 +30,53 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-
-	"goaway/backend/api/key"
-	"goaway/backend/api/ratelimit"
-	"goaway/backend/api/user"
-	"goaway/backend/dns/database"
-	"goaway/backend/dns/lists"
-	"goaway/backend/dns/server"
-	"goaway/backend/dns/server/prefetch"
-	"goaway/backend/logging"
-	notification "goaway/backend/notifications"
-	"goaway/backend/settings"
+	"gorm.io/gorm"
 )
 
 var log = logging.GetLogger()
 
 const (
 	maxRetries = 10
-	retryDelay = 10 * time.Second
 )
 
 type API struct {
-	Authentication bool
-	Config         *settings.Config
-	DNSPort        int
-
-	Version string
-	Commit  string
-	Date    string
-
-	router *gin.Engine
-	routes *gin.RouterGroup
-
-	DNSServer                *server.DNSServer
-	DBManager                *database.DatabaseManager
-	Blacklist                *lists.Blacklist
-	Whitelist                *lists.Whitelist
-	KeyManager               *key.ApiKeyManager
-	PrefetchedDomainsManager *prefetch.Manager
-	Notifications            *notification.Manager
-
-	WSQueries       *websocket.Conn
+	DNS             *server.DNSServer
+	RateLimiter     *ratelimit.RateLimiter
+	DBConn          *gorm.DB
 	WSCommunication *websocket.Conn
+	WSQueries       *websocket.Conn
+	router          *gin.Engine
+	routes          *gin.RouterGroup
+	Config          *settings.Config
+	DNSServer       *server.DNSServer
+	Version         string
+	Date            string
+	Commit          string
+	DNSPort         int
+	Authentication  bool
 
-	RateLimiter *ratelimit.RateLimiter
+	RequestService      *request.Service
+	UserService         *user.Service
+	KeyService          *key.Service
+	PrefetchService     *prefetch.Service
+	ResolutionService   *resolution.Service
+	NotificationService *notification.Service
+	BlacklistService    *blacklist.Service
+	WhitelistService    *whitelist.Service
 }
 
 func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 	api.initializeRouter()
 	api.configureCORS()
-	api.KeyManager = key.NewApiKeyManager(api.DBManager)
-	api.RateLimiter = ratelimit.NewRateLimiter(
-		api.Config.API.RateLimiterConfig.Enabled,
-		api.Config.API.RateLimiterConfig.MaxTries,
-		api.Config.API.RateLimiterConfig.Window,
-	)
 	api.setupRoutes()
+	api.RateLimiter = ratelimit.NewRateLimiter(
+		api.Config.API.RateLimit.Enabled,
+		api.Config.API.RateLimit.MaxTries,
+		api.Config.API.RateLimit.Window,
+	)
 
-	if api.Config.Dashboard {
-		api.ServeEmbeddedContent(content)
+	if api.Config.Misc.Dashboard {
+		api.serveEmbeddedContent(content)
 	}
 
 	api.startServer(errorChannel)
@@ -104,7 +104,7 @@ func (api *API) configureCORS() {
 		}
 	)
 
-	if api.Config.Dashboard {
+	if api.Config.Misc.Dashboard {
 		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "*")
 	} else {
 		log.Warning("Dashboard UI is disabled")
@@ -134,23 +134,19 @@ func (api *API) setupRoutes() {
 
 func (api *API) setupAuthAndMiddleware() {
 	if api.Authentication {
-		api.SetupAuth()
+		api.setupAuth()
 		api.routes.Use(api.authMiddleware())
 	} else {
-		log.Warning("Authentication is disabled.")
+		log.Warning("Dashboard authentication is disabled.")
 	}
 }
 
-func (api *API) SetupAuth() {
-	newUser := &user.User{Username: "admin"}
-	if newUser.Exists(api.DBManager.Conn) {
+func (api *API) setupAuth() {
+	if api.UserService.Exists("admin") {
 		return
 	}
 
-	password := api.getOrGeneratePassword()
-	newUser.Password = password
-
-	if err := newUser.Create(api.DBManager.Conn); err != nil {
+	if err := api.UserService.CreateUser("admin", api.getOrGeneratePassword()); err != nil {
 		log.Error("Unable to create new user: %v", err)
 	}
 }
@@ -204,7 +200,7 @@ func (api *API) startServer(errorChannel chan struct{}) {
 	}
 }
 
-func (api *API) ServeEmbeddedContent(content embed.FS) {
+func (api *API) serveEmbeddedContent(content embed.FS) {
 	ipAddress, err := GetServerIP()
 	if err != nil {
 		log.Error("Error getting IP address: %v", err)
@@ -291,6 +287,7 @@ func injectServerConfig(htmlContent, serverIP string, port int) string {
 	)
 }
 
+// GetServerIP retrieves the first non-loopback IPv4 address of the server.
 func GetServerIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

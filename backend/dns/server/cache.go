@@ -32,7 +32,7 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 
 	if cachedRecord.Key != "" {
 		log.Debug("Cached entry has expired, removing %s from cache", cachedRecord.Key)
-		s.Cache.Delete(cachedRecord.Key)
+		s.DomainCache.Delete(cachedRecord.Key)
 	}
 
 	return nil, false
@@ -43,14 +43,14 @@ func (s *DNSServer) RemoveCachedDomain(domain string) {
 		return
 	}
 
-	s.Cache.Range(func(key, value interface{}) bool {
+	s.DomainCache.Range(func(key, value interface{}) bool {
 		cachedRecord, ok := value.(CachedRecord)
 		if !ok || cachedRecord.Domain != domain+"." {
 			return true
 		}
 
 		log.Debug("Removing cached record for domain %s", domain)
-		s.Cache.Delete(key)
+		s.DomainCache.Delete(key)
 		return true
 	})
 }
@@ -69,7 +69,7 @@ func (s *DNSServer) CacheRecord(cacheKey, domain string, ipAddresses []dns.RR, t
 	}
 
 	now := time.Now()
-	s.Cache.Store(cacheKey, CachedRecord{
+	s.DomainCache.Store(cacheKey, CachedRecord{
 		IPAddresses: ipAddresses,
 		ExpiresAt:   now.Add(cacheTTL),
 		CachedAt:    now,

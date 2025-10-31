@@ -11,7 +11,7 @@ func (api *API) registerAuditRoutes() {
 }
 
 func (api *API) getAudits(c *gin.Context) {
-	audits, err := api.DNSServer.Audits.ReadAudits()
+	audits, err := api.DNSServer.AuditService.ReadAudits()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

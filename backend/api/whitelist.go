@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"goaway/backend/dns/database"
+	"goaway/backend/database"
 	"io"
 	"net/http"
 
@@ -34,7 +34,7 @@ func (api *API) addWhitelisted(c *gin.Context) {
 		return
 	}
 
-	err = api.Whitelist.AddDomain(newDomain.Domain)
+	err = api.WhitelistService.AddDomain(newDomain.Domain)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -46,7 +46,7 @@ func (api *API) addWhitelisted(c *gin.Context) {
 func (api *API) getWhitelistedDomains(c *gin.Context) {
 	var domains []string
 
-	err := api.DBManager.Conn.Model(&database.Whitelist{}).Pluck("domain", &domains).Error
+	err := api.DBConn.Model(&database.Whitelist{}).Pluck("domain", &domains).Error
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to retrieve whitelisted domains"})
 		return
@@ -58,7 +58,7 @@ func (api *API) getWhitelistedDomains(c *gin.Context) {
 func (api *API) deleteWhitelistedDomain(c *gin.Context) {
 	newDomain := c.Query("domain")
 
-	err := api.Whitelist.RemoveDomain(newDomain)
+	err := api.WhitelistService.RemoveDomain(newDomain)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

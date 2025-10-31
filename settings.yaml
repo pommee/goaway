@@ -3,35 +3,10 @@ dns:
   # This is the ip address on which the server will listen for incoming DNS queries.
   address: 0.0.0.0
 
-  # Port used for the DNS server to bind to.
-  # This is the port on which the server will listen for incoming DNS queries.
-  # The server will listen on both UDP and TCP on this port.
-  port: 53
-
-  # Port used for the DoT (DNS-over-TLS) server to bind to.
-  dotPort: 853
-
-  # Port used for the DoH (DNS-over-HTTPS) server to bind to.
-  dohPort: 443
-
-  # TLS certificate and key file for DNS-over-TLS (DoT) & DNS-over-HTTPS servers.
-  # If empty, the servers will not be started.
-  # This file should contain the TLS certificate in PEM format.
-  tlsCertFile: ""
-  tlsKeyFile: ""
-
-  # Primary DNS server to forward queries to.
-  preferredUpstream: 8.8.8.8:53
-
   # Gateway address used when performing local lookups.
   # Mostly used to find hostnames of local clients.
   # Will be populated if not set upon first startup.
   # gateway: 192.168.0.1:53
-
-  # List of available DNS servers to forward queries to.
-  upstreamDNS:
-    - 8.8.8.8:53
-    - 1.1.1.1:53
 
   # Maximum time (in seconds) to keep resolved domains in cache.
   # The server will use either this value or the DNS response TTL, whichever is smaller.
@@ -41,6 +16,31 @@ dns:
   # UDP buffer size for incoming DNS queries (bytes)
   # Standard DNS-over-UDP packet size limit per RFC 1035
   udpSize: 512
+
+  # TLS certificate and key file for DNS-over-TLS (DoT) & DNS-over-HTTPS servers.
+  # If empty, the servers will not be started.
+  # This file should contain the TLS certificate in PEM format.
+  tls:
+    enabled: false
+    cert: ""
+    key: ""
+
+  # Primary DNS server to forward queries to.
+  # List of available DNS servers to forward queries to.
+  upstream:
+    preferred: 8.8.8.8:53
+    fallback:
+      - 1.1.1.1:53
+
+  # Port used for the DNS server to bind to.
+  # This is the port on which the server will listen for incoming DNS queries.
+  # The server will listen on both UDP and TCP on this port.
+  # Port used for the DoT (DNS-over-TLS) server to bind to.
+  # Port used for the DoH (DNS-over-HTTPS) server to bind to.
+  ports:
+    udptcp: 53
+    dot: 853
+    doh: 443
 
 api:
   # Port used for the API/web interface server.
@@ -53,7 +53,7 @@ api:
   authentication: true
 
   # Currently only protects the login route
-  rateLimiter:
+  rateLimit:
     # Enable or disable the usage of rate limiting
     enabled: true
     # User can make N requests before being rate limited
@@ -61,37 +61,39 @@ api:
     # Once limit is reached, rate limits for N minutes
     window: 5
 
-# Serves the dashboard (ui) on http://server-ip:api-port
-# If false, the API will still be available, but the dashboard will not be served.
-# This is useful for deployments where the dashboard is not needed.
-dashboard: true
-
-# Enable or disable automatic updates for blacklists.
-# If enabled, the server will check for updates to blacklists daily at midnight.
-scheduledBlacklistUpdates: true
-
-# Number of days to retain statistics and query logs.
-# Lower values save disk space but provide less historical data.
-statisticsRetention: 7
-
 # Toggles all logging when set.
 # Useful for privacy-focused deployments or reducing disk I/O when disabled.
-loggingEnabled: true
-
 # Determines which severity of log messages to display.
 # Each level includes all levels above it in number.
 # 0 = Debug (most verbose, includes all messages)
 # 1 = Info (normal operation messages)
 # 2 = Warning (potential issues that don't affect operation)
 # 3 = Error (serious problems only)
-logLevel: 1
+logging:
+  enabled: true
+  level: 1
 
-# Enables or disables in-app update functionality.
-# Behavior depends on the deployment method (Docker vs standalone binary):
-# Docker:
-#   - inAppUpdate: false → Updates require stopping, removing, and pulling a new image manually.
-#   - inAppUpdate: true  → The dashboard's built-in updater will fetch the latest binary and restart the container automatically.
-# Standalone:
-#   - inAppUpdate: false → Update manually via installer or `updater.sh`.
-#   - inAppUpdate: true  → The dashboard's updater will install the new binary, but you'll need to restart the app manually.
-inAppUpdate: false
+# Miscellaneous settings for various features.
+misc:
+  # Enables or disables in-app update functionality.
+  # Behavior depends on the deployment method (Docker vs standalone binary):
+  # Docker:
+  #   - inAppUpdate: false → Updates require stopping, removing, and pulling a new image manually.
+  #   - inAppUpdate: true  → The dashboard's built-in updater will fetch the latest binary and restart the container automatically.
+  # Standalone:
+  #   - inAppUpdate: false → Update manually via installer or `updater.sh`.
+  #   - inAppUpdate: true  → The dashboard's updater will install the new binary, but you'll need to restart the app manually.
+  inAppUpdate: false
+
+  # Number of days to retain statistics and query logs.
+  # Lower values save disk space but provide less historical data.
+  statisticsRetention: 7
+
+  # Serves the dashboard (ui) on http://server-ip:api-port
+  # If false, the API will still be available, but the dashboard will not be served.
+  # This is useful for deployments where the dashboard is not needed.
+  dashboard: true
+
+  # Enable or disable automatic updates for blacklists.
+  # If enabled, the server will check for updates to blacklists daily at midnight.
+  scheduledBlacklistUpdates: true

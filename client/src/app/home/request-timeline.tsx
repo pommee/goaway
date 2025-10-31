@@ -27,11 +27,11 @@ import {
   ArrowsClockwiseIcon,
   ChartLineIcon,
   MagnifyingGlassMinusIcon,
-  MagnifyingGlassPlusIcon,
-  WarningIcon
+  MagnifyingGlassPlusIcon
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
+import { NoContent } from "@/shared";
 
 const chartConfig = {
   blocked: {
@@ -90,9 +90,14 @@ export default function RequestTimeline() {
   }, [timelineInterval]);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    const timeout = window.setTimeout(() => {
+      fetchData();
+    }, 0);
+    const interval = window.setInterval(fetchData, 10000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [fetchData]);
 
   const getFilteredData = () => {
@@ -196,7 +201,7 @@ export default function RequestTimeline() {
           <div className="flex gap-2">
             {isZoomed && (
               <Button
-                className="bg-transparent border-1 text-white hover:bg-stone-800"
+                className="bg-transparent border text-white hover:bg-stone-800"
                 onClick={handleZoomOut}
               >
                 <MagnifyingGlassMinusIcon weight="bold" className="mr-1" />
@@ -411,15 +416,8 @@ export default function RequestTimeline() {
             </CardContent>
           </>
         ) : (
-          <CardContent className="flex h-[300px] items-center justify-center">
-            <div className="flex flex-col items-center justify-center">
-              <div className="mb-4">
-                <WarningIcon size={36} className="text-destructive" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                No requests recorded yet
-              </p>
-            </div>
+          <CardContent className="flex h-[220px] items-center justify-center">
+            <NoContent text={"No requests recorded"} />
           </CardContent>
         )}
       </Card>

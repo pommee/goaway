@@ -21,7 +21,7 @@ import {
 import { useState } from "react";
 import TimeAgo from "react-timeago";
 import { toast } from "sonner";
-import BlockedDomainsList from "./blockedDomains";
+import BlockedDomainsList from "./BlockedDomains";
 
 export function CardDetails(
   listEntry: ListEntry & {
@@ -80,8 +80,7 @@ export function CardDetails(
         setShowDiff(false);
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Error checking for updates");
+      toast.error("Error checking for updates", { description: `${error}` });
       setShowDiff(false);
     }
 
@@ -106,8 +105,7 @@ export function CardDetails(
         setShowDiff(false);
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Error checking for updates");
+      toast.error("Error checking for updates", { description: `${error}` });
       setShowDiff(false);
     }
   };
@@ -174,8 +172,7 @@ export function CardDetails(
         setIsEditing(false);
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Error updating list name");
+      toast.error("Error updating list name", { description: `${error}` });
       setEditedName(listEntry.name);
       setIsEditing(false);
     }
@@ -271,15 +268,12 @@ export function CardDetails(
           </div>
           <div className="flex gap-1">
             <p className="text-muted-foreground">blocked:</p>
-            <p>{listEntry.blockedCount.toLocaleString()}</p>
+            <p>{listEntry.blockedCount}</p>
           </div>
           <div className="flex gap-1">
             <p className="text-muted-foreground">updated:</p>
             <div>
-              <TimeAgo
-                date={new Date(listEntry.lastUpdated * 1000)}
-                minPeriod={60}
-              />
+              <TimeAgo date={new Date(listEntry.lastUpdated)} minPeriod={60} />
             </div>
           </div>
         </div>

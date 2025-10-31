@@ -16,8 +16,8 @@ type DiscordConfig struct {
 }
 
 type DiscordService struct {
-	config DiscordConfig
 	client *http.Client
+	config DiscordConfig
 }
 
 type DiscordWebhookPayload struct {
@@ -28,12 +28,12 @@ type DiscordWebhookPayload struct {
 }
 
 type DiscordEmbed struct {
+	Author      *DiscordEmbedAuthor `json:"author,omitempty"`
 	Title       string              `json:"title,omitempty"`
 	Description string              `json:"description,omitempty"`
-	Color       int                 `json:"color,omitempty"`
-	Fields      []DiscordEmbedField `json:"fields,omitempty"`
 	Timestamp   string              `json:"timestamp,omitempty"`
-	Author      *DiscordEmbedAuthor `json:"author,omitempty"`
+	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Color       int                 `json:"color,omitempty"`
 }
 
 type DiscordEmbedField struct {
@@ -81,7 +81,7 @@ func (d *DiscordService) SendMessage(ctx context.Context, msg Message) error {
 		return fmt.Errorf("failed to marshal Discord payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", d.config.WebhookURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.config.WebhookURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create Discord request: %w", err)
 	}

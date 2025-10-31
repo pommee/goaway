@@ -12,7 +12,7 @@ import {
   SpinnerIcon,
   UserCircleIcon
 } from "@phosphor-icons/react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ import { type ISourceOptions } from "@tsparticles/engine";
 import { loadStarsPreset } from "@tsparticles/preset-stars";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 
-function FloatingTitle({ quote }: string) {
+function FloatingTitle({ quote }: { quote: string }) {
   return (
     <div className="relative animate-float">
       <p className="font-bold animate-glow text-blue-300 text-6xl">GoAway</p>
@@ -30,7 +30,7 @@ function FloatingTitle({ quote }: string) {
   );
 }
 
-const MemoizedParticles = () => {
+const FloatingParticles = () => {
   const [, setInit] = useState(false);
 
   useEffect(() => {
@@ -41,19 +41,15 @@ const MemoizedParticles = () => {
     });
   }, []);
 
-  const options: ISourceOptions = useMemo(
-    () => ({
-      preset: "stars"
-    }),
-    []
-  );
+  const options: ISourceOptions = {
+    preset: "stars"
+  };
 
   return <Particles id="tsparticles" options={options} />;
 };
-const MP = memo(MemoizedParticles);
 
 interface LoginProps extends React.ComponentPropsWithoutRef<"div"> {
-  quote?: string;
+  quote: string;
 }
 
 export default function Login({ className, quote, ...props }: LoginProps) {
@@ -136,7 +132,7 @@ export default function Login({ className, quote, ...props }: LoginProps) {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4 overflow-hidden">
-      <MP />
+      <FloatingParticles />
       <div className="w-full max-w-md text-center">
         <FloatingTitle quote={quote} />
 
@@ -245,11 +241,15 @@ export default function Login({ className, quote, ...props }: LoginProps) {
           <div className="mt-6 text-muted-foreground text-sm z-10">
             <p>
               Version {responseData?.version} - Last updated{" "}
-              {new Date(responseData?.date).toLocaleString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric"
-              })}
+              {responseData?.date ? (
+                new Date(responseData.date).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric"
+                })
+              ) : (
+                <span className="text-red-800">unavailable</span>
+              )}
             </p>
             <p className="mt-1">
               <a

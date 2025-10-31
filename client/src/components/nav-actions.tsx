@@ -153,7 +153,7 @@ export default function PauseBlockingDialog({
     timeLeft: number;
   };
 
-  const [time, setTime] = useState("10");
+  const [pauseTime, setPauseTime] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [pauseStatus, setPauseStatus] = useState<PausedResponse>();
   const [remainingTime, setRemainingTime] = useState(0);
@@ -193,11 +193,11 @@ export default function PauseBlockingDialog({
     setIsLoading(true);
     try {
       const [status] = await PostRequest("pause", {
-        time: parseInt(time)
+        time: pauseTime
       });
 
       if (status === 200) {
-        toast.info(`Paused blocking for ${time} seconds`);
+        toast.info(`Paused blocking for ${pauseTime} seconds`);
         const [getStatus, getResponse] = await GetRequest("pause");
         if (getStatus === 200) {
           setPauseStatus(getResponse);
@@ -265,8 +265,8 @@ export default function PauseBlockingDialog({
               id="pause-time"
               type="number"
               min="1"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
+              value={pauseTime}
+              onChange={(e) => setPauseTime(e.target.value)}
               className="w-full"
             />
           </div>
