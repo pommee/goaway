@@ -1,7 +1,6 @@
 package api
 
 import (
-	"goaway/backend/dns/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,7 @@ func (api *API) registerClientRoutes() {
 }
 
 func (api *API) getClients(c *gin.Context) {
-	uniqueClients, err := database.FetchAllClients(api.DBManager.Conn)
+	uniqueClients, err := api.RequestService.FetchAllClients()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -37,7 +36,7 @@ func (api *API) getClients(c *gin.Context) {
 func (api *API) getClientDetails(c *gin.Context) {
 	clientIP := c.DefaultQuery("clientIP", "")
 
-	clientRequestDetails, mostQueriedDomain, domainQueryCounts, err := database.GetClientDetailsWithDomains(api.DBManager.Conn, clientIP)
+	clientRequestDetails, mostQueriedDomain, domainQueryCounts, err := api.RequestService.GetClientDetailsWithDomains(clientIP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -57,7 +56,7 @@ func (api *API) getClientDetails(c *gin.Context) {
 }
 
 func (api *API) getTopClients(c *gin.Context) {
-	topClients, err := database.GetTopClients(api.DBManager.Conn)
+	topClients, err := api.RequestService.GetTopClients()
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

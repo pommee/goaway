@@ -1,9 +1,10 @@
 package api
 
 import (
+	"context"
 	"goaway/backend/api/models"
 	"goaway/backend/audit"
-	"goaway/backend/dns/database"
+	"goaway/backend/database"
 	"goaway/backend/dns/server"
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/settings"
@@ -18,7 +19,7 @@ import (
 )
 
 func (api *API) registerDNSRoutes() {
-	api.setupWSLiveQueries(api.PrefetchedDomainsManager.DNS)
+	api.setupWSLiveQueries(api.DNS)
 
 	api.routes.POST("/pause", api.pauseBlocking)
 	api.routes.GET("/pause", api.getBlocking)
@@ -44,11 +45,20 @@ func (api *API) pauseBlocking(c *gin.Context) {
 		return
 	}
 
-	api.Config.DNS.Status = settings.Status{
-		Paused:    true,
-		PausedAt:  time.Now(),
-		PauseTime: blockTime.Time,
+	now := time.Now()
+	if blockTime.Time <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Time must be greater than 0",
+		})
+		return
 	}
+
+	duration := time.Duration(blockTime.Time) * time.Second
+	pauseTime := now.Add(duration)
+
+	api.Config.DNS.Status.Paused = true
+	api.Config.DNS.Status.PausedAt = now
+	api.Config.DNS.Status.PauseTime = pauseTime
 
 	log.Info("DNS blocking paused for %d seconds", blockTime.Time)
 	c.Status(http.StatusOK)
@@ -56,40 +66,42 @@ func (api *API) pauseBlocking(c *gin.Context) {
 
 func (api *API) getBlocking(c *gin.Context) {
 	if api.Config.DNS.Status.Paused {
-		elapsed := time.Since(api.Config.DNS.Status.PausedAt).Seconds()
-		remainingTime := api.Config.DNS.Status.PauseTime - int(elapsed)
+		now := time.Now()
+		remainingTime := api.Config.DNS.Status.PauseTime.Sub(now)
 
 		if remainingTime <= 0 {
+			api.Config.DNS.Status.Paused = false
 			c.JSON(http.StatusOK, gin.H{"paused": false})
+			return
 		} else {
-			c.JSON(http.StatusOK, gin.H{"paused": true, "timeLeft": remainingTime})
+			secondsLeft := int(remainingTime.Seconds())
+			c.JSON(http.StatusOK, gin.H{"paused": true, "timeLeft": secondsLeft})
+			return
 		}
 	}
 
-	if !api.Config.DNS.Status.Paused {
-		c.JSON(http.StatusOK, gin.H{"paused": false})
-	}
+	c.JSON(http.StatusOK, gin.H{"paused": false})
 }
 
 func (api *API) getQueries(c *gin.Context) {
 	query := parseQueryParams(c)
 
 	type result struct {
+		err     error
 		queries []model.RequestLogEntry
 		total   int
-		err     error
 	}
 
 	queryCh := make(chan result, 1)
 	countCh := make(chan result, 1)
 
 	go func() {
-		queries, err := database.FetchQueries(api.DBManager.Conn, query)
+		queries, err := api.RequestService.FetchQueries(query)
 		queryCh <- result{queries: queries, err: err}
 	}()
 
 	go func() {
-		total, err := database.CountQueries(api.DBManager.Conn, query.Search)
+		total, err := api.RequestService.CountQueries(query.Search)
 		countCh <- result{total: total, err: err}
 	}()
 
@@ -169,7 +181,7 @@ func (api *API) getQueryTimestamps(c *gin.Context) {
 		return
 	}
 
-	timestamps, err := database.GetRequestSummaryByInterval(interval, api.DBManager.Conn)
+	timestamps, err := api.RequestService.GetRequestSummaryByInterval(interval)
 	if err != nil {
 		log.Error("Failed to get request summary: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -187,7 +199,7 @@ func (api *API) getResponseSizeTimestamps(c *gin.Context) {
 		return
 	}
 
-	timestamps, err := database.GetResponseSizeSummaryByInterval(interval, api.DBManager.Conn)
+	timestamps, err := api.RequestService.GetResponseSizeSummaryByInterval(interval)
 	if err != nil {
 		log.Error("Error fetching response size timestamps: %v", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -198,7 +210,7 @@ func (api *API) getResponseSizeTimestamps(c *gin.Context) {
 }
 
 func (api *API) getQueryTypes(c *gin.Context) {
-	queries, err := database.GetUniqueQueryTypes(api.DBManager.Conn)
+	queries, err := api.RequestService.GetUniqueQueryTypes()
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -209,19 +221,19 @@ func (api *API) getQueryTypes(c *gin.Context) {
 }
 
 func (api *API) clearQueries(c *gin.Context) {
-	if err := api.DBManager.Conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLog{}).Error; err != nil {
+	if err := api.DBConn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLog{}).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear query logs", "reason": err.Error()})
 		return
 	}
 
-	if err := api.DBManager.Conn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLogIP{}).Error; err != nil {
+	if err := api.DBConn.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&database.RequestLogIP{}).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not clear IP logs", "reason": err.Error()})
 		return
 	}
 
-	api.Blacklist.Vacuum()
+	api.BlacklistService.Vacuum(context.Background())
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicLogs,
 		Message: "Logs were cleared",
 	})

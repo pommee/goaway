@@ -32,7 +32,7 @@ export function ListCard(
     ...listEntry
   } = props;
 
-  const formattedDate = new Date(listEntry.lastUpdated * 1000).toLocaleString(
+  const formattedDate = new Date(listEntry.lastUpdated).toLocaleString(
     "en-US",
     {
       month: "short",

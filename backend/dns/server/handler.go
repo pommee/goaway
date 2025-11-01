@@ -5,9 +5,8 @@ import (
 	"context"
 	"fmt"
 	arp "goaway/backend/dns"
-	"goaway/backend/dns/database"
 	model "goaway/backend/dns/server/models"
-	notification "goaway/backend/notifications"
+	"goaway/backend/notification"
 	"net"
 	"os"
 	"os/exec"
@@ -24,8 +23,13 @@ var (
 	blackholeIPv6 = net.ParseIP("::")
 )
 
+const (
+	IPv4Loopback    = "127.0.0.1"
+	unknownHostname = "unknown"
+)
+
 func trimDomainDot(name string) string {
-	if len(name) > 0 && name[len(name)-1] == '.' {
+	if name != "" && name[len(name)-1] == '.' {
 		return name[:len(name)-1]
 	}
 	return name
@@ -37,15 +41,15 @@ func isPTRQuery(request *Request, domainName string) bool {
 
 func (s *DNSServer) checkAndUpdatePauseStatus() {
 	if s.Config.DNS.Status.Paused &&
-		time.Since(s.Config.DNS.Status.PausedAt).Seconds() >= float64(s.Config.DNS.Status.PauseTime) {
+		s.Config.DNS.Status.PausedAt.After(s.Config.DNS.Status.PauseTime) {
 		s.Config.DNS.Status.Paused = false
 	}
 }
 
 func (s *DNSServer) shouldBlockQuery(domainName, fullName string) bool {
 	return !s.Config.DNS.Status.Paused &&
-		s.Blacklist.IsBlacklisted(domainName) &&
-		!s.Whitelist.IsWhitelisted(fullName)
+		s.BlacklistService.IsBlacklisted(domainName) &&
+		!s.WhitelistService.IsWhitelisted(fullName)
 }
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
@@ -77,20 +81,6 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	return s.handleStandardQuery(request)
 }
 
-func (s *DNSServer) GetVendor(mac string) (string, error) {
-	s.DBManager.Mutex.Lock()
-	defer s.DBManager.Mutex.Unlock()
-	return database.FindVendor(s.DBManager.Conn, mac)
-}
-
-func (s *DNSServer) SaveMacVendor(clientIP, mac, vendor string) {
-	s.DBManager.Mutex.Lock()
-	defer s.DBManager.Mutex.Unlock()
-
-	log.Debug("Saving new MAC address: %s %s", mac, vendor)
-	database.SaveMacEntry(s.DBManager.Conn, clientIP, mac, vendor)
-}
-
 func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, bool) {
 	trimmed := strings.TrimSuffix(requestedHostname, ".")
 
@@ -114,24 +104,24 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	hostname := s.resolveHostname(clientIP)
 	resultIP := clientIP
 
-	vendor, err := s.GetVendor(macAddress)
-	if macAddress != "unknown" {
+	vendor, err := s.MACService.FindVendor(macAddress)
+	if macAddress != unknownHostname {
 		if err != nil || vendor == "" {
 			log.Debug("Lookup vendor for mac %s", macAddress)
 			vendor, err = arp.GetMacVendor(macAddress)
 			if err == nil {
-				s.SaveMacVendor(clientIP, macAddress, vendor)
+				s.MACService.SaveMac(clientIP, macAddress, vendor)
 			} else {
-				log.Warning("Error while lookup mac address vendor: %v", err)
+				log.Warning("Was not able to find vendor for addr '%s'. %v", remoteAddr, err)
 			}
 		}
 	}
 
-	if clientIP == "127.0.0.1" || clientIP == "::1" || clientIP == "[" {
+	if clientIP == IPv4Loopback || clientIP == "::1" || clientIP == "[" {
 		localIP, err := getLocalIP()
 		if err != nil {
 			log.Warning("Failed to get local IP: %v", err)
-			localIP = "127.0.0.1"
+			localIP = IPv4Loopback
 		}
 		resultIP = localIP
 
@@ -145,7 +135,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
 	s.clientCache.Store(clientIP, &client)
 
-	if client.Name != "unknown" {
+	if client.Name != unknownHostname {
 		s.hostnameCache.Store(client.Name, client.IP)
 	}
 
@@ -153,19 +143,27 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 }
 
 func (s *DNSServer) resolveHostname(clientIP string) string {
-	if hostname := s.reverseDNSLookup(clientIP); hostname != "unknown" {
+	ip := net.ParseIP(clientIP)
+	if ip.IsLoopback() {
+		hostname, err := os.Hostname()
+		if err == nil {
+			return hostname
+		}
+	}
+
+	if hostname := s.reverseDNSLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	if hostname := s.avahiLookup(clientIP); hostname != "unknown" {
+	if hostname := s.avahiLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	if hostname := s.sshBannerLookup(clientIP); hostname != "unknown" {
+	if hostname := s.sshBannerLookup(clientIP); hostname != unknownHostname {
 		return hostname
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) avahiLookup(clientIP string) string {
@@ -175,8 +173,8 @@ func (s *DNSServer) avahiLookup(clientIP string) string {
 	cmd := exec.CommandContext(ctx, "avahi-resolve-address", clientIP)
 	output, err := cmd.Output()
 	if err == nil {
-		lines := strings.Split(string(output), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(output), "\n")
+		for line := range lines {
 			if strings.Contains(line, clientIP) {
 				parts := strings.Fields(line)
 				if len(parts) >= 2 {
@@ -190,7 +188,7 @@ func (s *DNSServer) avahiLookup(clientIP string) string {
 		}
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) reverseDNSLookup(clientIP string) string {
@@ -206,13 +204,13 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 			return hostname
 		}
 	}
-	return "unknown"
+	return unknownHostname
 }
 
 func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	conn, err := net.DialTimeout("tcp", clientIP+":22", 1*time.Second)
 	if err != nil {
-		return "unknown"
+		return unknownHostname
 	}
 	defer func() {
 		_ = conn.Close()
@@ -222,13 +220,13 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	if err != nil {
 		log.Warning("Failed to set deadline for SSH banner lookup: %v", err)
 		_ = conn.Close()
-		return "unknown"
+		return unknownHostname
 	}
 
 	reader := bufio.NewReader(conn)
 	banner, err := reader.ReadString('\n')
 	if err != nil {
-		return "unknown"
+		return unknownHostname
 	}
 
 	patterns := []*regexp.Regexp{
@@ -248,7 +246,7 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 		}
 	}
 
-	return "unknown"
+	return unknownHostname
 }
 
 func getLocalIP() (string, error) {
@@ -265,7 +263,7 @@ func getLocalIP() (string, error) {
 		}
 	}
 
-	return "127.0.0.1", fmt.Errorf("no non-loopback IPv4 address found")
+	return IPv4Loopback, fmt.Errorf("no non-loopback IPv4 address found")
 }
 
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
@@ -277,7 +275,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 	ipStr := strings.Join(parts, ".")
 
-	if ipStr == "127.0.0.1" {
+	if ipStr == IPv4Loopback {
 		return s.respondWithLocalhost(request)
 	}
 
@@ -285,12 +283,12 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 		return s.forwardPTRQueryUpstream(request)
 	}
 
-	hostname := database.GetClientNameFromRequestLog(s.DBManager.Conn, ipStr)
-	if hostname == "unknown" {
+	hostname := s.RequestService.GetClientNameFromIP(ipStr)
+	if hostname == unknownHostname {
 		hostname = s.resolveHostname(ipStr)
 	}
 
-	if hostname != "unknown" {
+	if hostname != unknownHostname {
 		return s.respondWithHostnamePTR(request, hostname)
 	}
 
@@ -540,11 +538,11 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 	err := request.ResponseWriter.WriteMsg(request.Msg)
 	if err != nil {
 		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", request.Client.IP, request.Msg.Answer, err.Error())
-		s.Notifications.CreateNotification(&notification.Notification{
-			Severity: notification.SeverityWarning,
-			Category: notification.CategoryDNS,
-			Text:     fmt.Sprintf("Could not write query response. Client: %s, err: %v", request.Client.IP, err.Error()),
-		})
+		s.NotificationService.SendNotification(
+			notification.SeverityWarning,
+			notification.CategoryDNS,
+			fmt.Sprintf("Could not write query response. Client: %s, err: %v", request.Client.IP, err.Error()),
+		)
 	}
 
 	return model.RequestLogEntry{
@@ -563,7 +561,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 
 func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 	cacheKey := req.Question.Name + ":" + strconv.Itoa(int(req.Question.Qtype))
-	if cached, found := s.Cache.Load(cacheKey); found {
+	if cached, found := s.DomainCache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, dns.RcodeToString[dns.RcodeSuccess]
 		}
@@ -593,7 +591,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 		status  = dns.RcodeToString[dns.RcodeSuccess]
 	)
 
-	ipFound, err := database.FetchResolution(s.DBManager.Conn, domain)
+	ipFound, err := s.ResolutionService.GetResolution(domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
@@ -648,14 +646,14 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		go s.WSCom(communicationMessage{false, true, false, ""})
+		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
 		upstreamMsg := &dns.Msg{}
 		upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
 		upstreamMsg.RecursionDesired = true
 		upstreamMsg.Id = dns.Id()
 
-		upstream := s.Config.DNS.PreferredUpstream
+		upstream := s.Config.DNS.Upstream.Preferred
 		if s.dnsClient.Net == "tcp-tls" {
 			host, port, err := net.SplitHostPort(upstream)
 			if err != nil {
@@ -681,7 +679,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 
 	select {
 	case in := <-resultCh:
-		go s.WSCom(communicationMessage{false, false, true, ""})
+		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: false, DNS: true})
 
 		status := dns.RcodeToString[dns.RcodeServerFailure]
 		if statusStr, ok := dns.RcodeToString[in.Rcode]; ok {
@@ -713,11 +711,11 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 
 	case err := <-errCh:
 		log.Warning("Resolution error for domain (%s): %v", req.Question.Name, err)
-		s.Notifications.CreateNotification(&notification.Notification{
-			Severity: notification.SeverityWarning,
-			Category: notification.CategoryDNS,
-			Text:     fmt.Sprintf("Resolution error for domain (%s)", req.Question.Name),
-		})
+		s.NotificationService.SendNotification(
+			notification.SeverityWarning,
+			notification.CategoryDNS,
+			fmt.Sprintf("Resolution error for domain (%s)", req.Question.Name),
+		)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 
 	case <-time.After(5 * time.Second):
@@ -733,8 +731,13 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 		hostname += "."
 	}
 
+	queryType := req.Question.Qtype
+	if queryType == 0 {
+		queryType = dns.TypeA
+	}
+
 	dnsMsg := new(dns.Msg)
-	dnsMsg.SetQuestion(hostname, dns.TypeA)
+	dnsMsg.SetQuestion(hostname, queryType)
 
 	client := &dns.Client{Net: "udp"}
 	start := time.Now()
@@ -759,7 +762,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 		}
 	}
 
-	if len(ips) == 0 {
+	if len(ips) == 0 && queryType == dns.TypeA {
 		return model.RequestLogEntry{}, fmt.Errorf("no A records found for hostname: %s", hostname)
 	}
 
@@ -772,7 +775,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 	entry := model.RequestLogEntry{
 		Domain:            req.Question.Name,
 		Status:            dns.RcodeToString[in.Rcode],
-		QueryType:         dns.TypeToString[dns.TypeA],
+		QueryType:         dns.TypeToString[queryType],
 		IP:                ips,
 		ResponseSizeBytes: in.Len(),
 		Timestamp:         start,

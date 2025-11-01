@@ -1,8 +1,8 @@
-"use client";
+/* eslint-disable react-hooks/static-components */
+import { ElementType, memo } from "react";
+import { AnimatePresence, motion, MotionProps, Variants } from "motion/react";
 
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion, MotionProps, Variants } from "motion/react";
-import { ElementType } from "react";
 
 type AnimationType = "text" | "word" | "character" | "line";
 type AnimationVariant =
@@ -62,6 +62,10 @@ interface TextAnimateProps extends MotionProps {
    * The animation preset to use
    */
   animation?: AnimationVariant;
+  /**
+   * Whether to enable accessibility features (default: true)
+   */
+  accessible?: boolean;
 }
 
 const staggerTimings: Record<AnimationType, number> = {
@@ -297,7 +301,7 @@ const defaultItemAnimationVariants: Record<
   }
 };
 
-export function TextAnimate({
+const TextAnimateBase = ({
   children,
   delay = 0,
   duration = 0.3,
@@ -309,8 +313,9 @@ export function TextAnimate({
   once = false,
   by = "word",
   animation = "fadeIn",
+  accessible = true,
   ...props
-}: TextAnimateProps) {
+}: TextAnimateProps) => {
   const MotionComponent = motion.create(Component);
 
   let segments: string[] = [];
@@ -385,8 +390,10 @@ export function TextAnimate({
         exit="exit"
         className={cn("whitespace-pre-wrap", className)}
         viewport={{ once }}
+        aria-label={accessible ? children : undefined}
         {...props}
       >
+        {accessible && <span className="sr-only">{children}</span>}
         {segments.map((segment, i) => (
           <motion.span
             key={`${by}-${segment}-${i}`}
@@ -397,6 +404,7 @@ export function TextAnimate({
               by === "character" && "",
               segmentClassName
             )}
+            aria-hidden={accessible ? true : undefined}
           >
             {segment}
           </motion.span>
@@ -404,4 +412,6 @@ export function TextAnimate({
       </MotionComponent>
     </AnimatePresence>
   );
-}
+};
+
+export const TextAnimate = memo(TextAnimateBase);

@@ -2,10 +2,32 @@ import { GithubLogoIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+interface GitHubRelease {
+  id: number;
+  name: string;
+  tag_name: string;
+  body: string;
+  published_at: string;
+  html_url: string;
+  prerelease: boolean;
+  draft: boolean;
+}
+
+interface Commit {
+  hash: string | null;
+  message: string;
+  url: string | null;
+}
+
+interface ChangelogSection {
+  header: string;
+  commits: Commit[];
+}
+
 const Changelog = () => {
-  const [releases, setReleases] = useState([]);
+  const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const cachedData = sessionStorage.getItem("githubReleases");
@@ -30,7 +52,7 @@ const Changelog = () => {
       if (!response.ok)
         throw new Error(`Failed to fetch releases: ${response.statusText}`);
 
-      const data = await response.json();
+      const data: GitHubRelease[] = await response.json();
       const cacheControl = response.headers.get("Cache-Control");
       const cacheMaxAgeMatch = cacheControl?.match(/max-age=(\d+)/);
       const cacheMaxAge = cacheMaxAgeMatch
@@ -44,17 +66,21 @@ const Changelog = () => {
       );
 
       setReleases(data);
-    } catch {
+      setError(null);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errorMessage);
       toast.warning("Could not fetch changelog");
     } finally {
       setLoading(false);
     }
   };
 
-  const parseChangelogBody = (body: string) => {
+  const parseChangelogBody = (body: string): ChangelogSection[] => {
     if (!body) return [];
 
-    const sections = [];
+    const sections: ChangelogSection[] = [];
     const sectionRegex = /###\s*(.*?)\s*\n([\s\S]*?)(?=\n###|\n##|$)/g;
     let match;
 
@@ -64,11 +90,11 @@ const Changelog = () => {
 
       if (!content) continue;
 
-      const commits = content
+      const commits: Commit[] = content
         .split("\n")
         .map((line) => line.trim())
         .filter((line) => line.length > 0 && line.startsWith("*"))
-        .map((commit) => {
+        .map((commit): Commit => {
           const linkMatch = commit.match(
             /\*\s*(.*?)\s*\(\[([a-f0-9]{7,40})\]\((.*?)\)\)/
           );
@@ -224,7 +250,7 @@ const Changelog = () => {
                                 <div className="flex items-start gap-2">
                                   {commit.hash && (
                                     <a
-                                      href={commit.url}
+                                      href={commit.url || "#"}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="py-0.5 text-muted-foreground hover:text-primary transition-colors"
@@ -255,7 +281,7 @@ const Changelog = () => {
                       href={release.html_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border-1 border-stone-600 hover:text-white hover:border-stone-400 rounded-sm transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-stone-600 hover:text-white hover:border-stone-400 rounded-sm transition-colors"
                     >
                       <GithubLogoIcon size={16} />
                       View on GitHub

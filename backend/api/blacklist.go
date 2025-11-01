@@ -1,11 +1,11 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"goaway/backend/audit"
-	"goaway/backend/dns/database"
-	"goaway/backend/dns/server/prefetch"
+	"goaway/backend/database"
 	"io"
 	"net/http"
 	"strconv"
@@ -44,13 +44,13 @@ func (api *API) createPrefetchedDomain(c *gin.Context) {
 		return
 	}
 
-	err = api.PrefetchedDomainsManager.AddPrefetchedDomain(prefetchedDomain.Domain, prefetchedDomain.Refresh, prefetchedDomain.QType)
+	err = api.PrefetchService.AddPrefetchedDomain(prefetchedDomain.Domain, prefetchedDomain.Refresh, prefetchedDomain.QType)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicPrefetch,
 		Message: fmt.Sprintf("Added new prefetch '%s'", prefetchedDomain.Domain),
 	})
@@ -58,8 +58,8 @@ func (api *API) createPrefetchedDomain(c *gin.Context) {
 }
 
 func (api *API) fetchPrefetchedDomains(c *gin.Context) {
-	prefetchedDomains := make([]prefetch.PrefetchedDomain, 0)
-	for _, b := range api.PrefetchedDomainsManager.Domains {
+	prefetchedDomains := make([]database.Prefetch, 0)
+	for _, b := range api.PrefetchService.Domains {
 		prefetchedDomains = append(prefetchedDomains, b)
 	}
 	c.JSON(http.StatusOK, prefetchedDomains)
@@ -72,9 +72,9 @@ func (api *API) removeDomainFromCustom(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Empty domain name"})
 	}
 
-	err := api.Blacklist.RemoveCustomDomain(domain)
+	err := api.BlacklistService.RemoveCustomDomain(context.Background(), domain)
 	if err != nil {
-		log.Debug("Error occured while removing domain from custom list: %v", err)
+		log.Debug("Error occurred while removing domain from custom list: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
 		return
 	}
@@ -98,7 +98,7 @@ func (api *API) getBlacklistedDomains(c *gin.Context) {
 		pageSizeInt = 10
 	}
 
-	domains, total, err := api.Blacklist.LoadPaginatedBlacklist(pageInt, pageSizeInt, search)
+	domains, total, err := api.BlacklistService.LoadPaginatedBlacklist(context.Background(), pageInt, pageSizeInt, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -113,8 +113,8 @@ func (api *API) getBlacklistedDomains(c *gin.Context) {
 }
 
 func (api *API) getTopBlockedDomains(c *gin.Context) {
-	_, blocked, _ := api.Blacklist.GetAllowedAndBlocked()
-	topBlockedDomains, err := database.GetTopBlockedDomains(api.DBManager.Conn, blocked)
+	_, blocked, _ := api.BlacklistService.GetAllowedAndBlocked(context.Background())
+	topBlockedDomains, err := api.RequestService.GetTopBlockedDomains(blocked)
 	if err != nil {
 		log.Error("%v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -131,7 +131,7 @@ func (api *API) getDomainsForList(c *gin.Context) {
 		return
 	}
 
-	domains, err := api.Blacklist.GetDomainsForList(list)
+	domains, _, err := api.BlacklistService.FetchDBHostsList(context.Background(), list)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -143,19 +143,19 @@ func (api *API) getDomainsForList(c *gin.Context) {
 func (api *API) deletePrefetchedDomain(c *gin.Context) {
 	domainPrefetchToDelete := c.Query("domain")
 
-	domain := api.PrefetchedDomainsManager.Domains[domainPrefetchToDelete]
-	if (domain == prefetch.PrefetchedDomain{}) {
+	domain := api.PrefetchService.Domains[domainPrefetchToDelete]
+	if (domain == database.Prefetch{}) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s does not exist", domainPrefetchToDelete)})
 		return
 	}
 
-	err := api.PrefetchedDomainsManager.RemovePrefetchedDomain(domainPrefetchToDelete)
+	err := api.PrefetchService.RemovePrefetchedDomain(domainPrefetchToDelete)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicPrefetch,
 		Message: fmt.Sprintf("Removed prefetched domain '%s'", domainPrefetchToDelete),
 	})

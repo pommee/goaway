@@ -36,11 +36,11 @@ func (api *API) updateSettings(c *gin.Context) {
 		return
 	}
 
-	api.Config.UpdateSettings(updatedSettings)
-	settingsJson, _ := json.MarshalIndent(updatedSettings, "", "  ")
-	log.Debug("%s", string(settingsJson))
+	api.Config.Update(updatedSettings)
+	settingsJSON, _ := json.MarshalIndent(updatedSettings, "", "  ")
+	log.Debug("%s", string(settingsJSON))
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicSettings,
 		Message: "Settings was updated",
 	})
@@ -65,7 +65,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 	_ = os.Remove(tempExport)
 
 	// Create a new connection to a temp file and vacuum into it
-	if err := api.DBManager.Conn.Exec(fmt.Sprintf("VACUUM INTO '%s';", tempExport)).Error; err != nil {
+	if err := api.DBConn.Exec(fmt.Sprintf("VACUUM INTO '%s';", tempExport)).Error; err != nil {
 		log.Error("Failed to write WAL to temp export: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare database for export"})
 		return
@@ -116,7 +116,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 		return n > 0
 	})
 
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicDatabase,
 		Message: "Database was exported",
 	})
@@ -125,7 +125,7 @@ func (api *API) exportDatabase(c *gin.Context) {
 func validateSQLiteFile(filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("cannot open file: %v", err)
+		return fmt.Errorf("cannot open file: %w", err)
 	}
 	go func() {
 		_ = file.Close()
@@ -133,7 +133,7 @@ func validateSQLiteFile(filePath string) error {
 
 	stat, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("cannot stat file: %v", err)
+		return fmt.Errorf("cannot stat file: %w", err)
 	}
 
 	if stat.Size() < 50 {
@@ -143,7 +143,7 @@ func validateSQLiteFile(filePath string) error {
 	header := make([]byte, 16)
 	_, err = file.Read(header)
 	if err != nil {
-		return fmt.Errorf("cannot read file header: %v", err)
+		return fmt.Errorf("cannot read file header: %w", err)
 	}
 
 	expectedHeader := "SQLite format 3\x00"
@@ -184,7 +184,7 @@ func (api *API) importDatabase(c *gin.Context) {
 	}
 	_, err = io.Copy(tempFile, file)
 
-	defer func(tempfile *os.File) {
+	defer func(tempFile *os.File) {
 		_ = tempFile.Close()
 	}(tempFile)
 
@@ -229,7 +229,7 @@ func (api *API) importDatabase(c *gin.Context) {
 		return
 	}
 
-	sqlDB, err := api.DBManager.Conn.DB()
+	sqlDB, err := api.DBConn.DB()
 	if err != nil {
 		log.Error("Failed to get underlying sql.DB: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close current database"})
@@ -260,15 +260,15 @@ func (api *API) importDatabase(c *gin.Context) {
 	if err != nil {
 		log.Error("Failed to open imported database with GORM: %v", err)
 		_ = copyFile(backupPath, currentDBPath)
-		api.DBManager.Conn, _ = gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
+		api.DBConn, _ = gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open imported database, restored from backup"})
 		return
 	}
 
-	api.DBManager.Conn = newDB
+	*api.DBConn = *newDB
 
 	log.Info("Database imported successfully from %s", header.Filename)
-	api.DNSServer.Audits.CreateAudit(&audit.Entry{
+	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicDatabase,
 		Message: "Database was imported",
 	})
