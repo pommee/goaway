@@ -1,4 +1,4 @@
-.PHONY: publish build lint example-queries dev format test bench
+.PHONY: publish build lint example-queries dev format test bench docs-serve docs-build
 
 DNS_PORT ?= 53
 WEBSITE_PORT ?= 8080
@@ -35,3 +35,6 @@ test: lint commitlint
 
 bench: 		   ; go run test/benchmark.go -test.bench=.
 bench-profile: ; go run test/benchmark.go -test.bench=. & go tool pprof http://localhost:6060/debug/pprof/profile\?seconds\=5
+
+docs-serve: ; make -C docs serve
+docs-build: ; make -C docs build
