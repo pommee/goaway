@@ -1,0 +1,54 @@
+site_name: GoAway
+repo_name: GoAway
+repo_url: https://github.com/pommee/goaway
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+
+  features:
+    - navigation.footer
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Blog:
+      - blog/index.md
+      - blog/posts/1.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pommee/goaway
+
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+
+  - git-revision-date-localized:
+      type: timeago
+
+  - blog:
+      blog_toc: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
