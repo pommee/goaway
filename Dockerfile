@@ -8,7 +8,7 @@ ENV DNS_PORT=${DNS_PORT} WEBSITE_PORT=${WEBSITE_PORT}
 
 COPY installer.sh ./
 
-RUN apk add --no-cache curl jq bash ca-certificates && \
+RUN apk add --no-cache curl jq bash ca-certificates postgresql-client && \
     mkdir -p /app && \
     ./installer.sh $GOAWAY_VERSION && \
     mv /root/.local/bin/goaway /app/goaway && \

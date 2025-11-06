@@ -46,19 +46,39 @@ func GetDistinctRequestIP(db *gorm.DB) int {
 
 func GetRequestSummaryByInterval(interval int, db *gorm.DB) ([]model.RequestLogIntervalSummary, error) {
 	minutes := interval * 60
-
 	var rawSummaries []model.RequestLogIntervalSummary
-	err := db.Table("request_logs").
-		Select(`
-			DATETIME((STRFTIME('%s', timestamp) / ?) * ?, 'unixepoch') AS interval_start,
-			SUM(blocked) AS blocked_count,
-			SUM(cached) AS cached_count,
-			SUM(NOT blocked AND NOT cached) AS allowed_count
-		`, minutes, minutes, minutes).
-		Where("timestamp >= DATETIME('now', '-1 day')").
-		Group("(STRFTIME('%s', timestamp) / ?)").
-		Order("interval_start").
-		Scan(&rawSummaries).Error
+
+	var query string
+	switch db.Dialector.Name() {
+	case "sqlite":
+		query = `
+			SELECT
+				DATETIME((STRFTIME('%s', timestamp) / $1) * $1, 'unixepoch') AS interval_start,
+				SUM(blocked) AS blocked_count,
+				SUM(cached) AS cached_count,
+				SUM(NOT blocked AND NOT cached) AS allowed_count
+			FROM request_logs
+			WHERE timestamp >= DATETIME('now', '-1 day')
+			GROUP BY (STRFTIME('%s', timestamp) / $1)
+			ORDER BY interval_start
+		`
+	case "postgres":
+		query = `
+			SELECT
+				TO_CHAR(TO_TIMESTAMP(FLOOR(EXTRACT(EPOCH FROM timestamp) / $1) * $1), 'YYYY-MM-DD HH24:MI:SS') AS interval_start,
+				SUM(blocked::int) AS blocked_count,
+				SUM(cached::int) AS cached_count,
+				SUM((NOT blocked AND NOT cached)::int) AS allowed_count
+			FROM request_logs
+			WHERE timestamp >= NOW() - INTERVAL '1 day'
+			GROUP BY FLOOR(EXTRACT(EPOCH FROM timestamp) / $1)
+			ORDER BY interval_start
+		`
+	default:
+		return nil, fmt.Errorf("unsupported db type: %s", db.Dialector.Name())
+	}
+
+	err := db.Raw(query, minutes).Scan(&rawSummaries).Error
 	if err != nil {
 		return nil, err
 	}
@@ -85,22 +105,39 @@ func GetResponseSizeSummaryByInterval(intervalMinutes int, db *gorm.DB) ([]model
 	twentyFourHoursAgo := time.Now().Add(-24 * time.Hour).Unix()
 
 	var summaries []model.ResponseSizeSummary
+	var query string
 
-	query := `
-		SELECT
-			((strftime('%s', timestamp) / ?) * ?) AS start_unix,
-			SUM(response_size_bytes) AS total_size_bytes,
-			ROUND(AVG(response_size_bytes)) AS avg_response_size_bytes,
-			MIN(response_size_bytes) AS min_response_size_bytes,
-			MAX(response_size_bytes) AS max_response_size_bytes
-		FROM request_logs
-		WHERE strftime('%s', timestamp) >= ? AND response_size_bytes IS NOT NULL
-		GROUP BY (strftime('%s', timestamp) / ?)
-		ORDER BY start_unix ASC
-	`
-
-	err := db.Raw(query, intervalSeconds, intervalSeconds, twentyFourHoursAgo, intervalSeconds).
-		Scan(&summaries).Error
+	switch db.Dialector.Name() {
+	case "sqlite":
+		query = `
+			SELECT
+				((strftime('%s', timestamp) / $1) * $1) AS start_unix,
+				SUM(response_size_bytes) AS total_size_bytes,
+				ROUND(AVG(response_size_bytes)) AS avg_response_size_bytes,
+				MIN(response_size_bytes) AS min_response_size_bytes,
+				MAX(response_size_bytes) AS max_response_size_bytes
+			FROM request_logs
+			WHERE strftime('%s', timestamp) >= $2 AND response_size_bytes IS NOT NULL
+			GROUP BY (strftime('%s', timestamp) / $1)
+			ORDER BY start_unix ASC
+		`
+	case "postgres":
+		query = `
+			SELECT
+				(FLOOR(EXTRACT(EPOCH FROM timestamp) / $1) * $1) AS start_unix,
+				SUM(response_size_bytes) AS total_size_bytes,
+				ROUND(AVG(response_size_bytes))::bigint AS avg_response_size_bytes,
+				MIN(response_size_bytes) AS min_response_size_bytes,
+				MAX(response_size_bytes) AS max_response_size_bytes
+			FROM request_logs
+			WHERE EXTRACT(EPOCH FROM timestamp) >= $2 AND response_size_bytes IS NOT NULL
+			GROUP BY start_unix
+			ORDER BY start_unix ASC
+		`
+	default:
+		return nil, fmt.Errorf("unsupported db type: %s", db.Dialector.Name())
+	}
+	err := db.Raw(query, intervalSeconds, twentyFourHoursAgo).Scan(&summaries).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to query response size summary: %w", err)
 	}
@@ -350,7 +387,7 @@ func GetTopClients(db *gorm.DB) ([]map[string]interface{}, error) {
 	}
 
 	if err := db.Table("request_logs").
-		Select("? as frequency, client_ip, COUNT(*) as request_count", 0).
+		Select("client_ip, COUNT(*) as request_count").
 		Group("client_ip").
 		Order("request_count DESC").
 		Limit(5).

@@ -4,6 +4,8 @@ WORKDIR /app
 
 RUN mkdir -p /.cache && chmod 777 /.cache
 
+RUN apk add --no-cache postgresql-client
+
 RUN go install github.com/air-verse/air@latest
 
 COPY go.mod go.sum ./
