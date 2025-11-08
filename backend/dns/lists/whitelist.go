@@ -18,12 +18,7 @@ func InitializeWhitelist(dbManager *database.DatabaseManager) (*Whitelist, error
 		Cache:     map[string]bool{},
 	}
 
-	_, err := w.GetDomains()
-	if err != nil {
-		log.Error("Failed to initialize whitelist cache")
-	}
-
-	return w, err
+	return w, w.refreshCache()
 }
 
 func (w *Whitelist) AddDomain(domain string) error {
@@ -51,6 +46,23 @@ func (w *Whitelist) RemoveDomain(domain string) error {
 	}
 
 	delete(w.Cache, domain)
+	return nil
+}
+
+func (w *Whitelist) refreshCache() error {
+	for k := range w.Cache {
+		delete(w.Cache, k)
+	}
+
+	domains, err := w.GetDomains()
+	if err != nil {
+		return fmt.Errorf("could not get whitelisted domains while refreshing cache, %v", err)
+	}
+
+	for domain := range domains {
+		w.Cache[domain] = true
+	}
+
 	return nil
 }
 

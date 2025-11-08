@@ -1,3 +1,18 @@
+## [0.62.12](https://github.com/pommee/goaway/compare/v0.62.11...v0.62.12) (2025-10-31)
+
+### Bug Fixes
+
+* fix cache issue with whitelisted domains ([fe204f9](https://github.com/pommee/goaway/commit/fe204f914e682d4156cabb0e07f439e52075022c))
+
+### Documentation
+
+* add contributions page ([86d64bc](https://github.com/pommee/goaway/commit/86d64bc32b3a2d25689e6fecea22af86f44702ab))
+* update contribution note ([57bbbe0](https://github.com/pommee/goaway/commit/57bbbe04d795c4706ed65c627aafc96bec51aefb))
+
+### UI/UX
+
+* add missing close handler to cancel button on PauseBlockingDialog ([835a1c2](https://github.com/pommee/goaway/commit/835a1c2fcd7eaef3c1abc53bc6b34612b24ea6b2))
+
 ## [0.62.11](https://github.com/pommee/goaway/compare/v0.62.10...v0.62.11) (2025-10-05)
 
 ### Bug Fixes
