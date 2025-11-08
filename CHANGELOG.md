@@ -1,3 +1,14 @@
+## [0.62.14](https://github.com/pommee/goaway/compare/v0.62.13...v0.62.14) (2025-11-08)
+
+### Bug Fixes
+
+* **deps:** bump golang version and client dependencies ([a966031](https://github.com/pommee/goaway/commit/a966031119a1a43320404c4493a03c3b00f7cfc9))
+* restructure codebase, make setup and flow easier ([75fb86c](https://github.com/pommee/goaway/commit/75fb86cc00595a419c3d9035cc7bd6fd3c7b0936))
+
+### Documentation
+
+* add webpage for installation, configuration, setup and more ([00d0d21](https://github.com/pommee/goaway/commit/00d0d2115c98a41298ca27e93b158ae0923ca62c))
+
 ## [0.62.13](https://github.com/pommee/goaway/compare/v0.62.12...v0.62.13) (2025-11-08)
 
 ### Bug Fixes
