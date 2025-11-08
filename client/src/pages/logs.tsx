@@ -174,7 +174,10 @@ function useDebounce<T>(value: T, delay: number): T {
 export function Logs() {
   const [queries, setQueries] = useState<Queries[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = localStorage.getItem("logsPageSize");
+    return saved ? Number(saved) : 15;
+  });
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
@@ -721,7 +724,9 @@ export function Logs() {
             <Select
               value={`${pageSize}`}
               onValueChange={(value) => {
-                setPageSize(Number(value));
+                const newPageSize = Number(value);
+                setPageSize(newPageSize);
+                localStorage.setItem("logsPageSize", String(newPageSize));
                 setPageIndex(0);
               }}
             >
