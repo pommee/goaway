@@ -1,3 +1,14 @@
+## [0.62.16](https://github.com/pommee/goaway/compare/v0.62.15...v0.62.16) (2025-11-08)
+
+### Bug Fixes
+
+* return all upstreams including preferred ([5805526](https://github.com/pommee/goaway/commit/5805526205f296819b9671e565eb611b06b75d82))
+
+### UI/UX
+
+* outline variant for toggle section in settings ([2cdf96a](https://github.com/pommee/goaway/commit/2cdf96a66cca20ddc6375e8fd5a709fcf18a8b3a))
+* wider client view by default ([8846fae](https://github.com/pommee/goaway/commit/8846fae40b8dea11abd0c970fafdc4e0490046e6))
+
 ## [0.62.15](https://github.com/pommee/goaway/compare/v0.62.14...v0.62.15) (2025-11-08)
 
 ### Bug Fixes
