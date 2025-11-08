@@ -1,3 +1,13 @@
+## [0.62.15](https://github.com/pommee/goaway/compare/v0.62.14...v0.62.15) (2025-11-08)
+
+### Bug Fixes
+
+* use local gateway resolver for hostname ([daf7be2](https://github.com/pommee/goaway/commit/daf7be208b430442e9a1d368a819ae583bf9e6cc))
+
+### UI/UX
+
+* add gateway to settings page ([f5dc8d2](https://github.com/pommee/goaway/commit/f5dc8d2d39077a82bfd404c3f20440603cd7becd))
+
 ## [0.62.14](https://github.com/pommee/goaway/compare/v0.62.13...v0.62.14) (2025-11-08)
 
 ### Bug Fixes
