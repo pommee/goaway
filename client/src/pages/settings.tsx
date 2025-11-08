@@ -103,6 +103,10 @@ export function Settings() {
           ...prev,
           dns: { ...prev.dns, address: String(value) }
         }),
+        dnsGateway: () => ({
+          ...prev,
+          dns: { ...prev.dns, gateway: String(value) }
+        }),
         dnsPort: () => ({
           ...prev,
           dns: {
@@ -211,6 +215,7 @@ export function Settings() {
       apiPort: preferences.api.port,
       authentication: preferences.api.authentication,
       dnsAddress: preferences.dns.address,
+      dnsGateway: preferences.dns.gateway,
       dnsPort: preferences.dns.ports.udptcp,
       dotPort: preferences.dns.ports.dot,
       dohPort: preferences.dns.ports.doh,

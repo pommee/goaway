@@ -70,6 +70,13 @@ export const SETTINGS_SECTIONS = [
         widgetType: Input
       },
       {
+        label: "Gateway *",
+        key: "dnsGateway",
+        explanation: "Gateway used for local DNS resolution, mostly hostnames.",
+        default: "",
+        widgetType: Input
+      },
+      {
         label: "Port *",
         key: "dnsPort",
         explanation: "Port the DNS server listens on.",
