@@ -1,3 +1,9 @@
+## [0.62.13](https://github.com/pommee/goaway/compare/v0.62.12...v0.62.13) (2025-11-08)
+
+### Bug Fixes
+
+* persist row size for log page and prevent server ip from using local unicast link ([c680dcc](https://github.com/pommee/goaway/commit/c680dcc4bfb69b8bfeab074b7ed6a566a94fc21d))
+
 ## [0.62.12](https://github.com/pommee/goaway/compare/v0.62.11...v0.62.12) (2025-10-31)
 
 ### Bug Fixes
