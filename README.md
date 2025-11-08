@@ -9,20 +9,11 @@ A lightweight DNS sinkhole for blocking unwanted domains at the network level. B
 
 **[View more screenshots](./resources/PREVIEW.md)**
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-**Instructions on installation, configuration** and more can be found [on the homepage](https://github.com/pommee/goaway).
-
->>>>>>> 4619f8f (docs: add webpage for installation, configuration, setup and more)
-## 🌟 Features
-=======
 ## Getting started
 
 Instructions for installation, configuration and more can be found on the homepage: https://pommee.github.io/goaway
 
 ## Features
->>>>>>> Stashed changes
 
 - DNS-level domain blocking
 - Web-based admin dashboard
