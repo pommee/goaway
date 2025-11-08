@@ -87,14 +87,21 @@ func (api *API) createUpstream(c *gin.Context) {
 
 func (api *API) getUpstreams(c *gin.Context) {
 	var (
-		upstreams         = api.Config.DNS.Upstream.Fallback
-		results           = make([]map[string]any, len(upstreams))
+		fallbackUpstreams = api.Config.DNS.Upstream.Fallback
 		preferredUpstream = api.Config.DNS.Upstream.Preferred
+		upstreamsToCheck  = make([]string, 0, len(fallbackUpstreams)+1)
 		wg                sync.WaitGroup
 	)
-	wg.Add(len(upstreams))
 
-	for i, upstream := range upstreams {
+	upstreamsToCheck = append(upstreamsToCheck, fallbackUpstreams...)
+	if preferredUpstream != "" && !slices.Contains(fallbackUpstreams, preferredUpstream) {
+		upstreamsToCheck = append(upstreamsToCheck, preferredUpstream)
+	}
+
+	results := make([]map[string]any, len(upstreamsToCheck))
+	wg.Add(len(upstreamsToCheck))
+
+	for i, upstream := range upstreamsToCheck {
 		go func(i int, upstream string) {
 			defer wg.Done()
 			results[i] = getUpstreamDetails(upstream, preferredUpstream)
