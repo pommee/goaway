@@ -195,7 +195,16 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	resolver := &net.Resolver{}
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 2 * time.Second,
+			}
+			return d.DialContext(ctx, "udp", s.Config.DNS.Gateway)
+		},
+	}
+
 	if hostnames, err := resolver.LookupAddr(ctx, clientIP); err == nil && len(hostnames) > 0 {
 		hostname := strings.TrimSuffix(hostnames[0], ".")
 		if hostname != clientIP &&
