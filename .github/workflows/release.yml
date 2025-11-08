@@ -1,7 +1,12 @@
+name: Build & Deploy GoAway release and Docker image
+
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
 
 jobs:
   release:
