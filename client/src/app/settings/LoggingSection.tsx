@@ -33,6 +33,7 @@ export function LoggingSection({
         action={
           <ToggleGroup
             type="single"
+            variant="outline"
             value={currentLogLevel || "info"}
             onValueChange={(value) => {
               if (value && onLogLevelChange) {
@@ -54,6 +55,7 @@ export function LoggingSection({
         action={
           <ToggleGroup
             type="single"
+            variant="outline"
             value={String(statisticsRetention || 7)}
             onValueChange={(value) => {
               if (value && onStatisticsRetentionChange) {
