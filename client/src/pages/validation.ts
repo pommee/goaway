@@ -27,11 +27,24 @@ export function validateFQDN(domain: string): {
     };
   }
 
+  const isWildcard = domainWithoutDot.startsWith("*.");
+  const domainToValidate = isWildcard
+    ? domainWithoutDot.slice(2)
+    : domainWithoutDot;
+
+  if (isWildcard && domainToValidate.length === 0) {
+    return {
+      isValid: false,
+      error:
+        "Wildcard domain must have at least one label after *. (e.g., *.example.com.)"
+    };
+  }
+
   // Check for valid characters and structure
   const domainRegex =
     /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/;
 
-  if (!domainRegex.test(domainWithoutDot)) {
+  if (!domainRegex.test(domainToValidate)) {
     return {
       isValid: false,
       error:
@@ -39,7 +52,7 @@ export function validateFQDN(domain: string): {
     };
   }
 
-  const labels = domainWithoutDot.split(".");
+  const labels = domainToValidate.split(".");
   for (const label of labels) {
     if (label.length > 63) {
       return {
@@ -55,7 +68,7 @@ export function validateFQDN(domain: string): {
     }
   }
 
-  if (!domainWithoutDot.includes(".")) {
+  if (!domainToValidate.includes(".")) {
     return {
       isValid: false,
       error: "Domain must contain at least one dot (e.g., example.com.)"
