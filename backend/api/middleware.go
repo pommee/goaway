@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,8 +14,9 @@ import (
 
 const (
 	tokenDuration = 5 * time.Minute
-	secret        = "kMNSRwKip7Yet4rb2z8"
 )
+
+var secret = generateSecret()
 
 func (api *API) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -121,4 +124,13 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Expires:  time.Now().Add(tokenDuration),
 		MaxAge:   int(tokenDuration.Seconds()),
 	})
+}
+
+func generateSecret() string {
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		log.Error("Error generating random bytes for secret: %v", err)
+	}
+	return base64.RawStdEncoding.EncodeToString(bytes)
 }
