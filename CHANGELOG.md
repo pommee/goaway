@@ -1,3 +1,9 @@
+## [0.62.17](https://github.com/pommee/goaway/compare/v0.62.16...v0.62.17) (2025-11-10)
+
+### Bug Fixes
+
+* support wildcard in fqdn check ([788cdc9](https://github.com/pommee/goaway/commit/788cdc905bd0f73daff8e0f27ee82914221b7347))
+
 ## [0.62.16](https://github.com/pommee/goaway/compare/v0.62.15...v0.62.16) (2025-11-08)
 
 ### Bug Fixes
