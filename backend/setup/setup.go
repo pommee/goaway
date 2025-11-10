@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strconv"
@@ -133,6 +134,12 @@ func InitializeSettings(flags *SetFlags) *settings.Config {
 	}
 
 	UpdateConfig(&config, flags)
+
+	secret, err := base64.RawURLEncoding.DecodeString(config.API.JWTSecret)
+	if err != nil || len(secret) == 0 {
+		config.API.JWTSecret = settings.GenerateSecret()
+	}
+
 	config.Save()
 
 	return &config

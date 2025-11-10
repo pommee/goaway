@@ -1,7 +1,9 @@
 package settings
 
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"goaway/backend/logging"
 	"net"
@@ -83,6 +85,16 @@ func (config *Config) Update(updatedSettings Config) {
 	config.Save()
 }
 
+func GenerateSecret() string {
+	secret := make([]byte, 32)
+	_, err := rand.Read(secret)
+	if err != nil {
+		log.Error("Failed to generate secret: %v", err)
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(secret)
+}
+
 func createDefaultSettings(filePath string) (Config, error) {
 	defaultConfig := Config{
 		DNS: DNSConfig{
@@ -110,6 +122,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 		API: APIConfig{
 			Port:           getEnvAsIntWithDefault("WEBSITE_PORT", 8080),
 			Authentication: true,
+			JWTSecret:      GenerateSecret(),
 			RateLimit: RateLimitConfig{
 				Enabled:  true,
 				MaxTries: 5,

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 const (
 	tokenDuration = 5 * time.Minute
-	secret        = "kMNSRwKip7Yet4rb2z8"
 )
 
 func (api *API) authMiddleware() gin.HandlerFunc {
@@ -37,7 +37,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := parseToken(cookie)
+		claims, err := parseToken(cookie, api.Config.API.JWTSecret)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
@@ -66,7 +66,7 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 		timeUntilExpiration := expiration - now
 
 		if timeUntilExpiration <= halfDurationSeconds {
-			newToken, err := generateToken(username)
+			newToken, err := generateToken(username, api.Config.API.JWTSecret)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to renew token"})
 				return
@@ -80,10 +80,14 @@ func (api *API) authMiddleware() gin.HandlerFunc {
 	}
 }
 
-func parseToken(tokenString string) (jwt.MapClaims, error) {
+func parseToken(tokenString string, b64secret string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		secret, err := base64.RawURLEncoding.DecodeString(b64secret)
+		if err != nil {
+			return "", err
 		}
 		return []byte(secret), nil
 	})
@@ -99,7 +103,7 @@ func parseToken(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func generateToken(username string) (string, error) {
+func generateToken(username string, b64secret string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"username": username,
@@ -107,6 +111,10 @@ func generateToken(username string) (string, error) {
 		"iat":      now.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	secret, err := base64.RawURLEncoding.DecodeString(b64secret)
+	if err != nil {
+		return "", err
+	}
 	return token.SignedString([]byte(secret))
 }
 

@@ -45,6 +45,7 @@ type RateLimitConfig struct {
 type APIConfig struct {
 	Port           int             `yaml:"port" json:"port"`
 	Authentication bool            `yaml:"authentication" json:"authentication"`
+	JWTSecret      string          `yaml:"jwtSecret" json:"-"`
 	RateLimit      RateLimitConfig `yaml:"rateLimit" json:"rateLimit"`
 }
 
