@@ -45,7 +45,7 @@ func (api *API) handleLogin(c *gin.Context) {
 	}
 
 	if api.UserService.Authenticate(loginUser.Username, loginUser.Password) {
-		token, err := generateToken(loginUser.Username)
+		token, err := generateToken(loginUser.Username, api.Config.API.JWTSecret)
 		if err != nil {
 			log.Info("Token generation failed for user %s: %v", loginUser.Username, err)
 			c.JSON(http.StatusInternalServerError, gin.H{

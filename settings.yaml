@@ -52,6 +52,10 @@ api:
   # Set to true for increased security.
   authentication: true
 
+  # Secret key used for signing JWT tokens.
+  # If empty, a random key will be generated automatically.
+  jwtSecret: ""
+
   # Currently only protects the login route
   rateLimit:
     # Enable or disable the usage of rate limiting
