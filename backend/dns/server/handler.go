@@ -581,11 +581,6 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 		return answers, false, status
 	}
 
-	if answers, ttl, status := s.QueryUpstream(req); status != dns.RcodeToString[dns.RcodeServerFailure] {
-		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
-		return answers, false, status
-	}
-
 	answers, ttl, status := s.resolveCNAMEChain(req, make(map[string]bool))
 	if len(answers) > 0 {
 		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
@@ -672,6 +667,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 			}
 		}
 
+		log.Debug("Sending query using '%s' as upstream", upstream)
 		in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
 		if err != nil {
 			errCh <- err
