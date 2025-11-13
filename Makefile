@@ -21,6 +21,7 @@ build: ; pnpm -C client install && pnpm -C client build
 start: ; docker compose up -d
 
 format:			; npx prettier --write "client/**/*.{html,css,js,tsx}"
+install:		; pnpm -C client install
 lint:			; pnpm -C client lint && golangci-lint run ./backend/...
 commitlint:  	; pnpm -C client commitlint
 
@@ -30,7 +31,7 @@ dev: build
 dev-website:   ; pnpm -C client install && pnpm -C client dev
 dev-server:    ; mkdir client/dist ; touch client/dist/.fake ; air .
 
-test: lint commitlint
+test: install lint commitlint
 	go test -count=1 -race ./test/...
 
 bench: 		   ; go run test/benchmark.go -test.bench=.
