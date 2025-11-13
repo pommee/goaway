@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DeleteRequest, GetRequest } from "@/util";
 import { BellIcon, InfoIcon, WarningIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import TimeAgo from "react-timeago";
 import { toast } from "sonner";
 
 type NotificationsResponse = {
@@ -17,7 +18,7 @@ type NotificationsResponse = {
   category: string;
   text: string;
   read: boolean;
-  created_at: string;
+  createdAt: string;
 };
 
 export default function Notifications() {
@@ -86,21 +87,6 @@ export default function Notifications() {
       default:
         return "border-l-4 border-blue-500 bg-blue-500/10";
     }
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSecs = Math.round(diffMs / 1000);
-    const diffMins = Math.round(diffSecs / 60);
-    const diffHours = Math.round(diffMins / 60);
-    const diffDays = Math.round(diffHours / 24);
-
-    if (diffSecs < 60) return `${diffSecs} seconds ago`;
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    return `${diffDays} days ago`;
   };
 
   const handleMarkAllAsRead = async (e: { stopPropagation: () => void }) => {
@@ -189,9 +175,10 @@ export default function Notifications() {
                       </p>
                       <div className="flex justify-between items-center">
                         <p className="text-xs text-muted-foreground">
-                          {getTimeAgo(
-                            new Date(notification.created_at).toString()
-                          )}
+                          <TimeAgo
+                            date={new Date(notification.createdAt)}
+                            minPeriod={60}
+                          />
                         </p>
                         <span className="text-xs px-2 py-1 rounded-full bg-accent">
                           {notification.category}

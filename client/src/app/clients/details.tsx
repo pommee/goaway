@@ -73,10 +73,6 @@ export function CardDetails({
     return "bg-red-500";
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    return dateString;
-  };
-
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="border-none bg-accent rounded-lg w-full max-w-6xl overflow-hidden">
@@ -105,7 +101,7 @@ export function CardDetails({
             <div className="text-right hidden sm:block">
               <span className="text-xs">Last Activity</span>
               <div className="text-muted-foreground">
-                {formatTimeAgo(clientEntry.lastSeen)}
+                {clientEntry.lastSeen}
               </div>
             </div>
           </div>
