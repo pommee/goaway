@@ -95,10 +95,7 @@ func NewDNSServer(config *settings.Config, dbconn *gorm.DB, cert tls.Certificate
 }
 
 func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	if len(r.Question) != 1 {
-		log.Warning("Query contains more than one question, ignoring!")
-		r.SetRcode(r, dns.RcodeFormatError)
-		_ = w.WriteMsg(r)
+	if !s.validQuery(w, r) {
 		return
 	}
 
@@ -185,4 +182,24 @@ func (s *DNSServer) WSCom(message communicationMessage) {
 		log.Debug("Failed to write websocket message: %v", err)
 		s.WSCommunication = nil
 	}
+}
+
+func (s *DNSServer) validQuery(w dns.ResponseWriter, r *dns.Msg) bool {
+	failedCallback := func() bool {
+		r.SetRcode(r, dns.RcodeFormatError)
+		_ = w.WriteMsg(r)
+		return false
+	}
+
+	if len(r.Question) != 1 {
+		log.Warning("Query contains more than one question, ignoring!")
+		return failedCallback()
+	}
+
+	if len(r.Question[0].Name) <= 1 {
+		log.Warning("Query contains invalid question name '%s', ignoring!", r.Question[0].Name)
+		return failedCallback()
+	}
+
+	return true
 }
