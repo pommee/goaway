@@ -1,3 +1,14 @@
+## [0.62.18](https://github.com/pommee/goaway/compare/v0.62.17...v0.62.18) (2025-11-13)
+
+### Bug Fixes
+
+* prevent duplicated upstream queries ([caf6989](https://github.com/pommee/goaway/commit/caf698975800cd159d4cd222d7c254c492ac1a02))
+
+### UI/UX
+
+* allow IPv6 addr for upstream in ui ([f9b696f](https://github.com/pommee/goaway/commit/f9b696faa4828b520b50724f3927cc0c0b5e92f2))
+* fix time since notification was created ([162a6af](https://github.com/pommee/goaway/commit/162a6af76c008528503c0b9ed4d3c9f3326c4c4b))
+
 ## [0.62.17](https://github.com/pommee/goaway/compare/v0.62.16...v0.62.17) (2025-11-10)
 
 ### Bug Fixes
