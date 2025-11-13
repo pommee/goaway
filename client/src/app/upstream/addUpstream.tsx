@@ -22,82 +22,152 @@ type AddUpstreamProps = {
 export function AddUpstream({ onAdd }: AddUpstreamProps) {
   const [newUpstreamIP, setNewUpstreamIP] = useState("");
   const [open, setOpen] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+
+  const validateUpstream = (value: string): boolean => {
+    const trimmed = value.trim();
+
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}:\d+$/;
+    const ipv6Regex = /^\[([0-9a-fA-F:]+)\]:\d+$/;
+
+    if (ipv4Regex.test(trimmed)) {
+      const [ip] = trimmed.split(":");
+      const octets = ip.split(".");
+      return octets.every((octet) => {
+        const num = parseInt(octet, 10);
+        return num >= 0 && num <= 255;
+      });
+    }
+
+    if (ipv6Regex.test(trimmed)) {
+      return true;
+    }
+
+    return false;
+  };
 
   const handleSave = async () => {
-    if (!/^[\d\\.]+:\d+$/.test(newUpstreamIP.trim())) {
+    if (!validateUpstream(newUpstreamIP)) {
       toast.error(
-        "Please enter the upstream in IP:PORT format, e.g. 1.1.1.1:53"
+        "Invalid format. Use IPv4 (1.1.1.1:53) or IPv6 ([1111:2222:3333::4444]:53)"
       );
       return;
     }
-    const [code, response] = await PostRequest("upstream", {
-      upstream: newUpstreamIP
-    });
-    if (code === 200) {
-      toast.info(response.message);
-      setOpen(false);
-      onAdd({
-        dnsPing: "reload to ping",
-        icmpPing: "reload to ping",
-        name: newUpstreamIP,
-        preferred: false,
-        upstream: newUpstreamIP
+
+    setIsValidating(true);
+    try {
+      const [code, response] = await PostRequest("upstream", {
+        upstream: newUpstreamIP.trim()
       });
-      setNewUpstreamIP("");
+
+      if (code === 200) {
+        toast.success("Upstream added successfully");
+        setOpen(false);
+        onAdd({
+          dnsPing: "reload to ping",
+          icmpPing: "reload to ping",
+          name: newUpstreamIP.trim(),
+          preferred: false,
+          upstream: newUpstreamIP.trim()
+        });
+        setNewUpstreamIP("");
+      } else {
+        toast.error(response?.message || "Failed to add upstream");
+      }
+    } catch (error) {
+      toast.error("An error occurred while adding the upstream");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !isValidating) {
+      handleSave();
     }
   };
 
   return (
-    <div className="mb-5">
+    <div className="mb-6">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="default">
             <PlusIcon className="mr-2" size={20} />
-            Add upstream
+            Add Upstream
           </Button>
         </DialogTrigger>
         <DialogContent className="lg:w-1/3">
           <DialogHeader>
-            <DialogTitle>New Upstream</DialogTitle>
+            <DialogTitle className="text-xl">
+              Add New Upstream DNS Server
+            </DialogTitle>
           </DialogHeader>
-          <DialogDescription className="text-base leading-relaxed">
+          <DialogDescription className="text-sm text-muted-foreground leading-relaxed space-y-3 pt-2">
             <p>
-              A new upstream can be created by specifying the DNS server IP.
+              Configure a new upstream DNS server by specifying its IP address
+              and port.
             </p>
-            <span>
-              Default is{" "}
-              <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
-                1.1.1.1 (Cloudflare)
-              </span>
-              and{" "}
-              <span className="bg-accent p-0.5 pl-1 pr-1 rounded-sm">
-                8.8.8.8 (Google)
-              </span>
-            </span>
+            <div className="space-y-1.5">
+              <p className="font-medium text-foreground">Common examples:</p>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">IPv4:</span>
+                  <code className="bg-muted px-1 py-0.5 rounded text-foreground">
+                    1.1.1.1:53
+                  </code>
+                  <span className="text-muted-foreground">(Cloudflare)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">IPv4:</span>
+                  <code className="bg-muted px-1 py-0.5 rounded text-foreground">
+                    8.8.8.8:53
+                  </code>
+                  <span className="text-muted-foreground">(Google)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">IPv6:</span>
+                  <code className="bg-muted px-1 py-0.5 rounded text-foreground">
+                    [2606:4700:4700::1111]:53
+                  </code>
+                </div>
+              </div>
+            </div>
           </DialogDescription>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="ip">DNS IP</Label>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="ip" className="text-sm font-medium">
+                DNS Server Address
+              </Label>
               <Input
                 id="ip"
                 value={newUpstreamIP}
-                placeholder="1.1.1.1:53"
+                placeholder="1.1.1.1:53 or [2606:4700:4700::1111]:53"
                 onChange={(e) => setNewUpstreamIP(e.target.value)}
-                className="col-span-3"
+                onKeyDown={handleKeyDown}
+                className="font-mono text-sm"
+                disabled={isValidating}
               />
+              <p className="text-xs text-muted-foreground">
+                IPv6 addresses must be enclosed in square brackets
+              </p>
             </div>
-            <span className="text-xs text-muted-foreground col-span-4 pl-2">
-              Please enter the IP and port, e.g.{" "}
-              <span className="font-mono">1.1.1.1:53</span>
-            </span>
           </div>
-          <Button
-            variant="outline"
-            className="bg-green-800 border-none hover:bg-green-600 text-white"
-            onClick={handleSave}
-          >
-            Save
-          </Button>
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={handleSave}
+              disabled={isValidating || !newUpstreamIP.trim()}
+              className="flex-1"
+            >
+              {isValidating ? "Adding..." : "Add Upstream"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isValidating}
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
