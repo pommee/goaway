@@ -74,7 +74,7 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
       } else {
         toast.error(response?.message || "Failed to add upstream");
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while adding the upstream");
     } finally {
       setIsValidating(false);
