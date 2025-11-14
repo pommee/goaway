@@ -68,20 +68,22 @@ export function validateFQDN(domain: string): {
     }
   }
 
-  if (!domainToValidate.includes(".")) {
+  if (!domainToValidate.includes(".") && !isWildcard) {
     return {
       isValid: false,
       error: "Domain must contain at least one dot (e.g., example.com.)"
     };
   }
 
-  const tld = labels[labels.length - 1];
-  if (!/^[a-zA-Z]{2,}$/.test(tld)) {
-    return {
-      isValid: false,
-      error:
-        "Top-level domain must contain only letters and be at least 2 characters"
-    };
+  if (!isWildcard) {
+    const tld = labels[labels.length - 1];
+    if (!/^[a-zA-Z]{2,}$/.test(tld)) {
+      return {
+        isValid: false,
+        error:
+          "Top-level domain must contain only letters and be at least 2 characters"
+      };
+    }
   }
 
   return { isValid: true };
