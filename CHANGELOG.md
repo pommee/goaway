@@ -1,3 +1,13 @@
+## [0.62.19](https://github.com/pommee/goaway/compare/v0.62.18...v0.62.19) (2025-11-21)
+
+### Bug Fixes
+
+* dynamic jwt secret ([5769f87](https://github.com/pommee/goaway/commit/5769f8782b7453ca1c22a201b224b5ce48532f64))
+
+### UI/UX
+
+* allow wildcard on top level domain for resolution ([e4c7c08](https://github.com/pommee/goaway/commit/e4c7c08698ec988a8e42e4460dab3fbff34c8b0b))
+
 ## [0.62.18](https://github.com/pommee/goaway/compare/v0.62.17...v0.62.18) (2025-11-13)
 
 ### Bug Fixes

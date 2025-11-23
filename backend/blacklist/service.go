@@ -39,7 +39,16 @@ type Service struct {
 	config       Config
 }
 
-var log = logging.GetLogger()
+var (
+	log            = logging.GetLogger()
+	invalidDomains = map[string]bool{
+		"localhost":             true,
+		"localhost.localdomain": true,
+		"broadcasthost":         true,
+		"local":                 true,
+		blacklistedIP:           true,
+	}
+)
 
 const (
 	blacklistedIP    = "0.0.0.0"
@@ -292,13 +301,6 @@ func (s *Service) FetchAndLoadHosts(ctx context.Context, url, name string) error
 }
 
 func (s *Service) isValidDomain(domain string) bool {
-	invalidDomains := map[string]bool{
-		"localhost":             true,
-		"localhost.localdomain": true,
-		"broadcasthost":         true,
-		"local":                 true,
-		blacklistedIP:           true,
-	}
 	return !invalidDomains[domain]
 }
 
