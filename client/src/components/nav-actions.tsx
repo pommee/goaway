@@ -70,7 +70,7 @@ function AboutDialog() {
     async function fetchData() {
       try {
         const [, data] = await GetRequest("server");
-        setResponseData(data);
+        setResponseData(data as Metrics);
       } catch {
         return;
       }
@@ -130,7 +130,7 @@ function CheckForUpdate() {
         const latestVersion = data[0].name.replace("v", "");
         localStorage.setItem("latestVersion", latestVersion);
 
-        if (compare(latestVersion, installedVersion, "<=")) {
+        if (installedVersion && compare(latestVersion, installedVersion, "<=")) {
           toast.info("No new version found!");
         }
       } catch (error) {
@@ -163,10 +163,10 @@ export default function PauseBlockingDialog({
       try {
         const [status, response] = await GetRequest("pause");
         if (status === 200) {
-          setPauseStatus(response);
+          setPauseStatus(response as PausedResponse);
 
-          if (response.paused) {
-            setRemainingTime(response.timeLeft);
+          if ((response as PausedResponse).paused) {
+            setRemainingTime((response as PausedResponse).timeLeft);
           }
         }
       } catch (error) {
@@ -200,9 +200,9 @@ export default function PauseBlockingDialog({
         toast.info(`Paused blocking for ${pauseTime} seconds`);
         const [getStatus, getResponse] = await GetRequest("pause");
         if (getStatus === 200) {
-          setPauseStatus(getResponse);
-          if (getResponse.paused) {
-            setRemainingTime(getResponse.timeLeft);
+          setPauseStatus(getResponse as PausedResponse);
+          if ((getResponse as PausedResponse).paused) {
+            setRemainingTime((getResponse as PausedResponse).timeLeft);
           }
         }
       } else {
@@ -224,7 +224,7 @@ export default function PauseBlockingDialog({
 
       if (status === 200) {
         toast.success("Blocking resumed");
-        setPauseStatus((prev) => ({ ...prev, paused: false }));
+        setPauseStatus((prev) => prev ? { ...prev, paused: false } : undefined);
         setRemainingTime(0);
       } else {
         console.error("Failed to resume blocking");
@@ -266,7 +266,7 @@ export default function PauseBlockingDialog({
               type="number"
               min="1"
               value={pauseTime}
-              onChange={(e) => setPauseTime(e.target.value)}
+              onChange={(e) => setPauseTime(Number(e.target.value))}
               className="w-full"
             />
           </div>
@@ -342,7 +342,7 @@ export function NavActions() {
                             className="cursor-pointer"
                             onClick={() => {
                               setIsOpen(false);
-                              setDialogComponent(() => item.dialog);
+                              setDialogComponent(() => item.dialog as (props: { onClose: () => void }) => JSX.Element);
                             }}
                           >
                             <item.icon className={item.color} />{" "}

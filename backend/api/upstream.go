@@ -1,13 +1,16 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"goaway/backend/audit"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -64,7 +67,10 @@ func (api *API) createUpstream(c *gin.Context) {
 		return
 	}
 
-	if !strings.Contains(upstream, ":") {
+	lower := strings.ToLower(upstream)
+	isDoH := strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
+	isProvider := lower == "cloudflare" || lower == "google" || lower == "quad9" || lower == "dnspod" || lower == "auto" || lower == "fastest"
+	if !isDoH && !isProvider && !strings.Contains(upstream, ":") {
 		upstream += ":53"
 	}
 
@@ -117,11 +123,43 @@ func (api *API) getUpstreams(c *gin.Context) {
 }
 
 func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
-	host, port, err := net.SplitHostPort(upstream)
-	if err != nil {
-		host = upstream
-		port = "53"
-		upstream = net.JoinHostPort(host, port)
+	var host, port string
+	lower := strings.ToLower(upstream)
+	isProvider := lower == "cloudflare" || lower == "google" || lower == "quad9" || lower == "dnspod" || lower == "auto" || lower == "fastest"
+	isDoH := strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || isProvider
+	if isDoH {
+		var dohURL string
+		if isProvider {
+			dohURL = providerKeywordToURL(lower)
+		} else {
+			dohURL = upstream
+		}
+		if u, err := url.Parse(dohURL); err == nil {
+			h, p, _ := net.SplitHostPort(u.Host)
+			if h == "" {
+				host = u.Host
+			} else {
+				host = h
+				port = p
+			}
+			if port == "" {
+				port = "443"
+			}
+			// keep original 'upstream' value for UI actions like setPreferred
+		} else {
+			host = upstream
+			port = "443"
+		}
+	} else {
+		h, p, err := net.SplitHostPort(upstream)
+		if err != nil {
+			host = upstream
+			port = "53"
+			upstream = net.JoinHostPort(host, port)
+		} else {
+			host = h
+			port = p
+		}
 	}
 
 	entry := map[string]any{
@@ -134,15 +172,142 @@ func getUpstreamDetails(upstream, preferredUpstream string) map[string]any {
 	entry["resolvedIP"] = resolveHostname(host)
 	entry["upstreamName"] = getUpstreamName(host)
 
-	dnsPingResult := measureDNSPing(upstream)
-	entry["dnsPing"] = dnsPingResult.String()
-	entry["dnsPingSuccess"] = dnsPingResult.Successful
+	if isDoH {
+		dohURL := upstream
+		if isProvider {
+			dohURL = providerKeywordToURL(lower)
+		}
+		dohPing := measureDoHPing(dohURL)
+		entry["dnsPing"] = dohPing.String()
+		entry["dnsPingSuccess"] = dohPing.Successful
+		entry["protocol"] = "doh"
+	} else {
+		dnsPingResult := measureDNSPing(upstream)
+		entry["dnsPing"] = dnsPingResult.String()
+		entry["dnsPingSuccess"] = dnsPingResult.Successful
+		entry["protocol"] = "udp/dot"
+	}
 
 	icmpPingResult := measureICMPPing(host)
 	entry["icmpPing"] = icmpPingResult.String()
 	entry["icmpPingSuccess"] = icmpPingResult.Successful
 
 	return entry
+}
+
+func providerKeywordToURL(keyword string) string {
+	switch keyword {
+	case "cloudflare":
+		return "https://cloudflare-dns.com/dns-query"
+	case "google":
+		return "https://dns.google/dns-query"
+	case "quad9":
+		return "https://dns.quad9.net/dns-query"
+	case "dnspod":
+		return "https://doh.dnspod.cn/dns-query"
+	case "auto", "fastest":
+		// default for details view; actual fastest chosen at query time
+		return "https://cloudflare-dns.com/dns-query"
+	default:
+		return keyword
+	}
+}
+
+func measureDoHPing(upstreamURL string) pingResult {
+	testDomains := []string{"google.com", "cloudflare.com", "quad9.net"}
+	client := &http.Client{Timeout: 5 * time.Second}
+	var totalDuration time.Duration
+	successCount := 0
+	var lastError error
+
+	for _, domain := range testDomains {
+		msg := &dns.Msg{}
+		msg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+		msg.RecursionDesired = true
+		packed, err := msg.Pack()
+		if err != nil {
+			lastError = err
+			continue
+		}
+
+		// Try POST first
+		req, err := http.NewRequest(http.MethodPost, upstreamURL, io.NopCloser(bytes.NewReader(packed)))
+		if err != nil {
+			lastError = err
+			continue
+		}
+		req.Header.Set("Content-Type", "application/dns-message")
+		req.Header.Set("Accept", "application/dns-message")
+
+		start := time.Now()
+		resp, err := client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			body, readErr := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if readErr != nil {
+				lastError = readErr
+				continue
+			}
+			parsed := new(dns.Msg)
+			if unpackErr := parsed.Unpack(body); unpackErr != nil {
+				lastError = unpackErr
+				continue
+			}
+			duration := time.Since(start)
+			totalDuration += duration
+			successCount++
+			continue
+		}
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+
+		// Fallback to GET (Base64URL encoded)
+		b64 := base64.RawURLEncoding.EncodeToString(packed)
+		getURL := upstreamURL
+		if strings.Contains(upstreamURL, "?") {
+			getURL += "&dns=" + b64
+		} else {
+			getURL += "?dns=" + b64
+		}
+		reqGet, err := http.NewRequest(http.MethodGet, getURL, nil)
+		if err != nil {
+			lastError = err
+			continue
+		}
+		reqGet.Header.Set("Accept", "application/dns-message")
+		start = time.Now()
+		resp, err = client.Do(reqGet)
+		if err != nil {
+			lastError = err
+			continue
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil || resp.StatusCode != http.StatusOK {
+			if readErr != nil {
+				lastError = readErr
+			} else {
+				lastError = fmt.Errorf("status %s", resp.Status)
+			}
+			continue
+		}
+		parsed := new(dns.Msg)
+		if unpackErr := parsed.Unpack(body); unpackErr != nil {
+			lastError = unpackErr
+			continue
+		}
+		duration := time.Since(start)
+		totalDuration += duration
+		successCount++
+	}
+
+	if successCount == 0 {
+		return pingResult{Duration: 0, Error: lastError, Method: "doh", Successful: false}
+	}
+
+	avg := totalDuration / time.Duration(successCount)
+	return pingResult{Duration: avg, Error: nil, Method: "doh", Successful: true}
 }
 
 func resolveHostname(host string) string {

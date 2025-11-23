@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
+import { ThemeProviderState } from "./theme-context";
 import { useTheme } from "./use-theme";
 
 export function ModeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme() as ThemeProviderState;
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");

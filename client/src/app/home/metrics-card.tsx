@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
-import { Card } from "../../components/ui/card";
+import { Card } from "@/components/ui/card";
 
 type Metrics = {
   allowed: number;
@@ -75,7 +75,7 @@ export default function MetricsCards() {
     async function fetchMetrics() {
       try {
         const [, data] = await GetRequest("dnsMetrics");
-        setMetricsData(data);
+        setMetricsData(data as Metrics);
       } catch (error) {
         console.error("Failed to fetch server statistics:", error);
       }

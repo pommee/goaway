@@ -21,6 +21,7 @@ import {
   ValueType
 } from "recharts/types/component/DefaultTooltipContent";
 import { NoContent } from "@/shared";
+import { RenderableText } from "recharts/types/component/Text";
 
 type TopBlockedDomains = {
   frequency: number;
@@ -83,11 +84,13 @@ export default function FrequencyChartBlockedDomains() {
       try {
         const [, domains] = await GetRequest("topBlockedDomains");
 
-        const formattedData = domains.map((domain: TopBlockedDomains) => ({
-          name: domain.name,
-          hits: domain.hits,
-          frequency: domain.frequency
-        }));
+        const formattedData = (domains as TopBlockedDomains[]).map(
+          (domain: TopBlockedDomains) => ({
+            name: domain.name,
+            hits: domain.hits,
+            frequency: domain.frequency
+          })
+        );
 
         if (!isNewData(formattedData, previousDataRef.current)) {
           setData(formattedData);
@@ -176,7 +179,7 @@ export default function FrequencyChartBlockedDomains() {
                 interval={0}
               />
               <Tooltip
-                content={<CustomTooltip />}
+                content={(props) => <CustomTooltip {...props} />}
                 cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
               />
               <Bar dataKey={sortBy} radius={[0, 6, 6, 0]} maxBarSize={24}>
@@ -187,11 +190,12 @@ export default function FrequencyChartBlockedDomains() {
                   dataKey={sortBy}
                   position="right"
                   offset={8}
-                  formatter={(value: number) =>
-                    sortBy === "frequency"
-                      ? `${value.toFixed(1)}%`
-                      : value.toLocaleString()
-                  }
+                  formatter={(value: RenderableText) => {
+                    const num = Number(value);
+                    return sortBy === "frequency"
+                      ? `${num.toFixed(1)}%`
+                      : num.toLocaleString();
+                  }}
                   style={{
                     fontSize: "12px",
                     fill: "#616161"

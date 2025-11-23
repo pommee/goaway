@@ -50,7 +50,7 @@ export default function Notifications() {
           return;
         }
 
-        setNotifications(response);
+        setNotifications(response as NotificationsResponse[]);
       } catch {
         toast.error("Error while fetching notifications");
       }
@@ -105,7 +105,7 @@ export default function Notifications() {
       });
 
       if (status !== 200) {
-        toast.success(response.error);
+        toast.success((response as { error: string }).error);
       }
     } catch {
       toast.error("Failed to mark notifications as read");

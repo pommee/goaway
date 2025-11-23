@@ -88,7 +88,7 @@ export const DatabaseSection = ({
     } catch (error) {
       toast.error("Export failed", {
         id: toastId,
-        description: error.message || "An error occurred during export",
+        description: error instanceof Error ? error.message : "An error occurred during export",
         duration: 5000
       });
     } finally {

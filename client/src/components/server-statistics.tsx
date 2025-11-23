@@ -214,12 +214,12 @@ export function ServerStatistics() {
     async function fetchData() {
       try {
         const [, data] = await GetRequest("server");
-        setMetrics(data);
+        setMetrics(data as Metrics);
 
         const latestVersion = localStorage.getItem("latestVersion");
-        const installedVersion = data.version;
+        const installedVersion = (data as Metrics).version;
         localStorage.setItem("installedVersion", installedVersion);
-        setInAppUpdate(data.inAppUpdate);
+        setInAppUpdate((data as Metrics & { inAppUpdate: boolean }).inAppUpdate);
 
         if (latestVersion !== null) {
           setInstalledVersion(installedVersion);
@@ -274,8 +274,8 @@ export function ServerStatistics() {
 
     eventSource.onerror = (e) => {
       const errorMsg =
-        e.data ||
-        e.message ||
+        (e as MessageEvent).data ||
+        (e as ErrorEvent).message ||
         `EventSource error: ${e.type}` ||
         "Unknown EventSource error";
       setUpdateLogs((logs) => [...logs, `[error] ${errorMsg}`]);

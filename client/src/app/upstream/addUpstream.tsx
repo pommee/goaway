@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { UpstreamEntry } from "@/pages/upstream";
 import { PostRequest } from "@/util";
 import { PlusIcon } from "@phosphor-icons/react";
-import { DialogDescription } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +28,8 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
 
     const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}:\d+$/;
     const ipv6Regex = /^\[([0-9a-fA-F:]+)\]:\d+$/;
+    const dohRegex = /^(https?:\/\/).+/;
+    const providerRegex = /^(cloudflare|google|quad9|dnspod|auto|fastest)$/i;
 
     if (ipv4Regex.test(trimmed)) {
       const [ip] = trimmed.split(":");
@@ -43,13 +44,21 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
       return true;
     }
 
+    if (dohRegex.test(trimmed)) {
+      return true;
+    }
+
+    if (providerRegex.test(trimmed)) {
+      return true;
+    }
+
     return false;
   };
 
   const handleSave = async () => {
     if (!validateUpstream(newUpstreamIP)) {
       toast.error(
-        "Invalid format. Use IPv4 (1.1.1.1:53) or IPv6 ([1111:2222:3333::4444]:53)"
+        "Invalid format. Use IPv4 (1.1.1.1:53), IPv6 ([1111:2222:3333::4444]:53), or DoH URL (https://dns.example.com/dns-query)"
       );
       return;
     }
@@ -65,6 +74,7 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
         setOpen(false);
         onAdd({
           dnsPing: "reload to ping",
+          upstreamName: response?.upstreamName || "",
           icmpPing: "reload to ping",
           name: newUpstreamIP.trim(),
           preferred: false,
@@ -102,7 +112,7 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
               Add New Upstream DNS Server
             </DialogTitle>
           </DialogHeader>
-          <DialogDescription className="text-sm text-muted-foreground leading-relaxed space-y-3 pt-2">
+          <div className="text-sm text-muted-foreground leading-relaxed space-y-3 pt-2">
             <p>
               Configure a new upstream DNS server by specifying its IP address
               and port.
@@ -130,9 +140,23 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
                     [2606:4700:4700::1111]:53
                   </code>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">DoH:</span>
+                  <code className="bg-muted px-1 py-0.5 rounded text-foreground">
+                    https://dns.cloudflare.com/dns-query
+                  </code>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    Provider keyword:
+                  </span>
+                  <code className="bg-muted px-1 py-0.5 rounded text-foreground">
+                    cloudflare | google | quad9 | dnspod | auto
+                  </code>
+                </div>
               </div>
             </div>
-          </DialogDescription>
+          </div>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label htmlFor="ip" className="text-sm font-medium">
@@ -141,14 +165,15 @@ export function AddUpstream({ onAdd }: AddUpstreamProps) {
               <Input
                 id="ip"
                 value={newUpstreamIP}
-                placeholder="1.1.1.1:53 or [2606:4700:4700::1111]:53"
+                placeholder="1.1.1.1:53, [2606:4700:4700::1111]:53, https://dns.example.com/dns-query, or 'cloudflare'"
                 onChange={(e) => setNewUpstreamIP(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="font-mono text-sm"
                 disabled={isValidating}
               />
               <p className="text-xs text-muted-foreground">
-                IPv6 addresses must be enclosed in square brackets
+                IPv6 addresses must be enclosed in square brackets. For DoH,
+                provide the full URL.
               </p>
             </div>
           </div>

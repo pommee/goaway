@@ -24,7 +24,11 @@ export function Upstream() {
         toast.warning("Unable to fetch upstreams");
         return;
       }
-      setUpstreams(response.upstreams);
+      if (response && typeof response === 'object' && 'upstreams' in response && Array.isArray(response.upstreams)) {
+        setUpstreams(response.upstreams as UpstreamEntry[]);
+      } else {
+        toast.warning('Invalid upstreams data format');
+      }
     };
 
     fetchupstreams();

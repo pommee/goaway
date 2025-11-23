@@ -15,7 +15,14 @@ async function removeDomain(domain: string) {
     toast.success(`Removed ${domain}`);
     return true;
   } else {
-    toast.error(response?.error || "Error removing domain");
+    toast.error(
+      response &&
+      typeof response === "object" &&
+      "error" in response &&
+      typeof (response as { error?: unknown }).error === "string"
+        ? (response as { error: string }).error
+        : "Error removing domain"
+    );
     return false;
   }
 }
@@ -44,7 +51,11 @@ export default function BlockedDomainsList({ listName }: { listName: string }) {
           return;
         }
 
-        setDomains(response);
+        if (Array.isArray(response)) {
+          setDomains(response as string[]);
+        } else {
+          setDomains([]);
+        }
       } catch {
         toast.error(`Could not fetch domains for ${listName}`);
       } finally {

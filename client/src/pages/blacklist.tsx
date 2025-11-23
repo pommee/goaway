@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AddList } from "@/app/lists/AddList";
 import { ListCard } from "@/app/lists/card";
 import { UpdateCustom } from "@/app/lists/updateCustom";
@@ -39,7 +40,7 @@ export function Blacklist() {
         return;
       }
 
-      const listArray: ListEntry[] = Object.entries(response).map(
+      const listArray: ListEntry[] = Object.entries(response as Record<string, any>).map(
         ([name, details]) => ({
           name,
           ...details
@@ -170,7 +171,7 @@ export function Blacklist() {
           listEntry.url || ""
         }`
       );
-      if (diffCode === 200 && diffResp.updateAvailable) {
+      if (diffCode === 200 && (diffResp as any).updateAvailable) {
         const [code] = await GetRequest(
           `runUpdateList?name=${encodeURIComponent(listEntry.name)}&url=${
             listEntry.url || ""

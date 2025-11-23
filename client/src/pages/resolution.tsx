@@ -21,7 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { validateFQDN } from "./validation";
+import { validateFQDN } from "@/pages/validation";
 
 type ListEntry = {
   ip: string;
@@ -34,7 +34,7 @@ async function CreateResolution(domain: string, ip: string) {
     toast.success(`${domain} has been added!`);
     return true;
   } else {
-    toast.error(response.error);
+    toast.error((response as { error?: string }).error || "Unknown error");
     return false;
   }
 }
@@ -48,7 +48,7 @@ async function DeleteResolution(domain: string, ip: string) {
     toast.success(`${domain} was deleted!`);
     return true;
   } else {
-    toast.error(response.error);
+    toast.error((response as { error?: string }).error || "Unknown error");
     return false;
   }
 }

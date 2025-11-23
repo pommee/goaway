@@ -22,10 +22,10 @@ export default function Audit() {
     const fetchAudits = async () => {
       try {
         const [status, response] = await GetRequest("audit");
-        if (status === 200) setAudits(response);
+        if (status === 200) setAudits(response as AuditEntry[]);
       } catch (error) {
         toast.warning("Failed to fetch audits", {
-          description: response.error
+          description: (error as Error).message || "Unknown error"
         });
         console.error("Failed to fetch audits:", error);
       } finally {

@@ -77,7 +77,7 @@ export async function PostRequest(
   }
 }
 
-export async function GetRequest(url: string, ignoreError?: boolean) {
+export async function GetRequest(url: string, ignoreError?: boolean): Promise<[number, unknown]> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       credentials: "include"
@@ -87,12 +87,12 @@ export async function GetRequest(url: string, ignoreError?: boolean) {
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error, "api-error");
+        showToast(data.error || "Unknown error occurred", "api-error");
       }
-      return [res.status, data.error];
+      return [res.status, data.error || "Unknown error occurred"];
     }
 
-    let data;
+    let data: unknown;
     try {
       data = await res.json();
     } catch {
@@ -105,7 +105,7 @@ export async function GetRequest(url: string, ignoreError?: boolean) {
   }
 }
 
-export async function PatchRequest(url: string, ignoreError?: boolean) {
+export async function PatchRequest(url: string, ignoreError?: boolean): Promise<[number, unknown]> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "PATCH",
@@ -116,12 +116,12 @@ export async function PatchRequest(url: string, ignoreError?: boolean) {
       await isAuthenticated(res);
       const data = await res.json();
       if (ignoreError !== true) {
-        showToast(data.error, "api-error");
+        showToast(data.error || "Unknown error occurred", "api-error");
       }
-      return [res.status, data.error];
+      return [res.status, data.error || "Unknown error occurred"];
     }
 
-    let data;
+    let data: unknown;
     try {
       data = await res.json();
     } catch {
@@ -138,7 +138,7 @@ export async function PutRequest(
   url: string,
   bodyData: unknown,
   ignoreError?: boolean
-) {
+): Promise<[number, unknown]> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "PUT",
@@ -158,7 +158,7 @@ export async function PutRequest(
       return [res.status, data.error];
     }
 
-    let data;
+    let data: unknown;
     try {
       data = await res.json();
     } catch {
@@ -175,7 +175,7 @@ export async function DeleteRequest(
   url: string,
   body: unknown,
   ignoreError?: boolean
-) {
+): Promise<[number, unknown]> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/api/${url}`, {
       method: "DELETE",
@@ -192,7 +192,7 @@ export async function DeleteRequest(
       return [res.status, null];
     }
 
-    let data;
+    let data: unknown;
     try {
       data = await res.json();
     } catch {

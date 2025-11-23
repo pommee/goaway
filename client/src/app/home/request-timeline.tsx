@@ -30,7 +30,7 @@ import {
   MagnifyingGlassPlusIcon
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { NoContent } from "@/shared";
 
 const chartConfig = {
@@ -55,13 +55,21 @@ type Query = {
   allowed: boolean;
 };
 
+interface ChartDataPoint {
+  interval: number;
+  timestamp: string;
+  blocked: boolean;
+  cached: boolean;
+  allowed: boolean;
+}
+
 export default function RequestTimeline() {
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refAreaLeft, setRefAreaLeft] = useState("");
   const [refAreaRight, setRefAreaRight] = useState("");
-  const [zoomedData, setZoomedData] = useState([]);
+  const [zoomedData, setZoomedData] = useState<ChartDataPoint[]>([]);
   const [isZoomed, setIsZoomed] = useState(false);
   const [timelineInterval, setTimelineInterval] = useState("2");
 
@@ -71,7 +79,7 @@ export default function RequestTimeline() {
       const [, responseData] = await GetRequest(
         `queryTimestamps?interval=${timelineInterval}`
       );
-      const data = responseData.map((q: Query) => ({
+      const data = (responseData as Query[]).map((q) => ({
         interval: q.start,
         timestamp: new Date(q.start).toISOString(),
         blocked: q.blocked,
@@ -107,7 +115,7 @@ export default function RequestTimeline() {
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     return chartData.filter(
-      (item) => new Date(item.interval) >= twentyFourHoursAgo
+      (item: { interval: number }) => new Date(item.interval) >= twentyFourHoursAgo
     );
   };
 
@@ -118,8 +126,8 @@ export default function RequestTimeline() {
       return;
     }
 
-    const indexLeft = chartData.findIndex((d) => d.interval === refAreaLeft);
-    const indexRight = chartData.findIndex((d) => d.interval === refAreaRight);
+    const indexLeft = chartData.findIndex((d: { interval: number }) => d.interval === Number(refAreaLeft));
+    const indexRight = chartData.findIndex((d: { interval: number }) => d.interval === Number(refAreaRight));
 
     const startIndex = Math.min(indexLeft, indexRight);
     const endIndex = Math.max(indexLeft, indexRight);
@@ -142,14 +150,18 @@ export default function RequestTimeline() {
     setIsZoomed(false);
   };
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: {
+    activeLabel?: string | number;
+  }) => {
     if (!e || !e.activeLabel) return;
-    setRefAreaLeft(e.activeLabel);
+    setRefAreaLeft(String(e.activeLabel));
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: {
+    activeLabel?: string | number;
+  }) => {
     if (!refAreaLeft || !e || !e.activeLabel) return;
-    setRefAreaRight(e.activeLabel);
+    setRefAreaRight(String(e.activeLabel));
   };
 
   const handleMouseUp = () => {
@@ -353,10 +365,10 @@ export default function RequestTimeline() {
                         labelFormatter={(value) => {
                           try {
                             const item = filteredData.find(
-                              (d) => d.interval === value
+                              (d: { interval: number }) => d.interval === value
                             );
-                            if (item && item.timestamp) {
-                              return new Date(item.timestamp).toLocaleString(
+                            if (item && (item as { timestamp?: string }).timestamp) {
+                              return new Date((item as { timestamp: string }).timestamp).toLocaleString(
                                 "en-US",
                                 {
                                   month: "short",
@@ -409,7 +421,7 @@ export default function RequestTimeline() {
                     />
                   )}
                   <ChartLegend
-                    content={<ChartLegendContent className="p-0" />}
+                    content={<ChartLegendContent payload={[]} className="p-0" />}
                   />
                 </AreaChart>
               </ChartContainer>

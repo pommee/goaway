@@ -35,7 +35,7 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
     try {
       const [status, response] = await GetRequest("apiKey");
       if (status === 200 && response) {
-        setApiKeys(response);
+        setApiKeys(response as APIKey[]);
       }
     } catch (error) {
       console.error("Failed to fetch API keys:", error);
@@ -78,7 +78,13 @@ export function APIKeyDialog({ open, onOpenChange }: APIKeyDialogProps) {
     try {
       const [status, message] = await GetRequest(`deleteApiKey?name=${name}`);
       if (status === 200) {
-        toast.success(message.message);
+        toast.success(
+          typeof message === "object" &&
+            message !== null &&
+            "message" in message
+            ? String((message as { message: unknown }).message)
+            : "API key deleted successfully"
+        );
         await fetchAPIKeys();
       }
     } catch (error) {

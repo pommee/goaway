@@ -16,10 +16,10 @@ import {
   TelegramLogoIcon,
   TestTubeIcon
 } from "@phosphor-icons/react";
-import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Checkbox } from "./ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { GetRequest, PostRequest } from "@/util";
 import { toast } from "sonner";
 
@@ -84,10 +84,10 @@ async function fetchAlertSettings(): Promise<AlertDiscordSettings> {
     const [code, response] = await GetRequest("alert");
 
     if (code === 200) {
-      return response.discord as AlertDiscordSettings;
+      return (response as { discord: AlertDiscordSettings }).discord;
     } else {
       toast.error("Failed to fetch alert settings", {
-        description: `${response.error}`
+        description: response && typeof response === 'object' && 'error' in response ? String((response as { error?: unknown }).error) : 'Unknown error'
       });
       return DEFAULT_SETTINGS;
     }

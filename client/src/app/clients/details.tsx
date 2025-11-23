@@ -55,7 +55,7 @@ export function CardDetails({
           return;
         }
 
-        setClientDetails(response);
+        setClientDetails(response as ClientEntryDetails);
       } catch {
         toast.error("Error fetching client details");
       } finally {
@@ -304,7 +304,14 @@ export function CardDetails({
   );
 }
 
-function StatCard({ icon, label, value, color }) {
+type StatCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+};
+
+function StatCard({ icon, label, value, color }: StatCardProps) {
   return (
     <div className="rounded-sm shadow-md bg-background">
       <div className={`${color} h-1`}></div>
