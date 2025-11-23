@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IPEntry } from "@/pages/logs";
 import { ColumnDef } from "@tanstack/react-table";
 import { Queries } from "./columns";
@@ -12,7 +13,9 @@ import {
 export const columns: ColumnDef<Queries>[] = [
   {
     accessorKey: "timestamp",
-    header: ({ column }) => <SortableHeader column={column} title="Time" />,
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Time" />
+    ),
     cell: ({ row }) => {
       try {
         const timestamp = row.original.timestamp;
@@ -35,10 +38,16 @@ export const columns: ColumnDef<Queries>[] = [
   },
   {
     accessorKey: "domain",
-    header: ({ column }) => <SortableHeader column={column} title="Domain" />,
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Domain" />
+    ),
     cell: ({ row }) => {
       const wasBlocked = row.original.blocked === true ? "text-red-500" : "";
-      return <div className={`${wasBlocked}`}>{row.getValue("domain")}</div>;
+      return (
+        <div className={`${wasBlocked}`}>
+          {row.getValue("domain")}
+        </div>
+      );
     }
   },
   {
@@ -113,30 +122,46 @@ export const columns: ColumnDef<Queries>[] = [
   },
   {
     accessorKey: "responseTimeNS",
-    header: ({ column }) => <SortableHeader column={column} title="Response" />,
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Response" />
+    ),
     cell: ({ row }) => {
       const ns = row.original.responseTimeNS;
       const ms = ns / 1_000_000;
       const rowText =
         ms < 10 ? `${Math.round(ns / 1_000)} µs` : `${ms.toFixed(2)} ms`;
 
-      return <p>{rowText}</p>;
+      return (
+        <p className="text-muted-foreground">
+          {rowText}
+        </p>
+      );
     }
   },
   {
     accessorKey: "queryType",
-    header: ({ column }) => <SortableHeader column={column} title="Type" />,
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Type" />
+    ),
     cell: ({ row }) => <div>{row.getValue("queryType")}</div>
   },
   {
     accessorKey: "protocol",
-    header: ({ column }) => <SortableHeader column={column} title="Protocol" />,
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Protocol" />
+    ),
     cell: ({ row }) => <div>{row.getValue("protocol")}</div>
   },
   {
     accessorKey: "responseSizeBytes",
-    header: ({ column }) => <SortableHeader column={column} title="Size" />,
-    cell: ({ row }) => <div>{row.getValue("responseSizeBytes")}</div>
+    header: ({ column }) => (
+      <SortableHeader column={column as any} title="Size" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-muted-foreground">
+        {row.getValue("responseSizeBytes")}
+      </div>
+    )
   },
   {
     accessorKey: "action",

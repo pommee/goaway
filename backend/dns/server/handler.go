@@ -1,19 +1,23 @@
 package server
 
 import (
-	"bufio"
-	"context"
-	"fmt"
-	arp "goaway/backend/dns"
-	model "goaway/backend/dns/server/models"
-	"goaway/backend/notification"
-	"net"
-	"os"
-	"os/exec"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
+    "bufio"
+    "bytes"
+    "context"
+    "fmt"
+    arp "goaway/backend/dns"
+    model "goaway/backend/dns/server/models"
+    "goaway/backend/notification"
+    "io"
+    "net"
+    "net/url"
+    "net/http"
+    "os"
+    "os/exec"
+    "regexp"
+    "strconv"
+    "strings"
+    "time"
 
 	"github.com/miekg/dns"
 )
@@ -646,41 +650,61 @@ func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]
 }
 
 func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
-	resultCh := make(chan *dns.Msg, 1)
-	errCh := make(chan error, 1)
+    resultCh := make(chan *dns.Msg, 1)
+    errCh := make(chan error, 1)
 
-	go func() {
-		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
+    go func() {
+        go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
-		upstreamMsg := &dns.Msg{}
-		upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
-		upstreamMsg.RecursionDesired = true
-		upstreamMsg.Id = dns.Id()
+        upstream := s.Config.DNS.Upstream.Preferred
+        if strings.HasPrefix(upstream, "http://") || strings.HasPrefix(upstream, "https://") {
+            in, err := s.queryUpstreamDoH(req, upstream)
+            if err != nil {
+                errCh <- err
+                return
+            }
+            resultCh <- in
+            return
+        }
 
-		upstream := s.Config.DNS.Upstream.Preferred
-		if s.dnsClient.Net == "tcp-tls" {
-			host, port, err := net.SplitHostPort(upstream)
-			if err != nil {
-				upstream = net.JoinHostPort(upstream, "853")
-			} else if port == "53" {
-				upstream = net.JoinHostPort(host, "853")
-			}
-		}
+        if dohURL, ok := s.getDoHURLForKeyword(strings.ToLower(upstream)); ok {
+            in, err := s.queryUpstreamDoH(req, dohURL)
+            if err != nil {
+                errCh <- err
+                return
+            }
+            resultCh <- in
+            return
+        }
 
-		log.Debug("Sending query using '%s' as upstream", upstream)
-		in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
-		if err != nil {
-			errCh <- err
-			return
-		}
+        upstreamMsg := &dns.Msg{}
+        upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
+        upstreamMsg.RecursionDesired = true
+        upstreamMsg.Id = dns.Id()
 
-		if in == nil {
-			errCh <- fmt.Errorf("nil response from upstream")
-			return
-		}
+        if s.dnsClient.Net == "tcp-tls" {
+            host, port, err := net.SplitHostPort(upstream)
+            if err != nil {
+                upstream = net.JoinHostPort(upstream, "853")
+            } else if port == "53" {
+                upstream = net.JoinHostPort(host, "853")
+            }
+        }
 
-		resultCh <- in
-	}()
+        log.Debug("Sending query using '%s' as upstream", upstream)
+        in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
+        if err != nil {
+            errCh <- err
+            return
+        }
+
+        if in == nil {
+            errCh <- fmt.Errorf("nil response from upstream")
+            return
+        }
+
+        resultCh <- in
+    }()
 
 	select {
 	case in := <-resultCh:
@@ -727,6 +751,113 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		log.Warning("DNS lookup for %s timed out", req.Question.Name)
 		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
 	}
+}
+
+func (s *DNSServer) queryUpstreamDoH(req *Request, upstream string) (*dns.Msg, error) {
+    parsed, err := url.Parse(upstream)
+    if err != nil {
+        return nil, fmt.Errorf("invalid DoH upstream: %w", err)
+    }
+
+    msg := &dns.Msg{}
+    msg.SetQuestion(req.Question.Name, req.Question.Qtype)
+    msg.RecursionDesired = true
+    msg.Id = dns.Id()
+
+    body, err := msg.Pack()
+    if err != nil {
+        return nil, fmt.Errorf("failed to pack dns msg: %w", err)
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, parsed.String(), io.NopCloser(bytes.NewReader(body)))
+    if err != nil {
+        return nil, err
+    }
+    httpReq.Header.Set("Content-Type", "application/dns-message")
+    httpReq.Header.Set("Accept", "application/dns-message")
+
+    client := &http.Client{Timeout: 5 * time.Second}
+    resp, err := client.Do(httpReq)
+    if err != nil {
+        return nil, err
+    }
+    defer func() { _ = resp.Body.Close() }()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("doh status: %s", resp.Status)
+    }
+
+    data, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    in := new(dns.Msg)
+    if err := in.Unpack(data); err != nil {
+        return nil, err
+    }
+
+    return in, nil
+}
+
+func (s *DNSServer) getDoHURLForKeyword(keyword string) (string, bool) {
+    providers := map[string]string{
+        "cloudflare": "https://cloudflare-dns.com/dns-query",
+        "google":     "https://dns.google/dns-query",
+        "quad9":      "https://dns.quad9.net/dns-query",
+        "dnspod":     "https://doh.dnspod.cn/dns-query",
+    }
+    if keyword == "auto" || keyword == "fastest" {
+        return s.selectFastestDoHProvider(providers), true
+    }
+    url, ok := providers[keyword]
+    return url, ok
+}
+
+func (s *DNSServer) selectFastestDoHProvider(providers map[string]string) string {
+    bestURL := ""
+    bestDuration := time.Duration(1<<63 - 1)
+    for _, url := range providers {
+        start := time.Now()
+        msg := &dns.Msg{}
+        msg.SetQuestion(dns.Fqdn("example.com"), dns.TypeA)
+        msg.RecursionDesired = true
+        packed, err := msg.Pack()
+        if err != nil {
+            continue
+        }
+
+        ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+        req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, io.NopCloser(bytes.NewReader(packed)))
+        if err != nil {
+            cancel()
+            continue
+        }
+        req.Header.Set("Content-Type", "application/dns-message")
+        req.Header.Set("Accept", "application/dns-message")
+        client := &http.Client{Timeout: 3 * time.Second}
+        resp, err := client.Do(req)
+        cancel()
+        if err != nil {
+            continue
+        }
+        _ = resp.Body.Close()
+        if resp.StatusCode != http.StatusOK {
+            continue
+        }
+        dur := time.Since(start)
+        if dur < bestDuration {
+            bestDuration = dur
+            bestURL = url
+        }
+    }
+    if bestURL == "" {
+        return providers["cloudflare"]
+    }
+    return bestURL
 }
 
 func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, error) {

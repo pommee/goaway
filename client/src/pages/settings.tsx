@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { GetRequest, PostRequest } from "@/util";
+import { GetRequest, PostRequest, PutRequest, getApiBaseUrl } from "@/util";
 import { Card, CardTitle } from "@/components/ui/card";
 import { APIKeyDialog } from "@/components/APIKeyDialog";
 import { AlertDialog } from "@/components/Alert";
@@ -74,7 +75,7 @@ export function Settings() {
     try {
       const [status, response] = await GetRequest("settings");
       if (status === 200) {
-        setPreferences(response);
+        setPreferences(response as Root);
         originalPrefs.current = JSON.stringify(response);
       }
     } catch {
@@ -274,9 +275,9 @@ export function Settings() {
               <DatabaseSection
                 loading={loading}
                 setLoading={setLoading}
-                fileInput={fileInput}
+                fileInput={fileInput as React.RefObject<HTMLInputElement>}
                 setFile={setFile}
-                setModals={setModals}
+                setModals={setModals as any}
               />
             )}
 
@@ -313,7 +314,7 @@ export function Settings() {
 
             {settings.length > 0 && (
               <DynamicSettingsSection
-                settings={settings}
+                settings={settings as any}
                 getSettingValue={getSettingValue}
                 handleSettingChange={handleSettingChange}
               />
@@ -332,7 +333,6 @@ export function Settings() {
             return setError("Passwords don't match");
 
           try {
-            const { PutRequest } = await import("@/util");
             const [status, response] = await PutRequest("password", {
               currentPassword: passwords.current,
               newPassword: passwords.new
@@ -343,7 +343,7 @@ export function Settings() {
               setModals((prev) => ({ ...prev, password: false }));
               navigate("/login");
             } else {
-              setError(response || "Error updating password");
+              setError(typeof response === "string" ? response : "Error updating password");
             }
           } catch {
             setError("Failed to update password");
@@ -363,7 +363,6 @@ export function Settings() {
           setLoading((prev) => ({ ...prev, import: true }));
 
           try {
-            const { getApiBaseUrl } = await import("@/util");
             const formData = new FormData();
             formData.append("database", file);
             const response = await fetch(

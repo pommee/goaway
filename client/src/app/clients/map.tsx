@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -228,10 +229,10 @@ export default function DNSServerVisualizer() {
         const [code, response] = await GetRequest("clients");
 
         if (code !== 200) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${code}`);
         }
 
-        setClients(response);
+        setClients(response as ClientEntry[]);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch clients"
@@ -606,8 +607,8 @@ export default function DNSServerVisualizer() {
         {networkData.nodes.length > 0 && (
           <div className="rounded-md cursor-move overflow-hidden">
             <ForceGraph2D
-              ref={fgRef}
-              graphData={networkData}
+              ref={fgRef as any}
+              graphData={networkData as any}
               width={dimensions.width}
               height={dimensions.height}
               nodeColor={(node: NetworkNode) => node.color || "#ffffff"}
@@ -704,7 +705,7 @@ export default function DNSServerVisualizer() {
           </ScrollArea>
           <div className="space-y-1 mt-2 cursor-pointer">
             {selectedCluster
-              .sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))
+              .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
               .map((client) => (
                 <div
                   onClick={() => {

@@ -58,13 +58,22 @@ type ResponseSizeQuery = {
   max_response_size_bytes: number;
 };
 
+interface ChartDataPoint {
+  interval: number;
+  timestamp: string;
+  total: number;
+  avg: number;
+  min: number;
+  max: number;
+}
+
 export default function ResponseSizeTimeline() {
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refAreaLeft, setRefAreaLeft] = useState("");
   const [refAreaRight, setRefAreaRight] = useState("");
-  const [zoomedData, setZoomedData] = useState([]);
+  const [zoomedData, setZoomedData] = useState<ChartDataPoint[]>([]);
   const [isZoomed, setIsZoomed] = useState(false);
   const [timelineInterval, setTimelineInterval] = useState("2");
 
@@ -74,7 +83,7 @@ export default function ResponseSizeTimeline() {
       const [, responseData] = await GetRequest(
         `responseSizeTimestamps?interval=${timelineInterval}`
       );
-      const data = responseData.map((q: ResponseSizeQuery) => ({
+      const data = (responseData as ResponseSizeQuery[]).map((q: ResponseSizeQuery) => ({
         interval: q.start,
         timestamp: new Date(q.start).toISOString(),
         total: q.total_size_bytes,
@@ -123,8 +132,8 @@ export default function ResponseSizeTimeline() {
       return;
     }
 
-    const indexLeft = chartData.findIndex((d) => d.interval === refAreaLeft);
-    const indexRight = chartData.findIndex((d) => d.interval === refAreaRight);
+    const indexLeft = chartData.findIndex((d: { interval: number }) => d.interval === Number(refAreaLeft));
+    const indexRight = chartData.findIndex((d: { interval: number }) => d.interval === Number(refAreaRight));
 
     const startIndex = Math.min(indexLeft, indexRight);
     const endIndex = Math.max(indexLeft, indexRight);
@@ -147,14 +156,18 @@ export default function ResponseSizeTimeline() {
     setIsZoomed(false);
   };
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: {
+    activeLabel?: string | number;
+  }) => {
     if (!e || !e.activeLabel) return;
-    setRefAreaLeft(e.activeLabel);
+    setRefAreaLeft(String(e.activeLabel));
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: {
+    activeLabel?: string | number;
+  }) => {
     if (!refAreaLeft || !e || !e.activeLabel) return;
-    setRefAreaRight(e.activeLabel);
+    setRefAreaRight(String(e.activeLabel));
   };
 
   const handleMouseUp = () => {
@@ -163,7 +176,7 @@ export default function ResponseSizeTimeline() {
     }
   };
 
-  const formatBytes = (bytes) => {
+  const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
@@ -390,7 +403,7 @@ export default function ResponseSizeTimeline() {
                                     style={{ backgroundColor: entry.color }}
                                   />
                                   <span className="text-muted-foreground text-xs mr-4">
-                                    {chartConfig[entry.dataKey]?.label ||
+                                    {chartConfig[entry.dataKey as keyof typeof chartConfig]?.label ||
                                       entry.dataKey}
                                   </span>
                                 </div>
@@ -445,7 +458,7 @@ export default function ResponseSizeTimeline() {
                       fillOpacity={0.3}
                     />
                   )}
-                  <ChartLegend content={<ChartLegendContent />} />
+                  <ChartLegend content={<ChartLegendContent payload={[]} />} />
                 </AreaChart>
               </ChartContainer>
             </CardContent>

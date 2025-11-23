@@ -96,7 +96,7 @@ export default function RequestTypeChart() {
             >
               <div
                 className="w-2 h-2 rounded-full shadow-sm"
-                style={{ backgroundColor: item.fill }}
+                style={{ backgroundColor: colors[chartData.indexOf(item) % colors.length] }}
               />
               <span className="text-xs text-foreground">{item.queryType}</span>
               <span className="text-xs text-muted-foreground">
