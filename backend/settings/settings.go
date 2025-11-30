@@ -70,6 +70,7 @@ func (config *Config) Update(updatedSettings Config) {
 	config.API.RateLimit = updatedSettings.API.RateLimit
 
 	config.DNS.Address = updatedSettings.DNS.Address
+	config.DNS.Gateway = updatedSettings.DNS.Gateway
 	config.DNS.Ports = updatedSettings.DNS.Ports
 	config.DNS.UDPSize = updatedSettings.DNS.UDPSize
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
