@@ -1,3 +1,10 @@
+## [0.62.20](https://github.com/pommee/goaway/compare/v0.62.19...v0.62.20) (2025-11-30)
+
+### Bug Fixes
+
+* remove port from default gateway ([ff476e4](https://github.com/pommee/goaway/commit/ff476e4d30987768b270d76002e1a9752ed7be84))
+* save gateway value when saving from dashboard ([1958a57](https://github.com/pommee/goaway/commit/1958a5756fa9dcdaa2e8149a35345248ef704607))
+
 ## [0.62.19](https://github.com/pommee/goaway/compare/v0.62.18...v0.62.19) (2025-11-21)
 
 ### Bug Fixes
