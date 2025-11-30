@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,9 +50,23 @@ export function CardDetails(
     );
     if (code === 200) {
       setListActive(!listActive);
-      toast.info(response.message);
+      toast.info(
+        response &&
+        typeof response === "object" &&
+        "message" in response &&
+        typeof (response as { message?: unknown }).message === "string"
+          ? (response as { message: string }).message
+          : "Blocklist toggled"
+      );
     } else {
-      toast.error(response.message);
+      toast.error(
+        response &&
+        typeof response === "object" &&
+        "message" in response &&
+        typeof (response as { message?: unknown }).message === "string"
+          ? (response as { message: string }).message
+          : "Error toggling blocklist"
+      );
     }
   };
 
@@ -65,10 +80,10 @@ export function CardDetails(
       );
 
       if (code === 200) {
-        if (response.updateAvailable) {
+        if (typeof response === "object" && response !== null && "updateAvailable" in response && response.updateAvailable) {
           setUpdateDiff({
-            diffAdded: response.diffAdded || [],
-            diffRemoved: response.diffRemoved || []
+            diffAdded: Array.isArray((response as any).diffAdded) ? (response as any).diffAdded : [],
+            diffRemoved: Array.isArray((response as any).diffRemoved) ? (response as any).diffRemoved : []
           });
           setShowDiff(true);
         } else {
@@ -76,7 +91,14 @@ export function CardDetails(
           setShowDiff(false);
         }
       } else {
-        toast.error(response.error);
+        toast.error(
+          response &&
+          typeof response === "object" &&
+          "error" in response &&
+          typeof (response as { error?: unknown }).error === "string"
+            ? (response as { error: string }).error
+            : "Error checking for updates"
+        );
         setShowDiff(false);
       }
     } catch (error) {
@@ -101,11 +123,18 @@ export function CardDetails(
         setShowDiff(false);
         toast.info(`Updated ${listEntry.name}`);
       } else {
-        toast.error(response.error);
+        toast.error(
+          response &&
+          typeof response === "object" &&
+          "error" in response &&
+          typeof (response as { error?: unknown }).error === "string"
+            ? (response as { error: string }).error
+            : "Error updating list"
+        );
         setShowDiff(false);
       }
     } catch (error) {
-      toast.error("Error checking for updates", { description: `${error}` });
+      toast.error("Error updating list", { description: `${error}` });
       setShowDiff(false);
     }
   };
@@ -128,7 +157,14 @@ export function CardDetails(
         setShowDiff(false);
         listEntry.onDelete?.(listEntry.name);
       } else {
-        toast.error(response.error);
+        toast.error(
+          response &&
+          typeof response === "object" &&
+          "error" in response &&
+          typeof (response as { error?: unknown }).error === "string"
+            ? (response as { error: string }).error
+            : "Error deleting list"
+        );
         setShowDiff(false);
       }
     } catch {
@@ -167,7 +203,14 @@ export function CardDetails(
         listEntry.onRename?.(editedName.trim(), listEntry.url);
         setIsEditing(false);
       } else {
-        toast.error(response.error || "Failed to update list name");
+        toast.error(
+          response &&
+          typeof response === "object" &&
+          "error" in response &&
+          typeof (response as { error?: unknown }).error === "string"
+            ? (response as { error: string }).error
+            : "Failed to update list name"
+        );
         setEditedName(listEntry.name);
         setIsEditing(false);
       }

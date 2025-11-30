@@ -85,7 +85,7 @@ async function DeletePrefetch(domain: string) {
     toast.success(`${domain} has been removed from prefetch list!`);
     return true;
   } else {
-    toast.error(response.error);
+    toast.error((response as { error?: string }).error || "Failed to delete prefetch");
     return false;
   }
 }
@@ -109,7 +109,7 @@ export function Prefetch() {
       return;
     }
 
-    setPrefetches(response || []);
+    setPrefetches((response as PrefetchEntry[]) || []);
     setLoading(false);
   };
 

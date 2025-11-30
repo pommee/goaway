@@ -26,7 +26,7 @@ export function UpstreamCard({ upstream, onRemove }: UpstreamCardProps) {
   );
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     if (deleteState === "confirm") {
       timeoutId = setTimeout(() => {
@@ -46,10 +46,10 @@ export function UpstreamCard({ upstream, onRemove }: UpstreamCardProps) {
       });
 
       if (status === 200) {
-        toast.info(response.message);
+        toast.info((response as { message: string }).message);
         setIsPreferred(true);
       } else {
-        toast.warning(response.message);
+        toast.warning((response as { message?: string }).message || "Failed to set preferred upstream");
       }
     } catch {
       toast.error("Failed to set preferred upstream");
@@ -64,14 +64,15 @@ export function UpstreamCard({ upstream, onRemove }: UpstreamCardProps) {
 
     try {
       const [status, response] = await DeleteRequest(
-        `upstream?upstream=${currentUpstream.upstream}`
+        `upstream?upstream=${currentUpstream.upstream}`,
+        {}
       );
 
       if (status === 200) {
         onRemove(currentUpstream.upstream);
-        toast.success(response.message);
+        toast.success((response as { message: string }).message);
       } else {
-        toast.warning(response.message || "Failed to delete upstream");
+        toast.warning((response as { message?: string }).message || "Failed to delete upstream");
       }
     } catch {
       toast.error("Failed to delete upstream");

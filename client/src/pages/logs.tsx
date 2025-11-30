@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { CardDetails } from "@/app/clients/details";
@@ -117,9 +118,9 @@ async function fetchQueries(
 
     const [, response] = await GetRequest(url);
 
-    if (response?.queries && Array.isArray(response.queries)) {
+    if (response && typeof response === 'object' && 'queries' in response && Array.isArray((response as any).queries)) {
       return {
-        queries: response.queries.map(
+        queries: (response.queries as any[]).map(
           (item: {
             client: { ip?: string; name?: string; mac?: string };
             ip?: { ip?: string; rtype?: string }[];
@@ -139,9 +140,9 @@ async function fetchQueries(
               : []
           })
         ),
-        draw: response.draw || "1",
-        recordsFiltered: response.recordsFiltered || 0,
-        recordsTotal: response.recordsTotal || 0
+        draw: (response as any).draw || "1",
+        recordsFiltered: (response as any).recordsFiltered || 0,
+        recordsTotal: (response as any).recordsTotal || 0
       };
     } else {
       return {
@@ -325,7 +326,7 @@ export function Logs() {
       sortDirection
     );
 
-    setQueries(result.queries);
+    setQueries(result.queries.map(q => ({ ...q, protocol: q.queryType } as Queries)));
     setTotalRecords(result.recordsFiltered);
     setLoading(false);
   }, [pageIndex, pageSize, domainFilter, clientFilter, sorting]);
@@ -339,7 +340,7 @@ export function Logs() {
       if (column.id === "client") {
         return {
           ...column,
-          cell: ({ row }) => {
+          cell: ({ row }: { row: { original: QueryDetail } }) => {
             const client = row.original.client;
             return (
               <div
@@ -359,7 +360,7 @@ export function Logs() {
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: queries,
-    columns: columnsWithClientHandler,
+    columns: columnsWithClientHandler as any[],
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,

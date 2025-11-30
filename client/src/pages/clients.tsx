@@ -39,7 +39,7 @@ export function Clients() {
       const [code, response] = await GetRequest("clients");
 
       if (code !== 200) {
-        toast.warning(response);
+        toast.warning(String(response));
         return;
       }
 
@@ -77,7 +77,7 @@ export function Clients() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
       {clients.length > 0 ? (
-        <DNSServerVisualizer clients={clients} />
+        <DNSServerVisualizer clients ={clients} />
       ) : (
         <NoContent text="No clients have sent any requests yet. Client information will appear here when available." />
       )}

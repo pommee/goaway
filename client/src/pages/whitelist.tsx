@@ -46,7 +46,7 @@ async function DeleteWhitelistedDomain(domain: string) {
     toast.success(`${domain} is no longer whitelisted!`);
     return true;
   } else {
-    toast.error(response.error);
+    toast.error((response as { error?: string })?.error || 'Unknown error');
     return false;
   }
 }
@@ -66,7 +66,7 @@ export function Whitelist() {
         toast.error("Unable to fetch whitelisted domains");
         setWhitelistedDomains([]);
       } else {
-        setWhitelistedDomains(data || []);
+        setWhitelistedDomains(Array.isArray(data) ? data : []);
       }
       setLoading(false);
     };
