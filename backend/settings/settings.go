@@ -189,7 +189,7 @@ func (config *Config) GetCertificate() (tls.Certificate, error) {
 func getDefaultGateway() string {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		return "192.168.0.1:53"
+		return "192.168.0.1"
 	}
 	defer func(conn net.Conn) {
 		_ = conn.Close()
@@ -199,9 +199,9 @@ func getDefaultGateway() string {
 	if localAddr.IP.IsPrivate() {
 		ip := localAddr.IP.To4()
 		if ip != nil {
-			return fmt.Sprintf("%d.%d.%d.1:53", ip[0], ip[1], ip[2])
+			return fmt.Sprintf("%d.%d.%d.1", ip[0], ip[1], ip[2])
 		}
 	}
 
-	return "192.168.0.1:53"
+	return "192.168.0.1"
 }
