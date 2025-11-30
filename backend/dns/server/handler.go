@@ -112,7 +112,7 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 			if err == nil {
 				s.MACService.SaveMac(clientIP, macAddress, vendor)
 			} else {
-				log.Warning("Was not able to find vendor for addr '%s'. %v", remoteAddr, err)
+				log.Warning("Was not able to find vendor for addr '%s' with MAC '%s'. %v", remoteAddr, macAddress, err)
 			}
 		}
 	}
