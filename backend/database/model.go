@@ -35,7 +35,7 @@ type RequestLog struct {
 	ClientIP          string         `gorm:"type:varchar(45);not null;index:idx_client_ip;index:idx_client_ip_domain,priority:1" json:"clientIP" validate:"required,ip"`
 	ClientName        string         `gorm:"type:varchar(255)" json:"clientName"`
 	QueryType         string         `gorm:"type:varchar(10)" json:"queryType"`
-	Status            string         `gorm:"type:varchar(50)" json:"status"`
+	Status            string         `gorm:"type:varchar(20)" json:"status"`
 	Protocol          string         `gorm:"type:varchar(10)" json:"protocol"`
 	ResponseTimeNs    int64          `gorm:"not null" json:"repsonseTimeNS"`
 	ResponseSizeBytes int            `gorm:"index:idx_timestamp_response_size,priority:2" json:"responseSizeBytes"`
