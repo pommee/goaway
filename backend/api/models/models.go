@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type QueryParams struct {
 	Search       string
 	Column       string
@@ -8,4 +10,9 @@ type QueryParams struct {
 	Page         int
 	PageSize     int
 	Offset       int
+}
+
+type DomainHistory struct {
+	Domain    string    `json:"domain"`
+	Timestamp time.Time `json:"timestamp"`
 }

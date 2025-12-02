@@ -9,6 +9,7 @@ import (
 func (api *API) registerClientRoutes() {
 	api.routes.GET("/clients", api.getClients)
 	api.routes.GET("/clientDetails", api.getClientDetails)
+	api.routes.GET("/clientHistory", api.getClientHistory)
 	api.routes.GET("/topClients", api.getTopClients)
 }
 
@@ -52,6 +53,25 @@ func (api *API) getClientDetails(c *gin.Context) {
 		"mostQueriedDomain": mostQueriedDomain,
 		"lastSeen":          clientRequestDetails.LastSeen,
 		"allDomains":        domainQueryCounts,
+	})
+}
+
+func (api *API) getClientHistory(c *gin.Context) {
+	clientIP := c.Query("ip")
+
+	if clientIP == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No client ip was provided"})
+		return
+	}
+
+	history, err := api.RequestService.GetClientHistory(clientIP)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, map[string]any{
+		"history": history,
 	})
 }
 

@@ -64,6 +64,10 @@ func (s *Service) GetClientDetailsWithDomains(clientIP string) (ClientRequestDet
 	return s.repository.GetClientDetailsWithDomains(clientIP)
 }
 
+func (s *Service) GetClientHistory(clientIP string) ([]models.DomainHistory, error) {
+	return s.repository.GetClientHistory(clientIP)
+}
+
 func (s *Service) GetTopBlockedDomains(blockedRequests int) ([]map[string]interface{}, error) {
 	return s.repository.GetTopBlockedDomains(blockedRequests)
 }

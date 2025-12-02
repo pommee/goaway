@@ -23,6 +23,7 @@ type Repository interface {
 	GetUniqueClientNameAndIP() []database.RequestLog
 	FetchAllClients() (map[string]Client, error)
 	GetClientDetailsWithDomains(clientIP string) (ClientRequestDetails, string, map[string]int, error)
+	GetClientHistory(clientIP string) ([]models.DomainHistory, error)
 	GetTopBlockedDomains(blockedRequests int) ([]map[string]interface{}, error)
 	GetTopClients() ([]map[string]interface{}, error)
 	CountQueries(search string) (int, error)
@@ -366,6 +367,23 @@ func (r *repository) GetClientDetailsWithDomains(clientIP string) (ClientRequest
 	}
 
 	return crd, mostQueriedDomain, domainQueryCounts, nil
+}
+
+func (r *repository) GetClientHistory(clientIP string) ([]models.DomainHistory, error) {
+	var history []models.DomainHistory
+
+	err := r.db.Table("request_logs").
+		Select("domain, timestamp").
+		Where("client_ip = ?", clientIP).
+		Order("timestamp DESC").
+		Limit(1000).
+		Scan(&history).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return history, nil
 }
 
 func (r *repository) GetTopBlockedDomains(blockedRequests int) ([]map[string]interface{}, error) {
