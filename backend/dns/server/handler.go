@@ -746,6 +746,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 
 	client := &dns.Client{Net: "udp"}
 	start := time.Now()
+	log.Debug("Performing local forward lookup for %s", hostname)
 	in, _, err := client.Exchange(dnsMsg, s.Config.DNS.Gateway)
 	responseTime := time.Since(start)
 
