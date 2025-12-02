@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { ClientEntry } from "@/pages/clients";
 import { GetRequest } from "@/util";
 import {
@@ -15,6 +16,7 @@ import {
   TargetIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import TimeAgo from "react-timeago";
 import { toast } from "sonner";
 
 type AllDomains = {
@@ -41,7 +43,7 @@ export function CardDetails({
     null
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [clientHistory, setClientHistory] = useState(null);
 
   useEffect(() => {
     async function fetchClient() {
@@ -73,9 +75,31 @@ export function CardDetails({
     return "bg-red-500";
   };
 
+  useEffect(() => {
+    async function getClientHistory() {
+      try {
+        const [code, response] = await GetRequest(
+          `clientHistory?ip=${clientEntry.ip}`
+        );
+        if (code !== 200) {
+          toast.warning("Unable to fetch client history");
+          return;
+        }
+
+        setClientHistory(response.history);
+      } catch {
+        toast.error("Error fetching client history");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    getClientHistory();
+  }, [clientEntry.ip]);
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="border-none bg-accent rounded-lg w-full max-w-6xl overflow-hidden">
+      <DialogContent className="border-none bg-accent rounded-lg w-full max-w-6xl max-h-3/4 overflow-y-auto">
         <DialogTitle>
           <div className="flex items-center justify-between">
             <div>
@@ -112,7 +136,6 @@ export function CardDetails({
             <TabsTrigger
               value="overview"
               className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-              onClick={() => setActiveTab("overview")}
             >
               <TargetIcon />
               Overview
@@ -120,7 +143,6 @@ export function CardDetails({
             <TabsTrigger
               value="domains"
               className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-              onClick={() => setActiveTab("domains")}
             >
               <RowsIcon />
               Domains
@@ -128,22 +150,19 @@ export function CardDetails({
             <TabsTrigger
               value="history"
               className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-              onClick={() => setActiveTab("history")}
             >
               <ClockCounterClockwiseIcon />
               History
             </TabsTrigger>
           </TabsList>
-        </Tabs>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center p-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
-          </div>
-        ) : clientDetails ? (
-          <div className="overflow-y-auto sm:p-2 grow">
-            {activeTab === "overview" && (
-              <>
+          {isLoading ? (
+            <div className="flex justify-center items-center p-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+            </div>
+          ) : clientDetails ? (
+            <div>
+              <TabsContent value="overview">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
                   <StatCard
                     icon={<EyeglassesIcon size={18} />}
@@ -234,11 +253,8 @@ export function CardDetails({
                     [WIP] Device Settings
                   </Button>
                 </div>
-              </>
-            )}
-
-            {activeTab === "domains" && (
-              <div>
+              </TabsContent>
+              <TabsContent value="domains">
                 <p className="mb-2">
                   All Queried Domains
                   <span className="ml-2 text-xs bg-accent px-2 py-0.5 rounded-full text-muted-foreground">
@@ -287,18 +303,47 @@ export function CardDetails({
                       })}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-16 grow flex flex-col items-center justify-center">
-            <ShieldIcon size={48} className="mb-4" />
-            <div className="text-lg">No data available for this client</div>
-            <div className="text-sm mt-2 text-muted-foreground">
-              Try checking the network connection or refreshing
+              </TabsContent>
+              <TabsContent value="history">
+                {Array.isArray(clientHistory) && clientHistory.length > 0 ? (
+                  <div>
+                    {clientHistory.map((entry, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex justify-between px-3 py-2 hover:font-bold",
+                          index % 2 === 0
+                            ? "bg-secondary"
+                            : "bg-muted-foreground/10"
+                        )}
+                      >
+                        <span className="truncate">{entry.domain}</span>
+                        <span className="text-xs text-muted-foreground">
+                          <TimeAgo
+                            date={new Date(entry.timestamp)}
+                            minPeriod={60}
+                          />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    No history available.
+                  </p>
+                )}
+              </TabsContent>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-16 grow flex flex-col items-center justify-center">
+              <ShieldIcon size={48} className="mb-4" />
+              <div className="text-lg">No data available for this client</div>
+              <div className="text-sm mt-2 text-muted-foreground">
+                Try checking the network connection or refreshing
+              </div>
+            </div>
+          )}
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
