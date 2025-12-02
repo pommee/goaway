@@ -240,8 +240,7 @@ export function Settings() {
   return (
     <div className="container mx-auto space-y-4 xl:w-1/2">
       <p className="text-sm text-muted-foreground">
-        Settings marked with an asterisk (*) require a full restart to take
-        effect.
+        Settings marked with an asterisk (*) require a restart to take effect.
       </p>
 
       {SETTINGS_SECTIONS.map(({ title, description, icon, settings }) => (

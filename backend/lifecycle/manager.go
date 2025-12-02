@@ -1,6 +1,7 @@
 package lifecycle
 
 import (
+	"goaway/backend/api"
 	"goaway/backend/jobs"
 	"goaway/backend/logging"
 	"goaway/backend/services"
@@ -25,10 +26,12 @@ func NewManager(registry *services.ServiceRegistry) *Manager {
 	}
 }
 
-func (m *Manager) Run() error {
+func (m *Manager) Run(restartCallback api.RestartApplicationCallback) error {
 	if err := m.services.Initialize(); err != nil {
 		return err
 	}
+
+	m.services.APIServer.RestartCallback = restartCallback
 
 	m.backgroundJobs = jobs.NewBackgroundJobs(m.services)
 
@@ -45,6 +48,10 @@ func (m *Manager) Run() error {
 func (m *Manager) waitForTermination() error {
 	select {
 	case err := <-m.services.ErrorChannel():
+		if m.services.APIServer.IsShuttingDown {
+			log.Info("Ignoring error during controlled shutdown")
+			return m.waitForTermination()
+		}
 		log.Error("%s server failed: %s", err.Service, err.Err)
 		log.Fatal("Server failure detected. Exiting.")
 		return err.Err

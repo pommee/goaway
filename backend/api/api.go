@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"embed"
 	"encoding/base64"
@@ -39,6 +40,8 @@ const (
 	maxRetries = 10
 )
 
+type RestartApplicationCallback func()
+
 type API struct {
 	DNS             *server.DNSServer
 	RateLimiter     *ratelimit.RateLimiter
@@ -55,6 +58,8 @@ type API struct {
 	DNSPort         int
 	Authentication  bool
 
+	RestartCallback RestartApplicationCallback
+
 	RequestService      *request.Service
 	UserService         *user.Service
 	KeyService          *key.Service
@@ -63,6 +68,9 @@ type API struct {
 	NotificationService *notification.Service
 	BlacklistService    *blacklist.Service
 	WhitelistService    *whitelist.Service
+
+	server         *http.Server
+	IsShuttingDown bool
 }
 
 func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
@@ -80,6 +88,46 @@ func (api *API) Start(content embed.FS, errorChannel chan struct{}) {
 	}
 
 	api.startServer(errorChannel)
+}
+
+func (api *API) Stop() error {
+	if api.server == nil {
+		return fmt.Errorf("server is not running")
+	}
+
+	log.Info("Shutting down API server...")
+
+	// Mark as shutting down to prevent error handling
+	api.IsShuttingDown = true
+	// Store server reference before shutdown
+	server := api.server
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if api.WSCommunication != nil {
+		if err := api.WSCommunication.Close(); err != nil {
+			log.Error("Error closing WSCommunication: %v", err)
+		}
+	}
+
+	if api.WSQueries != nil {
+		if err := api.WSQueries.Close(); err != nil {
+			log.Error("Error closing WSQueries: %v", err)
+		}
+	}
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error("Error during server shutdown: %v", err)
+		api.IsShuttingDown = false
+		return err
+	}
+
+	// Clear the server reference after successful shutdown
+	api.server = nil
+
+	log.Warning("Stopped API server")
+	return nil
 }
 
 func (api *API) initializeRouter() {
@@ -188,15 +236,23 @@ func (api *API) startServer(errorChannel chan struct{}) {
 		return
 	}
 
+	// Store the server instance for graceful shutdown
+	api.server = &http.Server{
+		Handler: api.router,
+	}
+
 	if serverIP, err := GetServerIP(); err == nil {
 		log.Info("Web interface available at http://%s:%d", serverIP, api.Config.API.Port)
 	} else {
 		log.Info("Web server started on port :%d", api.Config.API.Port)
 	}
 
-	if err := api.router.RunListener(listener); err != nil {
+	if err := api.server.Serve(listener); err != nil && err != http.ErrServerClosed {
 		log.Error("Server error: %v", err)
-		errorChannel <- struct{}{}
+		// Only send error if not shutting down gracefully
+		if !api.IsShuttingDown {
+			errorChannel <- struct{}{}
+		}
 	}
 }
 

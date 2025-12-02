@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -25,12 +26,14 @@ import {
 } from "@/components/ui/sidebar";
 import { DeleteRequest, GetRequest, PostRequest } from "@/util";
 import {
+  ArrowsClockwiseIcon,
   ClockIcon,
   CloudArrowUpIcon,
   DotsThreeOutlineIcon,
   InfoIcon,
   PauseIcon,
-  PlayCircleIcon
+  PlayCircleIcon,
+  WarningIcon
 } from "@phosphor-icons/react";
 import { compare } from "compare-versions";
 import { JSX, useEffect, useState } from "react";
@@ -50,6 +53,12 @@ const data = [
       label: "Check for update",
       icon: CloudArrowUpIcon,
       dialog: CheckForUpdate,
+      color: "text-yellow-600"
+    },
+    {
+      label: "Restart",
+      icon: ArrowsClockwiseIcon,
+      dialog: Restart,
       color: "text-yellow-600"
     }
   ],
@@ -141,6 +150,47 @@ function CheckForUpdate() {
 
     lookForUpdate();
   });
+}
+
+function Restart({ onClose }: { onClose: () => void }) {
+  async function SendRestartRequest() {
+    const [code, response] = await GetRequest("restart");
+
+    if (code === 201) {
+      toast.info("Restarting", {
+        description: "Currently restarting, you might need to refresh the page"
+      });
+
+      onClose();
+      return;
+    }
+
+    toast.warning(response.error);
+  }
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <WarningIcon className="h-5 w-5 text-red-500" />
+          Restart Application
+        </DialogTitle>
+        <DialogDescription>
+          This will restart the entire application. Any unsaved changes may be
+          lost.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="flex gap-3 justify-end mt-4">
+        <DialogClose asChild>
+          <Button variant="outline">Cancel</Button>
+        </DialogClose>
+        <Button variant="destructive" onClick={SendRestartRequest}>
+          Restart
+        </Button>
+      </div>
+    </DialogContent>
+  );
 }
 
 export default function PauseBlockingDialog({

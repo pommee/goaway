@@ -21,9 +21,13 @@ import (
 func (api *API) registerServerRoutes() {
 	api.setupWSLiveCommunication(api.DNS)
 
+	// Unauthenticated routes
 	api.router.GET("/api/server", api.handleServer)
 	api.router.GET("/api/dnsMetrics", api.handleMetrics)
+
+	// Authenticated routes
 	api.routes.GET("/runUpdate", api.runUpdate)
+	api.routes.GET("/restart", api.restart)
 }
 
 func (api *API) handleServer(c *gin.Context) {
@@ -163,6 +167,21 @@ func (api *API) runUpdate(c *gin.Context) {
 		sendSSE("[info] Update successful!")
 		c.Status(http.StatusOK)
 	}
+}
+
+func (api *API) restart(c *gin.Context) {
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Server restart initiated",
+	})
+
+	if f, ok := c.Writer.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		api.RestartCallback()
+	}()
 }
 
 func (api *API) setupWSLiveCommunication(dnsServer *server.DNSServer) {

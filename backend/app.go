@@ -20,6 +20,9 @@ import (
 	"goaway/backend/setup"
 	"goaway/backend/user"
 	"goaway/backend/whitelist"
+	"net/http"
+	"sync"
+	"time"
 )
 
 var log = logging.GetLogger()
@@ -44,6 +47,92 @@ func New(setFlags *setup.SetFlags, version, commit, date string, content embed.F
 		commit:  commit,
 		date:    date,
 		content: content,
+	}
+}
+
+func (a *Application) RestartApplication() {
+	log.Warning("Restarting application...")
+
+	a.services.APIServer.IsShuttingDown = true
+
+	var wg sync.WaitGroup
+	shutdownErrors := make([]error, 0)
+	var mu sync.Mutex
+
+	wg.Go(func() {
+		if err := a.services.APIServer.Stop(); err != nil {
+			mu.Lock()
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("API server: %w", err))
+			mu.Unlock()
+		}
+	})
+	wg.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		if err := a.services.UDPServer.Shutdown(); err != nil {
+			mu.Lock()
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("UDP server: %w", err))
+			mu.Unlock()
+		}
+		log.Warning("Stopped UDP server")
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := a.services.TCPServer.Shutdown(); err != nil {
+			mu.Lock()
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("TCP server: %w", err))
+			mu.Unlock()
+		}
+		log.Warning("Stopped TCP server")
+	}()
+
+	go func() {
+		defer wg.Done()
+		if a.services.DoHServer != nil {
+			if err := a.services.DoHServer.Shutdown(ctx); err != nil && err != http.ErrServerClosed {
+				mu.Lock()
+				shutdownErrors = append(shutdownErrors, fmt.Errorf("DoH server: %w", err))
+				mu.Unlock()
+			}
+			log.Warning("Stopped DNS-over-HTTPS server")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if a.services.DoTServer != nil {
+			if err := a.services.DoTServer.Shutdown(); err != nil {
+				mu.Lock()
+				shutdownErrors = append(shutdownErrors, fmt.Errorf("DoT server: %w", err))
+				mu.Unlock()
+			}
+			log.Warning("Stopped DNS-over-TLS server")
+		}
+	}()
+
+	wg.Wait()
+
+	if len(shutdownErrors) > 0 {
+		log.Warning("Shutdown completed with errors:")
+		for _, err := range shutdownErrors {
+			log.Error("  - %v", err)
+		}
+	} else {
+		log.Info("All servers stopped successfully")
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	a.services.APIServer.IsShuttingDown = false
+
+	err := a.Start()
+	if err != nil {
+		log.Fatal("Unable to restart, manual intervention required. Reason: %v", err)
 	}
 }
 
@@ -91,7 +180,7 @@ func (a *Application) Start() error {
 	a.services.WhitelistService = whitelistService
 	a.lifecycle = lifecycle.NewManager(a.services)
 
-	runServices := a.lifecycle.Run()
+	runServices := a.lifecycle.Run(a.RestartApplication)
 	return runServices
 }
 

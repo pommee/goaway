@@ -25,17 +25,20 @@ var log = logging.GetLogger()
 type ServiceRegistry struct {
 	APIServer *api.API
 	errorChan chan ServiceError
-	dotServer *dns.Server
 	readyChan chan struct{}
 	content   embed.FS
-	udpServer *dns.Server
-	dohServer *http.Server
-	tcpServer *dns.Server
-	Context   *AppContext
-	version   string
-	date      string
-	commit    string
-	wg        sync.WaitGroup
+
+	UDPServer *dns.Server
+	TCPServer *dns.Server
+	DoTServer *dns.Server
+	DoHServer *http.Server
+
+	Context *AppContext
+
+	version string
+	date    string
+	commit  string
+	wg      sync.WaitGroup
 
 	ResolutionService   *resolution.Service
 	RequestService      *request.Service
@@ -86,7 +89,7 @@ func (r *ServiceRegistry) setupDNSServers() {
 		close(r.readyChan)
 	}
 
-	r.udpServer = &dns.Server{
+	r.UDPServer = &dns.Server{
 		Addr:      fmt.Sprintf("%s:%d", config.DNS.Address, config.DNS.Ports.TCPUDP),
 		Net:       "udp",
 		Handler:   r.Context.DNSServer,
@@ -94,7 +97,7 @@ func (r *ServiceRegistry) setupDNSServers() {
 		UDPSize:   config.DNS.UDPSize,
 	}
 
-	r.tcpServer = &dns.Server{
+	r.TCPServer = &dns.Server{
 		Addr:              fmt.Sprintf("%s:%d", config.DNS.Address, config.DNS.Ports.TCPUDP),
 		Net:               "tcp",
 		Handler:           r.Context.DNSServer,
@@ -109,13 +112,13 @@ func (r *ServiceRegistry) setupSecureServers() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize DoT server: %w", err)
 	}
-	r.dotServer = dotServer
+	r.DoTServer = dotServer
 
 	dohServer, err := r.Context.DNSServer.InitDoH(r.Context.Certificate)
 	if err != nil {
 		return fmt.Errorf("failed to initialize DoH server: %w", err)
 	}
-	r.dohServer = dohServer
+	r.DoHServer = dohServer
 
 	return nil
 }
@@ -159,7 +162,7 @@ func (r *ServiceRegistry) startDNSServers() {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		if err := r.udpServer.ListenAndServe(); err != nil {
+		if err := r.UDPServer.ListenAndServe(); err != nil {
 			r.errorChan <- ServiceError{Service: "UDP", Err: err}
 		}
 	}()
@@ -167,7 +170,7 @@ func (r *ServiceRegistry) startDNSServers() {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		if err := r.tcpServer.ListenAndServe(); err != nil {
+		if err := r.TCPServer.ListenAndServe(); err != nil {
 			r.errorChan <- ServiceError{Service: "TCP", Err: err}
 		}
 	}()
@@ -177,7 +180,7 @@ func (r *ServiceRegistry) startSecureServers() {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		if err := r.dotServer.ListenAndServe(); err != nil {
+		if err := r.DoTServer.ListenAndServe(); err != nil {
 			r.errorChan <- ServiceError{Service: "DoT", Err: err}
 		}
 	}()
@@ -193,7 +196,7 @@ func (r *ServiceRegistry) startSecureServers() {
 			log.Info("DoH (dns-over-https) server running on port :%d", r.Context.Config.DNS.Ports.DoH)
 		}
 
-		if err := r.dohServer.ListenAndServeTLS(
+		if err := r.DoHServer.ListenAndServeTLS(
 			r.Context.Config.DNS.TLS.Cert,
 			r.Context.Config.DNS.TLS.Key,
 		); err != nil {
