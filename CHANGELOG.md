@@ -1,3 +1,17 @@
+## [0.62.21](https://github.com/pommee/goaway/compare/v0.62.20...v0.62.21) (2025-12-08)
+
+### Bug Fixes
+
+* add better toast for 'pause blocking' button in case of error ([16827a8](https://github.com/pommee/goaway/commit/16827a8b0762156da10b94861e0e1a43902aaaa2))
+* remove 'white flash' for dark mode users ([aeb1894](https://github.com/pommee/goaway/commit/aeb18948c85981a44b47ede311ff1da0d17999a4))
+* switched to only coloring log level instead of entire lines ([817dc24](https://github.com/pommee/goaway/commit/817dc245a4637cdfae0668f7111e1e02a1a56232))
+
+### UI/UX
+
+* add history tab to client card ([6565ec2](https://github.com/pommee/goaway/commit/6565ec2eea73e1d7fc451528c00d33db3305598b))
+* added restart button in dashboard that will fully restart the entire application ([1d45174](https://github.com/pommee/goaway/commit/1d45174c8ce42c3b099f1e8129b0e4882deb0991))
+* cursor-pointer on toggle switch ([32103ae](https://github.com/pommee/goaway/commit/32103ae2cb4f5c0628bae46230f7db73f858be6f))
+
 ## [0.62.20](https://github.com/pommee/goaway/compare/v0.62.19...v0.62.20) (2025-11-30)
 
 ### Bug Fixes
