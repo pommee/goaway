@@ -34,7 +34,7 @@ func (s *Service) GetResponseSizeSummaryByInterval(intervalMinutes int) ([]model
 	return s.repository.GetResponseSizeSummaryByInterval(intervalMinutes)
 }
 
-func (s *Service) GetUniqueQueryTypes() ([]interface{}, error) {
+func (s *Service) GetUniqueQueryTypes() ([]models.QueryTypeCount, error) {
 	return s.repository.GetUniqueQueryTypes()
 }
 

@@ -18,7 +18,7 @@ type Repository interface {
 	GetDistinctRequestIP() int
 	GetRequestSummaryByInterval(interval int) ([]model.RequestLogIntervalSummary, error)
 	GetResponseSizeSummaryByInterval(intervalMinutes int) ([]model.ResponseSizeSummary, error)
-	GetUniqueQueryTypes() ([]interface{}, error)
+	GetUniqueQueryTypes() ([]models.QueryTypeCount, error)
 	FetchQueries(q models.QueryParams) ([]model.RequestLogEntry, error)
 	GetUniqueClientNameAndIP() []database.RequestLog
 	FetchAllClients() (map[string]Client, error)
@@ -164,44 +164,18 @@ func (r *repository) GetResponseSizeSummaryByInterval(intervalMinutes int) ([]mo
 	return summaries, nil
 }
 
-func (r *repository) GetUniqueQueryTypes() ([]interface{}, error) {
-	query := `
-		SELECT COUNT(*) AS count, query_type
-		FROM request_logs
-		WHERE query_type <> ''
-		GROUP BY query_type
-		ORDER BY count DESC`
-
-	rows, err := r.db.Raw(query).Rows()
-	if err != nil {
+func (r *repository) GetUniqueQueryTypes() ([]models.QueryTypeCount, error) {
+	stats := make([]models.QueryTypeCount, 0, 5)
+	if err := r.db.Model(&database.RequestLog{}).
+		Select("query_type, COUNT(*) as count").
+		Where("query_type != ?", "").
+		Group("query_type").
+		Order("count DESC").
+		Find(&stats).Error; err != nil {
 		return nil, err
 	}
 
-	defer func(rows *sql.Rows) {
-		if err := rows.Close(); err != nil {
-			log.Error("Failed to close rows: %v", err)
-		}
-	}(rows)
-
-	var queries []any
-	for rows.Next() {
-		query := struct {
-			QueryType string `json:"queryType"`
-			Count     int    `json:"count"`
-		}{}
-
-		if err := rows.Scan(&query.Count, &query.QueryType); err != nil {
-			return nil, err
-		}
-
-		queries = append(queries, query)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return queries, nil
+	return stats, nil
 }
 
 func (r *repository) FetchQueries(q models.QueryParams) ([]model.RequestLogEntry, error) {

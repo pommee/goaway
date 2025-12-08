@@ -16,3 +16,8 @@ type DomainHistory struct {
 	Domain    string    `json:"domain"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type QueryTypeCount struct {
+	QueryType string `json:"queryType"`
+	Count     int    `json:"count"`
+}
