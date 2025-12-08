@@ -233,6 +233,7 @@ func (api *API) clearQueries(c *gin.Context) {
 
 	api.BlacklistService.Vacuum(context.Background())
 
+	log.Info("All logs were cleared")
 	api.DNSServer.AuditService.CreateAudit(&audit.Entry{
 		Topic:   audit.TopicLogs,
 		Message: "Logs were cleared",
