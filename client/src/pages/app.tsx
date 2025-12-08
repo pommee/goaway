@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AnimatePresence } from "motion/react";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -16,6 +15,7 @@ import { Whitelist } from "./whitelist";
 import { GenerateQuote } from "@/quotes";
 import Login from "./login";
 import { FileXIcon } from "@phosphor-icons/react";
+import { ThemeProvider } from "@/app/theme/theme-provider";
 
 function NotFound() {
   return (

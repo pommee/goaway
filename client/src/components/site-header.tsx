@@ -3,7 +3,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "react-router-dom";
 import { NavActions } from "./nav-actions";
 import Notifications from "./notifications";
-import { ModeToggle } from "./theme-toggle";
+import { ModeToggle } from "@/app/theme/toggle-theme";
 
 interface PageInfo {
   title: string;

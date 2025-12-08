@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   ThemeProviderContext,
   ThemeProviderState,
-  Theme
+  Theme,
+  themes
 } from "./theme-context";
 
 type ThemeProviderProps = {
@@ -24,18 +25,20 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
 
-    root.classList.remove("light", "dark");
+    for (const theme of themes) {
+      root.classList.remove(`theme-${theme}`);
+    }
 
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
         : "light";
-      root.classList.add(systemTheme);
+      root.classList.add(`theme-${systemTheme}`);
       return;
     }
 
-    root.classList.add(theme);
+    root.classList.add(`theme-${theme}`);
   }, [theme]);
 
   const value: ThemeProviderState = {
