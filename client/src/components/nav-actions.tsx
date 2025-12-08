@@ -316,9 +316,9 @@ export default function PauseBlockingDialog({
             <Input
               id="pause-time"
               type="number"
-              min="1"
+              min={1}
               value={pauseTime}
-              onChange={(e) => setPauseTime(e.target.value)}
+              onChange={(e) => setPauseTime(e.target.valueAsNumber)}
               className="w-full"
             />
           </div>
