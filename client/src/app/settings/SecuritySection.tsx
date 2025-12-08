@@ -8,7 +8,7 @@ export const SecuritySection = ({
   onPasswordClick: () => void;
   onApiKeyClick: () => void;
 }) => (
-  <>
+  <div className="space-y-2">
     <SettingRow
       title="Change password"
       description="Update dashboard login password."
@@ -27,5 +27,5 @@ export const SecuritySection = ({
         </Button>
       }
     />
-  </>
+  </div>
 );

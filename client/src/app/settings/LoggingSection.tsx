@@ -26,7 +26,7 @@ export function LoggingSection({
   console.log(logLevel);
 
   return (
-    <>
+    <div className="space-y-2">
       <SettingRow
         title="Log Level"
         description="Controls the verbosity of system logs."
@@ -82,6 +82,6 @@ export function LoggingSection({
           />
         }
       />
-    </>
+    </div>
   );
 }

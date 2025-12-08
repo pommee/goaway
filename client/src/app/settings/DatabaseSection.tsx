@@ -97,7 +97,7 @@ export const DatabaseSection = ({
   };
 
   return (
-    <>
+    <div className="space-y-2">
       <SettingRow
         title="Export database"
         description="Download current database file"
@@ -149,6 +149,6 @@ export const DatabaseSection = ({
           </>
         }
       />
-    </>
+    </div>
   );
 };

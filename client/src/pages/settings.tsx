@@ -4,18 +4,26 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { GetRequest, PostRequest } from "@/util";
-import { Card, CardTitle } from "@/components/ui/card";
-import { APIKeyDialog } from "@/components/APIKeyDialog";
-import { AlertDialog } from "@/components/Alert";
 import { Root } from "@/app/settings/types";
-import { SETTINGS_SECTIONS } from "@/app/settings/SettingsSection";
-import { DatabaseSection } from "@/app/settings/DatabaseSection";
-import { AlertsSection } from "@/app/settings/AlertSection";
-import { DynamicSettingsSection } from "@/app/settings/DynamicSettingsSection";
 import { SecuritySection } from "@/app/settings/SecuritySection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  CertificateIcon,
+  CircuitryIcon,
+  DatabaseIcon,
+  KeyIcon,
+  LockIcon,
+  NotificationIcon,
+  ShuffleIcon,
+  TextAlignCenterIcon
+} from "@phosphor-icons/react";
+import { DatabaseSection } from "@/app/settings/DatabaseSection";
+import { LoggingSection } from "@/app/settings/LoggingSection";
+import { AlertsSection } from "@/app/settings/AlertSection";
 import { PasswordModal } from "@/app/settings/PasswordModal";
 import { ImportModal } from "@/app/settings/ImportModal";
-import { LoggingSection } from "@/app/settings/LoggingSection";
+import { APIKeyDialog } from "@/components/APIKeyDialog";
+import { AlertDialog } from "@/components/Alert";
 
 export function Settings() {
   const [preferences, setPreferences] = useState<Root>({
@@ -238,27 +246,69 @@ export function Settings() {
   }
 
   return (
-    <div className="container mx-auto space-y-4 xl:w-1/2">
-      <p className="text-sm text-muted-foreground">
-        Settings marked with an asterisk (*) require a restart to take effect.
-      </p>
-
-      {SETTINGS_SECTIONS.map(({ title, description, icon, settings }) => (
-        <Card key={title} className="p-4 gap-2">
-          <CardTitle className="border-b pb-1">
-            <div className="flex">
-              <div className="mt-1 p-1 mr-2 rounded-lg bg-primary/10 text-primary">
-                {icon}
-              </div>
-              <h2 className="text-xl font-semibold">{title}</h2>
-            </div>
-            <p className="mt-1 text-sm font-normal text-muted-foreground">
-              {description}
-            </p>
-          </CardTitle>
-
-          <div className="space-y-4">
-            {title === "Security" && (
+    <div>
+      <Tabs defaultValue="security">
+        <TabsList className="bg-transparent space-x-2">
+          <TabsTrigger
+            value="security"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <LockIcon />
+            Security
+          </TabsTrigger>
+          <TabsTrigger
+            value="api"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <KeyIcon />
+            API
+          </TabsTrigger>
+          <TabsTrigger
+            value="logging"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <TextAlignCenterIcon />
+            Logging
+          </TabsTrigger>
+          <TabsTrigger
+            value="alerts"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <NotificationIcon />
+            Alerts
+          </TabsTrigger>
+          <TabsTrigger
+            value="dns"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <CircuitryIcon />
+            DNS
+          </TabsTrigger>
+          <TabsTrigger
+            value="certificate"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <CertificateIcon />
+            Certificate
+          </TabsTrigger>
+          <TabsTrigger
+            value="database"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <DatabaseIcon />
+            Database
+          </TabsTrigger>
+          <TabsTrigger
+            value="miscellaneous"
+            className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
+          >
+            <ShuffleIcon />
+            Miscellaneous
+          </TabsTrigger>
+        </TabsList>
+        <div className="flex flex-col items-center">
+          <TabsContent value="security" className="w-1/2">
+            <div className="w-full">
               <SecuritySection
                 onPasswordClick={() =>
                   setModals((prev) => ({ ...prev, password: true }))
@@ -267,19 +317,11 @@ export function Settings() {
                   setModals((prev) => ({ ...prev, apiKey: true }))
                 }
               />
-            )}
-
-            {title === "Database" && (
-              <DatabaseSection
-                loading={loading}
-                setLoading={setLoading}
-                fileInput={fileInput}
-                setFile={setFile}
-                setModals={setModals}
-              />
-            )}
-
-            {title === "Logging" && (
+            </div>
+          </TabsContent>
+          <TabsContent value="api"></TabsContent>
+          <TabsContent value="logging" className="w-1/2">
+            <div className="w-full">
               <LoggingSection
                 loggingEnabled={preferences.logging.enabled}
                 logLevel={preferences.logging.level}
@@ -300,26 +342,31 @@ export function Settings() {
                   handleSettingChange("statisticsRetention", Number(days))
                 }
               />
-            )}
-
-            {title === "Alerts" && (
-              <AlertsSection
-                onConfigureClick={() =>
-                  setModals((prev) => ({ ...prev, notifications: true }))
-                }
+            </div>
+          </TabsContent>
+          <TabsContent value="alerts">
+            <AlertsSection
+              onConfigureClick={() =>
+                setModals((prev) => ({ ...prev, notifications: true }))
+              }
+            />
+          </TabsContent>
+          <TabsContent value="dns"></TabsContent>
+          <TabsContent value="certificate"></TabsContent>
+          <TabsContent value="database" className="w-1/2">
+            <div className="w-full">
+              <DatabaseSection
+                loading={loading}
+                setLoading={setLoading}
+                fileInput={fileInput}
+                setFile={setFile}
+                setModals={setModals}
               />
-            )}
-
-            {settings.length > 0 && (
-              <DynamicSettingsSection
-                settings={settings}
-                getSettingValue={getSettingValue}
-                handleSettingChange={handleSettingChange}
-              />
-            )}
-          </div>
-        </Card>
-      ))}
+            </div>
+          </TabsContent>
+          <TabsContent value="miscellaneous"></TabsContent>
+        </div>
+      </Tabs>
 
       <PasswordModal
         open={modals.password}
@@ -353,7 +400,6 @@ export function Settings() {
         error={error}
         setError={setError}
       />
-
       <ImportModal
         open={modals.importConfirm}
         onClose={() => setModals((prev) => ({ ...prev, importConfirm: false }))}
@@ -396,14 +442,12 @@ export function Settings() {
         }}
         filename={file?.name}
       />
-
       <APIKeyDialog
         open={modals.apiKey}
         onOpenChange={(open) =>
           setModals((prev) => ({ ...prev, apiKey: open }))
         }
       />
-
       <AlertDialog
         open={modals.notifications}
         onOpenChange={(open) =>
