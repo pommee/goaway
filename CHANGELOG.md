@@ -1,3 +1,13 @@
+## [0.62.22](https://github.com/pommee/goaway/compare/v0.62.21...v0.62.22) (2025-12-08)
+
+### Performance Improvements
+
+* better performance when fetching unique query types ([9042f1d](https://github.com/pommee/goaway/commit/9042f1d38847e828dd8a8b14ba78fadb8d8f06af))
+
+### UI/UX
+
+* added themes ([64aa4ad](https://github.com/pommee/goaway/commit/64aa4ad569e86dce42c49243aeef05b7279c356e))
+
 ## [0.62.21](https://github.com/pommee/goaway/compare/v0.62.20...v0.62.21) (2025-12-08)
 
 ### Bug Fixes
