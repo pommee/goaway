@@ -1,3 +1,9 @@
+## [0.62.23](https://github.com/pommee/goaway/compare/v0.62.22...v0.62.23) (2025-12-08)
+
+### Bug Fixes
+
+* parse blocking time as number ([31706de](https://github.com/pommee/goaway/commit/31706de300c44c7af00aeadbafaa34cb10c9cab5))
+
 ## [0.62.22](https://github.com/pommee/goaway/compare/v0.62.21...v0.62.22) (2025-12-08)
 
 ### Performance Improvements
