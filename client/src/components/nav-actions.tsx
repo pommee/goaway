@@ -242,7 +242,7 @@ export default function PauseBlockingDialog({
   const handlePause = async () => {
     setIsLoading(true);
     try {
-      const [status] = await PostRequest("pause", {
+      const [status, response] = await PostRequest("pause", {
         time: pauseTime
       });
 
@@ -256,12 +256,14 @@ export default function PauseBlockingDialog({
           }
         }
       } else {
-        console.error("Failed to pause blocking");
-        toast.error("Failed to pause blocking");
+        toast.error("Failed to pause blocking", {
+          description: response.error
+        });
       }
     } catch (error) {
-      console.error("Error pausing blocking:", error);
-      toast.error("Error pausing blocking");
+      toast.error("Error pausing blocking", {
+        description: error instanceof Error ? error.message : String(error)
+      });
     } finally {
       setIsLoading(false);
     }
