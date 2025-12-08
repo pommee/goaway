@@ -77,7 +77,7 @@ func (l *Logger) SetAnsi(ansi bool) {
 func (l *Logger) log(level, color, message string, msgLevel LogLevel) {
 	if !l.JSON {
 		if l.Ansi {
-			l.logger.Printf("%s%s%s%s", color, level, message, colorReset)
+			l.logger.Printf("%s%s%s%s%s", color, level, colorReset, message, colorReset)
 		} else {
 			l.logger.Printf("%s%s", level, message)
 		}
