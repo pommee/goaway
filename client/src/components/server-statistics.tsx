@@ -20,7 +20,6 @@ import {
   ThermometerIcon
 } from "@phosphor-icons/react";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import confetti from "canvas-confetti";
 import { compare } from "compare-versions";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -68,26 +67,6 @@ function shouldCheckForUpdate() {
   const lastCheckTime = parseInt(lastUpdateCheck, 10);
   const fiveMinutesInMs = 5 * 60 * 1000;
   return Date.now() - lastCheckTime > fiveMinutesInMs;
-}
-
-function celebrateUpdate() {
-  const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
-  confetti({
-    particleCount: 50,
-    angle: 60,
-    spread: 55,
-    startVelocity: 60,
-    origin: { x: 0, y: 0.8 },
-    colors: colors
-  });
-  confetti({
-    particleCount: 50,
-    angle: 120,
-    spread: 55,
-    startVelocity: 60,
-    origin: { x: 1, y: 0.8 },
-    colors: colors
-  });
 }
 
 function calculateProgress(logs: string[]): {
@@ -268,7 +247,6 @@ export function ServerStatistics() {
         toast.info("Updated!", { description: `Now running v${newVersion}` });
         localStorage.setItem("installedVersion", newVersion);
         eventSource.close();
-        celebrateUpdate();
       }
     };
 
@@ -427,24 +405,19 @@ docker pull pommee/goaway:version`;
               </div>
 
               <DialogFooter className="flex items-center justify-between sm:justify-end gap-6 pt-2">
-                <Button
-                  disabled={updateStarted}
-                  onClick={() => setShowUpdateModal(false)}
-                  className="bg-muted-foreground"
-                >
-                  Remind Me Later
-                </Button>
-                <Button
-                  onClick={
-                    updateStarted === false
-                      ? startUpdate
-                      : () => setShowUpdateModal(false)
-                  }
-                  className="bg-blue-500 hover:bg-blue-600 font-medium transition-colors flex items-center gap-2"
-                >
-                  <DownloadIcon className="h-4 w-4" />
-                  {updateStarted ? <p>Close</p> : <p>Start Update</p>}
-                </Button>
+                {updateStarted ? (
+                  <Button
+                    onClick={() => setShowUpdateModal(false)}
+                    variant={"outline"}
+                  >
+                    Close
+                  </Button>
+                ) : (
+                  <Button onClick={startUpdate} variant={"default"}>
+                    <DownloadIcon />
+                    Start Update
+                  </Button>
+                )}
               </DialogFooter>
             </>
           ) : (

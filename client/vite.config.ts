@@ -28,11 +28,7 @@ export default defineConfig({
             if (id.includes("react") || id.includes("react-dom"))
               return "react-vendor";
             if (id.includes("motion")) return "motion";
-            if (
-              id.includes("lucide-react") ||
-              id.includes("@phosphor-icons/react")
-            )
-              return "icons";
+            if (id.includes("@phosphor-icons/react")) return "icons";
             return "vendor";
           }
           if (id.includes("/src/pages/")) return "pages";

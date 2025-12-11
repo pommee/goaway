@@ -17,9 +17,9 @@ import {
   PaintBrushIcon,
   PaletteIcon,
   SnowflakeIcon,
-  WavesIcon
+  WavesIcon,
+  MountainsIcon
 } from "@phosphor-icons/react";
-import { MountainIcon } from "lucide-react";
 
 export const themes = [
   "system",
@@ -68,7 +68,7 @@ export const themesConfig: Record<
   nord: { label: "Nord", icon: SnowflakeIcon },
   vintage: { label: "Vintage", icon: BookOpenIcon },
   neon: { label: "Neon", icon: LightningIcon },
-  dusk: { label: "Dusk", icon: MountainIcon },
+  dusk: { label: "Dusk", icon: MountainsIcon },
   pastel: { label: "Pastel", icon: PaintBrushIcon }
 };
 
