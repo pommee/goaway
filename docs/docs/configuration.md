@@ -163,6 +163,15 @@ Controls whether login is required to access the dashboard.
 
 ---
 
+### JWT Secret
+
+`api.jwtSecret`
+
+Secret key used for signing JWT tokens.
+If empty, a random key will be generated automatically.
+
+**Default:** `""` (empty)
+
 ### Rate Limiting
 
 `api.ratelimit.enabled`
@@ -300,6 +309,7 @@ dns:
 api:
   port: 8080
   authentication: true
+  jwtSecret: ""
   rateLimit:
     enabled: true
     maxTries: 5
