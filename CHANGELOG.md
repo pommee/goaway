@@ -1,3 +1,9 @@
+## [0.62.24](https://github.com/pommee/goaway/compare/v0.62.23...v0.62.24) (2025-12-11)
+
+### Bug Fixes
+
+* prevent initialization if previously done for blacklist ([c8d6ee5](https://github.com/pommee/goaway/commit/c8d6ee513ba56dd8c0c3593b0f248735bd7ebf98))
+
 ## [0.62.23](https://github.com/pommee/goaway/compare/v0.62.22...v0.62.23) (2025-12-08)
 
 ### Bug Fixes
