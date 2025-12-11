@@ -94,7 +94,9 @@ func (s *Service) initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to count domains: %w", err)
 	}
 
-	if count == 0 {
+	previouslyInitialized := s.repository.GetSourceExists(ctx, "Custom", "")
+
+	if count == 0 && !previouslyInitialized {
 		log.Info("No domains in blacklist. Running initialization...")
 		if err := s.initializeBlockedDomains(ctx); err != nil {
 			return fmt.Errorf("failed to initialize blocked domains: %w", err)

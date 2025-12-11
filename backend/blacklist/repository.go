@@ -16,6 +16,7 @@ type SourceRepository interface {
 	GetSources(ctx context.Context, excludeCustom bool) ([]database.Source, error)
 	GetSourceByName(ctx context.Context, name string) (*database.Source, error)
 	GetSourceByNameAndURL(ctx context.Context, name, url string) (*database.Source, error)
+	GetSourceExists(ctx context.Context, name, url string) bool
 	CreateOrUpdateSource(ctx context.Context, source *database.Source) error
 	UpdateSourceName(ctx context.Context, oldName, newName, url string) error
 	UpdateSourceLastUpdated(ctx context.Context, url string, timestamp time.Time) error
@@ -111,6 +112,19 @@ func (r *repository) GetSourceByNameAndURL(ctx context.Context, name, url string
 		return nil, fmt.Errorf("failed to get source: %w", err)
 	}
 	return &source, nil
+}
+
+func (r *repository) GetSourceExists(ctx context.Context, name, url string) bool {
+	var count int64
+	result := r.db.WithContext(ctx).Model(&database.Source{}).
+		Where("name = ? AND url = ?", name, url).
+		Count(&count)
+
+	if result.Error != nil || count == 0 {
+		return false
+	}
+
+	return count > 0
 }
 
 func (r *repository) CreateOrUpdateSource(ctx context.Context, source *database.Source) error {
