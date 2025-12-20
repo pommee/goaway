@@ -99,7 +99,18 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	client := s.getClientInfo(w.RemoteAddr().String())
+	var clientIP net.IP
+
+	switch addr := w.RemoteAddr().(type) {
+	case *net.UDPAddr:
+		clientIP = addr.IP
+	case *net.TCPAddr:
+		clientIP = addr.IP
+	default:
+		return
+	}
+
+	client := s.getClientInfo(clientIP)
 	protocol := s.detectProtocol(w)
 
 	go s.WSCom(communicationMessage{
@@ -125,6 +136,7 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		DNS:      true,
 		IP:       client.IP,
 	})
+
 	s.logEntryChannel <- entry
 }
 

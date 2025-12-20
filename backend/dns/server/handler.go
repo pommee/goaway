@@ -93,8 +93,8 @@ func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, boo
 	return "", false
 }
 
-func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
-	clientIP, _, _ := net.SplitHostPort(remoteAddr)
+func (s *DNSServer) getClientInfo(ip net.IP) *model.Client {
+	clientIP := ip.String()
 
 	if cachedClient, ok := s.clientCache.Load(clientIP); ok {
 		return cachedClient.(*model.Client)
@@ -112,12 +112,15 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 			if err == nil {
 				s.MACService.SaveMac(clientIP, macAddress, vendor)
 			} else {
-				log.Warning("Was not able to find vendor for addr '%s' with MAC '%s'. %v", remoteAddr, macAddress, err)
+				log.Warning(
+					"Was not able to find vendor for addr '%s' with MAC '%s'. %v",
+					clientIP, macAddress, err,
+				)
 			}
 		}
 	}
 
-	if clientIP == IPv4Loopback || clientIP == "::1" || clientIP == "[" {
+	if ip.IsLoopback() {
 		localIP, err := getLocalIP()
 		if err != nil {
 			log.Warning("Failed to get local IP: %v", err)
@@ -132,7 +135,12 @@ func (s *DNSServer) getClientInfo(remoteAddr string) *model.Client {
 		}
 	}
 
-	client := model.Client{IP: resultIP, Name: hostname, MAC: macAddress}
+	client := model.Client{
+		IP:   resultIP,
+		Name: hostname,
+		MAC:  macAddress,
+	}
+
 	s.clientCache.Store(clientIP, &client)
 
 	if client.Name != unknownHostname {
