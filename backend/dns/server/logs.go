@@ -18,7 +18,7 @@ func (s *DNSServer) ProcessLogEntries() {
 	for {
 		select {
 		case entry := <-s.logEntryChannel:
-			log.Debug("%+v", entry)
+			log.Debug("%s", entry.String())
 			if s.WSQueries != nil {
 				entryWSJson, _ := json.Marshal(entry)
 				_ = s.WSQueries.WriteMessage(websocket.TextMessage, entryWSJson)
