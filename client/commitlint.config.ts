@@ -20,7 +20,7 @@ const config: UserConfig = {
       "always",
       100
     ] as const,
-    "header-max-length": [RuleConfigSeverity.Error, "always", 100] as const,
+    "header-max-length": [RuleConfigSeverity.Error, "always", 120] as const,
     "header-trim": [RuleConfigSeverity.Error, "always"] as const,
     "subject-case": [
       RuleConfigSeverity.Error,
