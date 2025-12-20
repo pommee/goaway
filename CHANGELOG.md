@@ -1,3 +1,17 @@
+## [0.62.25](https://github.com/pommee/goaway/compare/v0.62.24...v0.62.25) (2025-12-20)
+
+### Bug Fixes
+
+* use net package instead of parsing raw strings for ip ([fb0b3bb](https://github.com/pommee/goaway/commit/fb0b3bb9a840bb69ad03a1781b542d97864b3996))
+
+### Documentation
+
+* add 'api.jwtSecret' to documentation ([b8eb1af](https://github.com/pommee/goaway/commit/b8eb1af46c1861a67100a2ac58ce7505af2ed753))
+
+### UI/UX
+
+* remove 'lucide-react' related and confetti library to minimize build. Also updated the rest of client dependencies ([918d4ba](https://github.com/pommee/goaway/commit/918d4ba8f02004b054b0e3623180a1bb97ec9d3d))
+
 ## [0.62.24](https://github.com/pommee/goaway/compare/v0.62.23...v0.62.24) (2025-12-11)
 
 ### Bug Fixes
