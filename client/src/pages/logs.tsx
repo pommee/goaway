@@ -344,7 +344,7 @@ export function Logs() {
             return (
               <div
                 onClick={() => showClientDetails(client)}
-                className="cursor-pointer hover:text-primary transition-colors"
+                className="cursor-pointer text-blue-300 hover:text-blue-500 transition-colors"
               >
                 {client.name} | {client.ip}
               </div>
