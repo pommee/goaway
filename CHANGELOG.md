@@ -1,3 +1,9 @@
+## [0.63.1](https://github.com/pommee/goaway/compare/v0.63.0...v0.63.1) (2025-12-22)
+
+### Bug Fixes
+
+* fix bypass bug and cleanup client name/ip caches ([b1f2d68](https://github.com/pommee/goaway/commit/b1f2d6836268ca5755c060d74e4df477bcfa36f1))
+
 ## [0.63.0](https://github.com/pommee/goaway/compare/v0.62.25...v0.63.0) (2025-12-22)
 
 ### Features
