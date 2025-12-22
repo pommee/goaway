@@ -6,7 +6,6 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
@@ -38,8 +37,9 @@ import {
 import { compare } from "compare-versions";
 import { JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Metrics } from "./server-statistics";
-import { Input } from "./ui/input";
+import { Metrics } from "../server-statistics";
+import { Input } from "../ui/input";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 const data = [
   [
@@ -290,28 +290,74 @@ export default function PauseBlockingDialog({
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <ClockIcon className="text-blue-400" />
+          <ClockIcon className="h-5 w-5 text-primary" />
           {pauseStatus?.paused ? "Blocking Paused" : "Pause Blocking"}
         </DialogTitle>
-        <DialogDescription className="text-sm text-gray-500">
+        <DialogDescription>
           {pauseStatus?.paused
-            ? `Blocking is currently paused. Remaining time: ${remainingTime} seconds.`
-            : "This will temporarily pause domain blocking, allowing all traffic to pass through."}
+            ? "Blocking is currently paused"
+            : "Temporarily allow all traffic through"}
         </DialogDescription>
       </DialogHeader>
 
-      {!pauseStatus?.paused ? (
-        <>
-          <div className="py-4">
-            <label
-              htmlFor="pause-time"
-              className="block text-sm font-medium mb-2"
+      {pauseStatus?.paused ? (
+        <div className="py-6 space-y-4">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="text-4xl font-bold tabular-nums">
+              {formatTime(remainingTime)}
+            </div>
+            <p className="text-sm text-muted-foreground">remaining</p>
+          </div>
+
+          <Button
+            onClick={handleRemovePause}
+            disabled={isLoading}
+            className="w-full bg-primary/80 hover:bg-primary"
+          >
+            <PlayCircleIcon size={18} className="mr-2" />
+            {isLoading ? "Resuming..." : "Resume Now"}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Quick Select</label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={String(pauseTime)}
             >
-              Duration (seconds)
+              <ToggleGroupItem value="10" onClick={() => setPauseTime(10)}>
+                10s
+              </ToggleGroupItem>
+              <ToggleGroupItem value="30" onClick={() => setPauseTime(30)}>
+                30s
+              </ToggleGroupItem>
+              <ToggleGroupItem value="60" onClick={() => setPauseTime(60)}>
+                1m
+              </ToggleGroupItem>
+              <ToggleGroupItem value="300" onClick={() => setPauseTime(300)}>
+                5m
+              </ToggleGroupItem>
+              <ToggleGroupItem value="600" onClick={() => setPauseTime(600)}>
+                10m
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="pause-time" className="text-sm font-medium">
+              Custom (seconds)
             </label>
             <Input
               id="pause-time"
@@ -319,38 +365,22 @@ export default function PauseBlockingDialog({
               min={1}
               value={pauseTime}
               onChange={(e) => setPauseTime(e.target.valueAsNumber)}
-              className="w-full"
             />
           </div>
 
-          <DialogFooter className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              className="border-gray-300"
-              onClick={onClose}
-            >
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button
               onClick={handlePause}
               disabled={isLoading}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="flex-1 bg-primary/80 hover:bg-primary"
             >
-              {isLoading ? "Pausing..." : "Pause Blocking"}
+              {isLoading ? "Pausing..." : "Pause"}
             </Button>
-          </DialogFooter>
-        </>
-      ) : (
-        <DialogFooter className="flex justify-center mt-4">
-          <Button
-            onClick={handleRemovePause}
-            disabled={isLoading}
-            className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
-          >
-            <PlayCircleIcon size={18} />
-            {isLoading ? "Resuming..." : "Resume Blocking Now"}
-          </Button>
-        </DialogFooter>
+          </div>
+        </div>
       )}
     </DialogContent>
   );

@@ -1,9 +1,10 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "react-router-dom";
-import { NavActions } from "./nav-actions";
-import Notifications from "./notifications";
-import { ModeToggle } from "@/app/theme/toggle-theme";
+import { NavActions } from "./header/nav-actions";
+import Notifications from "./header/notifications";
+import { ModeToggle } from "@/components/header/theme/toggle-theme";
+import BlockingTimer from "./header/BlockingTimer";
 
 interface PageInfo {
   title: string;
@@ -96,6 +97,7 @@ export function SiteHeader() {
       </div>
 
       <div className="flex items-center gap-2 px-4 lg:px-6">
+        <BlockingTimer />
         <ModeToggle />
         <Notifications />
         <NavActions />

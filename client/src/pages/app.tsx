@@ -15,7 +15,7 @@ import { Whitelist } from "./whitelist";
 import { GenerateQuote } from "@/quotes";
 import Login from "./login";
 import { FileXIcon } from "@phosphor-icons/react";
-import { ThemeProvider } from "@/app/theme/theme-provider";
+import { ThemeProvider } from "@/components/header/theme/theme-provider";
 
 function NotFound() {
   return (

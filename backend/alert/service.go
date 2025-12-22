@@ -141,6 +141,7 @@ func (s *Service) SendTest(ctx context.Context, alertType, name, webhook string)
 			})
 			if err != nil {
 				log.Error("Failed to send test alert via %s: %v", service.GetServiceName(), err)
+				return err
 			}
 			break
 		}
