@@ -1,3 +1,14 @@
+## [0.63.0](https://github.com/pommee/goaway/compare/v0.62.25...v0.63.0) (2025-12-22)
+
+### Features
+
+* added ability to set 'bypass' for each client to bypass any rules ([1471ff1](https://github.com/pommee/goaway/commit/1471ff1d237ea49608dc399b0527fef6e1caf6d7))
+
+### UI/UX
+
+* added indicator to show blocking status along with a modal rework ([2d23669](https://github.com/pommee/goaway/commit/2d23669dd96606792413c1e50c29dfe986e66830))
+* make it clear that 'client' is clickable in the logs view ([dc633be](https://github.com/pommee/goaway/commit/dc633becf4cd5d9be75087f0a6ead6eca2913990))
+
 ## [0.62.25](https://github.com/pommee/goaway/compare/v0.62.24...v0.62.25) (2025-12-20)
 
 ### Bug Fixes
