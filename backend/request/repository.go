@@ -489,15 +489,15 @@ func (r *repository) CountQueries(search string) (int, error) {
 }
 
 func (r *repository) UpdateClientBypass(ip string, bypass bool) error {
-	result := r.db.Model(&database.MacAddress{}).
+	err := r.db.Model(&database.MacAddress{}).
 		Where("ip = ?", ip).
 		Updates(map[string]any{
 			"bypass":     bypass,
 			"updated_at": time.Now(),
-		})
+		}).Error
 
-	if result.Error != nil {
-		return fmt.Errorf("failed to update client bypass: %w", result.Error)
+	if err != nil {
+		return fmt.Errorf("failed to update client bypass: %w", err)
 	}
 
 	return nil

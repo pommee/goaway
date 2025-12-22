@@ -190,8 +190,8 @@ func (s *DNSServer) PopulateClientCaches() error {
 	}
 
 	for _, client := range clients {
-		s.clientHostnameCache.Store(client.Name, client)
-		s.clientIPCache.Store(client.IP, client)
+		s.clientHostnameCache.Store(client.Name, &client)
+		s.clientIPCache.Store(client.IP, &client)
 	}
 
 	log.Debug("Populated client caches with %d client(s)", len(clients))
