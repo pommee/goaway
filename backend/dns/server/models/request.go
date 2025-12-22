@@ -22,7 +22,7 @@ type RequestLogEntry struct {
 
 func (r *RequestLogEntry) String() string {
 	return fmt.Sprintf(
-		"Time: %d, Client: %s, Domain: %s, Status: %s, Type: %s, Protocol: %s, IPs: %+v, ID: %d, ResponseSize: %d, ResponseTime: %dns, Blocked: %t, Cached: %t",
+		"Time: %d, Client: %v, Domain: %s, Status: %s, Type: %s, Protocol: %s, IPs: %+v, ID: %d, ResponseSize: %d, ResponseTime: %dns, Blocked: %t, Cached: %t",
 		r.Timestamp.Unix(),
 		r.ClientInfo,
 		r.Domain,

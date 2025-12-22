@@ -1,6 +1,7 @@
 package api
 
 import (
+	model "goaway/backend/dns/server/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,9 +9,12 @@ import (
 
 func (api *API) registerClientRoutes() {
 	api.routes.GET("/clients", api.getClients)
-	api.routes.GET("/clientDetails", api.getClientDetails)
-	api.routes.GET("/clientHistory", api.getClientHistory)
 	api.routes.GET("/topClients", api.getTopClients)
+
+	api.routes.GET("/client/:ip/details", api.getClientDetails)
+	api.routes.GET("/client/:ip/history", api.getClientHistory)
+
+	api.routes.PUT("/client/:ip/bypass/:bypass", api.updateClientBypass)
 }
 
 func (api *API) getClients(c *gin.Context) {
@@ -20,51 +24,44 @@ func (api *API) getClients(c *gin.Context) {
 		return
 	}
 
-	clients := make([]map[string]interface{}, 0, len(uniqueClients))
-	for ip, entry := range uniqueClients {
-		clients = append(clients, map[string]interface{}{
-			"ip":       ip,
-			"name":     entry.Name,
-			"lastSeen": entry.LastSeen,
-			"mac":      entry.Mac,
-			"vendor":   entry.Vendor,
-		})
+	clients := make([]model.Client, 0, len(uniqueClients))
+	for _, entry := range uniqueClients {
+		clients = append(clients, entry)
 	}
 
 	c.JSON(http.StatusOK, clients)
 }
 
 func (api *API) getClientDetails(c *gin.Context) {
-	clientIP := c.DefaultQuery("clientIP", "")
+	ip := c.Param("ip")
 
-	clientRequestDetails, mostQueriedDomain, domainQueryCounts, err := api.RequestService.GetClientDetailsWithDomains(clientIP)
+	requestDetails, mostQueriedDomain, domainQueryCount, err := api.RequestService.GetClientDetailsWithDomains(ip)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	clientDetails, err := api.RequestService.FetchClient(ip)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, map[string]any{
-		"ip":                clientIP,
-		"totalRequests":     clientRequestDetails.TotalRequests,
-		"uniqueDomains":     clientRequestDetails.UniqueDomains,
-		"blockedRequests":   clientRequestDetails.BlockedRequests,
-		"cachedRequests":    clientRequestDetails.CachedRequests,
-		"avgResponseTimeMs": clientRequestDetails.AvgResponseTimeMs,
+		"totalRequests":     requestDetails.TotalRequests,
+		"uniqueDomains":     requestDetails.UniqueDomains,
+		"blockedRequests":   requestDetails.BlockedRequests,
+		"cachedRequests":    requestDetails.CachedRequests,
+		"avgResponseTimeMs": requestDetails.AvgResponseTimeMs,
 		"mostQueriedDomain": mostQueriedDomain,
-		"lastSeen":          clientRequestDetails.LastSeen,
-		"allDomains":        domainQueryCounts,
+		"allDomains":        domainQueryCount,
+		"clientInfo":        clientDetails,
 	})
 }
 
 func (api *API) getClientHistory(c *gin.Context) {
-	clientIP := c.Query("ip")
-
-	if clientIP == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No client ip was provided"})
-		return
-	}
-
-	history, err := api.RequestService.GetClientHistory(clientIP)
+	ip := c.Param("ip")
+	history, err := api.RequestService.GetClientHistory(ip)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -84,4 +81,29 @@ func (api *API) getTopClients(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, topClients)
+}
+
+func (api *API) updateClientBypass(c *gin.Context) {
+	ip := c.Param("ip")
+	bypass := c.Param("bypass")
+
+	if bypass != "true" && bypass != "false" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Bypass value must be true or false"})
+		return
+	}
+
+	err := api.RequestService.UpdateClientBypass(ip, bypass == "true")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Refresh DNS server client caches to reflect the updated bypass status
+	err = api.DNS.PopulateClientCaches()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh DNS server client caches"})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

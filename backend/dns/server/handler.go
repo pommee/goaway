@@ -46,7 +46,12 @@ func (s *DNSServer) checkAndUpdatePauseStatus() {
 	}
 }
 
-func (s *DNSServer) shouldBlockQuery(domainName, fullName string) bool {
+func (s *DNSServer) shouldBlockQuery(client *model.Client, domainName, fullName string) bool {
+	if client.Bypass {
+		log.Debug("Allowing client '%s' to bypass %s", client.IP, fullName)
+		return false
+	}
+
 	return !s.Config.DNS.Status.Paused &&
 		s.BlacklistService.IsBlacklisted(domainName) &&
 		!s.WhitelistService.IsWhitelisted(fullName)
@@ -65,7 +70,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 
 	s.checkAndUpdatePauseStatus()
 
-	if s.shouldBlockQuery(domainName, request.Question.Name) {
+	if s.shouldBlockQuery(request.Client, domainName, request.Question.Name) {
 		return s.handleBlacklisted(request)
 	}
 
@@ -84,7 +89,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, bool) {
 	trimmed := strings.TrimSuffix(requestedHostname, ".")
 
-	if value, ok := s.hostnameCache.Load(trimmed); ok {
+	if value, ok := s.clientHostnameCache.Load(trimmed); ok {
 		if ip, ok := value.(string); ok {
 			return ip, true
 		}
@@ -96,8 +101,11 @@ func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, boo
 func (s *DNSServer) getClientInfo(ip net.IP) *model.Client {
 	clientIP := ip.String()
 
-	if cachedClient, ok := s.clientCache.Load(clientIP); ok {
-		return cachedClient.(*model.Client)
+	if loaded, ok := s.clientIPCache.Load(clientIP); ok {
+		client, ok := loaded.(model.Client)
+		if ok {
+			return &client
+		}
 	}
 
 	macAddress := arp.GetMacAddress(clientIP)
@@ -136,15 +144,18 @@ func (s *DNSServer) getClientInfo(ip net.IP) *model.Client {
 	}
 
 	client := model.Client{
-		IP:   resultIP,
-		Name: hostname,
-		MAC:  macAddress,
+		IP:       resultIP,
+		LastSeen: time.Now(),
+		Name:     hostname,
+		Mac:      macAddress,
+		Vendor:   vendor,
+		Bypass:   false,
 	}
 
-	s.clientCache.Store(clientIP, &client)
+	s.clientIPCache.Store(clientIP, client)
 
 	if client.Name != unknownHostname {
-		s.hostnameCache.Store(client.Name, client.IP)
+		s.clientHostnameCache.Store(client.Name, client)
 	}
 
 	return &client

@@ -18,6 +18,15 @@ func NewService(repo Repository) *Service {
 	return &Service{repository: repo}
 }
 
+func (s *Service) SaveRequestLog(entries []model.RequestLogEntry) error {
+	if err := s.repository.SaveRequestLog(entries); err != nil {
+		return err
+	}
+
+	log.Debug("Saved %d new request log(s)", len(entries))
+	return nil
+}
+
 func (s *Service) GetClientNameFromIP(ip string) string {
 	return s.repository.GetClientName(ip)
 }
@@ -42,22 +51,12 @@ func (s *Service) FetchQueries(q models.QueryParams) ([]model.RequestLogEntry, e
 	return s.repository.FetchQueries(q)
 }
 
-func (s *Service) FetchAllClients() (map[string]Client, error) {
-	return s.repository.FetchAllClients()
+func (s *Service) FetchClient(ip string) (*model.Client, error) {
+	return s.repository.FetchClient(ip)
 }
 
-func (s *Service) GetUniqueClientNameAndIP() []ClientNameAndIP {
-	queryResult := s.repository.GetUniqueClientNameAndIP()
-	var uniqueClients []ClientNameAndIP
-
-	for _, client := range queryResult {
-		uniqueClients = append(uniqueClients, ClientNameAndIP{
-			Name: client.ClientName,
-			IP:   client.ClientIP,
-		})
-	}
-
-	return uniqueClients
+func (s *Service) FetchAllClients() (map[string]model.Client, error) {
+	return s.repository.FetchAllClients()
 }
 
 func (s *Service) GetClientDetailsWithDomains(clientIP string) (ClientRequestDetails, string, map[string]int, error) {
@@ -80,8 +79,13 @@ func (s *Service) CountQueries(search string) (int, error) {
 	return s.repository.CountQueries(search)
 }
 
-func (s *Service) SaveRequestLog(entries []model.RequestLogEntry) error {
-	return s.repository.SaveRequestLog(entries)
+func (s *Service) UpdateClientBypass(ip string, bypass bool) error {
+	if err := s.repository.UpdateClientBypass(ip, bypass); err != nil {
+		return err
+	}
+
+	log.Info("Bypass toggled to %t for %s", bypass, ip)
+	return nil
 }
 
 type vacuumFunc func(ctx context.Context)

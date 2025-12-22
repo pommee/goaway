@@ -28,7 +28,7 @@ func (b *BackgroundJobs) Start(readyChan <-chan struct{}) {
 }
 
 func (b *BackgroundJobs) startHostnameCachePopulation() {
-	if err := b.registry.Context.DNSServer.PopulateHostnameCache(); err != nil {
+	if err := b.registry.Context.DNSServer.PopulateClientCaches(); err != nil {
 		log.Warning("Unable to populate hostname cache: %s", err)
 	}
 }

@@ -12,9 +12,10 @@ import { toast } from "sonner";
 interface ClientEntry {
   ip: string;
   lastSeen: string;
-  mac: string;
   name: string;
+  mac: string;
   vendor: string;
+  bypass: boolean;
 }
 
 interface NetworkNode {

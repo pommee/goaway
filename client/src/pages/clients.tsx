@@ -8,9 +8,10 @@ import { toast } from "sonner";
 export type ClientEntry = {
   ip: string;
   lastSeen: string;
-  mac: string;
   name: string;
+  mac: string;
   vendor: string;
+  bypass: boolean;
   x?: number;
   y?: number;
 };

@@ -28,18 +28,42 @@ var (
 	log = logging.GetLogger()
 )
 
+// DNSServer encapsulates the DNS handling logic and the runtime state used by
+// the various DNS transports (UDP/TCP), secure transports (DoT) and HTTP-based frontends (DoH).
 type DNSServer struct {
-	DBConn              *gorm.DB
-	dnsClient           *dns.Client
-	Config              *settings.Config
-	logEntryChannel     chan model.RequestLogEntry
-	WSQueries           *websocket.Conn
-	WSCommunication     *websocket.Conn
-	hostnameCache       sync.Map
-	clientCache         sync.Map
-	DomainCache         sync.Map
+	// Database connection used by services for persistence
+	dbConn *gorm.DB
+
+	// Client used when querying upstream servers
+	dnsClient *dns.Client
+
+	// Application level settings, mostly used for DNS behaviour
+	Config *settings.Config
+
+	// Central channel where processed request log entries are pushed
+	logEntryChannel chan model.RequestLogEntry
+
+	// Websocket connection used to stream query logs to the web UI
+	WSQueries *websocket.Conn
+
+	// Websocket connection used to stream communication events to the UI
+	// Used to visualize client/upstream/DNS activity
+	WSCommunication *websocket.Conn
+
+	// Guards writes to WSCommunication.
 	WSCommunicationLock sync.Mutex
 
+	// Cache mapping hostnames to client metadata to avoid repeated lookups when resolving PTR/hostnames
+	clientHostnameCache sync.Map
+
+	// Cache mapping IP -> client info (name, mac) for quick lookup during request processing
+	clientIPCache sync.Map
+
+	// In-memory cache for resolved DNS records to speed up responses and reduce upstream queries
+	DomainCache sync.Map
+
+	// DNSServer delegates database-backed lookups and persistence to these services,
+	// rather than performing raw DB operations itself.
 	RequestService      *request.Service
 	AuditService        *audit.Service
 	UserService         *user.Service
@@ -85,7 +109,7 @@ func NewDNSServer(config *settings.Config, dbconn *gorm.DB, cert tls.Certificate
 
 	server := &DNSServer{
 		Config:          config,
-		DBConn:          dbconn,
+		dbConn:          dbconn,
 		logEntryChannel: make(chan model.RequestLogEntry, 1000),
 		dnsClient:       &client,
 		DomainCache:     sync.Map{},
@@ -157,13 +181,20 @@ func (s *DNSServer) detectProtocol(w dns.ResponseWriter) model.Protocol {
 	return model.UDP
 }
 
-func (s *DNSServer) PopulateHostnameCache() error {
-	uniqueClients := s.RequestService.GetUniqueClientNameAndIP()
-	for _, client := range uniqueClients {
-		_, _ = s.hostnameCache.LoadOrStore(client.IP, client.Name)
+func (s *DNSServer) PopulateClientCaches() error {
+	clients, err := s.RequestService.FetchAllClients()
+
+	if err != nil {
+		log.Warning("Could not populate client caches, reason: %v", err)
+		return err
 	}
 
-	log.Debug("Populated hostname cache with %d client(s)", len(uniqueClients))
+	for _, client := range clients {
+		s.clientHostnameCache.Store(client.Name, client)
+		s.clientIPCache.Store(client.IP, client)
+	}
+
+	log.Debug("Populated client caches with %d client(s)", len(clients))
 	return nil
 }
 

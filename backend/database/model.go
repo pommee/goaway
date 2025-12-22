@@ -65,6 +65,7 @@ type MacAddress struct {
 	MAC       string    `gorm:"primaryKey" json:"mac" validate:"required,mac"`
 	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
 	Vendor    string    `json:"vendor"`
+	Bypass    bool      `gorm:"default:false" json:"bypass"`
 	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
 	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
 }

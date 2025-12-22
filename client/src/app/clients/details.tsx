@@ -1,9 +1,10 @@
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ClientEntry } from "@/pages/clients";
-import { GetRequest } from "@/util";
+import { GetRequest, PutRequest } from "@/util";
 import {
   CaretDownIcon,
   ClockCounterClockwiseIcon,
@@ -18,6 +19,7 @@ import {
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago";
 import { toast } from "sonner";
+import { SettingRow } from "../settings/SettingsRow";
 
 type AllDomains = {
   [domain: string]: number;
@@ -28,11 +30,17 @@ type ClientEntryDetails = {
   avgResponseTimeMs: number;
   blockedRequests: number;
   cachedRequests: number;
-  ip: string;
-  lastSeen: string;
   mostQueriedDomain: string;
   totalRequests: number;
   uniqueDomains: number;
+  clientInfo: {
+    name: string;
+    ip: string;
+    mac: string;
+    vendor: string;
+    lastSeen: string;
+    bypass: boolean;
+  };
 };
 
 export function CardDetails({
@@ -50,7 +58,7 @@ export function CardDetails({
       setIsLoading(true);
       try {
         const [code, response] = await GetRequest(
-          `clientDetails?clientIP=${clientEntry.ip}`
+          `client/${clientEntry.ip}/details`
         );
         if (code !== 200) {
           toast.warning("Unable to fetch client details");
@@ -79,7 +87,7 @@ export function CardDetails({
     async function getClientHistory() {
       try {
         const [code, response] = await GetRequest(
-          `clientHistory?ip=${clientEntry.ip}`
+          `client/${clientEntry.ip}/history`
         );
         if (code !== 200) {
           toast.warning("Unable to fetch client history");
@@ -96,6 +104,41 @@ export function CardDetails({
 
     getClientHistory();
   }, [clientEntry.ip]);
+
+  async function updateClientBypass(enabled: boolean) {
+    try {
+      const [code, response] = await PutRequest(
+        `client/${clientEntry.ip}/bypass/${enabled}`,
+        null,
+        false
+      );
+
+      if (code !== 200) {
+        toast.error("Failed to update bypass setting", {
+          description: response.error
+        });
+        return;
+      }
+
+      setClientDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              clientInfo: {
+                ...prev.clientInfo,
+                bypass: enabled
+              }
+            }
+          : prev
+      );
+
+      toast.success(
+        enabled ? "Client bypass enabled" : "Client bypass disabled"
+      );
+    } catch {
+      toast.error("Error updating bypass setting");
+    }
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -242,16 +285,22 @@ export function CardDetails({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-                  <Button variant="outline" disabled={true}>
-                    [WIP] View Details
-                  </Button>
-                  <Button variant="outline" disabled={true}>
-                    [WIP] Block Device
-                  </Button>
-                  <Button variant="outline" disabled={true}>
-                    [WIP] Device Settings
-                  </Button>
+                <Separator className="mb-4" />
+
+                <div className="bg-muted-foreground/10 rounded-md p-2 shadow-sm">
+                  <SettingRow
+                    title="Bypass"
+                    description="Allow this client to bypass any blacklist rules."
+                    action={
+                      <Switch
+                        id="logging-enabled"
+                        checked={clientDetails.clientInfo.bypass}
+                        onCheckedChange={(checked) =>
+                          updateClientBypass(checked)
+                        }
+                      />
+                    }
+                  />{" "}
                 </div>
               </TabsContent>
               <TabsContent value="domains">

@@ -14,21 +14,23 @@ import (
 )
 
 type Repository interface {
+	SaveRequestLog(entries []model.RequestLogEntry) error
+
 	GetClientName(ip string) string
 	GetDistinctRequestIP() int
 	GetRequestSummaryByInterval(interval int) ([]model.RequestLogIntervalSummary, error)
 	GetResponseSizeSummaryByInterval(intervalMinutes int) ([]model.ResponseSizeSummary, error)
 	GetUniqueQueryTypes() ([]models.QueryTypeCount, error)
 	FetchQueries(q models.QueryParams) ([]model.RequestLogEntry, error)
-	GetUniqueClientNameAndIP() []database.RequestLog
-	FetchAllClients() (map[string]Client, error)
+	FetchClient(ip string) (*model.Client, error)
+	FetchAllClients() (map[string]model.Client, error)
 	GetClientDetailsWithDomains(clientIP string) (ClientRequestDetails, string, map[string]int, error)
 	GetClientHistory(clientIP string) ([]models.DomainHistory, error)
 	GetTopBlockedDomains(blockedRequests int) ([]map[string]interface{}, error)
 	GetTopClients() ([]map[string]interface{}, error)
 	CountQueries(search string) (int, error)
 
-	SaveRequestLog(entries []model.RequestLogEntry) error
+	UpdateClientBypass(ip string, bypass bool) error
 
 	DeleteRequestLogsTimebased(vacuum vacuumFunc, requestThreshold, maxRetries int, retryDelay time.Duration) error
 }
@@ -49,6 +51,38 @@ type repository struct {
 
 func NewRepository(db *gorm.DB) *repository {
 	return &repository{db: db}
+}
+
+func (r *repository) SaveRequestLog(entries []model.RequestLogEntry) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, entry := range entries {
+			rl := database.RequestLog{
+				Timestamp:         entry.Timestamp,
+				Domain:            entry.Domain,
+				Blocked:           entry.Blocked,
+				Cached:            entry.Cached,
+				ResponseTimeNs:    entry.ResponseTime.Nanoseconds(),
+				ClientIP:          entry.ClientInfo.IP,
+				ClientName:        entry.ClientInfo.Name,
+				Status:            entry.Status,
+				QueryType:         entry.QueryType,
+				ResponseSizeBytes: entry.ResponseSizeBytes,
+				Protocol:          string(entry.Protocol),
+			}
+
+			for _, resolvedIP := range entry.IP {
+				rl.IPs = append(rl.IPs, database.RequestLogIP{
+					IP:         resolvedIP.IP,
+					RecordType: resolvedIP.RType,
+				})
+			}
+
+			if err := tx.Create(&rl).Error; err != nil {
+				return fmt.Errorf("could not save request log: %w", err)
+			}
+		}
+		return nil
+	})
 }
 
 func (r *repository) GetClientName(ip string) string {
@@ -239,13 +273,53 @@ func (r *repository) FetchQueries(q models.QueryParams) ([]model.RequestLogEntry
 	return results, nil
 }
 
-func (r *repository) FetchAllClients() (map[string]Client, error) {
+func (r *repository) FetchClient(ip string) (*model.Client, error) {
+	var row struct {
+		ClientIP   string         `gorm:"column:client_ip"`
+		ClientName string         `gorm:"column:client_name"`
+		Timestamp  time.Time      `gorm:"column:timestamp"`
+		Mac        sql.NullString `gorm:"column:mac"`
+		Vendor     sql.NullString `gorm:"column:vendor"`
+		Bypass     sql.NullBool   `gorm:"column:bypass"`
+	}
+
+	subquery := r.db.Table("request_logs").
+		Select("MAX(timestamp)").
+		Where("client_ip = ?", ip)
+
+	if err := r.db.Table("request_logs r").
+		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
+		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
+		Where("r.client_ip = ?", ip).
+		Where("r.timestamp = (?)", subquery).
+		Scan(&row).Error; err != nil {
+		return nil, err
+	}
+
+	if row.ClientIP == "" {
+		return nil, fmt.Errorf("client with ip '%s' was not found", ip)
+	}
+
+	client := &model.Client{
+		IP:       row.ClientIP,
+		Name:     row.ClientName,
+		LastSeen: row.Timestamp,
+		Mac:      row.Mac.String,
+		Vendor:   row.Vendor.String,
+		Bypass:   row.Bypass.Bool,
+	}
+
+	return client, nil
+}
+
+func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 	var rows []struct {
 		ClientIP   string         `gorm:"column:client_ip"`
 		ClientName string         `gorm:"column:client_name"`
 		Timestamp  time.Time      `gorm:"column:timestamp"`
 		Mac        sql.NullString `gorm:"column:mac"`
 		Vendor     sql.NullString `gorm:"column:vendor"`
+		Bypass     sql.NullBool   `gorm:"column:bypass"`
 	}
 
 	subquery := r.db.Table("request_logs").
@@ -253,44 +327,26 @@ func (r *repository) FetchAllClients() (map[string]Client, error) {
 		Group("client_ip")
 
 	if err := r.db.Table("request_logs r").
-		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor").
+		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
 		Joins("INNER JOIN (?) latest ON r.client_ip = latest.client_ip AND r.timestamp = latest.max_timestamp", subquery).
 		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
 		Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
-	uniqueClients := make(map[string]Client, len(rows))
+	uniqueClients := make(map[string]model.Client, len(rows))
 	for _, row := range rows {
-		macStr := ""
-		vendorStr := ""
-		if row.Mac.Valid {
-			macStr = row.Mac.String
-		}
-		if row.Vendor.Valid {
-			vendorStr = row.Vendor.String
-		}
-
-		uniqueClients[row.ClientIP] = Client{
+		uniqueClients[row.ClientIP] = model.Client{
+			IP:       row.ClientIP,
 			Name:     row.ClientName,
 			LastSeen: row.Timestamp,
-			Mac:      macStr,
-			Vendor:   vendorStr,
+			Mac:      row.Mac.String,
+			Vendor:   row.Vendor.String,
+			Bypass:   row.Bypass.Bool,
 		}
 	}
 
 	return uniqueClients, nil
-}
-
-func (r *repository) GetUniqueClientNameAndIP() []database.RequestLog {
-	var results []database.RequestLog
-
-	r.db.Model(&database.RequestLog{}).
-		Select("DISTINCT client_ip, client_name").
-		Where("client_name IS NOT NULL AND client_name != ?", "unknown").
-		Find(&results)
-
-	return results
 }
 
 func (r *repository) GetClientDetailsWithDomains(clientIP string) (ClientRequestDetails, string, map[string]int, error) {
@@ -432,36 +488,19 @@ func (r *repository) CountQueries(search string) (int, error) {
 	return int(total), err
 }
 
-func (r *repository) SaveRequestLog(entries []model.RequestLogEntry) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		for _, entry := range entries {
-			rl := database.RequestLog{
-				Timestamp:         entry.Timestamp,
-				Domain:            entry.Domain,
-				Blocked:           entry.Blocked,
-				Cached:            entry.Cached,
-				ResponseTimeNs:    entry.ResponseTime.Nanoseconds(),
-				ClientIP:          entry.ClientInfo.IP,
-				ClientName:        entry.ClientInfo.Name,
-				Status:            entry.Status,
-				QueryType:         entry.QueryType,
-				ResponseSizeBytes: entry.ResponseSizeBytes,
-				Protocol:          string(entry.Protocol),
-			}
+func (r *repository) UpdateClientBypass(ip string, bypass bool) error {
+	result := r.db.Model(&database.MacAddress{}).
+		Where("ip = ?", ip).
+		Updates(map[string]any{
+			"bypass":     bypass,
+			"updated_at": time.Now(),
+		})
 
-			for _, resolvedIP := range entry.IP {
-				rl.IPs = append(rl.IPs, database.RequestLogIP{
-					IP:         resolvedIP.IP,
-					RecordType: resolvedIP.RType,
-				})
-			}
+	if result.Error != nil {
+		return fmt.Errorf("failed to update client bypass: %w", result.Error)
+	}
 
-			if err := tx.Create(&rl).Error; err != nil {
-				return fmt.Errorf("could not save request log: %w", err)
-			}
-		}
-		return nil
-	})
+	return nil
 }
 
 func (r *repository) DeleteRequestLogsTimebased(vacuum vacuumFunc, requestThreshold, maxRetries int, retryDelay time.Duration) error {
