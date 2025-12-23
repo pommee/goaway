@@ -10,22 +10,22 @@ type Source struct {
 	URL         string    `gorm:"unique;not null" json:"url" validate:"required,url"`
 	Active      bool      `gorm:"default:true" json:"active"`
 	LastUpdated time.Time `gorm:"not null" json:"lastUpdated"`
-	CreatedAt   time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type Blacklist struct {
 	Domain    string    `gorm:"primaryKey" json:"domain" validate:"required,fqdn"`
 	SourceID  uint      `gorm:"primaryKey;not null" json:"sourceID" validate:"required"`
 	Source    Source    `gorm:"foreignKey:SourceID;constraint:OnDelete:CASCADE" json:"source"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Whitelist struct {
 	Domain    string    `gorm:"primaryKey" json:"domain" validate:"required,fqdn"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type RequestLog struct {
@@ -42,7 +42,7 @@ type RequestLog struct {
 	Blocked           bool           `gorm:"not null;index:idx_timestamp_covering,priority:2;default:false" json:"blocked"`
 	Cached            bool           `gorm:"not null;index:idx_timestamp_covering,priority:3;default:false" json:"cached"`
 	IPs               []RequestLogIP `gorm:"foreignKey:RequestLogID;constraint:OnDelete:CASCADE" json:"ips"`
-	CreatedAt         time.Time      `gorm:"not null" json:"createdAt"`
+	CreatedAt         time.Time      `json:"createdAt"`
 }
 
 type RequestLogIP struct {
@@ -51,14 +51,14 @@ type RequestLogIP struct {
 	IP           string     `gorm:"type:varchar(45);not null" json:"ip" validate:"required,ip"`
 	RecordType   string     `gorm:"type:varchar(10);not null" json:"recordType" validate:"required"`
 	RequestLog   RequestLog `gorm:"foreignKey:RequestLogID;constraint:OnDelete:CASCADE" json:"requestLog"`
-	CreatedAt    time.Time  `gorm:"not null" json:"createdAt"`
+	CreatedAt    time.Time  `json:"createdAt"`
 }
 
 type Resolution struct {
 	Domain    string    `gorm:"primaryKey" json:"domain" validate:"required,fqdn"`
 	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type MacAddress struct {
@@ -66,22 +66,22 @@ type MacAddress struct {
 	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
 	Vendor    string    `json:"vendor"`
 	Bypass    bool      `gorm:"default:false" json:"bypass"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type User struct {
 	Username  string    `gorm:"primaryKey" json:"username" validate:"required,min=3,max=50"`
 	Password  string    `json:"password" validate:"required,min=8"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type APIKey struct {
 	Name      string    `gorm:"primaryKey" json:"name" validate:"required"`
 	Key       string    `gorm:"unique;not null" json:"key" validate:"required"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Notification struct {
@@ -90,23 +90,23 @@ type Notification struct {
 	Category  string    `gorm:"type:varchar(50);not null" json:"category" validate:"required"`
 	Text      string    `gorm:"type:text;not null" json:"text" validate:"required"`
 	Read      bool      `gorm:"default:false;index" json:"read"`
-	CreatedAt time.Time `gorm:"not null;index" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Prefetch struct {
 	Domain    string    `gorm:"primaryKey" json:"domain" validate:"required,fqdn"`
 	QueryType int       `gorm:"not null" json:"queryType" validate:"required,min=1"`
 	Refresh   int       `gorm:"not null" json:"refresh" validate:"required,min=1"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Audit struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Topic     string    `gorm:"type:varchar(100);not null;index" json:"topic" validate:"required"`
 	Message   string    `gorm:"type:text;not null" json:"message" validate:"required"`
-	CreatedAt time.Time `gorm:"not null;index" json:"createdAt"`
+	CreatedAt time.Time `gorm:"index" json:"createdAt"`
 }
 
 type Alert struct {
@@ -114,6 +114,6 @@ type Alert struct {
 	Name      string    `gorm:"not null" json:"name" validate:"required"`
 	Webhook   string    `json:"webhook" validate:"omitempty,url"`
 	Enabled   bool      `gorm:"default:false" json:"enabled"`
-	CreatedAt time.Time `gorm:"not null" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
