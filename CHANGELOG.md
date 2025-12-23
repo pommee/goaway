@@ -1,3 +1,9 @@
+## [0.63.2](https://github.com/pommee/goaway/compare/v0.63.1...v0.63.2) (2025-12-23)
+
+### Bug Fixes
+
+* let gorm handle createdat/updatedat fields ([8667a15](https://github.com/pommee/goaway/commit/8667a15db030dccdc3781e9a3feee1de89e16b2e))
+
 ## [0.63.1](https://github.com/pommee/goaway/compare/v0.63.0...v0.63.1) (2025-12-22)
 
 ### Bug Fixes
