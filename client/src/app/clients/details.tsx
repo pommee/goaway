@@ -6,20 +6,26 @@ import { cn } from "@/lib/utils";
 import { ClientEntry } from "@/pages/clients";
 import { GetRequest, PutRequest } from "@/util";
 import {
+  ArrowsClockwiseIcon,
   CaretDownIcon,
+  CheckIcon,
   ClockCounterClockwiseIcon,
   EyeglassesIcon,
   LightningIcon,
+  PencilIcon,
   PlusMinusIcon,
   RowsIcon,
   ShieldIcon,
   SparkleIcon,
-  TargetIcon
+  TargetIcon,
+  XIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago";
 import { toast } from "sonner";
 import { SettingRow } from "../settings/SettingsRow";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type AllDomains = {
   [domain: string]: number;
@@ -52,6 +58,10 @@ export function CardDetails({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [clientHistory, setClientHistory] = useState(null);
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(clientEntry.name || "");
+  const [updatingName, setUpdatingName] = useState(false);
 
   useEffect(() => {
     async function fetchClient() {
@@ -140,16 +150,127 @@ export function CardDetails({
     }
   }
 
+  const updateClientName = async () => {
+    const newName = editedName.trim();
+
+    if (newName === "") {
+      toast.warning("Client name cannot be empty");
+      setIsEditingName(false);
+      setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+      return;
+    }
+
+    if (newName === (clientDetails?.clientInfo.name || clientEntry.name)) {
+      toast.info("Name was not changed");
+      setIsEditingName(false);
+      return;
+    }
+
+    setUpdatingName(true);
+
+    try {
+      const [code, response] = await PutRequest(
+        `client/${clientEntry.ip}/name/${encodeURIComponent(newName)}`,
+        null,
+        false
+      );
+
+      if (code === 200) {
+        toast.success(`Client name updated to "${newName}"`);
+
+        setClientDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                clientInfo: {
+                  ...prev.clientInfo,
+                  name: newName
+                }
+              }
+            : prev
+        );
+
+        setEditedName(newName);
+        setIsEditingName(false);
+      } else {
+        toast.error(response?.error || "Failed to update client name");
+        setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+      }
+    } catch {
+      toast.error("Error updating client name");
+      setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+    } finally {
+      setUpdatingName(false);
+      setIsEditingName(false);
+    }
+  };
+
+  const cancelNameEdit = () => {
+    setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+    setIsEditingName(false);
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="border-none bg-accent rounded-lg w-full max-w-6xl max-h-3/4 overflow-y-auto">
         <DialogTitle>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-1">
-                {clientEntry.name || "unknown"}
-              </h2>
-              <div className="flex items-center text-sm gap-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    autoFocus
+                    disabled={updatingName}
+                    maxLength={255}
+                  />
+                  <Button
+                    size="icon"
+                    variant={"ghost"}
+                    onClick={updateClientName}
+                    disabled={updatingName}
+                  >
+                    {updatingName ? (
+                      <ArrowsClockwiseIcon className="animate-spin" />
+                    ) : (
+                      <CheckIcon className="text-green-500" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={cancelNameEdit}
+                    disabled={updatingName}
+                    className="h-9 w-9 hover:bg-red-950/20"
+                  >
+                    <XIcon className="text-red-500" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate">
+                    {clientDetails?.clientInfo.name ||
+                      clientEntry.name ||
+                      "unknown"}
+                  </h2>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditingName(true);
+                      setEditedName(
+                        clientDetails?.clientInfo.name || clientEntry.name || ""
+                      );
+                    }}
+                  >
+                    <PencilIcon size={16} className="text-muted-foreground" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex items-center text-sm gap-2 flex-wrap">
                 <span className="bg-muted-foreground/20 px-2 py-0.5 rounded-md font-mono text-xs">
                   ip: {clientEntry.ip}
                 </span>
@@ -165,7 +286,7 @@ export function CardDetails({
                 )}
               </div>
             </div>
-            <div className="text-right hidden sm:block">
+            <div className="text-right hidden sm:block font-mono">
               <span className="text-xs">Last Activity</span>
               <div className="text-muted-foreground">
                 {clientEntry.lastSeen}

@@ -79,6 +79,15 @@ func (s *Service) CountQueries(search string) (int, error) {
 	return s.repository.CountQueries(search)
 }
 
+func (s *Service) UpdateClientName(ip string, name string) error {
+	if err := s.repository.UpdateClientName(ip, name); err != nil {
+		return err
+	}
+
+	log.Info("Name changed to %s for client %s", name, ip)
+	return nil
+}
+
 func (s *Service) UpdateClientBypass(ip string, bypass bool) error {
 	if err := s.repository.UpdateClientBypass(ip, bypass); err != nil {
 		return err

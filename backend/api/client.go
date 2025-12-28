@@ -14,6 +14,7 @@ func (api *API) registerClientRoutes() {
 	api.routes.GET("/client/:ip/details", api.getClientDetails)
 	api.routes.GET("/client/:ip/history", api.getClientHistory)
 
+	api.routes.PUT("/client/:ip/name/:name", api.updateClientName)
 	api.routes.PUT("/client/:ip/bypass/:bypass", api.updateClientBypass)
 }
 
@@ -81,6 +82,31 @@ func (api *API) getTopClients(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, topClients)
+}
+
+func (api *API) updateClientName(c *gin.Context) {
+	ip := c.Param("ip")
+	name := c.Param("name")
+
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "'name' can't be empty"})
+		return
+	}
+
+	err := api.RequestService.UpdateClientName(ip, name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Refresh DNS server client caches to reflect the updated client name
+	err = api.DNS.PopulateClientCaches()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh DNS server client caches"})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (api *API) updateClientBypass(c *gin.Context) {

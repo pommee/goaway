@@ -30,6 +30,7 @@ type Repository interface {
 	GetTopClients() ([]map[string]interface{}, error)
 	CountQueries(search string) (int, error)
 
+	UpdateClientName(ip string, name string) error
 	UpdateClientBypass(ip string, bypass bool) error
 
 	DeleteRequestLogsTimebased(vacuum vacuumFunc, requestThreshold, maxRetries int, retryDelay time.Duration) error
@@ -486,6 +487,18 @@ func (r *repository) CountQueries(search string) (int, error) {
 		Where("domain LIKE ?", "%"+search+"%").
 		Count(&total).Error
 	return int(total), err
+}
+
+func (r *repository) UpdateClientName(ip, name string) error {
+	err := r.db.Model(&database.RequestLog{}).
+		Where("client_ip = ?", ip).
+		Update("client_name", name).Error
+
+	if err != nil {
+		return fmt.Errorf("failed whiled updating client name: %w", err)
+	}
+
+	return nil
 }
 
 func (r *repository) UpdateClientBypass(ip string, bypass bool) error {
