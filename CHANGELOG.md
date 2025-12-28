@@ -1,3 +1,9 @@
+## [0.63.3](https://github.com/pommee/goaway/compare/v0.63.2...v0.63.3) (2025-12-28)
+
+### Bug Fixes
+
+* added ability to change the name for any client ([2bca605](https://github.com/pommee/goaway/commit/2bca60597af60e2b9109653204d9a3eaeba81269))
+
 ## [0.63.2](https://github.com/pommee/goaway/compare/v0.63.1...v0.63.2) (2025-12-23)
 
 ### Bug Fixes
