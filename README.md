@@ -13,12 +13,15 @@ A lightweight DNS sinkhole for blocking unwanted domains at the network level. B
 
 Instructions for installation, configuration and more can be found on the homepage: https://pommee.github.io/goaway
 
+> [!WARNING]
+> GoAway is still in version 0.x.x and is subject to major changes from version to version.  
+> Feedback is appreciated as bugs are to be expected.
+
 ## Features
 
 - DNS-level domain blocking
 - Web-based admin dashboard
-- Cross-platform support
-- Docker support
+- Cross-platform & Docker support
 - Customizable blocking rules
 - Real-time statistics
 - Low resource footprint
@@ -70,7 +73,7 @@ Contributions are welcomed! Here's how you can help:
 
 GoAway is designed to be lightweight and efficient:
 
-- **Memory Usage:** Typically < 50MB RAM
+- **Memory Usage:** Typically < 50MB RAM, depends on usage
 - **CPU Usage:** Minimal impact on system performance
 - **Network:** Low latency DNS resolution
 - **Storage:** Logs and statistics use minimal disk space
