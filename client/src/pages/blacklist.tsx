@@ -188,10 +188,12 @@ export function Blacklist() {
 
   return (
     <div>
-      <div className="flex gap-5 items-center">
-        <AddList onListAdded={handleListAdded} />
-        <UpdateCustom />
-        <div className="flex gap-4 mb-4">
+      <div className="lg:flex gap-5 items-center">
+        <div className="flex gap-5">
+          <AddList onListAdded={handleListAdded} />
+          <UpdateCustom />
+        </div>
+        <div className="lg:flex gap-4 mb-4">
           <div className="flex items-center gap-2 px-4 py-1 mb-1 bg-accent border-b rounded-t-sm border-b-blue-400">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-muted-foreground text-sm">Total Lists:</span>
@@ -245,7 +247,7 @@ export function Blacklist() {
           </>
         )}
       </div>
-      <div className="grid lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {lists.map((list, index) => (
           <ListCard
             key={index}

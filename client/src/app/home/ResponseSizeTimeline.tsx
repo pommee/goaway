@@ -193,12 +193,12 @@ export default function ResponseSizeTimeline() {
       <Card className="overflow-hidden py-2 gap-0">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
           <div className="grid sm:text-left">
-            <CardTitle className="flex text-xl">
+            <CardTitle className="lg:flex lg:text-xl">
               Response Size Timeline
-              <p className="text-sm text-muted-foreground mt-1 ml-4">
+              <p className="text-sm text-muted-foreground mt-1 lg:ml-4">
                 {timelineInterval}-Minute Intervals,{" "}
                 {filteredData.length > 0
-                  ? "Last Updated: " +
+                  ? "Updated: " +
                     new Date().toLocaleString("en-US", {
                       month: "short",
                       day: "numeric",

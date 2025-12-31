@@ -313,13 +313,13 @@ export function Prefetch() {
       </Card>
 
       <Card className="shadow-md">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-4 border-b">
+          <div className="lg:flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ClockIcon className="h-5 w-5 text-blue-500" />
               Active Prefetch Domains
             </CardTitle>
-            <div className="w-64">
+            <div className="mt-2 lg:mt-0">
               <Input
                 placeholder="Search domains..."
                 value={searchTerm}

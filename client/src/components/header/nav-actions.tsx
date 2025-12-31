@@ -89,7 +89,7 @@ function AboutDialog() {
   }, []);
 
   return (
-    <DialogContent className="w-fit">
+    <DialogContent className="lg:w-fit">
       <DialogHeader>
         <DialogTitle className="flex">
           <InfoIcon className="mr-2 text-blue-500" /> About
@@ -101,7 +101,7 @@ function AboutDialog() {
             <span>{responseData?.version || "Not available"}</span>
 
             <span className="pr-2 text-muted-foreground">Commit:</span>
-            <span className="text-blue-400 underline cursor-pointer">
+            <span className="text-blue-400 underline cursor-pointer text-ellipsis overflow-x-hidden">
               {(responseData?.commit && (
                 <a
                   href={

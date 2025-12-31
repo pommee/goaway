@@ -196,7 +196,7 @@ export function CardDetails(
           View Details
         </Button>
       </DialogTrigger>
-      <DialogContent className="rounded-xl w-2/3 max-w-200">
+      <DialogContent className="rounded-xl max-w-200">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? (

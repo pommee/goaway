@@ -611,7 +611,7 @@ export function Logs() {
                                             {ipValue[0]?.ip || ""}
                                           </span>
                                           {ipValue.length > 1 && (
-                                            <span className="text-xs text-muted-foreground border px-1 rounded border-green-600/60 shrink-0">
+                                            <span className="text-xs text-muted-foreground bg-card border px-1 rounded border-muted shrink-0">
                                               +{ipValue.length - 1}
                                             </span>
                                           )}

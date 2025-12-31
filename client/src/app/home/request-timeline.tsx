@@ -180,12 +180,14 @@ export default function RequestTimeline() {
       <Card className="overflow-hidden py-2 gap-0">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:space-y-0 px-4">
           <div className="grid sm:text-left">
-            <CardTitle className="flex text-xl">
-              <ChartLineIcon className="mt-1 mr-2" /> Request Timeline
-              <p className="text-sm text-muted-foreground mt-1 ml-4">
+            <CardTitle className="lg:flex lg:text-xl">
+              <div className="flex">
+                <ChartLineIcon className="mt-1 mr-2" /> Request Timeline
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 lg:ml-4">
                 {timelineInterval}-Minute Intervals,{" "}
                 {filteredData.length > 0
-                  ? "Last Updated: " +
+                  ? "Updated: " +
                     new Date().toLocaleString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -201,7 +203,8 @@ export default function RequestTimeline() {
           <div className="flex gap-2">
             {isZoomed && (
               <Button
-                className="bg-transparent border text-white hover:bg-stone-800"
+                variant={"ghost"}
+                className="bg-transparent border text-white"
                 onClick={handleZoomOut}
               >
                 <MagnifyingGlassMinusIcon weight="bold" className="mr-1" />

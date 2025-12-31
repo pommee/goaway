@@ -245,8 +245,7 @@ const Changelog = () => {
                               key={commitIdx}
                               className="flex items-start gap-3 group/commit"
                             >
-                              <div className="ml-1 mt-2"></div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 text-sm">
                                 <div className="flex items-start gap-2">
                                   {commit.hash && (
                                     <a

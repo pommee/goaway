@@ -55,7 +55,7 @@ export default function Audit() {
   };
 
   return (
-    <Card className="max-h-64 overflow-x-hidden gap-0 py-0 pt-2 w-1/2 mt-5 pb-2">
+    <Card className="max-h-64 overflow-x-hidden gap-0 py-0 pt-2 xl:w-1/2  mt-5 pb-2">
       <CardHeader className="pl-4 mb-2">
         <CardTitle className="flex items-center gap-2">
           <ArticleIcon size={18} />

@@ -357,7 +357,7 @@ export function AddList({
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="sm:max-w-250 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-full lg:max-w-2/3 overflow-y-auto">
           <DialogHeader className="space-y-3 pb-2">
             <div className="flex items-center gap-3">
               <div>
@@ -371,7 +371,7 @@ export function AddList({
             </div>
           </DialogHeader>
 
-          <div className="flex w-full flex-col gap-6">
+          <div className="flex max-w-[90vw] flex-col gap-6">
             <Tabs
               defaultValue="single"
               onValueChange={(val) => setIsMultipleTab(val === "multiple")}
@@ -434,20 +434,19 @@ export function AddList({
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="active"
-                      className="text-muted-foreground flex items-center gap-2"
-                    >
-                      <PowerIcon size={16} />
-                      List active
-                    </Label>
+                  <div className="flex gap-2">
                     <Switch
                       id="active"
                       checked={listActive}
                       onCheckedChange={setListActive}
                       disabled={isSaving}
                     />
+                    <Label
+                      htmlFor="active"
+                      className="text-muted-foreground flex items-center"
+                    >
+                      List active
+                    </Label>
                   </div>
                 </div>
 
@@ -555,14 +554,14 @@ export function AddList({
                                         <h5 className="font-medium text-sm">
                                           {list.name}
                                         </h5>
-                                        <p className="text-xs text-muted-foreground mt-1">
+                                        <p className="text-xs text-muted-foreground">
                                           {list.description}
                                         </p>
                                         <a
                                           href={list.url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="text-xs text-blue-500 mt-1 font-mono truncate hover:underline transition-colors"
+                                          className="text-xs text-blue-400 font-mono truncate hover:underline transition-colors"
                                         >
                                           {list.url}
                                         </a>

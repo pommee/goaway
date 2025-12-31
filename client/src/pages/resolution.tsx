@@ -154,7 +154,7 @@ export function Resolution() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export function Resolution() {
 
       <Card className="py-4">
         <CardHeader className="pb-4 border-b">
-          <div className="flex items-center justify-between">
+          <div className="lg:flex items-center justify-between">
             <CardTitle className="flex items-center gap-3">
               <div className="bg-blue-500/20 p-2 rounded-lg">
                 <DatabaseIcon className="h-5 w-5 text-blue-400" />
@@ -287,16 +287,14 @@ export function Resolution() {
                 </p>
               </div>
             </CardTitle>
-            <div className="w-72">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search domains or IPs..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+            <div className="relative mt-2 lg:mt-0">
+              <MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search domains or IPs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
             </div>
           </div>
         </CardHeader>
