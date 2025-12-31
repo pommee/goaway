@@ -1,3 +1,13 @@
+## [0.63.4](https://github.com/pommee/goaway/compare/v0.63.3...v0.63.4) (2025-12-31)
+
+### Bug Fixes
+
+* **deps:** bump client dependencies ([f8d9a1d](https://github.com/pommee/goaway/commit/f8d9a1d2c89bc240b17778066a98072c1574e08d))
+
+### UI/UX
+
+* optimize ui for smaller viewports ([714f7ee](https://github.com/pommee/goaway/commit/714f7ee8359daeb77475a9b1dea2169a9d86191c))
+
 ## [0.63.3](https://github.com/pommee/goaway/compare/v0.63.2...v0.63.3) (2025-12-28)
 
 ### Bug Fixes
