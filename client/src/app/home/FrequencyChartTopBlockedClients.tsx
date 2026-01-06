@@ -26,6 +26,7 @@ type TopBlockedClients = {
   frequency: number;
   requestCount: number;
   client: string;
+  clientName: string;
 };
 
 const CustomTooltip = ({
@@ -85,7 +86,7 @@ export default function FrequencyChartTopBlockedClients() {
       try {
         const [, clients] = await GetRequest("topClients");
         const formattedData = clients.map((client: TopBlockedClients) => ({
-          client: client.client,
+          client: client.clientName === 'unknown' ? client.client : client.clientName,
           requestCount: client.requestCount,
           frequency: client.frequency
         }));
