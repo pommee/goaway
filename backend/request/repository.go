@@ -456,12 +456,13 @@ func (r *repository) GetTopClients() ([]map[string]interface{}, error) {
 
 	var rows []struct {
 		ClientIP     string  `gorm:"column:client_ip"`
+		ClientName   string  `gorm:"column:client_name"`
 		RequestCount int     `gorm:"column:request_count"`
 		Frequency    float32 `gorm:"column:frequency"`
 	}
 
 	if err := r.db.Table("request_logs").
-		Select("? as frequency, client_ip, COUNT(*) as request_count", 0).
+		Select("? as frequency, client_ip, client_name, COUNT(*) as request_count", 0).
 		Group("client_ip").
 		Order("request_count DESC").
 		Limit(5).
@@ -474,6 +475,7 @@ func (r *repository) GetTopClients() ([]map[string]interface{}, error) {
 		freq := float32(r.RequestCount) * 100 / float32(total)
 		clients = append(clients, map[string]interface{}{
 			"client":       r.ClientIP,
+			"clientName":   r.ClientName,
 			"requestCount": r.RequestCount,
 			"frequency":    freq,
 		})
