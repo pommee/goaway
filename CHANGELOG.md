@@ -1,3 +1,15 @@
+## [0.63.5](https://github.com/pommee/goaway/compare/v0.63.4...v0.63.5) (2026-01-18)
+
+### Bug Fixes
+
+* bump all client dependencies to prevent vulnerabilities ([1f27381](https://github.com/pommee/goaway/commit/1f273813145f345f9ade467ac9f8d908c54a307b))
+* update golang version to 1.25.6 ([9636393](https://github.com/pommee/goaway/commit/9636393065de6c2bc49daef16833b742a19668e1))
+
+### UI/UX
+
+* correctly fetch all clients details when opening modal from logs page ([2adf424](https://github.com/pommee/goaway/commit/2adf42478a6e52042f723afd378da4a58ee038ed))
+* update FrequencyChartBlockedDomains to use client name if possible ([213a5b4](https://github.com/pommee/goaway/commit/213a5b4bcd467ff3c37916d65580cc37bf4bb5e6))
+
 ## [0.63.4](https://github.com/pommee/goaway/compare/v0.63.3...v0.63.4) (2025-12-31)
 
 ### Bug Fixes
