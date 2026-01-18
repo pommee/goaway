@@ -40,7 +40,7 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { NoContent } from "@/shared";
-import { DeleteRequest, GetRequest } from "@/util";
+import { DeleteRequest, GetRequest, timeAgo } from "@/util";
 import {
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
@@ -61,12 +61,7 @@ import {
 } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
-interface Client {
-  ip: string;
-  name: string;
-  mac: string;
-}
+import { ClientEntry } from "./clients";
 
 export interface IPEntry {
   ip: string;
@@ -84,7 +79,7 @@ interface QueryDetail {
   responseTimeNS: number;
   blocked: boolean;
   cached: boolean;
-  client: Client;
+  client: ClientEntry;
 }
 
 interface QueryResponse {
@@ -197,7 +192,9 @@ export function Logs() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientEntry | null>(
+    null
+  );
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
   const [showHelp, setShowHelp] = useState(false);
@@ -207,8 +204,12 @@ export function Logs() {
     { id: "timestamp", desc: true }
   ]);
 
-  const showClientDetails = useCallback((client: Client) => {
-    setSelectedClient(client);
+  const showClientDetails = useCallback(async (client: ClientEntry) => {
+    const [code, response] = await GetRequest(`client/${client.ip}/details`);
+    if (code !== 200) {
+      toast.error(response.status);
+    }
+    setSelectedClient(response.clientInfo);
     setIsClientDetailsOpen(true);
   }, []);
 
@@ -797,10 +798,11 @@ export function Logs() {
           <DialogContent>
             <CardDetails
               ip={selectedClient.ip}
-              lastSeen={"N/A"}
+              lastSeen={timeAgo(selectedClient.lastSeen)}
               mac={selectedClient.mac}
               name={selectedClient.name}
-              vendor={""}
+              vendor={selectedClient.vendor}
+              bypass={selectedClient.bypass}
               onClose={() => setIsClientDetailsOpen(false)}
             />
           </DialogContent>

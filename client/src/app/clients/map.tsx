@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { GetRequest } from "@/util";
+import { GetRequest, timeAgo } from "@/util";
 import { XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
@@ -68,20 +68,6 @@ interface ViewSettings {
   maxNodeSize: number;
   showLabels: boolean;
   activityThresholdMinutes: number;
-}
-
-function timeAgo(timestamp: string) {
-  const now = new Date();
-  const past = new Date(timestamp);
-  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-  const seconds = diffInSeconds % 60;
-  const minutes = Math.floor((diffInSeconds / 60) % 60);
-  const hours = Math.floor(diffInSeconds / 3600);
-
-  return hours > 0
-    ? `${hours}h ${minutes}m ${seconds}s ago`
-    : `${minutes}m ${seconds}s ago`;
 }
 
 function getSubnet(ip: string): string {
@@ -678,6 +664,7 @@ export default function DNSServerVisualizer() {
           mac={selectedClient.mac}
           name={selectedClient.name}
           vendor={selectedClient.vendor}
+          bypass={selectedClient.bypass}
           x={selectedPosition.x}
           y={selectedPosition.y}
           onClose={() => setSelectedClient(null)}

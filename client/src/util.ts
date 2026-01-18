@@ -204,3 +204,17 @@ export async function DeleteRequest(
     return [500, null];
   }
 }
+
+export function timeAgo(timestamp: string) {
+  const now = new Date();
+  const past = new Date(timestamp);
+  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+  const seconds = diffInSeconds % 60;
+  const minutes = Math.floor((diffInSeconds / 60) % 60);
+  const hours = Math.floor(diffInSeconds / 3600);
+
+  return hours > 0
+    ? `${hours}h ${minutes}m ${seconds}s ago`
+    : `${minutes}m ${seconds}s ago`;
+}
