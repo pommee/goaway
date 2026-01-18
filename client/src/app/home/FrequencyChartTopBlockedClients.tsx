@@ -86,7 +86,8 @@ export default function FrequencyChartTopBlockedClients() {
       try {
         const [, clients] = await GetRequest("topClients");
         const formattedData = clients.map((client: TopBlockedClients) => ({
-          client: client.clientName === 'unknown' ? client.client : client.clientName,
+          client:
+            client.clientName === "unknown" ? client.client : client.clientName,
           requestCount: client.requestCount,
           frequency: client.frequency
         }));
