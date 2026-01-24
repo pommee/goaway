@@ -82,11 +82,15 @@ go build -o goaway
 ./goaway
 ```
 
-### Option 4: Proxmox
+~~### Option 4: Proxmox~~
 
-If you are planning on running via Proxmox, then there is a helper-script available [here](https://community-scripts.github.io/ProxmoxVE/scripts?id=goaway), created by [Proxmox VE Helper-Scripts (Community Edition)](https://github.com/community-scripts/ProxmoxVE).  
-Great alternative if you don't want to go through an as manual process and prefer not to use Docker.
+!!! warning "Paused"
 
-!!! tip "Logs / Credentials"
+    Proxmox script support was removed due to the early stage of the project, will likely be back in the future once the first major release is published. Read more [here](https://github.com/pommee/goaway/issues/109).
 
-    Once the LXC is up and running, logs can be found in `/var/log/goaway.log`. Login credentials can be found either in the log or `~/goaway.creds`.
+> ~~If you are planning on running via Proxmox, then there is a helper-script available [here](https://community-scripts.github.io/ProxmoxVE/scripts?id=goaway), created by [Proxmox VE Helper-Scripts (Community Edition)](https://github.com/community-scripts/ProxmoxVE).  
+> Great alternative if you don't want to go through an as manual process and prefer not to use Docker.~~
+
+> !!! tip "~~Logs / Credentials~~"
+>
+> ~~Once the LXC is up and running, logs can be found in `/var/log/goaway.log`. Login credentials can be found either in the log or `~/goaway.creds`.~~
