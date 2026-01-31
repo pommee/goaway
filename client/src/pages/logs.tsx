@@ -272,13 +272,16 @@ export function Logs() {
             : []
         };
 
-        if (
-          !domainFilter ||
-          (formattedQuery.domain &&
-            formattedQuery.domain
-              .toLowerCase()
-              .includes(domainFilter.toLowerCase()))
-        ) {
+        let ignored = false;
+
+        if (domainFilter) {
+          ignored = !formattedQuery.domain.toLowerCase().includes(domainFilter.toLowerCase());
+        } else if (clientFilter) {
+          ignored = !formattedQuery.client.name.toLowerCase().includes(clientFilter.toLowerCase()) &&
+                    !formattedQuery.client.ip.toLowerCase().includes(clientFilter.toLowerCase());
+        }
+
+        if (!ignored) {
           setQueries((prevQueries) => {
             const updatedQueries = [formattedQuery, ...prevQueries];
             if (updatedQueries.length > pageSize) {
@@ -308,7 +311,7 @@ export function Logs() {
         ws.close();
       }
     };
-  }, [pageIndex, pageSize, domainFilter]);
+  }, [pageIndex, pageSize, domainFilter, clientFilter]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
