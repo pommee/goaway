@@ -212,7 +212,8 @@ export function ServerStatistics() {
               action: {
                 label: "Update",
                 onClick: () => setShowUpdateModal(true)
-              }
+              },
+              id: "update-available"
             });
             setUpdateNotified(true);
           }

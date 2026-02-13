@@ -296,10 +296,17 @@ export function Logs() {
         let ignored = false;
 
         if (domainFilter) {
-          ignored = !formattedQuery.domain.toLowerCase().includes(domainFilter.toLowerCase());
+          ignored = !formattedQuery.domain
+            .toLowerCase()
+            .includes(domainFilter.toLowerCase());
         } else if (clientFilter) {
-          ignored = !formattedQuery.client.name.toLowerCase().includes(clientFilter.toLowerCase()) &&
-                    !formattedQuery.client.ip.toLowerCase().includes(clientFilter.toLowerCase());
+          ignored =
+            !formattedQuery.client.name
+              .toLowerCase()
+              .includes(clientFilter.toLowerCase()) &&
+            !formattedQuery.client.ip
+              .toLowerCase()
+              .includes(clientFilter.toLowerCase());
         }
 
         if (!ignored) {
