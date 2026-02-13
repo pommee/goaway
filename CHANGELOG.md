@@ -1,3 +1,10 @@
+## [0.63.7](https://github.com/pommee/goaway/compare/v0.63.6...v0.63.7) (2026-02-13)
+
+### Bug Fixes
+
+* **deps:** update client dependencies ([d013d92](https://github.com/pommee/goaway/commit/d013d92b794e7e38e52e20c1c0595ea163c33c46))
+* **deps:** update to go version 1.26 ([9300add](https://github.com/pommee/goaway/commit/9300addf235ee1c28cee1f94262a7cdd98d94219))
+
 ## [0.63.6](https://github.com/pommee/goaway/compare/v0.63.5...v0.63.6) (2026-02-13)
 
 ### Bug Fixes
