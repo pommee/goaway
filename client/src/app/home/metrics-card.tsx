@@ -10,9 +10,10 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Card } from "../../components/ui/card";
 
-type Metrics = {
+export type DNSMetrics = {
   allowed: number;
   blocked: number;
+  cached: number;
   clients: number;
   domainBlockLen: number;
   percentageBlocked: number;
@@ -25,7 +26,7 @@ interface MetricsCardProps {
   Icon: Icon;
   bgColor: string;
   type?: "number" | "percentage";
-  metricsData: Metrics | null;
+  metricsData: DNSMetrics | null;
   description?: string;
 }
 
@@ -38,7 +39,7 @@ function MetricsCard({
   metricsData,
   description = ""
 }: MetricsCardProps) {
-  const value = metricsData?.[valueKey as keyof Metrics];
+  const value = metricsData?.[valueKey as keyof DNSMetrics];
 
   const formattedValue =
     type === "percentage" && value !== undefined
@@ -69,7 +70,7 @@ function MetricsCard({
 }
 
 export default function MetricsCards() {
-  const [metricsData, setMetricsData] = useState<Metrics | null>(null);
+  const [metricsData, setMetricsData] = useState<DNSMetrics | null>(null);
 
   useEffect(() => {
     async function fetchMetrics() {
