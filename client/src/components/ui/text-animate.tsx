@@ -318,6 +318,7 @@ const TextAnimateBase = ({
 }: TextAnimateProps) => {
   const MotionComponent = motion.create(Component);
 
+  // eslint-disable-next-line no-useless-assignment
   let segments: string[] = [];
   switch (by) {
     case "word":
