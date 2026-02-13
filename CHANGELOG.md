@@ -1,3 +1,13 @@
+## [0.63.6](https://github.com/pommee/goaway/compare/v0.63.5...v0.63.6) (2026-02-13)
+
+### Bug Fixes
+
+* use client filter for live query updates ([6b6d302](https://github.com/pommee/goaway/commit/6b6d30242f01d9a0086253b9a2cabed25ed3f614))
+
+### Documentation
+
+* update install documentation for proxmox ([5ce9d86](https://github.com/pommee/goaway/commit/5ce9d86d26689e54d957dc1c84616bf37d2ba675))
+
 ## [0.63.5](https://github.com/pommee/goaway/compare/v0.63.4...v0.63.5) (2026-01-18)
 
 ### Bug Fixes
