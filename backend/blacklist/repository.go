@@ -66,6 +66,7 @@ type SourceWithCount struct {
 
 type RequestStats struct {
 	Blocked bool `json:"blocked"`
+	Cached  bool `json:"cached"`
 	Count   int  `json:"count"`
 }
 
@@ -362,14 +363,12 @@ func (r *repository) GetSourceStats(ctx context.Context, listname string) (*Sour
 func (r *repository) GetRequestStats(ctx context.Context) ([]RequestStats, error) {
 	var stats []RequestStats
 	result := r.db.WithContext(ctx).Model(&database.RequestLog{}).
-		Select("blocked, COUNT(*) as count").
-		Group("blocked").
+		Select("blocked, cached, COUNT(*) as count").
+		Group("blocked, cached").
 		Scan(&stats)
-
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to query request_logs: %w", result.Error)
 	}
-
 	return stats, nil
 }
 

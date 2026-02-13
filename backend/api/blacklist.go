@@ -113,7 +113,7 @@ func (api *API) getBlacklistedDomains(c *gin.Context) {
 }
 
 func (api *API) getTopBlockedDomains(c *gin.Context) {
-	_, blocked, _ := api.BlacklistService.GetAllowedAndBlocked(context.Background())
+	_, blocked, _, _ := api.BlacklistService.GetRequestMetrics(context.Background())
 	topBlockedDomains, err := api.RequestService.GetTopBlockedDomains(blocked)
 	if err != nil {
 		log.Error("%v", err)

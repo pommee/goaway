@@ -49,7 +49,11 @@ import {
   CaretRightIcon,
   QuestionIcon,
   WarningIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ArrowsDownUpIcon,
+  LeafIcon,
+  FlagIcon,
+  LightningIcon
 } from "@phosphor-icons/react";
 import {
   ColumnFiltersState,
@@ -62,6 +66,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ClientEntry } from "./clients";
+import { DNSMetrics } from "@/app/home/metrics-card";
 
 export interface IPEntry {
   ip: string;
@@ -87,6 +92,18 @@ interface QueryResponse {
   draw: string;
   recordsFiltered: number;
   recordsTotal: number;
+}
+
+interface TopDestination {
+  hits: number;
+  name: string;
+}
+
+interface TopClient {
+  client: string;
+  clientName: string;
+  frequency: number;
+  requestCount: number;
 }
 
 async function fetchQueries(
@@ -203,6 +220,10 @@ export function Logs() {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "timestamp", desc: true }
   ]);
+
+  const [metricsData, setMetricsData] = useState<DNSMetrics>();
+  const [topDestinations, setTopDestinations] = useState<TopDestination[]>([]);
+  const [topClients, setTopClients] = useState<TopClient[]>([]);
 
   const showClientDetails = useCallback(async (client: ClientEntry) => {
     const [code, response] = await GetRequest(`client/${client.ip}/details`);
@@ -394,8 +415,163 @@ export function Logs() {
     }
   }
 
+  useEffect(() => {
+    async function fetchMetrics() {
+      try {
+        const [, data] = await GetRequest("dnsMetrics");
+        setMetricsData(data);
+      } catch (error) {
+        console.error("Failed to fetch server statistics:", error);
+      }
+    }
+
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    async function fetchTopDestinations() {
+      try {
+        const [, data] = await GetRequest("topDestinations");
+        const destinations = data.topDestinations.map(
+          (destination: TopDestination) => ({
+            hits: destination.hits,
+            name: destination.name
+          })
+        );
+        setTopDestinations(destinations);
+      } catch (error) {
+        console.error("Failed to fetch top destinations:", error);
+      }
+    }
+
+    fetchTopDestinations();
+  }, []);
+
+  useEffect(() => {
+    async function fetchTopClients() {
+      try {
+        const [code, data] = await GetRequest("topClients");
+
+        if (code !== 200) {
+          toast.error("Could not fetch top clients");
+          return;
+        }
+
+        const clients = data.map((client: TopClient) => ({
+          client: client.client,
+          clientName: client.clientName,
+          frequency: client.frequency,
+          requestCount: client.requestCount
+        }));
+        setTopClients(clients);
+      } catch {
+        return;
+      }
+    }
+
+    fetchTopClients();
+  }, []);
+
   return (
     <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-36 mb-4 text-sm">
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Flow Summary
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 items-center">
+              <ArrowsDownUpIcon className="text-blue-400" />
+              Total
+            </div>
+            <div className="flex text-muted-foreground">
+              {metricsData?.total}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 items-center">
+              <LeafIcon className="text-green-400" />
+              Allowed
+            </div>
+            <div className="flex text-muted-foreground">
+              {(metricsData?.allowed || 0) + (metricsData?.cached || 0)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 items-center">
+              <FlagIcon className="text-red-400" />
+              Blocked
+            </div>
+            <div className="flex text-muted-foreground">
+              {metricsData?.blocked}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 items-center">
+              <LightningIcon className="text-yellow-400" />
+              Cached
+            </div>
+            <div className="flex text-muted-foreground">
+              {metricsData?.cached}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Top Destinations
+          </div>
+          {topDestinations.length === 0 ? (
+            <div className="text-xs text-muted-foreground/70 italic">
+              No destinations requested
+            </div>
+          ) : (
+            <div>
+              {topDestinations.slice(0, 4).map((d, i) => (
+                <div
+                  key={d.name || i}
+                  className="flex items-center justify-between"
+                >
+                  <div className="truncate max-w-45">{d.name}</div>
+                  <div className="text-muted-foreground tabular-nums">
+                    {d.hits}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Top Clients
+          </div>
+          {topClients.length === 0 ? (
+            <div className="text-xs text-muted-foreground/70 italic">
+              No clients seen
+            </div>
+          ) : (
+            <div>
+              {topClients.slice(0, 4).map((c, i) => (
+                <div
+                  key={c.clientName || i}
+                  className="flex items-center justify-between"
+                >
+                  <div className="truncate max-w-45">
+                    {c.clientName || c.client || "Unknown"}
+                  </div>
+                  <div className="text-muted-foreground tabular-nums">
+                    {c.requestCount}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex items-center">
         <QuestionIcon
           size={20}

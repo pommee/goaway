@@ -24,6 +24,7 @@ func (api *API) registerServerRoutes() {
 	// Unauthenticated routes
 	api.router.GET("/api/server", api.handleServer)
 	api.router.GET("/api/dnsMetrics", api.handleMetrics)
+	api.router.GET("/api/topDestinations", api.topDestinations)
 
 	// Authenticated routes
 	api.routes.GET("/runUpdate", api.runUpdate)
@@ -115,26 +116,42 @@ func getDBSizeMB() (float64, error) {
 }
 
 func (api *API) handleMetrics(c *gin.Context) {
-	allowed, blocked, err := api.BlacklistService.GetAllowedAndBlocked(context.Background())
+	allowed, blocked, cached, err := api.BlacklistService.GetRequestMetrics(context.Background())
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 	total := allowed + blocked
-
 	var percentageBlocked float64
 	if total > 0 {
 		percentageBlocked = (float64(blocked) / float64(total)) * 100
 	}
-
+	var percentageCached float64
+	if total > 0 {
+		percentageCached = (float64(cached) / float64(total)) * 100
+	}
 	domainsLength, _ := api.BlacklistService.CountDomains(context.Background())
 	c.JSON(http.StatusOK, gin.H{
 		"allowed":           allowed,
 		"blocked":           blocked,
+		"cached":            cached,
 		"total":             total,
 		"percentageBlocked": percentageBlocked,
+		"percentageCached":  percentageCached,
 		"domainBlockLen":    domainsLength,
 		"clients":           api.RequestService.GetDistinctRequestIP(),
+	})
+}
+
+func (api *API) topDestinations(c *gin.Context) {
+	topDestinations, err := api.RequestService.GetTopQueriedDomains()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"topDestinations": topDestinations,
 	})
 }
 

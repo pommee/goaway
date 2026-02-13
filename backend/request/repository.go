@@ -27,6 +27,7 @@ type Repository interface {
 	GetClientDetailsWithDomains(clientIP string) (ClientRequestDetails, string, map[string]int, error)
 	GetClientHistory(clientIP string) ([]models.DomainHistory, error)
 	GetTopBlockedDomains(blockedRequests int) ([]map[string]interface{}, error)
+	GetTopQueriedDomains() ([]map[string]interface{}, error)
 	GetTopClients() ([]map[string]interface{}, error)
 	CountQueries(search string) (int, error)
 
@@ -446,6 +447,32 @@ func (r *repository) GetTopBlockedDomains(blockedRequests int) ([]map[string]int
 		})
 	}
 	return topBlockedDomains, nil
+}
+
+func (r *repository) GetTopQueriedDomains() ([]map[string]interface{}, error) {
+	var rows []struct {
+		Domain string `gorm:"column:domain"`
+		Hits   int    `gorm:"column:hits"`
+	}
+
+	if err := r.db.Table("request_logs").
+		Select("domain, COUNT(*) as hits").
+		Group("domain").
+		Order("hits DESC").
+		Limit(4).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	var topQueriedDomains []map[string]interface{}
+	for _, row := range rows {
+		topQueriedDomains = append(topQueriedDomains, map[string]interface{}{
+			"name": row.Domain,
+			"hits": row.Hits,
+		})
+	}
+
+	return topQueriedDomains, nil
 }
 
 func (r *repository) GetTopClients() ([]map[string]interface{}, error) {

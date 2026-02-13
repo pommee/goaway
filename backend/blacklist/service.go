@@ -578,21 +578,22 @@ func (s *Service) CountDomains(ctx context.Context) (int, error) {
 	return int(count), nil
 }
 
-func (s *Service) GetAllowedAndBlocked(ctx context.Context) (allowed, blocked int, err error) {
+func (s *Service) GetRequestMetrics(ctx context.Context) (allowed, blocked, cached int, err error) {
 	stats, err := s.repository.GetRequestStats(ctx)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
-
 	for _, stat := range stats {
 		if stat.Blocked {
 			blocked = stat.Count
 		} else {
 			allowed = stat.Count
 		}
+		if stat.Cached {
+			cached += stat.Count
+		}
 	}
-
-	return allowed, blocked, nil
+	return allowed, blocked, cached, nil
 }
 
 func (s *Service) GetAllListStatistics(ctx context.Context) ([]SourceWithCount, error) {
