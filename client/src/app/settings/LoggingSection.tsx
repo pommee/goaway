@@ -23,8 +23,6 @@ export function LoggingSection({
   const currentLogLevel =
     typeof logLevel === "number" ? logLevelMap[logLevel] : logLevel;
 
-  console.log(logLevel);
-
   return (
     <>
       <SettingRow
