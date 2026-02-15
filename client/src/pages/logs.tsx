@@ -1,6 +1,6 @@
 "use client";
 
-import { CardDetails } from "@/app/clients/details";
+import { ClientDetails } from "@/app/clients/details";
 import { Queries } from "@/app/logs/columns";
 import { columns } from "@/app/logs/columnsData";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import { NoContent } from "@/shared";
-import { DeleteRequest, GetRequest, timeAgo } from "@/util";
+import { DeleteRequest, GetRequest } from "@/util";
 import {
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
@@ -977,22 +977,13 @@ export function Logs() {
       </div>
 
       {selectedClient && (
-        <Dialog
-          open={isClientDetailsOpen}
-          onOpenChange={setIsClientDetailsOpen}
-        >
-          <DialogContent>
-            <CardDetails
-              ip={selectedClient.ip}
-              lastSeen={timeAgo(selectedClient.lastSeen)}
-              mac={selectedClient.mac}
-              name={selectedClient.name}
-              vendor={selectedClient.vendor}
-              bypass={selectedClient.bypass}
-              onClose={() => setIsClientDetailsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <>
+          <ClientDetails
+            open={!!selectedClient && isClientDetailsOpen}
+            onOpenChange={(o) => !o && setSelectedClient(null)}
+            {...(selectedClient ?? {})}
+          />
+        </>
       )}
 
       {showHelp && (

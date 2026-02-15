@@ -1,34 +1,54 @@
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+"use client";
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose
+} from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ClientEntry } from "@/pages/clients";
 import { GetRequest, PutRequest } from "@/util";
 import {
   ArrowsClockwiseIcon,
+  ArrowsDownUpIcon,
   CaretDownIcon,
   CheckIcon,
   ClockCounterClockwiseIcon,
-  EyeglassesIcon,
   LightningIcon,
   PencilIcon,
   PlusMinusIcon,
   RowsIcon,
   ShieldIcon,
+  ShieldWarningIcon,
   SparkleIcon,
   TargetIcon,
   XIcon
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import TimeAgo from "react-timeago";
 import { toast } from "sonner";
-import { SettingRow } from "../settings/SettingsRow";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-type AllDomains = {
-  [domain: string]: number;
+type AllDomains = { [domain: string]: number };
+
+type ClientHistory = {
+  domain: string;
+  timestamp: Date;
 };
 
 type ClientEntryDetails = {
@@ -49,485 +69,473 @@ type ClientEntryDetails = {
   };
 };
 
-export function CardDetails({
-  onClose,
+type CardDetailsProps = ClientEntry & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function ClientDetails({
+  open,
+  onOpenChange,
   ...clientEntry
-}: ClientEntry & { onClose: () => void }) {
+}: CardDetailsProps) {
   const [clientDetails, setClientDetails] = useState<ClientEntryDetails | null>(
     null
   );
+  const [clientHistory, setClientHistory] = useState<ClientHistory[] | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [clientHistory, setClientHistory] = useState(null);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(clientEntry.name || "");
   const [updatingName, setUpdatingName] = useState(false);
 
   useEffect(() => {
-    async function fetchClient() {
+    if (!open) return;
+
+    async function fetchData() {
       setIsLoading(true);
       try {
-        const [code, response] = await GetRequest(
+        const [code, details] = await GetRequest(
           `client/${clientEntry.ip}/details`
         );
-        if (code !== 200) {
-          toast.warning("Unable to fetch client details");
-          return;
-        }
+        if (code === 200) setClientDetails(details);
 
-        setClientDetails(response);
-      } catch {
-        toast.error("Error fetching client details");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchClient();
-  }, [clientEntry.ip]);
-
-  const getProgressColor = (value: number, max: number) => {
-    const percentage = (value / max) * 100;
-    if (percentage < 30) return "bg-emerald-500";
-    if (percentage < 70) return "bg-amber-500";
-    return "bg-red-500";
-  };
-
-  useEffect(() => {
-    async function getClientHistory() {
-      try {
-        const [code, response] = await GetRequest(
+        const [hCode, hist] = await GetRequest(
           `client/${clientEntry.ip}/history`
         );
-        if (code !== 200) {
-          toast.warning("Unable to fetch client history");
-          return;
-        }
-
-        setClientHistory(response.history);
+        if (hCode === 200) setClientHistory(hist.history);
       } catch {
-        toast.error("Error fetching client history");
+        toast.error("Failed to load client data");
       } finally {
         setIsLoading(false);
       }
     }
 
-    getClientHistory();
-  }, [clientEntry.ip]);
+    fetchData();
+  }, [open, clientEntry.ip]);
 
-  async function updateClientBypass(enabled: boolean) {
+  const updateClientBypass = async (enabled: boolean) => {
     try {
-      const [code, response] = await PutRequest(
+      const [code] = await PutRequest(
         `client/${clientEntry.ip}/bypass/${enabled}`,
         null,
         false
       );
-
-      if (code !== 200) {
-        toast.error("Failed to update bypass setting", {
-          description: response.error
-        });
-        return;
-      }
+      if (code !== 200) throw new Error();
 
       setClientDetails((prev) =>
         prev
-          ? {
-              ...prev,
-              clientInfo: {
-                ...prev.clientInfo,
-                bypass: enabled
-              }
-            }
+          ? { ...prev, clientInfo: { ...prev.clientInfo, bypass: enabled } }
           : prev
       );
-
-      toast.success(
-        enabled ? "Client bypass enabled" : "Client bypass disabled"
-      );
+      toast.success(enabled ? "Bypass enabled" : "Bypass disabled");
     } catch {
-      toast.error("Error updating bypass setting");
+      toast.error("Could not update bypass setting");
     }
-  }
+  };
 
   const updateClientName = async () => {
     const newName = editedName.trim();
-
-    if (newName === "") {
-      toast.warning("Client name cannot be empty");
+    if (!newName) {
+      toast.warning("Name cannot be empty");
       setIsEditingName(false);
-      setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
       return;
     }
-
-    if (newName === (clientDetails?.clientInfo.name || clientEntry.name)) {
-      toast.info("Name was not changed");
+    if (newName === (clientDetails?.clientInfo.name ?? clientEntry.name)) {
       setIsEditingName(false);
       return;
     }
 
     setUpdatingName(true);
-
     try {
-      const [code, response] = await PutRequest(
+      const [code] = await PutRequest(
         `client/${clientEntry.ip}/name/${encodeURIComponent(newName)}`,
         null,
         false
       );
-
       if (code === 200) {
-        toast.success(`Client name updated to "${newName}"`);
-
         setClientDetails((prev) =>
           prev
-            ? {
-                ...prev,
-                clientInfo: {
-                  ...prev.clientInfo,
-                  name: newName
-                }
-              }
+            ? { ...prev, clientInfo: { ...prev.clientInfo, name: newName } }
             : prev
         );
-
-        setEditedName(newName);
+        toast.success(`Name updated to "${newName}"`);
         setIsEditingName(false);
       } else {
-        toast.error(response?.error || "Failed to update client name");
-        setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+        toast.error("Failed to update name");
       }
     } catch {
-      toast.error("Error updating client name");
-      setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
+      toast.error("Error updating name");
     } finally {
       setUpdatingName(false);
-      setIsEditingName(false);
     }
   };
 
-  const cancelNameEdit = () => {
-    setEditedName(clientDetails?.clientInfo.name || clientEntry.name || "");
-    setIsEditingName(false);
+  const getProgressColor = (value: number, max: number) => {
+    const pct = (value / max) * 100;
+    if (pct < 30) return "bg-muted-foreground";
+    if (pct < 70) return "bg-muted-foreground";
+    return "bg-muted-foreground";
   };
 
+  const displayName =
+    clientDetails?.clientInfo.name ?? clientEntry.name ?? "Unknown";
+
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="border-none bg-accent rounded-lg w-full max-w-6xl max-h-3/4 overflow-y-auto">
-        <DialogTitle>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
+    <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+      <DrawerContent
+        className={cn(
+          "right-0 top-0 bottom-0 left-auto h-full w-full max-w-md sm:max-w-lg border-l bg-background",
+          "focus:outline-none"
+        )}
+      >
+        <DrawerHeader className="border-b px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
               {isEditingName ? (
                 <div className="flex items-center gap-2">
                   <Input
-                    type="text"
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
                     autoFocus
                     disabled={updatingName}
-                    maxLength={255}
+                    className="h-9"
                   />
                   <Button
                     size="icon"
-                    variant={"ghost"}
+                    variant="ghost"
                     onClick={updateClientName}
                     disabled={updatingName}
                   >
                     {updatingName ? (
-                      <ArrowsClockwiseIcon className="animate-spin" />
+                      <ArrowsClockwiseIcon className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckIcon className="text-green-500" />
+                      <CheckIcon className="h-4 w-4 text-green-500" />
                     )}
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={cancelNameEdit}
-                    disabled={updatingName}
-                    className="h-9 w-9 hover:bg-red-950/20"
+                    onClick={() => {
+                      setEditedName(displayName);
+                      setIsEditingName(false);
+                    }}
                   >
-                    <XIcon className="text-red-500" />
+                    <XIcon className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 group">
-                  <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate">
-                    {clientDetails?.clientInfo.name ||
-                      clientEntry.name ||
-                      "unknown"}
-                  </h2>
+                <div className="group flex items-center gap-2">
+                  <DrawerTitle className="text-xl font-semibold truncate leading-tight">
+                    {displayName}
+                  </DrawerTitle>
                   <Button
                     size="icon"
                     variant="ghost"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100"
                     onClick={() => {
+                      setEditedName(displayName);
                       setIsEditingName(true);
-                      setEditedName(
-                        clientDetails?.clientInfo.name || clientEntry.name || ""
-                      );
                     }}
                   >
-                    <PencilIcon size={16} className="text-muted-foreground" />
+                    <PencilIcon size={14} className="text-muted-foreground" />
                   </Button>
                 </div>
               )}
 
-              <div className="flex items-center text-sm gap-2 flex-wrap">
-                <span className="bg-muted-foreground/20 px-2 py-0.5 rounded-md font-mono text-xs">
-                  ip: {clientEntry.ip}
-                </span>
+              <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                <div className="rounded bg-muted px-2 py-0.5 font-mono text-muted-foreground">
+                  {clientEntry.ip}
+                </div>
                 {clientEntry.mac && (
-                  <span className="bg-muted-foreground/20 px-2 py-0.5 rounded-md font-mono text-xs">
-                    mac: {clientEntry.mac}
-                  </span>
+                  <div className="rounded bg-muted px-2 py-0.5 font-mono text-muted-foreground">
+                    {clientEntry.mac}
+                  </div>
                 )}
                 {clientEntry.vendor && (
-                  <span className="bg-muted-foreground/20 px-2 py-0.5 rounded-md font-mono text-xs">
-                    vendor: {clientEntry.vendor}
-                  </span>
+                  <div className="rounded bg-muted px-2 py-0.5 font-mono text-muted-foreground">
+                    {clientEntry.vendor}
+                  </div>
                 )}
               </div>
             </div>
-            <div className="text-right hidden sm:block font-mono">
-              <span className="text-xs">Last Activity</span>
-              <div className="text-muted-foreground">
-                {clientEntry.lastSeen}
-              </div>
-            </div>
+
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <XIcon size={20} />
+              </Button>
+            </DrawerClose>
           </div>
-        </DialogTitle>
 
-        <Tabs defaultValue="overview">
-          <TabsList className="bg-transparent space-x-2">
-            <TabsTrigger
-              value="overview"
-              className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-            >
-              <TargetIcon />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="domains"
-              className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-            >
-              <RowsIcon />
-              Domains
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="border-l-0 !bg-transparent border-t-0 border-r-0 cursor-pointer data-[state=active]:border-b-2 data-[state=active]:!border-b-primary rounded-none"
-            >
-              <ClockCounterClockwiseIcon />
-              History
-            </TabsTrigger>
-          </TabsList>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center p-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+          {clientEntry.lastSeen && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Last seen <TimeAgo date={clientEntry.lastSeen} maxPeriod={60} />
             </div>
-          ) : clientDetails ? (
-            <div>
-              <TabsContent value="overview">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
-                  <StatCard
-                    icon={<EyeglassesIcon size={18} />}
-                    label="Total Requests"
-                    value={clientDetails.totalRequests.toLocaleString()}
-                    color="bg-blue-600"
-                  />
-                  <StatCard
-                    icon={<SparkleIcon size={18} />}
-                    label="Unique Domains"
-                    value={clientDetails.uniqueDomains.toLocaleString()}
-                    color="bg-purple-600"
-                  />
-                  <StatCard
-                    icon={<ShieldIcon size={18} />}
-                    label="Blocked Requests"
-                    value={clientDetails.blockedRequests.toLocaleString()}
-                    color="bg-red-600"
-                  />
-                  <StatCard
-                    icon={<LightningIcon size={18} />}
-                    label="Cached Requests"
-                    value={clientDetails.cachedRequests.toLocaleString()}
-                    color="bg-emerald-600"
-                  />
-                  <StatCard
-                    icon={<PlusMinusIcon size={18} />}
-                    label="Avg Response"
-                    value={`${clientDetails.avgResponseTimeMs.toLocaleString()} ms`}
-                    color="bg-amber-600"
-                  />
-                  <StatCard
-                    icon={<CaretDownIcon size={18} />}
-                    label="Most Queried"
-                    value={clientDetails.mostQueriedDomain}
-                    color="bg-indigo-600"
-                  />
-                </div>
+          )}
+        </DrawerHeader>
 
-                <div className="mb-6">
-                  <p className="mb-2">Top Queried Domains</p>
-                  <div className="grid gap-2">
+        <div className="flex flex-col flex-1">
+          <Tabs defaultValue="overview" className="flex flex-col flex-1">
+            <div className="border-b">
+              <TabsList className="w-full justify-start gap-5 bg-transparent p-0">
+                <TabsTrigger
+                  value="overview"
+                  className="gap-0 rounded-none data-[state=active]:bg-transparent! border-none hover:cursor-pointer hover:font-semibold"
+                >
+                  <TargetIcon size={16} className="mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger
+                  value="domains"
+                  className="gap-0 rounded-none data-[state=active]:bg-transparent! border-none hover:cursor-pointer hover:font-semibold"
+                >
+                  <RowsIcon size={16} className="mr-2" />
+                  Domains
+                </TabsTrigger>
+                <TabsTrigger
+                  value="history"
+                  className="gap-0 rounded-none data-[state=active]:bg-transparent! border-none hover:cursor-pointer hover:font-semibold"
+                >
+                  <ClockCounterClockwiseIcon size={16} className="mr-2" />
+                  History
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            {isLoading ? (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            ) : clientDetails ? (
+              <>
+                <TabsContent
+                  value="overview"
+                  className="mt-0 flex-1 overflow-y-auto px-2 py-2"
+                >
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+                    <StatTile
+                      icon={<ArrowsDownUpIcon />}
+                      label="Total Requests"
+                      value={clientDetails.totalRequests.toLocaleString()}
+                    />
+                    <StatTile
+                      icon={<SparkleIcon />}
+                      label="Unique Domains"
+                      value={clientDetails.uniqueDomains.toLocaleString()}
+                    />
+                    <StatTile
+                      icon={<ShieldWarningIcon />}
+                      label="Blocked"
+                      value={clientDetails.blockedRequests.toLocaleString()}
+                      accent="text-red-500"
+                    />
+                    <StatTile
+                      icon={<LightningIcon />}
+                      label="Cached"
+                      value={clientDetails.cachedRequests.toLocaleString()}
+                      accent="text-green-500"
+                    />
+                    <StatTile
+                      icon={<PlusMinusIcon />}
+                      label="Avg Response"
+                      value={`${clientDetails.avgResponseTimeMs.toLocaleString()} ms`}
+                    />
+                    <StatTile
+                      icon={<CaretDownIcon />}
+                      label="Top Domain"
+                      value={clientDetails.mostQueriedDomain}
+                      truncate
+                    />
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <h3 className="mb-2 text-sm font-medium">
+                    Top Queried Domains
+                  </h3>
+                  <div className="space-y-2">
                     {Object.entries(clientDetails.allDomains)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 5)
-                      .map(([domain, count], index) => {
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 6)
+                      .map(([domain, count]) => {
                         const max = Math.max(
                           ...Object.values(clientDetails.allDomains)
                         );
                         return (
-                          <div
-                            key={index}
-                            className="bg-background rounded-md overflow-hidden shadow-sm"
-                          >
-                            <div className="flex items-center p-2">
-                              <div className="w-12 text-center font-mono py-1 rounded text-xs font-medium">
-                                {count}
-                              </div>
-                              <div className="ml-3 grow font-medium truncate">
+                          <div key={domain} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="truncate font-medium">
                                 {domain}
-                              </div>
-                              <div className="w-24 shrink-0">
-                                <div className="h-2 bg-accent rounded-full w-full">
-                                  <div
-                                    className={`h-2 rounded-full ${getProgressColor(
-                                      count,
-                                      max
-                                    )}`}
-                                    style={{ width: `${(count / max) * 100}%` }}
-                                  ></div>
-                                </div>
-                              </div>
+                              </span>
+                              <span className="tabular-nums text-muted-foreground">
+                                {count}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn(
+                                  "h-full rounded",
+                                  getProgressColor(count, max)
+                                )}
+                                style={{ width: `${(count / max) * 100}%` }}
+                              />
                             </div>
                           </div>
                         );
                       })}
                   </div>
-                </div>
 
-                <Separator className="mb-4" />
+                  <Separator className="my-4" />
 
-                <div className="bg-muted-foreground/10 rounded-md p-2 shadow-sm">
-                  <SettingRow
-                    title="Bypass"
-                    description="Allow this client to bypass any blacklist rules."
-                    action={
-                      <Switch
-                        id="logging-enabled"
-                        checked={clientDetails.clientInfo.bypass}
-                        onCheckedChange={(checked) =>
-                          updateClientBypass(checked)
-                        }
-                      />
-                    }
-                  />{" "}
-                </div>
-              </TabsContent>
-              <TabsContent value="domains">
-                <p className="mb-2">
-                  All Queried Domains
-                  <span className="ml-2 text-xs bg-accent px-2 py-0.5 rounded-full text-muted-foreground">
-                    {Object.keys(clientDetails.allDomains).length} domains
-                  </span>
-                </p>
-
-                <div className="shadow-md border rounded-md overflow-hidden">
-                  <div className="flex justify-between items-center py-2 px-3">
-                    <div className="w-16 text-xs text-muted-foreground font-medium">
-                      Count
-                    </div>
-                    <div className="grow text-xs text-muted-foreground font-medium">
-                      Domain
-                    </div>
-                    <div className="w-24 text-xs text-muted-foreground font-medium">
-                      Percentage
-                    </div>
-                  </div>
-
-                  <div className="max-h-96 overflow-y-auto">
-                    {Object.entries(clientDetails.allDomains)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([domain, count], index) => {
-                        const totalRequests = clientDetails.totalRequests;
-                        const percentage = (
-                          (count / totalRequests) *
-                          100
-                        ).toFixed(1);
-                        return (
-                          <div
-                            key={index}
-                            className="flex items-center py-2 px-3 hover:bg-accent border-b border-accent last:border-0"
-                          >
-                            <div className="w-16 font-mono bg-accent py-1 rounded text-center text-xs font-medium">
-                              {count}
-                            </div>
-                            <div className="ml-3 grow font-medium truncate">
-                              {domain}
-                            </div>
-                            <div className="w-24 text-right text-muted-foreground text-sm">
-                              {percentage}%
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="history">
-                {Array.isArray(clientHistory) && clientHistory.length > 0 ? (
-                  <div>
-                    {clientHistory.map((entry, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "flex justify-between px-3 py-2 hover:font-bold",
-                          index % 2 === 0
-                            ? "bg-secondary"
-                            : "bg-muted-foreground/10"
-                        )}
-                      >
-                        <span className="truncate">{entry.domain}</span>
-                        <span className="text-xs text-muted-foreground">
-                          <TimeAgo
-                            date={new Date(entry.timestamp)}
-                            minPeriod={60}
-                          />
-                        </span>
+                  <div className="rounded-lg border bg-muted/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Bypass Filtering</div>
+                        <div className="text-xs text-muted-foreground">
+                          Allow this client to bypass blocklists
+                        </div>
                       </div>
-                    ))}
+                      <Switch
+                        checked={clientDetails.clientInfo.bypass}
+                        onCheckedChange={updateClientBypass}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No history available.
-                  </p>
-                )}
-              </TabsContent>
-            </div>
-          ) : (
-            <div className="text-center py-16 grow flex flex-col items-center justify-center">
-              <ShieldIcon size={48} className="mb-4" />
-              <div className="text-lg">No data available for this client</div>
-              <div className="text-sm mt-2 text-muted-foreground">
-                Try checking the network connection or refreshing
+                </TabsContent>
+
+                <TabsContent value="domains" className="mt-0 flex-1">
+                  <div className="px-1 mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-medium">All Queried Domains</h3>
+                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                      {Object.keys(clientDetails.allDomains).length} domains
+                    </span>
+                  </div>
+
+                  <ScrollArea type="always" className="h-[calc(100vh-200px)]">
+                    <Table>
+                      <TableHeader className="sticky top-0 z-10 bg-muted/80">
+                        <TableRow>
+                          <TableHead className="w-20 text-left">
+                            Count
+                          </TableHead>
+                          <TableHead>Domain</TableHead>
+                          <TableHead className="w-24 text-right">
+                            % of total
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Object.entries(clientDetails.allDomains)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([domain, count]) => {
+                            const percentage = (
+                              (count / clientDetails.totalRequests) *
+                              100
+                            ).toFixed(1);
+                            return (
+                              <TableRow
+                                key={domain}
+                                className="hover:bg-muted/50 transition-colors"
+                              >
+                                <TableCell className="text-left font-medium tabular-nums">
+                                  {count}
+                                </TableCell>
+                                <TableCell className="max-w-24 truncate">
+                                  {domain}
+                                </TableCell>
+                                <TableCell className="text-right text-muted-foreground tabular-nums">
+                                  {percentage}%
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="history" className="flex-1 overflow-auto">
+                  {clientHistory?.length ? (
+                    <ScrollArea type="always" className="h-[calc(100vh-170px)]">
+                      <Table className="border-separate border-spacing-0">
+                        <TableHeader className="bg-muted/80">
+                          <TableRow>
+                            <TableHead>Domain</TableHead>
+                            <TableHead className="text-right">When</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {clientHistory.map(
+                            (entry: ClientHistory, i: number) => (
+                              <TableRow
+                                key={i}
+                                className={cn(
+                                  "transition-colors",
+                                  i % 2 === 0 ? "bg-muted/20" : "bg-background"
+                                )}
+                              >
+                                <TableCell className="max-w-48 truncate">
+                                  {entry.domain}
+                                </TableCell>
+                                <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                                  <TimeAgo
+                                    date={new Date(entry.timestamp)}
+                                    minPeriod={60}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
+                      <ClockCounterClockwiseIcon
+                        size={40}
+                        className="mb-4 opacity-50"
+                      />
+                      <p className="text-sm">No recent DNS history available</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
+                <ShieldIcon size={48} className="mb-4 opacity-60" />
+                <p className="text-lg font-medium">No client data available</p>
               </div>
-            </div>
-          )}
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+            )}
+          </Tabs>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
-function StatCard({ icon, label, value, color }) {
+function StatTile({
+  icon,
+  label,
+  value,
+  accent = "text-foreground",
+  truncate = false
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  accent?: string;
+  truncate?: boolean;
+}) {
   return (
-    <div className="rounded-sm shadow-md bg-background">
-      <div className={`${color} h-1`}></div>
-      <div className="p-2">
-        <div className="flex items-center text-xs text-muted-foreground mb-1 gap-1">
-          {icon} {label}
-        </div>
-        <div className="font-bold text-sm truncate">{value}</div>
+    <div className="rounded-lg border bg-card p-2 shadow-sm">
+      <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className={cn("font-semibold", accent, truncate && "truncate")}>
+        {value}
       </div>
     </div>
   );

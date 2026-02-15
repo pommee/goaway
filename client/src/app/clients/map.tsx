@@ -6,8 +6,8 @@ import { GetRequest, timeAgo } from "@/util";
 import { XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { ForceGraphMethods } from "react-force-graph-2d";
-import { CardDetails } from "./details";
 import { toast } from "sonner";
+import { ClientDetails } from "./details";
 
 interface ClientEntry {
   ip: string;
@@ -657,17 +657,12 @@ export default function DNSServerVisualizer() {
       </div>
 
       {selectedClient && (
-        <CardDetails
-          key={selectedClient.ip}
-          ip={selectedClient.ip}
-          lastSeen={timeAgo(selectedClient.lastSeen)}
-          mac={selectedClient.mac}
-          name={selectedClient.name}
-          vendor={selectedClient.vendor}
-          bypass={selectedClient.bypass}
+        <ClientDetails
+          open={!!selectedClient}
+          onOpenChange={(o) => !o && setSelectedClient(null)}
+          {...(selectedClient ?? {})}
           x={selectedPosition.x}
           y={selectedPosition.y}
-          onClose={() => setSelectedClient(null)}
         />
       )}
 
