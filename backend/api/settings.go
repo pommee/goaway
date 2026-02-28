@@ -256,11 +256,12 @@ func (api *API) importDatabase(c *gin.Context) {
 		return
 	}
 
-	newDB, err := gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
+	gormConf := &gorm.Config{TranslateError: true}
+	newDB, err := gorm.Open(sqlite.Open(currentDBPath), gormConf)
 	if err != nil {
 		log.Error("Failed to open imported database with GORM: %v", err)
 		_ = copyFile(backupPath, currentDBPath)
-		api.DBConn, _ = gorm.Open(sqlite.Open(currentDBPath), &gorm.Config{})
+		api.DBConn, _ = gorm.Open(sqlite.Open(currentDBPath), gormConf)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open imported database, restored from backup"})
 		return
 	}

@@ -143,13 +143,11 @@ export const columns: ColumnDef<Queries>[] = [
     header: "Action",
     cell: ({ row }) => {
       const isBlocked = row.original.blocked;
+      const domain = row.original.domain;
 
       const handleClick = () => {
-        if (isBlocked) {
-          WhitelistDomain(row.original.domain);
-        } else {
-          BlacklistDomain(row.original.domain);
-        }
+        if (isBlocked) WhitelistDomain(domain);
+        else BlacklistDomain(domain);
       };
 
       return (
@@ -157,14 +155,14 @@ export const columns: ColumnDef<Queries>[] = [
           {isBlocked === false ? (
             <div
               onClick={handleClick}
-              className="rounded-sm text-red-500 border px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+              className="rounded-sm text-red-500 border px-2 hover:bg-muted transition-colors cursor-pointer text-sm"
             >
               Block
             </div>
           ) : (
             <div
               onClick={handleClick}
-              className="rounded-sm text-green-500 border px-2 py-0.5  hover:bg-stone-800 transition-colors cursor-pointer text-sm"
+              className="rounded-sm text-green-500 border px-2 hover:bg-muted transition-colors cursor-pointer text-sm"
             >
               Allow
             </div>

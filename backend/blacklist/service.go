@@ -146,6 +146,7 @@ func (s *Service) PopulateCache(ctx context.Context) error {
 
 	s.cache = make(map[string]bool, len(domains))
 	for _, domain := range domains {
+		domain = strings.TrimSuffix(domain, ".")
 		s.cache[domain] = true
 	}
 
@@ -443,9 +444,11 @@ func (s *Service) AddCustomDomains(ctx context.Context, domains []string) error 
 				SourceID: source.ID,
 			}
 			// Ignore duplicate errors
-			if err := s.repository.CreateDomain(ctx, entry); err != nil &&
-				!strings.Contains(err.Error(), "already blacklisted") {
-				log.Warning("Failed to add domain %s: %v", domain, err)
+			if err := s.repository.CreateDomain(ctx, entry); err != nil {
+				if errors.Is(err, gorm.ErrDuplicatedKey) {
+					return fmt.Errorf("%s is already blacklisted", domain)
+				}
+				return err
 			} else {
 				s.updateCache([]string{domain}, true)
 			}

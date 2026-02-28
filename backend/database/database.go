@@ -15,7 +15,9 @@ func Initialize() *gorm.DB {
 	}
 
 	databasePath := filepath.Join("data", "database.db")
-	db, err := gorm.Open(sqlite.Open(databasePath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(databasePath), &gorm.Config{
+		TranslateError: true,
+	})
 	if err != nil {
 		log.Fatal("failed while initializing database: %w", err)
 	}

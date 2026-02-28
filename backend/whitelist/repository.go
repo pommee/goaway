@@ -1,6 +1,7 @@
 package whitelist
 
 import (
+	"errors"
 	"fmt"
 	"goaway/backend/database"
 
@@ -24,6 +25,10 @@ func NewRepository(db *gorm.DB) Repository {
 func (r *repository) AddDomain(domain string) error {
 	result := r.db.Create(&database.Whitelist{Domain: domain})
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return fmt.Errorf("%s is already whitelisted", domain)
+		}
+
 		return result.Error
 	}
 	if result.RowsAffected == 0 {

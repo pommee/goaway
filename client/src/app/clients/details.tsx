@@ -185,17 +185,12 @@ export function ClientDetails({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent
-        className={cn(
-          "right-0 top-0 bottom-0 left-auto h-full w-full max-w-md sm:max-w-lg border-l bg-background",
-          "focus:outline-none"
-        )}
-      >
-        <DrawerHeader className="border-b px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
+      <DrawerContent>
+        <DrawerHeader>
+          <div className="flex">
+            <div className="flex-1">
               {isEditingName ? (
-                <div className="flex items-center gap-2">
+                <div className="flex">
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}

@@ -270,8 +270,7 @@ func (r *repository) CountDomains(ctx context.Context) (int64, error) {
 func (r *repository) CreateDomain(ctx context.Context, domain *database.Blacklist) error {
 	result := r.db.WithContext(ctx).Create(domain)
 	if result.Error != nil {
-		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") ||
-			strings.Contains(result.Error.Error(), "duplicate key") {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return fmt.Errorf("%s is already blacklisted", domain.Domain)
 		}
 		return fmt.Errorf("failed to add domain to blacklist: %w", result.Error)
@@ -285,8 +284,7 @@ func (r *repository) CreateDomainsInBatches(ctx context.Context, domains []datab
 	}
 
 	if err := r.db.WithContext(ctx).CreateInBatches(domains, batchSize).Error; err != nil {
-		if !strings.Contains(err.Error(), "UNIQUE constraint failed") &&
-			!strings.Contains(err.Error(), "duplicate key") {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return fmt.Errorf("failed to add domains: %w", err)
 		}
 	}

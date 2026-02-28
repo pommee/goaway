@@ -13,7 +13,9 @@ import (
 )
 
 func setupTestDB(t *testing.T) (*gorm.DB, func()) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		TranslateError: true,
+	})
 	require.NoError(t, err)
 
 	err = database.AutoMigrate(db)
@@ -66,7 +68,7 @@ func TestSourceModel(t *testing.T) {
 
 		err = db.Create(source2).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 
 	t.Run("QuerySource", func(t *testing.T) {
@@ -206,7 +208,7 @@ func TestBlacklistModel(t *testing.T) {
 
 		err = db.Create(blacklist3).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 }
 
@@ -237,7 +239,7 @@ func TestWhitelistModel(t *testing.T) {
 
 		err = db.Create(whitelist2).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 }
 
@@ -436,7 +438,7 @@ func TestMacAddressModel(t *testing.T) {
 
 		err = db.Create(mac2).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 }
 
@@ -474,7 +476,7 @@ func TestUserModel(t *testing.T) {
 
 		err = db.Create(user2).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 }
 
@@ -699,7 +701,7 @@ func TestAlertModel(t *testing.T) {
 
 		err = db.Create(alert2).Error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "UNIQUE constraint failed")
+		assert.ErrorIs(t, err, gorm.ErrDuplicatedKey)
 	})
 }
 

@@ -50,7 +50,7 @@ func (api *API) updateCustom(c *gin.Context) {
 
 	err = api.BlacklistService.AddCustomDomains(context.Background(), request.Domains)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update custom blocklist."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
