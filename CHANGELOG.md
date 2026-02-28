@@ -1,3 +1,9 @@
+## [0.63.9](https://github.com/pommee/goaway/compare/v0.63.8...v0.63.9) (2026-02-28)
+
+### Bug Fixes
+
+* **deps:** update client dependencies to resolve cve's ([d4fc499](https://github.com/pommee/goaway/commit/d4fc499e9421fdd6410ca1193bfa010a53f65f66))
+
 ## [0.63.8](https://github.com/pommee/goaway/compare/v0.63.7...v0.63.8) (2026-02-28)
 
 ### Bug Fixes
