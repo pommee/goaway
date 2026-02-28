@@ -1,3 +1,15 @@
+## [0.63.8](https://github.com/pommee/goaway/compare/v0.63.7...v0.63.8) (2026-02-28)
+
+### Bug Fixes
+
+* **deps:** update dependencies ([83893cb](https://github.com/pommee/goaway/commit/83893cbe4d0bee323d29c88aebb67a17015eaba0))
+* fixed quick action to allow/block a domain from the logs page ([0f8f6ee](https://github.com/pommee/goaway/commit/0f8f6eea4e342606dce4734cbe3f484b7cba92d1))
+
+### UI/UX
+
+* reworked design for client details modal ([1723dd4](https://github.com/pommee/goaway/commit/1723dd4d3942cddc70a07027dcb391d2d691ac1e))
+* update logs page with some detail cards ([f466846](https://github.com/pommee/goaway/commit/f466846b7987573c4c13b827d7b0e66e3d013879))
+
 ## [0.63.7](https://github.com/pommee/goaway/compare/v0.63.6...v0.63.7) (2026-02-13)
 
 ### Bug Fixes
