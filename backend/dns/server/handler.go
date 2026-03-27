@@ -495,7 +495,9 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 	if request.Msg.RecursionDesired {
 		request.Msg.RecursionAvailable = true
 	}
-	if len(answers) == 0 {
+	if rcode, ok := dns.StringToRcode[status]; ok {
+		request.Msg.Rcode = rcode
+	} else {
 		request.Msg.Rcode = dns.RcodeServerFailure
 	}
 
