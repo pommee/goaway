@@ -228,7 +228,11 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 			d := net.Dialer{
 				Timeout: 2 * time.Second,
 			}
-			return d.DialContext(ctx, "udp", s.Config.DNS.Gateway)
+			gateway := s.Config.DNS.Gateway
+			if _, _, err := net.SplitHostPort(gateway); err != nil {
+				gateway = net.JoinHostPort(gateway, "53")
+			}
+			return d.DialContext(ctx, "udp", gateway)
 		},
 	}
 
@@ -495,7 +499,9 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 	if request.Msg.RecursionDesired {
 		request.Msg.RecursionAvailable = true
 	}
-	if len(answers) == 0 {
+	if rcode, ok := dns.StringToRcode[status]; ok {
+		request.Msg.Rcode = rcode
+	} else {
 		request.Msg.Rcode = dns.RcodeServerFailure
 	}
 
