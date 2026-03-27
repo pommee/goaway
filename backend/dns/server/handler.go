@@ -228,7 +228,11 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 			d := net.Dialer{
 				Timeout: 2 * time.Second,
 			}
-			return d.DialContext(ctx, "udp", s.Config.DNS.Gateway)
+			gateway := s.Config.DNS.Gateway
+			if _, _, err := net.SplitHostPort(gateway); err != nil {
+				gateway = net.JoinHostPort(gateway, "53")
+			}
+			return d.DialContext(ctx, "udp", gateway)
 		},
 	}
 
