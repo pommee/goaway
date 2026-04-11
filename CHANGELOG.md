@@ -1,3 +1,10 @@
+## [0.63.10](https://github.com/pommee/goaway/compare/v0.63.9...v0.63.10) (2026-04-11)
+
+### Bug Fixes
+
+* **dns:** ensure gateway has port when dialing for reverse DNS client lookup ([187aed3](https://github.com/pommee/goaway/commit/187aed3833493298c9ebe9fe086396756df4f52c))
+* **dns:** return upstream Rcode instead of hardcoding SERVFAIL when no answers ([35afaeb](https://github.com/pommee/goaway/commit/35afaeb7ee47f656a12de98f75df3ab168af7480))
+
 ## [0.63.9](https://github.com/pommee/goaway/compare/v0.63.8...v0.63.9) (2026-02-28)
 
 ### Bug Fixes
