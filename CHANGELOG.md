@@ -1,3 +1,10 @@
+## [0.63.11](https://github.com/pommee/goaway/compare/v0.63.10...v0.63.11) (2026-04-11)
+
+### Bug Fixes
+
+* **deps:** update client dependencies ([8d74d66](https://github.com/pommee/goaway/commit/8d74d6628068ff3f93d72ebe09493a4460dacee1))
+* **deps:** update golang version and backend dependencies ([f129507](https://github.com/pommee/goaway/commit/f129507781d2e60a57242da0735f5211d9f806ff))
+
 ## [0.63.10](https://github.com/pommee/goaway/compare/v0.63.9...v0.63.10) (2026-04-11)
 
 ### Bug Fixes
