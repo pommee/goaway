@@ -36,7 +36,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&Whitelist{},
 		&RequestLog{},
 		&RequestLogIP{},
-		&Resolution{},
 		&MacAddress{},
 		&User{},
 		&APIKey{},

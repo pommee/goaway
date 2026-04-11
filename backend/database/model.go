@@ -54,13 +54,6 @@ type RequestLogIP struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 }
 
-type Resolution struct {
-	Domain    string    `gorm:"primaryKey" json:"domain" validate:"required,fqdn"`
-	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-}
-
 type MacAddress struct {
 	MAC       string    `gorm:"primaryKey" json:"mac" validate:"required,mac"`
 	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`

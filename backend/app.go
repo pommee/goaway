@@ -153,7 +153,7 @@ func (a *Application) Start() error {
 	notificationService := notification.NewService(notification.NewRepository(dbConn))
 	prefetchService := prefetch.NewService(prefetch.NewRepository(dbConn), a.context.DNSServer)
 	requestService := request.NewService(request.NewRepository(dbConn))
-	resolutionService := resolution.NewService(resolution.NewRepository(dbConn))
+	resolutionService := resolution.NewService(resolution.NewRepository())
 	userService := user.NewService(user.NewRepository(dbConn))
 	whitelistService := whitelist.NewService(whitelist.NewRepository(dbConn))
 

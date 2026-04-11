@@ -76,6 +76,7 @@ func (config *Config) Update(updatedSettings Config) {
 	config.DNS.CacheTTL = updatedSettings.DNS.CacheTTL
 	config.DNS.TLS = updatedSettings.DNS.TLS
 	config.DNS.Upstream = updatedSettings.DNS.Upstream
+	config.DNS.Resolutions = updatedSettings.DNS.Resolutions
 
 	config.Logging = updatedSettings.Logging
 	config.Misc = updatedSettings.Misc
@@ -119,6 +120,7 @@ func createDefaultSettings(filePath string) (Config, error) {
 				DoT:    getEnvAsIntWithDefault("DOT_PORT", 853),
 				DoH:    getEnvAsIntWithDefault("DOH_PORT", 443),
 			},
+			Resolutions: map[string]string{},
 		},
 		API: APIConfig{
 			Port:           getEnvAsIntWithDefault("WEBSITE_PORT", 8080),

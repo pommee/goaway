@@ -23,9 +23,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { validateFQDN } from "./validation";
 
-type ListEntry = {
-  ip: string;
-  domain: string;
+type ResolutionT = {
+  resolution: {
+    [hostname: string]: string;
+  };
 };
 
 async function CreateResolution(domain: string, ip: string) {
@@ -54,7 +55,7 @@ async function DeleteResolution(domain: string, ip: string) {
 }
 
 export function Resolution() {
-  const [resolutions, setResolutions] = useState<ListEntry[]>([]);
+  const [resolutions, setResolutions] = useState<ResolutionT["resolution"]>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [domainName, setDomainName] = useState("");
@@ -72,14 +73,7 @@ export function Resolution() {
         return;
       }
 
-      const listArray: ListEntry[] = Object.entries(response || {}).map(
-        ([, details]) => ({
-          domain: details.domain,
-          ip: details.ip
-        })
-      );
-
-      setResolutions(listArray);
+      setResolutions((response as ResolutionT["resolution"]) || {});
       setLoading(false);
     })();
   }, []);
@@ -110,7 +104,7 @@ export function Resolution() {
     setSubmitting(true);
     const success = await CreateResolution(domainName, ip);
     if (success) {
-      setResolutions((prev) => [...prev, { domain: domainName, ip }]);
+      setResolutions((prev) => ({ ...prev, [domainName]: ip }));
       setDomainName("");
       setIP("");
       setDomainError(undefined);
@@ -121,19 +115,26 @@ export function Resolution() {
   const handleDelete = async (domain: string, ip: string) => {
     const success = await DeleteResolution(domain, ip);
     if (success) {
-      setResolutions((prev) =>
-        prev.filter((res) => !(res.domain === domain && res.ip === ip))
-      );
+      setResolutions((prev) => {
+        const next = { ...prev };
+        delete next[domain];
+        return next;
+      });
     }
   };
 
+  const entries = Object.entries(resolutions).map(([domain, ip]) => ({
+    domain,
+    ip
+  }));
+
   const filteredResolutions = searchTerm
-    ? resolutions.filter(
+    ? entries.filter(
         (res) =>
           res.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
           res.ip.includes(searchTerm)
       )
-    : resolutions;
+    : entries;
 
   const isFormValid = domainName && ip && !domainError;
 
@@ -150,7 +151,7 @@ export function Resolution() {
         </div>
         <div className="flex items-center gap-2">
           <DatabaseIcon className="h-3 w-3" />
-          {resolutions.length} {resolutions.length === 1 ? "Entry" : "Entries"}
+          {entries.length} {entries.length === 1 ? "Entry" : "Entries"}
         </div>
       </div>
 
@@ -282,8 +283,8 @@ export function Resolution() {
               <div>
                 <span>Current Resolutions</span>
                 <p className="text-sm text-muted-foreground font-normal mt-0.5">
-                  {resolutions.length} active{" "}
-                  {resolutions.length === 1 ? "mapping" : "mappings"}
+                  {entries.length} active{" "}
+                  {entries.length === 1 ? "mapping" : "mappings"}
                 </p>
               </div>
             </CardTitle>

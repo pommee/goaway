@@ -129,6 +129,31 @@ List of backup DNS servers used if the primary server fails.
 
 ---
 
+### Resolution
+
+Custom host-to-IP mappings for local resolution.
+
+This allows you to define specific IP addresses for certain hostnames, bypassing the need for external DNS resolution for those hosts.
+
+Supports wildcard entries (e.g., "\*.example.com") to match multiple subdomains.
+
+`dns.resolution`
+
+Dictionary of resolutions, mapped host-to-IP.
+
+**Default:** `{}` (Empty)
+
+!!! example "Multiple Resolutions"
+
+    ```yaml
+    resolution:
+        example.host: 192.168.0.2
+        another.host: 192.168.1.50
+        "*.wildcard.host": 10.10.0.2
+    ```
+
+---
+
 ## API & Web Interface
 
 ### Server Configuration

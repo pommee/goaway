@@ -32,6 +32,14 @@ dns:
     fallback:
       - 1.1.1.1:53
 
+  # Custom host-to-IP mappings for local resolution.
+  # This allows you to define specific IP addresses for certain hostnames, bypassing the need for external DNS resolution for those hosts.
+  # Supports wildcard entries (e.g., "*.example.com") to match multiple subdomains.
+  resolution:
+    example.host: 192.168.0.2
+    another.host: 192.168.1.50
+    "*.wildcard.host": 10.10.0.2
+
   # Port used for the DNS server to bind to.
   # This is the port on which the server will listen for incoming DNS queries.
   # The server will listen on both UDP and TCP on this port.

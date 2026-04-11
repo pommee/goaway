@@ -26,14 +26,15 @@ type PortsConfig struct {
 }
 
 type DNSConfig struct {
-	Status   Status         `yaml:"-" json:"status"`
-	Address  string         `yaml:"address" json:"address"`
-	Gateway  string         `yaml:"gateway" json:"gateway"`
-	CacheTTL int            `yaml:"cacheTTL" json:"cacheTTL"`
-	UDPSize  int            `yaml:"udpSize" json:"udpSize"`
-	TLS      TLSConfig      `yaml:"tls" json:"tls"`
-	Upstream UpstreamConfig `yaml:"upstream" json:"upstream"`
-	Ports    PortsConfig    `yaml:"ports" json:"ports"`
+	Status      Status            `yaml:"-" json:"status"`
+	Address     string            `yaml:"address" json:"address"`
+	Gateway     string            `yaml:"gateway" json:"gateway"`
+	CacheTTL    int               `yaml:"cacheTTL" json:"cacheTTL"`
+	UDPSize     int               `yaml:"udpSize" json:"udpSize"`
+	TLS         TLSConfig         `yaml:"tls" json:"tls"`
+	Upstream    UpstreamConfig    `yaml:"upstream" json:"upstream"`
+	Resolutions map[string]string `yaml:"resolution" json:"resolution"`
+	Ports       PortsConfig       `yaml:"ports" json:"ports"`
 }
 
 type RateLimitConfig struct {

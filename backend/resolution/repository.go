@@ -2,76 +2,86 @@ package resolution
 
 import (
 	"errors"
-	"fmt"
-	"goaway/backend/database"
+	"goaway/backend/settings"
 	"strings"
-
-	"gorm.io/gorm"
 )
 
 type Repository interface {
 	CreateResolution(ip, domain string) error
 	FindResolution(domain string) (string, error)
-	FindResolutions() ([]database.Resolution, error)
+	FindResolutions() (map[string]string, error)
 	DeleteResolution(ip, domain string) (int, error)
 }
 
 type repository struct {
-	db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) Repository {
-	return &repository{db: db}
+func NewRepository() Repository {
+	return &repository{}
 }
 
 func (r *repository) CreateResolution(ip, domain string) error {
-	res := database.Resolution{
-		Domain: domain,
-		IP:     ip,
+	cfg, err := settings.LoadSettings()
+	if err != nil {
+		return err
+	}
+	if cfg.DNS.Resolutions == nil {
+		cfg.DNS.Resolutions = make(map[string]string)
 	}
 
-	if err := r.db.Create(&res).Error; err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
-			return errors.New("domain already exists, must be unique")
-		}
-		return fmt.Errorf("could not create new resolution: %w", err)
+	if _, exists := cfg.DNS.Resolutions[domain]; exists {
+		return errors.New("domain already exists, must be unique")
 	}
+
+	cfg.DNS.Resolutions[domain] = ip
+	cfg.Save()
 	return nil
 }
 
 func (r *repository) FindResolution(domain string) (string, error) {
-	var res database.Resolution
-
-	r.db.Where("domain = ?", domain).Find(&res)
-	if res.IP != "" {
-		return res.IP, nil
+	cfg, err := settings.LoadSettings()
+	if err != nil {
+		return "", err
+	}
+	if ip, ok := cfg.DNS.Resolutions[domain]; ok {
+		return ip, nil
 	}
 
 	parts := strings.Split(domain, ".")
 	for i := 1; i < len(parts); i++ {
 		wildcardDomain := "*." + strings.Join(parts[i:], ".")
-		if err := r.db.Where("domain = ?", wildcardDomain).Find(&res).Error; err == nil {
-			return res.IP, nil
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", err
+		if ip, ok := cfg.DNS.Resolutions[wildcardDomain]; ok {
+			return ip, nil
 		}
 	}
 
 	return "", nil
 }
 
-func (r *repository) FindResolutions() ([]database.Resolution, error) {
-	var resolutions []database.Resolution
-	if err := r.db.Find(&resolutions).Error; err != nil {
+func (r *repository) FindResolutions() (map[string]string, error) {
+	cfg, err := settings.LoadSettings()
+	if err != nil {
 		return nil, err
 	}
-	return resolutions, nil
+	if cfg.DNS.Resolutions == nil {
+		return map[string]string{}, nil
+	}
+	return cfg.DNS.Resolutions, nil
 }
 
 func (r *repository) DeleteResolution(ip, domain string) (int, error) {
-	result := r.db.Where("domain = ? AND ip = ?", domain, ip).Delete(&database.Resolution{})
-	if result.Error != nil {
-		return 0, result.Error
+	cfg, err := settings.LoadSettings()
+	if err != nil {
+		return 0, err
 	}
-	return int(result.RowsAffected), nil
+	if cur, ok := cfg.DNS.Resolutions[domain]; ok {
+		if cur == ip {
+			delete(cfg.DNS.Resolutions, domain)
+			cfg.Save()
+			return 1, nil
+		}
+		return 0, nil
+	}
+
+	return 0, nil
 }

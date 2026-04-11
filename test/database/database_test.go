@@ -363,44 +363,6 @@ func TestRequestLogModel(t *testing.T) {
 	})
 }
 
-func TestResolutionModel(t *testing.T) {
-	t.Run("CreateResolution", func(t *testing.T) {
-		db, cleanup := setupTestDB(t)
-		defer cleanup()
-
-		resolution := &database.Resolution{
-			Domain: "custom.local",
-			IP:     "192.168.1.10",
-		}
-
-		err := db.Create(resolution).Error
-		require.NoError(t, err)
-	})
-
-	t.Run("UpdateResolution", func(t *testing.T) {
-		db, cleanup := setupTestDB(t)
-		defer cleanup()
-
-		domain := "update-test.local"
-		resolution := &database.Resolution{
-			Domain: domain,
-			IP:     "192.168.1.20",
-		}
-
-		err := db.Create(resolution).Error
-		require.NoError(t, err)
-
-		resolution.IP = "192.168.1.30"
-		err = db.Save(resolution).Error
-		require.NoError(t, err)
-
-		var updated database.Resolution
-		err = db.First(&updated, "domain = ?", domain).Error
-		require.NoError(t, err)
-		assert.Equal(t, "192.168.1.30", updated.IP)
-	})
-}
-
 func TestMacAddressModel(t *testing.T) {
 	t.Run("CreateMacAddress", func(t *testing.T) {
 		db, cleanup := setupTestDB(t)
