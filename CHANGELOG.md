@@ -1,3 +1,9 @@
+## [0.63.12](https://github.com/pommee/goaway/compare/v0.63.11...v0.63.12) (2026-04-11)
+
+### Bug Fixes
+
+* **resolution:** resolutions are now stored/handled via the settings.yaml file and not sqlite, this requires you to re-add all resolutions ([ed16cc3](https://github.com/pommee/goaway/commit/ed16cc34aa1ec7d3756579c549357a99a3d6dfa2))
+
 ## [0.63.11](https://github.com/pommee/goaway/compare/v0.63.10...v0.63.11) (2026-04-11)
 
 ### Bug Fixes
