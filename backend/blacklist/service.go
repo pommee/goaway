@@ -11,6 +11,7 @@ import (
 	"goaway/backend/logging"
 	"io"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -34,6 +35,7 @@ type Service struct {
 	repository   Repository
 	httpClient   HTTPClient
 	cache        map[string]bool
+	wildcards    []string
 	cacheMu      sync.RWMutex
 	blocklistURL []BlocklistSource
 	config       Config
@@ -74,6 +76,7 @@ func NewService(repo Repository) *Service {
 		repository: repo,
 		httpClient: http.DefaultClient,
 		cache:      make(map[string]bool),
+		wildcards:  make([]string, 0),
 		config:     config,
 	}
 
@@ -145,9 +148,15 @@ func (s *Service) PopulateCache(ctx context.Context) error {
 	defer s.cacheMu.Unlock()
 
 	s.cache = make(map[string]bool, len(domains))
+	s.wildcards = make([]string, 0)
+
 	for _, domain := range domains {
 		domain = strings.TrimSuffix(domain, ".")
-		s.cache[domain] = true
+		if strings.HasPrefix(domain, "*.") {
+			s.wildcards = append(s.wildcards, domain)
+		} else {
+			s.cache[domain] = true
+		}
 	}
 
 	return nil
@@ -157,10 +166,41 @@ func (s *Service) IsBlacklisted(domain string) bool {
 	s.cacheMu.RLock()
 	defer s.cacheMu.RUnlock()
 
+	// Exact match
 	if exists, found := s.cache[domain]; found {
 		return exists
 	}
+
+	// Wildcard match
+	for _, pattern := range s.wildcards {
+		if matchesWildcard(domain, pattern) {
+			return true
+		}
+	}
+
 	return false
+}
+
+// matchesWildcard checks if a domain matches a wildcard pattern
+// Examples:
+// - "*.example.com" matches "test.example.com", "a.b.example.com"
+// - "*.example.com" does NOT match "example.com"
+func matchesWildcard(domain, pattern string) bool {
+	domain = strings.TrimSuffix(domain, ".")
+	pattern = strings.TrimSuffix(pattern, ".")
+
+	if !strings.HasPrefix(pattern, "*.") {
+		return domain == pattern
+	}
+
+	// Extract the base domain (everything after "*.")
+	baseDomain := pattern[2:]
+	suffix := "." + baseDomain
+	if !strings.HasSuffix(domain, suffix) {
+		return false
+	}
+
+	return len(domain) > len(suffix)
 }
 
 func (s *Service) GetBlocklistUrls(ctx context.Context) ([]BlocklistSource, error) {
@@ -307,6 +347,32 @@ func (s *Service) isValidDomain(domain string) bool {
 	return !invalidDomains[domain]
 }
 
+// isValidDomainOrWildcard checks if a domain is valid FQDN or a valid wildcard pattern
+// Valid wildcards start with "*." followed by a valid domain
+func isValidDomainOrWildcard(domain string) bool {
+	domain = strings.TrimSuffix(domain, ".")
+
+	if strings.HasPrefix(domain, "*.") {
+		baseDomain := domain[2:]
+		// Basic validation: must have at least one dot and contain only valid characters
+		if len(baseDomain) == 0 {
+			return false
+		}
+		if strings.Contains(baseDomain, "*") {
+			return false
+		}
+		return strings.Contains(baseDomain, ".")
+	}
+
+	if len(domain) == 0 || !strings.Contains(domain, ".") {
+		return false
+	}
+	if strings.Contains(domain, "*") {
+		return false
+	}
+	return true
+}
+
 func (s *Service) ExtractDomains(body io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(body)
 	domainSet := make(map[string]struct{})
@@ -349,10 +415,29 @@ func (s *Service) updateCache(domains []string, add bool) {
 	defer s.cacheMu.Unlock()
 
 	for _, domain := range domains {
-		if add {
-			s.cache[domain] = true
+		domain = strings.TrimSuffix(domain, ".")
+
+		if strings.HasPrefix(domain, "*.") {
+			// Handle wildcard patterns
+			if add {
+				found := slices.Contains(s.wildcards, domain)
+				if !found {
+					s.wildcards = append(s.wildcards, domain)
+				}
+			} else {
+				for i, existing := range s.wildcards {
+					if existing == domain {
+						s.wildcards = append(s.wildcards[:i], s.wildcards[i+1:]...)
+						break
+					}
+				}
+			}
 		} else {
-			delete(s.cache, domain)
+			if add {
+				s.cache[domain] = true
+			} else {
+				delete(s.cache, domain)
+			}
 		}
 	}
 }
@@ -414,6 +499,12 @@ func (s *Service) RemoveDomain(ctx context.Context, domain string) error {
 }
 
 func (s *Service) AddCustomDomains(ctx context.Context, domains []string) error {
+	for _, domain := range domains {
+		if !isValidDomainOrWildcard(domain) {
+			return fmt.Errorf("invalid domain or wildcard pattern: %s", domain)
+		}
+	}
+
 	return s.repository.WithTransaction(ctx, func(tx *gorm.DB) error {
 		currentTime := time.Now()
 
