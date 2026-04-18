@@ -1,3 +1,9 @@
+## [0.63.14](https://github.com/pommee/goaway/compare/v0.63.13...v0.63.14) (2026-04-18)
+
+### Bug Fixes
+
+* added support for wildcard in custom blacklist ([fa8ac9d](https://github.com/pommee/goaway/commit/fa8ac9d03fe90ba9fbc10e123e26ecae5ee6437c))
+
 ## [0.63.13](https://github.com/pommee/goaway/compare/v0.63.12...v0.63.13) (2026-04-18)
 
 ### Bug Fixes
