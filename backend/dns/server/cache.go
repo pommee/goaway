@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
 )
 
 func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
@@ -18,9 +18,9 @@ func (s *DNSServer) getCachedRecord(cached interface{}) ([]dns.RR, bool) {
 		updatedRecords := make([]dns.RR, len(cachedRecord.IPAddresses))
 
 		for i, rr := range cachedRecord.IPAddresses {
-			if rr.Header().Ttl != remainingSeconds {
-				clone := dns.Copy(rr)
-				clone.Header().Ttl = remainingSeconds
+			if rr.Header().TTL != remainingSeconds {
+				clone := rr.Clone()
+				clone.Header().TTL = remainingSeconds
 				updatedRecords[i] = clone
 			} else {
 				updatedRecords[i] = rr

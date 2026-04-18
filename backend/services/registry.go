@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"goaway/backend/api"
@@ -16,7 +17,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
 )
 
 var log = logging.GetLogger()
@@ -84,7 +85,7 @@ func (r *ServiceRegistry) Initialize() error {
 func (r *ServiceRegistry) setupDNSServers() {
 	config := r.Context.Config
 
-	notifyReady := func() {
+	notifyReady := func(context.Context) {
 		log.Info("Started DNS server on: %s:%d", config.DNS.Address, config.DNS.Ports.TCPUDP)
 		close(r.readyChan)
 	}

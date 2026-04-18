@@ -3,29 +3,24 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	model "goaway/backend/dns/server/models"
-	"io"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns/dnshttp"
 )
 
 const (
-	maxDoHRequestSize = 4096
-	doHTimeout        = 20 * time.Second
-	doHReadTimeout    = 8 * time.Second
-	doHWriteTimeout   = 8 * time.Second
-	megabyte          = 1 << 20
+	doHReadTimeout  = 8 * time.Second
+	doHWriteTimeout = 8 * time.Second
+	megabyte        = 1 << 20
 )
 
 func (s *DNSServer) InitDoH(cert tls.Certificate) (*http.Server, error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/dns-query", s.handleDoHRequest)
+	mux.HandleFunc(dnshttp.Path, s.handleDoHRequest)
 	mux.HandleFunc("/health", s.handleHealthCheck)
 
 	server := &http.Server{
@@ -36,7 +31,7 @@ func (s *DNSServer) InitDoH(cert tls.Certificate) (*http.Server, error) {
 			MinVersion:               tls.VersionTLS12,
 			MaxVersion:               tls.VersionTLS13,
 			PreferServerCipherSuites: true,
-			NextProtos:               []string{"h2", "http/1.1"},
+			NextProtos:               dnshttp.NextProtos,
 		},
 		ReadTimeout:       doHReadTimeout,
 		WriteTimeout:      doHWriteTimeout,
@@ -60,209 +55,25 @@ func (s *DNSServer) handleHealthCheck(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *DNSServer) handleDoHRequest(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), doHTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	ctxVal := context.WithValue(ctx, model.DoH, true)
 	defer cancel()
-
-	r = r.WithContext(ctx)
 
 	log.Debug("DoH request received: %s %s from %s", r.Method, r.URL.String(), r.RemoteAddr)
 
-	if r.ContentLength > maxDoHRequestSize {
-		log.Warning("DoH request too large: %d bytes from %s", r.ContentLength, r.RemoteAddr)
-		http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	var (
-		clientIP, _, _ = net.SplitHostPort(r.RemoteAddr)
-		xRealIP        = net.ParseIP(r.Header.Get("X-Real-IP"))
-		client         model.Client
-	)
-	if xRealIP != nil {
-		go s.WSCom(communicationMessage{IP: xRealIP.String(), Client: true, Upstream: false, DNS: false})
-	} else {
-		go s.WSCom(communicationMessage{IP: clientIP, Client: true, Upstream: false, DNS: false})
-	}
-
-	var (
-		dnsQuery []byte
-		err      error
-	)
-
-	switch r.Method {
-	case http.MethodGet:
-		dnsQuery, err = s.handleDoHGet(r)
-	case http.MethodPost:
-		dnsQuery, err = s.handleDoHPost(r)
-	default:
-		log.Warning("DoH request invalid method: %s from %s", r.Method, r.RemoteAddr)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+	// Parse the HTTP request into a DNS message
+	msg, err := dnshttp.Request(r)
 	if err != nil {
-		log.Warning("DoH request processing failed: %v", err)
+		log.Warning("DoH request parsing failed: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	msg := new(dns.Msg)
-	if err := msg.Unpack(dnsQuery); err != nil {
-		log.Warning("DoH request invalid DNS message: %v", err)
-		http.Error(w, "Invalid DNS message", http.StatusBadRequest)
-		return
-	}
+	// Local address for the ResponseWriter
+	laddr := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
 
-	if len(msg.Question) == 0 {
-		log.Warning("DoH request missing question section")
-		http.Error(w, "Missing question section", http.StatusBadRequest)
-		return
-	}
+	// DNS ResponseWriter wrapper for HTTP
+	hw := dnshttp.NewResponseWriter(w, r, laddr)
 
-	msg.Compress = true
-
-	responseWriter := &DoHResponseWriter{
-		httpWriter: w,
-		remoteAddr: r.RemoteAddr,
-		DoHPort:    s.Config.DNS.Ports.DoH,
-	}
-
-	if xRealIP != nil {
-		client = *s.getClientInfo(xRealIP)
-		clientIP = client.IP
-	} else {
-		client = *s.getClientInfo(net.ParseIP(clientIP))
-	}
-
-	req := &Request{
-		ResponseWriter: responseWriter,
-		Msg:            msg,
-		Question:       msg.Question[0],
-		Sent:           time.Now(),
-		Client:         &client,
-		Prefetch:       false,
-		Protocol:       model.DoH,
-	}
-
-	logEntry := s.processQuery(req)
-
-	go s.WSCom(communicationMessage{IP: clientIP, Client: false, Upstream: false, DNS: true})
-
-	select {
-	case s.logEntryChannel <- logEntry:
-	case <-time.After(1 * time.Second):
-		log.Warning("Log entry channel full, dropping log entry")
-	}
+	s.ServeDNS(ctxVal, hw, msg)
 }
-
-func (s *DNSServer) handleDoHGet(r *http.Request) ([]byte, error) {
-	dnsParam := r.URL.Query().Get("dns")
-	if dnsParam == "" {
-		return nil, fmt.Errorf("missing dns parameter")
-	}
-
-	if len(dnsParam) > maxDoHRequestSize {
-		return nil, fmt.Errorf("dns parameter too long")
-	}
-
-	dnsQuery, err := base64.RawURLEncoding.DecodeString(dnsParam)
-	if err != nil {
-		return nil, fmt.Errorf("invalid dns parameter: %w", err)
-	}
-
-	if len(dnsQuery) == 0 {
-		return nil, fmt.Errorf("empty dns query")
-	}
-
-	return dnsQuery, nil
-}
-
-func (s *DNSServer) handleDoHPost(r *http.Request) ([]byte, error) {
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/dns-message" {
-		return nil, fmt.Errorf("invalid content type: %s", contentType)
-	}
-
-	limitedReader := io.LimitReader(r.Body, maxDoHRequestSize)
-	dnsQuery, err := io.ReadAll(limitedReader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read request body: %w", err)
-	}
-
-	if len(dnsQuery) == 0 {
-		return nil, fmt.Errorf("empty request body")
-	}
-
-	return dnsQuery, nil
-}
-
-type DoHResponseWriter struct {
-	httpWriter http.ResponseWriter
-	msg        *dns.Msg
-	remoteAddr string
-	mu         sync.Mutex
-	DoHPort    int
-}
-
-func (w *DoHResponseWriter) LocalAddr() net.Addr {
-	addr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%d", w.DoHPort))
-	return addr
-}
-
-func (w *DoHResponseWriter) RemoteAddr() net.Addr {
-	addr, err := net.ResolveTCPAddr("tcp", w.remoteAddr)
-	if err != nil {
-		log.Warning("Failed to resolve remote address %s: %v", w.remoteAddr, err)
-		addr, _ = net.ResolveTCPAddr("tcp", "127.0.0.1:0")
-	}
-	return addr
-}
-
-func (w *DoHResponseWriter) WriteMsg(msg *dns.Msg) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.msg = msg
-
-	responseBytes, err := msg.Pack()
-	if err != nil {
-		log.Error("DoH failed to pack response: %v", err)
-		return err
-	}
-
-	w.httpWriter.Header().Set("Content-Type", "application/dns-message")
-	w.httpWriter.Header().Set("Cache-Control", "max-age=0")
-	w.httpWriter.Header().Set("Content-Length", fmt.Sprintf("%d", len(responseBytes)))
-	w.httpWriter.WriteHeader(http.StatusOK)
-
-	n, err := w.httpWriter.Write(responseBytes)
-	if err != nil {
-		log.Error("DoH failed to write response: %v", err)
-		return err
-	}
-
-	log.Debug("DoH response sent: %d bytes written", n)
-	return nil
-}
-
-func (w *DoHResponseWriter) Write(b []byte) (int, error) {
-	return w.httpWriter.Write(b)
-}
-
-func (w *DoHResponseWriter) Close() error {
-	return nil
-}
-
-func (w *DoHResponseWriter) TsigStatus() error {
-	return nil
-}
-
-func (w *DoHResponseWriter) TsigTimersOnly(bool) {}
-
-func (w *DoHResponseWriter) Hijack() {}
-
-func (w *DoHResponseWriter) Header() http.Header { return nil }
-
-func (w *DoHResponseWriter) Network() string { return "tcp" }
-
-func (w *DoHResponseWriter) WriteHeader(_ int) {}

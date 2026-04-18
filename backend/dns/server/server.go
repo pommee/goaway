@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"goaway/backend/alert"
 	"goaway/backend/audit"
 	"goaway/backend/blacklist"
@@ -15,12 +17,14 @@ import (
 	"goaway/backend/settings"
 	"goaway/backend/user"
 	"goaway/backend/whitelist"
+	"io"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
+	"codeberg.org/miekg/dns"
 	"github.com/gorilla/websocket"
-	"github.com/miekg/dns"
 	"gorm.io/gorm"
 )
 
@@ -88,10 +92,37 @@ type Request struct {
 	Sent           time.Time
 	ResponseWriter dns.ResponseWriter
 	Msg            *dns.Msg
+	Question       dns.RR
 	Client         *model.Client
 	Protocol       model.Protocol
-	Question       dns.Question
 	Prefetch       bool
+}
+
+// Respond writes the DNS response back to the client.
+// It is the caller's responsibility to call this method, and not write to the ResponseWriter directly, as Respond also handles packing the message and error handling.
+func (r *Request) Respond(ns *notification.Service) {
+	err := r.Msg.Pack()
+	if err != nil {
+		log.Warning("Failed to pack DNS response for '%s': %v", r.Msg.Question[0].Header().Name, err)
+	}
+	_, err = io.Copy(r.ResponseWriter, r.Msg)
+	if err != nil {
+		log.Warning("Failed to write DNS response for '%s': %v", r.Msg.Question[0].Header().Name, err)
+		ns.SendNotification(
+			notification.SeverityWarning,
+			notification.CategoryDNS,
+			fmt.Sprintf("Failed to write DNS response for '%s': %v", r.Msg.Question[0].Header().Name, err),
+		)
+	}
+
+	if err != nil {
+		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", r.Client.IP, r.Msg.Answer, err.Error())
+		ns.SendNotification(
+			notification.SeverityWarning,
+			notification.CategoryDNS,
+			fmt.Sprintf("Could not write query response. Client: %s, err: %v", r.Client.IP, err.Error()),
+		)
+	}
 }
 
 type communicationMessage struct {
@@ -102,46 +133,51 @@ type communicationMessage struct {
 }
 
 func NewDNSServer(config *settings.Config, dbconn *gorm.DB, cert tls.Certificate) (*DNSServer, error) {
-	var client dns.Client
-	if cert.Certificate != nil {
-		client = dns.Client{Net: "tcp-tls"}
-	}
-
 	server := &DNSServer{
 		Config:          config,
 		dbConn:          dbconn,
 		logEntryChannel: make(chan model.RequestLogEntry, 1000),
-		dnsClient:       &client,
+		dnsClient:       dns.NewClient(),
 		DomainCache:     sync.Map{},
 	}
 
 	return server, nil
 }
 
-func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+func (s *DNSServer) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	if !s.validQuery(w, r) {
 		return
 	}
 
-	var clientIP net.IP
+	var clientIP netip.Addr
 
 	switch addr := w.RemoteAddr().(type) {
 	case *net.UDPAddr:
-		clientIP = addr.IP
+		ip, err := netip.ParseAddr(addr.IP.String())
+		if err != nil {
+			log.Warning("Failed to parse client IP: %v", err)
+			return
+		}
+		clientIP = ip
 	case *net.TCPAddr:
-		clientIP = addr.IP
+		ip, err := netip.ParseAddr(addr.IP.String())
+		if err != nil {
+			log.Warning("Failed to parse client IP: %v", err)
+			return
+		}
+		clientIP = ip
 	default:
 		return
 	}
 
 	client := s.getClientInfo(clientIP)
-	protocol := s.detectProtocol(w)
+	protocol := s.detectProtocol(ctx, w)
 
 	go s.WSCom(communicationMessage{
 		Client:   true,
 		Upstream: false,
 		DNS:      false,
-		IP:       client.IP,
+		IP:       client.IP.String(),
 	})
 
 	entry := s.processQuery(&Request{
@@ -158,13 +194,18 @@ func (s *DNSServer) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		Client:   false,
 		Upstream: false,
 		DNS:      true,
-		IP:       client.IP,
+		IP:       client.IP.String(),
 	})
 
 	s.logEntryChannel <- entry
 }
 
-func (s *DNSServer) detectProtocol(w dns.ResponseWriter) model.Protocol {
+func (s *DNSServer) detectProtocol(ctx context.Context, w dns.ResponseWriter) model.Protocol {
+	isDoH := ctx.Value(model.DoH) == true
+	if isDoH {
+		return model.DoH
+	}
+
 	if conn, ok := w.(interface{ ConnectionState() *tls.ConnectionState }); ok {
 		if conn.ConnectionState() != nil {
 			return model.DoT
@@ -229,8 +270,16 @@ func (s *DNSServer) WSCom(message communicationMessage) {
 
 func (s *DNSServer) validQuery(w dns.ResponseWriter, r *dns.Msg) bool {
 	failedCallback := func() bool {
-		r.SetRcode(r, dns.RcodeFormatError)
-		_ = w.WriteMsg(r)
+		r.Rcode = dns.RcodeFormatError
+		_, err := io.Copy(w, r)
+		if err != nil {
+			log.Warning("Failed to write DNS response for '%s': %v", r.Question[0].Header().Name, err)
+			s.NotificationService.SendNotification(
+				notification.SeverityWarning,
+				notification.CategoryDNS,
+				fmt.Sprintf("Failed to write DNS response for '%s': %v", r.Question[0].Header().Name, err),
+			)
+		}
 		return false
 	}
 
@@ -239,8 +288,8 @@ func (s *DNSServer) validQuery(w dns.ResponseWriter, r *dns.Msg) bool {
 		return failedCallback()
 	}
 
-	if len(r.Question[0].Name) <= 1 {
-		log.Warning("Query contains invalid question name '%s', ignoring!", r.Question[0].Name)
+	if len(r.Question[0].Header().Name) <= 1 {
+		log.Warning("Query contains invalid question name '%s', ignoring!", r.Question[0].Header().Name)
 		return failedCallback()
 	}
 

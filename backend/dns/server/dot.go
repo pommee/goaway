@@ -1,15 +1,16 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
 )
 
 func (s *DNSServer) InitDoT(cert tls.Certificate) (*dns.Server, error) {
-	notifyReady := func() {
+	notifyReady := func(context.Context) {
 		log.Info("Started DoT (dns-over-tls) server on port %d", s.Config.DNS.Ports.DoT)
 	}
 
@@ -19,14 +20,13 @@ func (s *DNSServer) InitDoT(cert tls.Certificate) (*dns.Server, error) {
 	}
 	server := &dns.Server{
 		Addr:              fmt.Sprintf("%s:%d", s.Config.DNS.Address, s.Config.DNS.Ports.DoT),
-		Net:               "tcp-tls",
+		Net:               "tcp",
 		Handler:           s,
 		TLSConfig:         tlsConfig,
 		ReusePort:         true,
 		UDPSize:           s.Config.DNS.UDPSize,
 		NotifyStartedFunc: notifyReady,
 		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      5 * time.Second,
 	}
 
 	return server, nil

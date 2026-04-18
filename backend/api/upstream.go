@@ -13,8 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/gin-gonic/gin"
-	"github.com/miekg/dns"
 	probing "github.com/prometheus-community/pro-bing"
 )
 
@@ -169,7 +170,11 @@ func measureDNSPing(upstream string) pingResult {
 	var (
 		testDomains = []string{"google.com", "cloudflare.com", "quad9.net"}
 		client      = &dns.Client{
-			Timeout: 2 * time.Second,
+			Transport: &dns.Transport{
+				Dialer: &net.Dialer{
+					Timeout: 3 * time.Second,
+				},
+			},
 		}
 		totalDuration time.Duration
 		successCount  int
@@ -177,12 +182,11 @@ func measureDNSPing(upstream string) pingResult {
 	)
 
 	for _, domain := range testDomains {
-		msg := &dns.Msg{}
-		msg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+		msg := dns.NewMsg(dnsutil.Fqdn(domain), dns.TypeA)
 		msg.RecursionDesired = true
 
 		start := time.Now()
-		response, _, err := client.Exchange(msg, upstream)
+		response, _, err := client.Exchange(context.TODO(), msg, "udp", upstream)
 		duration := time.Since(start)
 
 		if err != nil {

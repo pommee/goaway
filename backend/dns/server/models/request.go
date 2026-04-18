@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"net/netip"
 	"time"
 )
 
@@ -48,8 +49,8 @@ const (
 )
 
 type ResolvedIP struct {
-	IP    string `json:"ip"`
-	RType string `json:"rtype"`
+	IP    netip.Addr `json:"ip"`
+	RType string     `json:"rtype"`
 }
 
 type RequestLogIntervalSummary struct {

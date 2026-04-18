@@ -8,6 +8,7 @@ import (
 	model "goaway/backend/dns/server/models"
 	"goaway/backend/notification"
 	"net"
+	"net/netip"
 	"os"
 	"os/exec"
 	"regexp"
@@ -15,16 +16,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
+	"codeberg.org/miekg/dns/rdata"
 )
 
 var (
-	blackholeIPv4 = net.ParseIP("0.0.0.0")
-	blackholeIPv6 = net.ParseIP("::")
+	blackholeIPv4 = netip.MustParseAddr("0.0.0.0")
+	blackholeIPv6 = netip.MustParseAddr("::")
+	IPv4Loopback  = netip.MustParseAddr("127.0.0.1")
 )
 
 const (
-	IPv4Loopback    = "127.0.0.1"
 	unknownHostname = "unknown"
 )
 
@@ -36,7 +39,7 @@ func trimDomainDot(name string) string {
 }
 
 func isPTRQuery(request *Request, domainName string) bool {
-	return request.Question.Qtype == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.")
+	return request.Question.Header().Class == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.")
 }
 
 func (s *DNSServer) checkAndUpdatePauseStatus() {
@@ -58,26 +61,26 @@ func (s *DNSServer) shouldBlockQuery(client *model.Client, domainName, fullName 
 }
 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
-	domainName := trimDomainDot(request.Question.Name)
+	domainName := trimDomainDot(request.Question.Header().Name)
 
 	if isPTRQuery(request, domainName) {
 		return s.handlePTRQuery(request)
 	}
 
-	if ip, found := s.reverseHostnameLookup(request.Question.Name); found {
+	if ip, found := s.reverseHostnameLookup(domainName); found {
 		return s.respondWithHostnameA(request, ip)
 	}
 
 	s.checkAndUpdatePauseStatus()
 
-	if s.shouldBlockQuery(request.Client, domainName, request.Question.Name) {
+	if s.shouldBlockQuery(request.Client, domainName, domainName) {
 		return s.handleBlacklisted(request)
 	}
 
-	if isLocalLookup(request.Question.Name) {
+	if isLocalLookup(domainName) {
 		val, err := s.LocalForwardLookup(request)
 		if err != nil {
-			log.Debug("Reverse lookup failed for %s: %v", request.Question.Name, err)
+			log.Debug("Reverse lookup failed for %s: %v", domainName, err)
 		} else {
 			return val
 		}
@@ -86,7 +89,7 @@ func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	return s.handleStandardQuery(request)
 }
 
-func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, bool) {
+func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (netip.Addr, bool) {
 	trimmed := strings.TrimSuffix(requestedHostname, ".")
 	if value, ok := s.clientHostnameCache.Load(trimmed); ok {
 		if client, ok := value.(*model.Client); ok {
@@ -94,15 +97,11 @@ func (s *DNSServer) reverseHostnameLookup(requestedHostname string) (string, boo
 		}
 	}
 
-	return "", false
+	return netip.Addr{}, false
 }
 
-func (s *DNSServer) getClientInfo(ip net.IP) *model.Client {
-	var (
-		clientIP   = ip.String()
-		isLoopback = ip.IsLoopback()
-	)
-
+func (s *DNSServer) getClientInfo(clientIP netip.Addr) *model.Client {
+	var isLoopback = clientIP.IsLoopback()
 	if isLoopback {
 		if localIP, err := getLocalIP(); err == nil {
 			clientIP = localIP
@@ -129,7 +128,7 @@ func (s *DNSServer) getClientInfo(ip net.IP) *model.Client {
 		}
 	}
 
-	vendor := s.lookupVendor(clientIP, macAddress)
+	vendor := s.lookupVendor(clientIP.String(), macAddress)
 	client := &model.Client{
 		IP:       clientIP,
 		LastSeen: time.Now(),
@@ -169,9 +168,8 @@ func (s *DNSServer) lookupVendor(clientIP, macAddress string) string {
 	return vendor
 }
 
-func (s *DNSServer) resolveHostname(clientIP string) string {
-	ip := net.ParseIP(clientIP)
-	if ip.IsLoopback() {
+func (s *DNSServer) resolveHostname(clientIP netip.Addr) string {
+	if clientIP.IsLoopback() {
 		hostname, err := os.Hostname()
 		if err == nil {
 			return hostname
@@ -193,20 +191,20 @@ func (s *DNSServer) resolveHostname(clientIP string) string {
 	return unknownHostname
 }
 
-func (s *DNSServer) avahiLookup(clientIP string) string {
+func (s *DNSServer) avahiLookup(clientIP netip.Addr) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "avahi-resolve-address", clientIP)
+	cmd := exec.CommandContext(ctx, "avahi-resolve-address", clientIP.String())
 	output, err := cmd.Output()
 	if err == nil {
 		lines := strings.SplitSeq(string(output), "\n")
 		for line := range lines {
-			if strings.Contains(line, clientIP) {
+			if strings.Contains(line, clientIP.String()) {
 				parts := strings.Fields(line)
 				if len(parts) >= 2 {
 					hostname := strings.TrimSuffix(parts[1], ".local")
-					if hostname != "" && hostname != clientIP {
+					if hostname != "" && hostname != clientIP.String() {
 						log.Debug("Found hostname via avahi-resolve: %s -> %s", clientIP, hostname)
 						return hostname
 					}
@@ -218,7 +216,7 @@ func (s *DNSServer) avahiLookup(clientIP string) string {
 	return unknownHostname
 }
 
-func (s *DNSServer) reverseDNSLookup(clientIP string) string {
+func (s *DNSServer) reverseDNSLookup(clientIP netip.Addr) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -236,10 +234,10 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 		},
 	}
 
-	if hostnames, err := resolver.LookupAddr(ctx, clientIP); err == nil && len(hostnames) > 0 {
+	if hostnames, err := resolver.LookupAddr(ctx, clientIP.String()); err == nil && len(hostnames) > 0 {
 		hostname := strings.TrimSuffix(hostnames[0], ".")
-		if hostname != clientIP &&
-			!strings.Contains(hostname, "in-addr.arpa") && !strings.HasPrefix(hostname, clientIP) {
+		if hostname != clientIP.String() &&
+			!strings.Contains(hostname, "in-addr.arpa") && !strings.HasPrefix(hostname, clientIP.String()) {
 			log.Debug("Found hostname via reverse DNS: %s -> %s", clientIP, hostname)
 			return hostname
 		}
@@ -247,8 +245,8 @@ func (s *DNSServer) reverseDNSLookup(clientIP string) string {
 	return unknownHostname
 }
 
-func (s *DNSServer) sshBannerLookup(clientIP string) string {
-	conn, err := net.DialTimeout("tcp", clientIP+":22", 1*time.Second)
+func (s *DNSServer) sshBannerLookup(clientIP netip.Addr) string {
+	conn, err := net.DialTimeout("tcp", clientIP.String()+":22", 1*time.Second)
 	if err != nil {
 		return unknownHostname
 	}
@@ -279,7 +277,7 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 		matches := pattern.FindStringSubmatch(banner)
 		if len(matches) > 1 {
 			hostname := matches[1]
-			if hostname != clientIP && len(hostname) > 1 && hostname != "SSH" {
+			if hostname != clientIP.String() && len(hostname) > 1 && hostname != "SSH" {
 				log.Debug("Found hostname via SSH banner: %s -> %s", clientIP, hostname)
 				return hostname
 			}
@@ -289,16 +287,17 @@ func (s *DNSServer) sshBannerLookup(clientIP string) string {
 	return unknownHostname
 }
 
-func getLocalIP() (string, error) {
+func getLocalIP() (netip.Addr, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return "", err
+		return netip.Addr{}, err
 	}
 
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String(), nil
+			if ipv4 := ipnet.IP.To4(); ipv4 != nil {
+				ip, _ := netip.AddrFromSlice(ipv4)
+				return ip, nil
 			}
 		}
 	}
@@ -307,7 +306,7 @@ func getLocalIP() (string, error) {
 }
 
 func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
-	ipParts := strings.TrimSuffix(request.Question.Name, ".in-addr.arpa.")
+	ipParts := strings.TrimSuffix(request.Question.Header().Name, ".in-addr.arpa.")
 	parts := strings.Split(ipParts, ".")
 
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
@@ -315,7 +314,7 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 	}
 	ipStr := strings.Join(parts, ".")
 
-	if ipStr == IPv4Loopback {
+	if ipStr == IPv4Loopback.String() {
 		return s.respondWithLocalhost(request)
 	}
 
@@ -325,7 +324,12 @@ func (s *DNSServer) handlePTRQuery(request *Request) model.RequestLogEntry {
 
 	hostname := s.RequestService.GetClientNameFromIP(ipStr)
 	if hostname == unknownHostname {
-		hostname = s.resolveHostname(ipStr)
+		if ip, err := netip.ParseAddr(ipStr); err == nil {
+			hostname = s.resolveHostname(ip)
+		} else {
+			log.Warning("Failed to parse IP for hostname lookup: %v", err)
+			hostname = unknownHostname
+		}
 	}
 
 	if hostname != unknownHostname {
@@ -353,25 +357,26 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	request.Msg.Rcode = dns.RcodeSuccess
 
 	ptr := &dns.PTR{
-		Hdr: dns.RR_Header{
-			Name:   request.Question.Name,
-			Rrtype: dns.TypePTR,
-			Class:  dns.ClassINET,
-			Ttl:    3600,
+		Hdr: dns.Header{
+			Name:  request.Question.Header().Name,
+			TTL:   3600,
+			Class: dns.ClassINET,
 		},
-		Ptr: "localhost.lan.",
+		PTR: rdata.PTR{
+			Ptr: "localhost.lan.",
+		},
 	}
 
 	request.Msg.Answer = []dns.RR{ptr}
-	_ = request.ResponseWriter.WriteMsg(request.Msg)
 
+	request.Respond(s.NotificationService)
 	return model.RequestLogEntry{
 		Timestamp: request.Sent,
-		Domain:    request.Question.Name,
-		Status:    dns.RcodeToString[dns.RcodeSuccess],
+		Domain:    request.Question.Header().Name,
+		Status:    dnsutil.CodeToString(dns.RcodeSuccess),
 		IP: []model.ResolvedIP{
 			{
-				IP:    "localhost.lan",
+				IP:    IPv4Loopback,
 				RType: "PTR",
 			},
 		},
@@ -385,25 +390,25 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 	}
 }
 
-func (s *DNSServer) respondWithHostnameA(request *Request, hostIP string) model.RequestLogEntry {
+func (s *DNSServer) respondWithHostnameA(request *Request, hostIP netip.Addr) model.RequestLogEntry {
 	request.Msg.Response = true
 	request.Msg.Authoritative = false
 	request.Msg.RecursionAvailable = true
 	request.Msg.Rcode = dns.RcodeSuccess
 
 	response := &dns.A{
-		Hdr: dns.RR_Header{
-			Name:   request.Question.Name,
-			Rrtype: dns.TypeA,
-			Class:  dns.ClassINET,
-			Ttl:    60,
+		Hdr: dns.Header{
+			Name:  request.Question.Header().Name,
+			TTL:   60,
+			Class: dns.ClassINET,
 		},
-		A: net.ParseIP(hostIP),
+		A: rdata.A{
+			Addr: hostIP,
+		},
 	}
 
 	request.Msg.Answer = []dns.RR{response}
-	_ = request.ResponseWriter.WriteMsg(request.Msg)
-
+	request.Respond(s.NotificationService)
 	return s.respondWithType(request, dns.TypeA, hostIP)
 }
 
@@ -414,30 +419,47 @@ func (s *DNSServer) respondWithHostnamePTR(request *Request, hostname string) mo
 	request.Msg.Rcode = dns.RcodeSuccess
 
 	ptr := &dns.PTR{
-		Hdr: dns.RR_Header{
-			Name:   request.Question.Name,
-			Rrtype: dns.TypePTR,
-			Class:  dns.ClassINET,
-			Ttl:    3600,
+		Hdr: dns.Header{
+			Name:  request.Question.Header().Name,
+			TTL:   3600,
+			Class: dns.ClassINET,
 		},
-		Ptr: hostname + ".",
+		PTR: rdata.PTR{
+			Ptr: hostname + ".",
+		},
 	}
 
 	request.Msg.Answer = []dns.RR{ptr}
-	_ = request.ResponseWriter.WriteMsg(request.Msg)
-
-	return s.respondWithType(request, dns.TypePTR, hostname)
+	request.Respond(s.NotificationService)
+	ip, err := netip.ParseAddr(hostname)
+	if err != nil {
+		log.Warning("Not able to parse ip for hostname %s", hostname)
+		return model.RequestLogEntry{
+			Timestamp:         request.Sent,
+			Domain:            request.Question.Header().Name,
+			Status:            dnsutil.CodeToString(dns.RcodeSuccess),
+			IP:                []model.ResolvedIP{},
+			Blocked:           false,
+			Cached:            false,
+			ResponseTime:      time.Since(request.Sent),
+			ClientInfo:        request.Client,
+			QueryType:         "PTR",
+			ResponseSizeBytes: request.Msg.Len(),
+			Protocol:          request.Protocol,
+		}
+	}
+	return s.respondWithType(request, dns.TypePTR, ip)
 }
 
-func (s *DNSServer) respondWithType(request *Request, rType uint16, ip string) model.RequestLogEntry {
+func (s *DNSServer) respondWithType(request *Request, rType uint16, ip netip.Addr) model.RequestLogEntry {
 	return model.RequestLogEntry{
-		Domain:    request.Question.Name,
-		Status:    dns.RcodeToString[dns.RcodeSuccess],
-		QueryType: dns.TypeToString[request.Question.Qtype],
+		Domain:    request.Question.Header().Name,
+		Status:    dnsutil.CodeToString(dns.RcodeSuccess),
+		QueryType: dnsutil.TypeToString(request.Question.Header().Class),
 		IP: []model.ResolvedIP{
 			{
 				IP:    ip,
-				RType: dns.TypeToString[rType],
+				RType: dnsutil.TypeToString(rType),
 			},
 		},
 		ResponseSizeBytes: request.Msg.Len(),
@@ -467,19 +489,22 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	var resolvedHostnames []model.ResolvedIP
 	for _, answer := range answers {
 		if ptr, ok := answer.(*dns.PTR); ok {
-			resolvedHostnames = append(resolvedHostnames, model.ResolvedIP{
-				IP:    ptr.Ptr,
-				RType: "PTR",
-			})
+			if ip, err := netip.ParseAddr(ptr.Ptr); err == nil {
+				resolvedHostnames = append(resolvedHostnames, model.ResolvedIP{
+					IP:    ip,
+					RType: "PTR",
+				})
+			} else {
+				log.Warning("Failed to parse PTR data: %v", err)
+			}
 		}
 	}
 
-	_ = request.ResponseWriter.WriteMsg(request.Msg)
-
+	request.Respond(s.NotificationService)
 	return model.RequestLogEntry{
-		Domain:            request.Question.Name,
+		Domain:            request.Question.Header().Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[request.Question.Qtype],
+		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
 		IP:                resolvedHostnames,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
@@ -508,89 +533,132 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 	for _, a := range answers {
 		switch rr := a.(type) {
 		case *dns.A:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.A.String(),
-				RType: "A",
-			})
+			if ip, err := netip.ParseAddr(rr.A.String()); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "A",
+				})
+			} else {
+				log.Warning("Failed to parse A record: %v", err)
+			}
 		case *dns.AAAA:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.AAAA.String(),
-				RType: "AAAA",
-			})
+			if ip, err := netip.ParseAddr(rr.AAAA.String()); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "AAAA",
+				})
+			} else {
+				log.Warning("Failed to parse AAAA record: %v", err)
+			}
 		case *dns.PTR:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Ptr,
-				RType: "PTR",
-			})
+			if ip, err := netip.ParseAddr(rr.Ptr); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "PTR",
+				})
+			} else {
+				log.Warning("Failed to parse PTR record: %v", err)
+			}
 		case *dns.CNAME:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Target,
-				RType: "CNAME",
-			})
+			if ip, err := netip.ParseAddr(rr.Target); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "CNAME",
+				})
+			} else {
+				log.Warning("Failed to parse CNAME record: %v", err)
+			}
 		case *dns.SVCB:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Target,
-				RType: "SVCB",
-			})
+			if ip, err := netip.ParseAddr(rr.Target); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "SVCB",
+				})
+			} else {
+				log.Warning("Failed to parse SVCB record: %v", err)
+			}
 		case *dns.MX:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Mx,
-				RType: "MX",
-			})
+			if ip, err := netip.ParseAddr(rr.Mx); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "MX",
+				})
+			} else {
+				log.Warning("Failed to parse MX record: %v", err)
+			}
 		case *dns.TXT:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Txt[0],
-				RType: "TXT",
-			})
+			if ip, err := netip.ParseAddr(rr.Txt[0]); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "TXT",
+				})
+			} else {
+				log.Warning("Failed to parse TXT record: %v", err)
+			}
 		case *dns.NS:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Ns,
-				RType: "NS",
-			})
+			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "NS",
+				})
+			} else {
+				log.Warning("Failed to parse NS record: %v", err)
+			}
 		case *dns.SOA:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Ns,
-				RType: "SOA",
-			})
+			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "SOA",
+				})
+			} else {
+				log.Warning("Failed to parse SOA record: %v", err)
+			}
 		case *dns.SRV:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    fmt.Sprintf("%s:%d", rr.Target, rr.Port),
-				RType: "SRV",
-			})
+			if ip, err := netip.ParseAddr(fmt.Sprintf("%s:%d", rr.Target, rr.Port)); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "SRV",
+				})
+			} else {
+				log.Warning("Failed to parse SRV record: %v", err)
+			}
 		case *dns.HTTPS:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    rr.Target,
-				RType: "HTTPS",
-			})
+			if ip, err := netip.ParseAddr(rr.Target); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "HTTPS",
+				})
+			} else {
+				log.Warning("Failed to parse HTTPS record: %v", err)
+			}
 		case *dns.CAA:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    fmt.Sprintf("%s: %s", rr.Tag, rr.Value),
-				RType: "CAA",
-			})
+			if ip, err := netip.ParseAddr(fmt.Sprintf("%s %d %s", rr.Tag, rr.Flag, rr.Value)); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "CAA",
+				})
+			} else {
+				log.Warning("Failed to parse CAA record: %v", err)
+			}
 		case *dns.DNSKEY:
-			resolved = append(resolved, model.ResolvedIP{
-				IP:    fmt.Sprintf("flags:%d protocol:%d algorithm:%d", rr.Flags, rr.Protocol, rr.Algorithm),
-				RType: "DNSKEY",
-			})
+			if ip, err := netip.ParseAddr(fmt.Sprintf("flags:%d protocol:%d algorithm:%d", rr.Flags, rr.Protocol, rr.Algorithm)); err == nil {
+				resolved = append(resolved, model.ResolvedIP{
+					IP:    ip,
+					RType: "DNSKEY",
+				})
+			} else {
+				log.Warning("Failed to parse DNSKEY record: %v", err)
+			}
 		default:
-			log.Warning("Unhandled record type '%s' while requesting '%s'", dns.TypeToString[rr.Header().Rrtype], request.Question.Name)
+			log.Warning("Unhandled record type '%s' while requesting '%s'", dnsutil.TypeToString(rr.Header().Class), request.Question.Header().Name)
 		}
 	}
 
-	err := request.ResponseWriter.WriteMsg(request.Msg)
-	if err != nil {
-		log.Warning("Could not write query response. client: [%s] with query [%v], err: %v", request.Client.IP, request.Msg.Answer, err.Error())
-		s.NotificationService.SendNotification(
-			notification.SeverityWarning,
-			notification.CategoryDNS,
-			fmt.Sprintf("Could not write query response. Client: %s, err: %v", request.Client.IP, err.Error()),
-		)
-	}
-
+	request.Respond(s.NotificationService)
 	return model.RequestLogEntry{
-		Domain:            request.Question.Name,
+		Domain:            request.Question.Header().Name,
 		Status:            status,
-		QueryType:         dns.TypeToString[request.Question.Qtype],
+		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
 		IP:                resolved,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
@@ -602,21 +670,21 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 }
 
 func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
-	cacheKey := req.Question.Name + ":" + strconv.Itoa(int(req.Question.Qtype))
+	cacheKey := req.Question.Header().Name + ":" + strconv.Itoa(int(req.Question.Header().Class))
 	if cached, found := s.DomainCache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
-			return ipAddresses, true, dns.RcodeToString[dns.RcodeSuccess]
+			return ipAddresses, true, dnsutil.CodeToString(dns.RcodeSuccess)
 		}
 	}
 
-	if answers, ttl, status := s.resolveResolution(req.Question.Name); len(answers) > 0 {
-		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
+	if answers, ttl, status := s.resolveResolution(req.Question.Header().Name); len(answers) > 0 {
+		s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
 		return answers, false, status
 	}
 
 	answers, ttl, status := s.resolveCNAMEChain(req, make(map[string]bool))
 	if len(answers) > 0 {
-		s.CacheRecord(cacheKey, req.Question.Name, answers, ttl)
+		s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
 	}
 	return answers, false, status
 }
@@ -624,42 +692,53 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
 	var (
 		records []dns.RR
+		rr      dns.RR
 		ttl     = uint32(s.Config.DNS.CacheTTL)
-		status  = dns.RcodeToString[dns.RcodeSuccess]
+		status  = dnsutil.CodeToString(dns.RcodeSuccess)
 	)
 
 	ipFound, err := s.ResolutionService.GetResolution(domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
-		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 	}
 
-	if net.ParseIP(ipFound) != nil {
-		var rr dns.RR
-		if strings.Contains(ipFound, ":") {
-			rr = &dns.AAAA{
-				Hdr:  dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: ttl},
-				AAAA: net.ParseIP(ipFound),
-			}
-		} else {
+	if ipFound == "" {
+		status = dnsutil.CodeToString(dns.RcodeNameError)
+	} else {
+		ip, err := netip.ParseAddr(ipFound)
+		if err != nil {
+			log.Warning("Failed to parse IP from database for domain '%s': %v", domain, err)
+			return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
+		}
+		if ip.Is4() {
 			rr = &dns.A{
-				Hdr: dns.RR_Header{Name: dns.Fqdn(domain), Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl},
-				A:   net.ParseIP(ipFound),
+				Hdr: dns.Header{
+					Name:  dnsutil.Fqdn(domain),
+					TTL:   ttl,
+					Class: dns.ClassINET,
+				},
+				A: rdata.A{Addr: ip}}
+		} else {
+			rr = &dns.AAAA{
+				Hdr: dns.Header{
+					Name:  dnsutil.Fqdn(domain),
+					TTL:   ttl,
+					Class: dns.ClassINET,
+				},
+				AAAA: rdata.AAAA{Addr: ip},
 			}
 		}
 		records = append(records, rr)
-	} else {
-		status = dns.RcodeToString[dns.RcodeNameError]
 	}
-
 	return records, ttl, status
 }
 
 func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]dns.RR, uint32, string) {
-	if visited[req.Question.Name] {
-		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
+	if visited[req.Question.Header().Name] {
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 	}
-	visited[req.Question.Name] = true
+	visited[req.Question.Header().Name] = true
 
 	answers, ttl, status := s.QueryUpstream(req)
 	if len(answers) > 0 {
@@ -685,23 +764,23 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	go func() {
 		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
-		upstreamMsg := &dns.Msg{}
-		upstreamMsg.SetQuestion(req.Question.Name, req.Question.Qtype)
+		q := req.Question.Header()
+		upstreamMsg := dns.NewMsg(q.Name, q.Class)
 		upstreamMsg.RecursionDesired = true
-		upstreamMsg.Id = dns.Id()
+		upstreamMsg.ID = dns.ID()
 
 		upstream := s.Config.DNS.Upstream.Preferred
-		if s.dnsClient.Net == "tcp-tls" {
-			host, port, err := net.SplitHostPort(upstream)
-			if err != nil {
-				upstream = net.JoinHostPort(upstream, "853")
-			} else if port == "53" {
-				upstream = net.JoinHostPort(host, "853")
-			}
+		proto := "udp"
+
+		// Use TCP for DoT and TCP clients, UDP for others
+		if req.Protocol == model.DoT || req.Protocol == model.TCP {
+			proto = "tcp"
 		}
 
 		log.Debug("Sending query using '%s' as upstream", upstream)
-		in, _, err := s.dnsClient.Exchange(upstreamMsg, upstream)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		in, _, err := s.dnsClient.Exchange(ctx, upstreamMsg, proto, upstream)
 		if err != nil {
 			errCh <- err
 			return
@@ -719,21 +798,21 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	case in := <-resultCh:
 		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: false, DNS: true})
 
-		status := dns.RcodeToString[dns.RcodeServerFailure]
+		status := dnsutil.CodeToString(dns.RcodeServerFailure)
 		if statusStr, ok := dns.RcodeToString[in.Rcode]; ok {
 			status = statusStr
 		}
 
 		var ttl uint32 = 3600
 		if len(in.Answer) > 0 {
-			ttl = in.Answer[0].Header().Ttl
+			ttl = in.Answer[0].Header().TTL
 			for _, a := range in.Answer {
-				if a.Header().Ttl < ttl {
-					ttl = a.Header().Ttl
+				if a.Header().TTL < ttl {
+					ttl = a.Header().TTL
 				}
 			}
 		} else if len(in.Ns) > 0 {
-			ttl = in.Ns[0].Header().Ttl
+			ttl = in.Ns[0].Header().TTL
 		}
 
 		if len(in.Ns) > 0 {
@@ -748,39 +827,39 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		return in.Answer, ttl, status
 
 	case err := <-errCh:
-		log.Warning("Resolution error for domain (%s): %v", req.Question.Name, err)
+		log.Warning("Upstream resolution error for domain (%s): %v", req.Question.Header().Name, err)
 		s.NotificationService.SendNotification(
 			notification.SeverityWarning,
 			notification.CategoryDNS,
-			fmt.Sprintf("Resolution error for domain (%s)", req.Question.Name),
+			fmt.Sprintf("Upstream resolution error for domain (%s)", req.Question.Header().Name),
 		)
-		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 
 	case <-time.After(5 * time.Second):
-		log.Warning("DNS lookup for %s timed out", req.Question.Name)
-		return nil, 0, dns.RcodeToString[dns.RcodeServerFailure]
+		log.Warning("Upstream lookup for %s timed out", req.Question.Header().Name)
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 	}
 }
 
 func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, error) {
-	hostname := strings.ReplaceAll(req.Question.Name, ".in-addr.arpa.", "")
+	hostname := strings.ReplaceAll(req.Question.Header().Name, ".in-addr.arpa.", "")
 	hostname = strings.ReplaceAll(hostname, ".ip6.arpa.", "")
 	if !strings.HasSuffix(hostname, ".") {
 		hostname += "."
 	}
 
-	queryType := req.Question.Qtype
+	queryType := req.Question.Header().Class
 	if queryType == 0 {
 		queryType = dns.TypeA
 	}
 
-	dnsMsg := new(dns.Msg)
-	dnsMsg.SetQuestion(hostname, queryType)
-
-	client := &dns.Client{Net: "udp"}
+	dnsMsg := dns.NewMsg(hostname, queryType)
+	client := &dns.Client{}
 	start := time.Now()
 	log.Debug("Performing local forward lookup for %s", hostname)
-	in, _, err := client.Exchange(dnsMsg, s.Config.DNS.Gateway)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	in, _, err := client.Exchange(ctx, dnsMsg, "udp", s.Config.DNS.Gateway)
 	responseTime := time.Since(start)
 
 	if err != nil {
@@ -789,7 +868,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 	}
 
 	if in.Rcode != dns.RcodeSuccess {
-		status := dns.RcodeToString[in.Rcode]
+		status := dnsutil.CodeToString(in.Rcode)
 		log.Info("DNS query for %s returned status %s", hostname, status)
 		return model.RequestLogEntry{}, fmt.Errorf("forward lookup failed with status: %s", status)
 	}
@@ -797,7 +876,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 	var ips []model.ResolvedIP
 	for _, answer := range in.Answer {
 		if a, ok := answer.(*dns.A); ok {
-			ips = append(ips, model.ResolvedIP{IP: a.A.String()})
+			ips = append(ips, model.ResolvedIP{IP: a.Addr})
 		}
 	}
 
@@ -807,14 +886,12 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 
 	req.Msg.Rcode = in.Rcode
 	req.Msg.Answer = in.Answer
-	if writeErr := req.ResponseWriter.WriteMsg(req.Msg); writeErr != nil {
-		log.Error("failed to write DNS response: %v", writeErr)
-	}
 
+	req.Respond(s.NotificationService)
 	entry := model.RequestLogEntry{
-		Domain:            req.Question.Name,
-		Status:            dns.RcodeToString[in.Rcode],
-		QueryType:         dns.TypeToString[queryType],
+		Domain:            req.Question.Header().Name,
+		Status:            dnsutil.CodeToString(in.Rcode),
+		QueryType:         dnsutil.TypeToString(queryType),
 		IP:                ips,
 		ResponseSizeBytes: in.Len(),
 		Timestamp:         start,
@@ -841,29 +918,28 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	var resolved []model.ResolvedIP
 	cacheTTL := uint32(s.Config.DNS.CacheTTL)
 
-	switch request.Question.Qtype {
+	switch request.Question.Header().Class {
 	case dns.TypeA:
 		request.Msg.Answer = []dns.RR{&dns.A{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    cacheTTL,
+			Hdr: dns.Header{
+				Name: request.Question.Header().Name,
+
+				Class: dns.ClassINET,
+				TTL:   cacheTTL,
 			},
-			A: blackholeIPv4,
+			A: rdata.A{Addr: blackholeIPv4},
 		}}
-		resolved = []model.ResolvedIP{{IP: blackholeIPv4.String(), RType: "A"}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv4, RType: "A"}}
 	case dns.TypeAAAA:
 		request.Msg.Answer = []dns.RR{&dns.AAAA{
-			Hdr: dns.RR_Header{
-				Name:   request.Question.Name,
-				Rrtype: dns.TypeAAAA,
-				Class:  dns.ClassINET,
-				Ttl:    cacheTTL,
+			Hdr: dns.Header{
+				Name:  request.Question.Header().Name,
+				TTL:   cacheTTL,
+				Class: dns.ClassINET,
 			},
-			AAAA: blackholeIPv6,
+			AAAA: rdata.AAAA{Addr: blackholeIPv6},
 		}}
-		resolved = []model.ResolvedIP{{IP: blackholeIPv6.String(), RType: "AAAA"}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv6, RType: "AAAA"}}
 	default:
 		request.Msg.Rcode = dns.RcodeNameError
 		request.Msg.Answer = nil
@@ -871,15 +947,16 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	}
 
 	if len(request.Msg.Question) == 0 {
-		request.Msg.Question = []dns.Question{request.Question}
+		return model.RequestLogEntry{
+			Domain: "unknown",
+		}
 	}
 
-	_ = request.ResponseWriter.WriteMsg(request.Msg)
-
+	request.Respond(s.NotificationService)
 	return model.RequestLogEntry{
-		Domain:            request.Question.Name,
-		Status:            dns.RcodeToString[request.Msg.Rcode],
-		QueryType:         dns.TypeToString[request.Question.Qtype],
+		Domain:            request.Question.Header().Name,
+		Status:            dnsutil.CodeToString(request.Msg.Rcode),
+		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
 		IP:                resolved,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,

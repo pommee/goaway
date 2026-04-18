@@ -5,10 +5,10 @@ import (
 	"goaway/backend/database"
 	"goaway/backend/dns/server"
 	"goaway/backend/logging"
-	"strconv"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
 )
 
 type Service struct {
@@ -42,7 +42,7 @@ func (s *Service) Run() {
 
 func (s *Service) checkNewDomains() {
 	for domain, prefetchDomain := range s.Domains {
-		cacheKey := s.buildCacheKey(domain, dns.Type(prefetchDomain.QueryType))
+		cacheKey := s.buildCacheKey(domain, dnsutil.TypeToString(uint16(prefetchDomain.QueryType)))
 		if _, exists := s.DNS.DomainCache.Load(cacheKey); !exists {
 			log.Debug("Prefetching new/missing domain: %s", domain)
 			s.prefetchDomain(prefetchDomain)
@@ -101,26 +101,20 @@ func (s *Service) removeNonPrefetchDomains(domains []string) {
 }
 
 func (s *Service) prefetchDomain(prefetchDomain database.Prefetch) {
-	question := dns.Question{
-		Name:   prefetchDomain.Domain,
-		Qtype:  uint16(prefetchDomain.QueryType),
-		Qclass: 1,
-	}
-
+	dnsMsg := dns.NewMsg(prefetchDomain.Domain, uint16(prefetchDomain.QueryType))
 	request := &server.Request{
-		Msg:      &dns.Msg{Question: []dns.Question{question}},
-		Question: question,
+		Msg:      dnsMsg,
 		Sent:     time.Now(),
 		Prefetch: true,
 	}
 
 	answers, ttl, _ := s.DNS.QueryUpstream(request)
-	cacheKey := s.buildCacheKey(question.Name, dns.Type(question.Qtype))
+	cacheKey := s.buildCacheKey(dnsMsg.Question[0].Header().Name, dnsutil.TypeToString(uint16(dnsMsg.Question[0].Header().Class)))
 	s.DNS.CacheRecord(cacheKey, prefetchDomain.Domain, answers, ttl)
 }
 
-func (s *Service) buildCacheKey(domain string, qtype dns.Type) string {
-	return domain + ":" + strconv.Itoa(int(qtype))
+func (s *Service) buildCacheKey(domain string, qtype string) string {
+	return domain + ":" + qtype
 }
 
 func (s *Service) handleExpiredEntry(record server.CachedRecord) {

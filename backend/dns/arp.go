@@ -7,6 +7,7 @@ import (
 	"goaway/backend/logging"
 	"io"
 	"net/http"
+	"net/netip"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -134,9 +135,9 @@ func parseUnixARP(output string, table map[string]string) {
 	}
 }
 
-func GetMacAddress(ip string) string {
+func GetMacAddress(ip netip.Addr) string {
 	cache.mu.RLock()
-	mac, exists := cache.table[ip]
+	mac, exists := cache.table[ip.String()]
 	cache.mu.RUnlock()
 
 	if exists {
