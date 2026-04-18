@@ -8,7 +8,7 @@ import (
 
 type Repository interface {
 	CreateNotification(newNotification *database.Notification) error
-	GetNotifications() ([]database.Notification, error)
+	GetNotifications(page, limit int) (int64, []database.Notification, error)
 	MarkNotificationsAsRead(notificationIDs []int) error
 }
 
@@ -25,15 +25,27 @@ func (r *repository) CreateNotification(newNotification *database.Notification) 
 	return tx.Error
 }
 
-func (r *repository) GetNotifications() ([]database.Notification, error) {
+func (r *repository) GetNotifications(page, limit int) (int64, []database.Notification, error) {
 	var notifications []database.Notification
+	var total int64
 
-	result := r.db.Where("read = ?", false).Find(&notifications)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.db.Model(&database.Notification{}).Where("read = ?", false).Count(&total).Error; err != nil {
+		return 0, nil, err
 	}
 
-	return notifications, nil
+	offset := (page - 1) * limit
+	result := r.db.
+		Where("read = ?", false).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&notifications)
+
+	if result.Error != nil {
+		return 0, nil, result.Error
+	}
+
+	return total, notifications, nil
 }
 
 func (r *repository) MarkNotificationsAsRead(notificationIDs []int) error {

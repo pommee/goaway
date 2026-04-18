@@ -14,11 +14,30 @@ func (api *API) registerNotificationRoutes() {
 }
 
 func (api *API) fetchNotifications(c *gin.Context) {
-	notifications, err := api.NotificationService.GetNotifications()
+	type PaginationParams struct {
+		Page  int `form:"page,default=1"`
+		Limit int `form:"limit,default=50"`
+	}
+
+	var params PaginationParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid query parameters"})
+		return
+	}
+
+	if params.Page < 1 {
+		params.Page = 1
+	}
+	if params.Limit < 1 || params.Limit > 100 {
+		params.Limit = 50
+	}
+
+	result, err := api.NotificationService.GetNotifications(params.Page, params.Limit)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
 	}
-	c.JSON(http.StatusOK, notifications)
+	c.JSON(http.StatusOK, result)
 }
 
 func (api *API) markNotificationAsRead(c *gin.Context) {

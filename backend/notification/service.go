@@ -52,8 +52,35 @@ func (s *Service) SendNotification(severity Severity, category Category, text st
 	log.Info("New notification created, severity: %s", severity)
 }
 
-func (s *Service) GetNotifications() ([]database.Notification, error) {
-	return s.repository.GetNotifications()
+type NotificationPaginatedResult struct {
+	Notifications []database.Notification `json:"notifications"`
+	Total         int64                   `json:"total"`
+	Page          int                     `json:"page"`
+	Limit         int                     `json:"limit"`
+	TotalPages    int                     `json:"totalPages"`
+}
+
+func (s *Service) GetNotifications(page, limit int) (*NotificationPaginatedResult, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+
+	total, notifications, err := s.repository.GetNotifications(page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := max(int((total+int64(limit)-1)/int64(limit)), 1)
+	return &NotificationPaginatedResult{
+		Notifications: notifications,
+		Total:         total,
+		Page:          page,
+		Limit:         limit,
+		TotalPages:    totalPages,
+	}, nil
 }
 
 func (s *Service) MarkNotificationsAsRead(notificationIDs []int) error {
