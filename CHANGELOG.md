@@ -1,3 +1,18 @@
+## [0.63.13](https://github.com/pommee/goaway/compare/v0.63.12...v0.63.13) (2026-04-18)
+
+### Bug Fixes
+
+* **deps:** switch from miekg/dns v1 to v2 ([5152f8c](https://github.com/pommee/goaway/commit/5152f8c97db38375d44c7f2cf0128de862c2c1fa))
+* update any miekg/dns related code ([cefe01c](https://github.com/pommee/goaway/commit/cefe01c64584ecf9480987191c44a3095fcb204e))
+
+### Performance Improvements
+
+* fetching notifications are not done cursor based ([abf851a](https://github.com/pommee/goaway/commit/abf851ae991bf253737e4c94cf11cb23c79ed37a))
+
+### UI/UX
+
+* fetch notifications using cursor ([e87d949](https://github.com/pommee/goaway/commit/e87d949b7f50cea1ac57eb30e8f1a2b7e1f64f34))
+
 ## [0.63.12](https://github.com/pommee/goaway/compare/v0.63.11...v0.63.12) (2026-04-11)
 
 ### Bug Fixes
