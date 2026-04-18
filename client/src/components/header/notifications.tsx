@@ -21,10 +21,22 @@ type NotificationsResponse = {
   createdAt: string;
 };
 
+type PaginatedResponse = {
+  notifications: NotificationsResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 export default function Notifications() {
   const [notifications, setNotifications] = useState<NotificationsResponse[]>(
     []
   );
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const prevUnreadCountRef = useRef(0);
 
@@ -42,7 +54,10 @@ export default function Notifications() {
   useEffect(() => {
     async function fetchNotifications() {
       try {
-        const [code, response] = await GetRequest("notifications");
+        setIsLoading(true);
+        const [code, response] = await GetRequest(
+          `notifications?page=${page}&limit=50`
+        );
         if (code !== 200) {
           toast.warning("Unable to fetch notifications", {
             id: "fetch-notifications-error"
@@ -50,9 +65,14 @@ export default function Notifications() {
           return;
         }
 
-        setNotifications(response);
+        const data = response as PaginatedResponse;
+        setNotifications(data.notifications);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
       } catch {
         toast.error("Error while fetching notifications");
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -60,10 +80,10 @@ export default function Notifications() {
 
     const intervalId = setInterval(() => {
       fetchNotifications();
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [page]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -113,7 +133,15 @@ export default function Notifications() {
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (newOpen && page !== 1) {
+          setPage(1);
+        }
+        setOpen(newOpen);
+      }}
+    >
       <DropdownMenuTrigger asChild className="cursor-pointer">
         <Button variant="ghost" size="icon" className="relative">
           <BellIcon className="h-5 w-5" />
@@ -188,6 +216,23 @@ export default function Notifications() {
                   </div>
                 </div>
               ))}
+              {page < totalPages && (
+                <div className="p-4 flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page + 1)}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Loading..." : "Load more"}
+                  </Button>
+                </div>
+              )}
+              {page < totalPages && (
+                <p className="text-xs text-muted-foreground text-center p-2">
+                  Page {page} of {totalPages} ({total} total)
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground p-4">
