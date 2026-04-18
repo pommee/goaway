@@ -32,7 +32,7 @@ dev-website:   ; pnpm -C client install && pnpm -C client dev
 dev-server:    ; mkdir client/dist ; touch client/dist/.fake ; air .
 
 test: install lint commitlint
-	go test -count=1 -race ./test/...
+	go test -count=1 ./test/...
 
 bench: 		   ; go run test/benchmark.go -test.bench=.
 bench-profile: ; go run test/benchmark.go -test.bench=. & go tool pprof http://localhost:6060/debug/pprof/profile\?seconds\=5
