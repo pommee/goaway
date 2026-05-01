@@ -1,6 +1,7 @@
 package lifecycle
 
 import (
+	"context"
 	"goaway/backend/api"
 	"goaway/backend/jobs"
 	"goaway/backend/logging"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var log = logging.GetLogger()
@@ -63,6 +65,49 @@ func (m *Manager) waitForTermination() error {
 }
 
 func (m *Manager) shutdown() {
-	// TODO: Add graceful shutdown logic
+	log.Info("Starting graceful shutdown...")
+
+	m.services.Shutdown()
+	m.services.APIServer.IsShuttingDown = true
+
+	if err := m.services.APIServer.Stop(); err != nil {
+		log.Error("Error stopping API server: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	m.services.UDPServer.Shutdown(ctx)
+	log.Info("Stopped UDP server")
+
+	m.services.TCPServer.Shutdown(ctx)
+	log.Info("Stopped TCP server")
+
+	if m.services.DoTServer != nil {
+		m.services.DoTServer.Shutdown(ctx)
+		log.Info("Stopped DNS-over-TLS server")
+	}
+
+	if m.services.DoHServer != nil {
+		if err := m.services.DoHServer.Shutdown(ctx); err != nil && err != context.DeadlineExceeded {
+			log.Error("Error stopping DoH server: %v", err)
+		}
+		log.Info("Stopped DNS-over-HTTPS server")
+	}
+
+	// Wait for all goroutines to finish with timeout
+	done := make(chan struct{})
+	go func() {
+		m.services.WaitGroup().Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Info("All services stopped gracefully")
+	case <-time.After(15 * time.Second):
+		log.Warning("Shutdown timeout exceeded, forcing exit")
+	}
+
 	os.Exit(0)
 }

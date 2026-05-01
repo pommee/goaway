@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	model "goaway/backend/dns/server/models"
 	"time"
@@ -10,13 +11,18 @@ import (
 
 const batchSize = 1000
 
-func (s *DNSServer) ProcessLogEntries() {
+func (s *DNSServer) ProcessLogEntries(ctx context.Context) {
 	var batch []model.RequestLogEntry
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			if len(batch) > 0 {
+				s.saveBatch(batch)
+			}
+			return
 		case entry := <-s.logEntryChannel:
 			log.Debug("%s", entry.String())
 			if s.WSQueries != nil {
@@ -46,18 +52,24 @@ func (s *DNSServer) saveBatch(entries []model.RequestLogEntry) {
 }
 
 // Removes old log entries based on the configured retention period.
-func (s *DNSServer) ClearOldEntries() {
+func (s *DNSServer) ClearOldEntries(ctx context.Context) {
 	const (
 		maxRetries      = 10
 		retryDelay      = 150 * time.Millisecond
 		cleanupInterval = 5 * time.Minute
 	)
 
-	for {
-		requestThreshold := ((60 * 60) * 24) * s.Config.Misc.StatisticsRetention
-		log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
-		time.Sleep(cleanupInterval)
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
 
-		s.RequestService.DeleteRequestLogsTimebased(s.BlacklistService.Vacuum, requestThreshold, maxRetries, retryDelay)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			requestThreshold := ((60 * 60) * 24) * s.Config.Misc.StatisticsRetention
+			log.Debug("Next cleanup running at %s", time.Now().Add(cleanupInterval).Format(time.DateTime))
+			s.RequestService.DeleteRequestLogsTimebased(s.BlacklistService.Vacuum, requestThreshold, maxRetries, retryDelay)
+		}
 	}
 }

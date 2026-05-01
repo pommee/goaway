@@ -36,10 +36,12 @@ type ServiceRegistry struct {
 
 	Context *AppContext
 
-	version string
-	date    string
-	commit  string
-	wg      sync.WaitGroup
+	version     string
+	date        string
+	commit      string
+	wg          sync.WaitGroup
+	shutdownCtx context.Context
+	cancel      context.CancelFunc
 
 	ResolutionService   *resolution.Service
 	RequestService      *request.Service
@@ -57,14 +59,17 @@ type ServiceError struct {
 }
 
 func NewServiceRegistry(ctx *AppContext, version, commit, date string, content embed.FS) *ServiceRegistry {
+	shutdownCtx, cancel := context.WithCancel(context.Background())
 	return &ServiceRegistry{
-		Context:   ctx,
-		version:   version,
-		commit:    commit,
-		date:      date,
-		content:   content,
-		readyChan: make(chan struct{}),
-		errorChan: make(chan ServiceError, 10),
+		Context:     ctx,
+		version:     version,
+		commit:      commit,
+		date:        date,
+		content:     content,
+		readyChan:   make(chan struct{}),
+		errorChan:   make(chan ServiceError, 50),
+		shutdownCtx: shutdownCtx,
+		cancel:      cancel,
 	}
 }
 
@@ -228,6 +233,14 @@ func (r *ServiceRegistry) WaitGroup() *sync.WaitGroup {
 
 func (r *ServiceRegistry) ReadyChannel() <-chan struct{} {
 	return r.readyChan
+}
+
+func (r *ServiceRegistry) ShutdownContext() context.Context {
+	return r.shutdownCtx
+}
+
+func (r *ServiceRegistry) Shutdown() {
+	r.cancel()
 }
 
 func (r *ServiceRegistry) ErrorChannel() <-chan ServiceError {

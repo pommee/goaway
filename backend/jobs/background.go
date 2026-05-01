@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	arp "goaway/backend/dns"
 	"goaway/backend/logging"
 	"goaway/backend/services"
@@ -10,11 +11,13 @@ var log = logging.GetLogger()
 
 type BackgroundJobs struct {
 	registry *services.ServiceRegistry
+	ctx      context.Context
 }
 
 func NewBackgroundJobs(registry *services.ServiceRegistry) *BackgroundJobs {
 	return &BackgroundJobs{
 		registry: registry,
+		ctx:      registry.ShutdownContext(),
 	}
 }
 
@@ -54,7 +57,7 @@ func (b *BackgroundJobs) startScheduledUpdates(readyChan <-chan struct{}) {
 		<-readyChan
 		if b.registry.Context.Config.Misc.ScheduledBlacklistUpdates {
 			log.Debug("Starting scheduler for automatic list updates...")
-			b.registry.BlacklistService.ScheduleAutomaticListUpdates()
+			b.registry.BlacklistService.ScheduleAutomaticListUpdates(b.ctx)
 		}
 	}()
 }
@@ -63,7 +66,7 @@ func (b *BackgroundJobs) startCacheCleanup(readyChan <-chan struct{}) {
 	go func() {
 		<-readyChan
 		log.Debug("Starting cache cleanup routine...")
-		b.registry.Context.DNSServer.ClearOldEntries()
+		b.registry.Context.DNSServer.ClearOldEntries(b.ctx)
 	}()
 }
 
@@ -71,6 +74,6 @@ func (b *BackgroundJobs) startPrefetcher(readyChan <-chan struct{}) {
 	go func() {
 		<-readyChan
 		log.Debug("Starting prefetcher...")
-		b.registry.PrefetchService.Run()
+		b.registry.PrefetchService.Run(b.ctx)
 	}()
 }

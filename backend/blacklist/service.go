@@ -747,46 +747,52 @@ func (s *Service) Vacuum(ctx context.Context) {
 	}
 }
 
-func (s *Service) ScheduleAutomaticListUpdates() {
+func (s *Service) ScheduleAutomaticListUpdates(ctx context.Context) {
 	ticker := time.NewTicker(s.config.UpdateInterval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		ctx := context.Background()
-		log.Info("Starting automatic list updates...")
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("Stopping automatic list updates")
+			return
+		case <-ticker.C:
+			bgCtx := context.Background()
+			log.Info("Starting automatic list updates...")
 
-		for _, source := range s.blocklistURL {
-			if source.Name == "Custom" {
-				continue
+			for _, source := range s.blocklistURL {
+				if source.Name == "Custom" {
+					continue
+				}
+				log.Info("Checking for updates for blocklist %s from %s", source.Name, source.URL)
+
+				availableUpdate, err := s.CheckIfUpdateAvailable(bgCtx, source.URL, source.Name)
+				if err != nil {
+					log.Warning("Failed to check for updates for %s: %v", source.Name, err)
+					continue
+				}
+
+				if !availableUpdate.UpdateAvailable {
+					log.Info("No updates available for %s", source.Name)
+					continue
+				}
+
+				if err := s.RemoveSourceAndDomains(bgCtx, source.Name, source.URL); err != nil {
+					log.Warning("Failed to remove old domains for %s: %v", source.Name, err)
+					continue
+				}
+
+				if err := s.FetchAndLoadHosts(bgCtx, source.URL, source.Name); err != nil {
+					log.Warning("Failed to fetch and load hosts for %s: %v", source.Name, err)
+					continue
+				}
+
+				log.Info("Successfully updated %s with %d new domains", source.Name, len(availableUpdate.DiffAdded))
 			}
-			log.Info("Checking for updates for blocklist %s from %s", source.Name, source.URL)
 
-			availableUpdate, err := s.CheckIfUpdateAvailable(ctx, source.URL, source.Name)
-			if err != nil {
-				log.Warning("Failed to check for updates for %s: %v", source.Name, err)
-				continue
+			if err := s.PopulateCache(bgCtx); err != nil {
+				log.Warning("Failed to populate blocklist cache after auto-update: %v", err)
 			}
-
-			if !availableUpdate.UpdateAvailable {
-				log.Info("No updates available for %s", source.Name)
-				continue
-			}
-
-			if err := s.RemoveSourceAndDomains(ctx, source.Name, source.URL); err != nil {
-				log.Warning("Failed to remove old domains for %s: %v", source.Name, err)
-				continue
-			}
-
-			if err := s.FetchAndLoadHosts(ctx, source.URL, source.Name); err != nil {
-				log.Warning("Failed to fetch and load hosts for %s: %v", source.Name, err)
-				continue
-			}
-
-			log.Info("Successfully updated %s with %d new domains", source.Name, len(availableUpdate.DiffAdded))
-		}
-
-		if err := s.PopulateCache(ctx); err != nil {
-			log.Warning("Failed to populate blocklist cache after auto-update: %v", err)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package prefetch
 
 import (
+	"context"
 	"fmt"
 	"goaway/backend/database"
 	"goaway/backend/dns/server"
@@ -30,13 +31,19 @@ func NewService(repo Repository, dnsServer *server.DNSServer) *Service {
 	return service
 }
 
-func (s *Service) Run() {
+func (s *Service) Run(ctx context.Context) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		s.checkNewDomains()
-		s.processExpiredEntries()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("Stopping prefetch service")
+			return
+		case <-ticker.C:
+			s.checkNewDomains()
+			s.processExpiredEntries()
+		}
 	}
 }
 

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"goaway/backend/database"
@@ -45,7 +46,7 @@ func (ctx *AppContext) initialize() error {
 	}
 	ctx.DNSServer = dnsServer
 
-	go dnsServer.ProcessLogEntries()
+	go dnsServer.ProcessLogEntries(context.Background())
 
 	return nil
 }
