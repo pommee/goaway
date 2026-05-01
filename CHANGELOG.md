@@ -1,3 +1,9 @@
+## [0.63.15](https://github.com/pommee/goaway/compare/v0.63.14...v0.63.15) (2026-05-01)
+
+### Bug Fixes
+
+* multiple fixes related to graceful shutdown, routine leaks, error channel overflow and more ([e84bbcd](https://github.com/pommee/goaway/commit/e84bbcd73c64eea9b47270431fa0c8e68df03e3b))
+
 ## [0.63.14](https://github.com/pommee/goaway/compare/v0.63.13...v0.63.14) (2026-04-18)
 
 ### Bug Fixes
