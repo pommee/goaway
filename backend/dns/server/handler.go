@@ -157,7 +157,7 @@ func (s *DNSServer) lookupVendor(clientIP, macAddress string) string {
 	log.Debug("Lookup vendor for mac %s", macAddress)
 	vendor, err = arp.GetMacVendor(macAddress)
 	if err != nil {
-		log.Warning(
+		log.Debug(
 			"Was not able to find vendor for addr '%s' with MAC '%s'. %v",
 			clientIP, macAddress, err,
 		)
@@ -376,7 +376,7 @@ func (s *DNSServer) respondWithLocalhost(request *Request) model.RequestLogEntry
 		Status:    dnsutil.CodeToString(dns.RcodeSuccess),
 		IP: []model.ResolvedIP{
 			{
-				IP:    IPv4Loopback,
+				IP:    IPv4Loopback.String(),
 				RType: "PTR",
 			},
 		},
@@ -458,7 +458,7 @@ func (s *DNSServer) respondWithType(request *Request, rType uint16, ip netip.Add
 		QueryType: dnsutil.TypeToString(request.QType()),
 		IP: []model.ResolvedIP{
 			{
-				IP:    ip,
+				IP:    ip.String(),
 				RType: dnsutil.TypeToString(rType),
 			},
 		},
@@ -491,7 +491,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 		if ptr, ok := answer.(*dns.PTR); ok {
 			if ip, err := netip.ParseAddr(ptr.Ptr); err == nil {
 				resolvedHostnames = append(resolvedHostnames, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "PTR",
 				})
 			} else {
@@ -535,7 +535,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.A:
 			if ip, err := netip.ParseAddr(rr.A.String()); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "A",
 				})
 			} else {
@@ -544,7 +544,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.AAAA:
 			if ip, err := netip.ParseAddr(rr.AAAA.String()); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "AAAA",
 				})
 			} else {
@@ -553,25 +553,21 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.PTR:
 			if ip, err := netip.ParseAddr(rr.Ptr); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "PTR",
 				})
 			} else {
 				log.Warning("Failed to parse PTR record: %v", err)
 			}
 		case *dns.CNAME:
-			if ip, err := netip.ParseAddr(rr.Target); err == nil {
-				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
-					RType: "CNAME",
-				})
-			} else {
-				log.Warning("Failed to parse CNAME record: %v", err)
-			}
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Target,
+				RType: "CNAME",
+			})
 		case *dns.SVCB:
 			if ip, err := netip.ParseAddr(rr.Target); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "SVCB",
 				})
 			} else {
@@ -580,7 +576,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.MX:
 			if ip, err := netip.ParseAddr(rr.Mx); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "MX",
 				})
 			} else {
@@ -589,7 +585,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.TXT:
 			if ip, err := netip.ParseAddr(rr.Txt[0]); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "TXT",
 				})
 			} else {
@@ -598,7 +594,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.NS:
 			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "NS",
 				})
 			} else {
@@ -607,7 +603,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.SOA:
 			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "SOA",
 				})
 			} else {
@@ -616,7 +612,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.SRV:
 			if ip, err := netip.ParseAddr(fmt.Sprintf("%s:%d", rr.Target, rr.Port)); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "SRV",
 				})
 			} else {
@@ -625,7 +621,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.HTTPS:
 			if ip, err := netip.ParseAddr(rr.Target); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "HTTPS",
 				})
 			} else {
@@ -634,7 +630,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.CAA:
 			if ip, err := netip.ParseAddr(fmt.Sprintf("%s %d %s", rr.Tag, rr.Flag, rr.Value)); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "CAA",
 				})
 			} else {
@@ -643,7 +639,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		case *dns.DNSKEY:
 			if ip, err := netip.ParseAddr(fmt.Sprintf("flags:%d protocol:%d algorithm:%d", rr.Flags, rr.Protocol, rr.Algorithm)); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip,
+					IP:    ip.String(),
 					RType: "DNSKEY",
 				})
 			} else {
@@ -879,7 +875,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 	var ips []model.ResolvedIP
 	for _, answer := range in.Answer {
 		if a, ok := answer.(*dns.A); ok {
-			ips = append(ips, model.ResolvedIP{IP: a.Addr})
+			ips = append(ips, model.ResolvedIP{IP: a.Addr.String()})
 		}
 	}
 
@@ -932,7 +928,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 			},
 			A: rdata.A{Addr: blackholeIPv4},
 		}}
-		resolved = []model.ResolvedIP{{IP: blackholeIPv4, RType: "A"}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv4.String(), RType: "A"}}
 	case dns.TypeAAAA:
 		request.Msg.Answer = []dns.RR{&dns.AAAA{
 			Hdr: dns.Header{
@@ -942,7 +938,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 			},
 			AAAA: rdata.AAAA{Addr: blackholeIPv6},
 		}}
-		resolved = []model.ResolvedIP{{IP: blackholeIPv6, RType: "AAAA"}}
+		resolved = []model.ResolvedIP{{IP: blackholeIPv6.String(), RType: "AAAA"}}
 	default:
 		request.Msg.Rcode = dns.RcodeNameError
 		request.Msg.Answer = nil

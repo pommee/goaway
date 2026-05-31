@@ -75,7 +75,7 @@ func (r *repository) SaveRequestLog(entries []model.RequestLogEntry) error {
 
 			for _, resolvedIP := range entry.IP {
 				rl.IPs = append(rl.IPs, database.RequestLogIP{
-					IP:         resolvedIP.IP.String(),
+					IP:         resolvedIP.IP,
 					RecordType: resolvedIP.RType,
 				})
 			}
@@ -279,7 +279,7 @@ func (r *repository) FetchQueries(q models.QueryParams) ([]model.RequestLogEntry
 				log.Warning("failed to parse resolved IP '%s' for log ID %d: %v", ip.IP, qLog.ID, err)
 				continue
 			}
-			results[i].IP[j] = model.ResolvedIP{IP: resolvedIP, RType: ip.RecordType}
+			results[i].IP[j] = model.ResolvedIP{IP: resolvedIP.String(), RType: ip.RecordType}
 		}
 	}
 

@@ -46,7 +46,7 @@ var (
 		entries: make(map[string]*vendorCacheEntry),
 		ttl:     60 * time.Second,
 	}
-	httpClient = &http.Client{Timeout: 5 * time.Second}
+	httpClient = &http.Client{Timeout: 15 * time.Second}
 )
 
 func ProcessARPTable() {
@@ -159,52 +159,58 @@ func GetMacVendor(mac string) (string, error) {
 		return vendor, err
 	}
 
+	const maxAttempts = 3
+	var lastErr error
+
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 2 * time.Second)
+		}
+
+		vendor, err := fetchMacVendor(mac)
+		if err == nil {
+			vendorCache.set(mac, vendor, nil)
+			return vendor, nil
+		}
+		lastErr = err
+	}
+
+	vendorCache.set(mac, "", lastErr)
+	return "", lastErr
+}
+
+func fetchMacVendor(mac string) (string, error) {
 	url := fmt.Sprintf("https://api.maclookup.app/v2/macs/%s", mac)
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
-		reqErr := fmt.Errorf("failed to create request: %w", err)
-		vendorCache.set(mac, "", reqErr)
-		return "", reqErr
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		apiErr := fmt.Errorf("failed to fetch MAC vendor: %w", err)
-		vendorCache.set(mac, "", apiErr)
-		return "", apiErr
+		return "", fmt.Errorf("failed to fetch MAC vendor: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		statusErr := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-		vendorCache.set(mac, "", statusErr)
-		return "", statusErr
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		readErr := fmt.Errorf("failed to read response body: %w", err)
-		vendorCache.set(mac, "", readErr)
-		return "", readErr
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var result vendorResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		unmarshalErr := fmt.Errorf("failed to unmarshal response: %w", err)
-		vendorCache.set(mac, "", unmarshalErr)
-		return "", unmarshalErr
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	if result.Found {
-		vendorCache.set(mac, result.Company, nil)
-		return result.Company, nil
+	if !result.Found {
+		return "", fmt.Errorf("vendor not found for mac %s", mac)
 	}
 
-	notFoundErr := fmt.Errorf("vendor not found for mac %s", mac)
-	vendorCache.set(mac, "", notFoundErr)
-	return "", notFoundErr
+	return result.Company, nil
 }
 
 func isValidMAC(mac string) bool {
