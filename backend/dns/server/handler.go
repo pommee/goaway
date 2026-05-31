@@ -698,12 +698,13 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 		}
 	}
 
-	if answers, ttl, status := s.resolveResolution(req.Question.Header().Name); len(answers) > 0 {
+	answers, ttl, status := s.resolveResolution(req.Question.Header().Name)
+	if len(answers) > 0 {
 		s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
 		return answers, false, status
 	}
 
-	answers, ttl, status := s.resolveCNAMEChain(req, make(map[string]bool))
+	answers, ttl, status = s.resolveCNAMEChain(req, make(map[string]bool))
 	if len(answers) > 0 {
 		s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
 	}
@@ -712,15 +713,16 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 
 func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
 	var (
-		records []dns.RR
-		rr      dns.RR
-		ttl     = uint32(s.Config.DNS.CacheTTL)
-		status  = dnsutil.CodeToString(dns.RcodeSuccess)
+		records          []dns.RR
+		rr               dns.RR
+		ttl              = uint32(s.Config.DNS.CacheTTL)
+		status           = dnsutil.CodeToString(dns.RcodeSuccess)
+		normalizedDomain = trimDomainDot(domain)
 	)
 
-	ipFound, err := s.ResolutionService.GetResolution(domain)
+	ipFound, err := s.ResolutionService.GetResolution(normalizedDomain)
 	if err != nil {
-		log.Error("Database lookup error for domain (%s): %v", domain, err)
+		log.Error("Database lookup error for domain (%s): %v", normalizedDomain, err)
 		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 	}
 
@@ -729,7 +731,7 @@ func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) 
 	} else {
 		ip, err := netip.ParseAddr(ipFound)
 		if err != nil {
-			log.Warning("Failed to parse IP from database for domain '%s': %v", domain, err)
+			log.Warning("Failed to parse IP from database for domain '%s': %v", normalizedDomain, err)
 			return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
 		}
 		if ip.Is4() {
