@@ -847,6 +847,10 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 		hostname += "."
 	}
 
+	if hostname == "" || hostname == "." {
+		return model.RequestLogEntry{}, fmt.Errorf("invalid hostname after removing PTR suffix: empty or root")
+	}
+
 	queryType := req.QType()
 	if queryType == 0 {
 		queryType = dns.TypeA
