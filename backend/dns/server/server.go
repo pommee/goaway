@@ -98,6 +98,10 @@ type Request struct {
 	Prefetch       bool
 }
 
+func (r *Request) QType() uint16 {
+	return dns.RRToType(r.Question)
+}
+
 // Respond writes the DNS response back to the client.
 // It is the caller's responsibility to call this method, and not write to the ResponseWriter directly, as Respond also handles packing the message and error handling.
 func (r *Request) Respond(ns *notification.Service) {
