@@ -39,7 +39,7 @@ func trimDomainDot(name string) string {
 }
 
 func isPTRQuery(request *Request, domainName string) bool {
-	return request.Question.Header().Class == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.")
+	return request.QType() == dns.TypePTR || strings.HasSuffix(domainName, "in-addr.arpa.")
 }
 
 func (s *DNSServer) checkAndUpdatePauseStatus() {
@@ -455,7 +455,7 @@ func (s *DNSServer) respondWithType(request *Request, rType uint16, ip netip.Add
 	return model.RequestLogEntry{
 		Domain:    request.Question.Header().Name,
 		Status:    dnsutil.CodeToString(dns.RcodeSuccess),
-		QueryType: dnsutil.TypeToString(request.Question.Header().Class),
+		QueryType: dnsutil.TypeToString(request.QType()),
 		IP: []model.ResolvedIP{
 			{
 				IP:    ip,
@@ -504,7 +504,7 @@ func (s *DNSServer) forwardPTRQueryUpstream(request *Request) model.RequestLogEn
 	return model.RequestLogEntry{
 		Domain:            request.Question.Header().Name,
 		Status:            status,
-		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
+		QueryType:         dnsutil.TypeToString(request.QType()),
 		IP:                resolvedHostnames,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
@@ -658,7 +658,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 	return model.RequestLogEntry{
 		Domain:            request.Question.Header().Name,
 		Status:            status,
-		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
+		QueryType:         dnsutil.TypeToString(request.QType()),
 		IP:                resolved,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
@@ -670,7 +670,7 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 }
 
 func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
-	cacheKey := req.Question.Header().Name + ":" + strconv.Itoa(int(req.Question.Header().Class))
+	cacheKey := req.Question.Header().Name + ":" + strconv.Itoa(int(req.QType()))
 	if cached, found := s.DomainCache.Load(cacheKey); found {
 		if ipAddresses, valid := s.getCachedRecord(cached); valid {
 			return ipAddresses, true, dnsutil.CodeToString(dns.RcodeSuccess)
@@ -764,8 +764,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 	go func() {
 		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
-		q := req.Question.Header()
-		upstreamMsg := dns.NewMsg(q.Name, q.Class)
+		upstreamMsg := dns.NewMsg(req.Question.Header().Name, req.QType())
 		upstreamMsg.RecursionDesired = true
 		upstreamMsg.ID = dns.ID()
 
@@ -827,7 +826,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		return in.Answer, ttl, status
 
 	case err := <-errCh:
-		log.Warning("Upstream resolution error for domain (%s): %v", req.Question.Header().Name, err)
+		log.Warning("Upstream resolution error for domain %s with rtype %s. %v", req.Question.Header().Name, dnsutil.TypeToString(req.QType()), err)
 		s.NotificationService.SendNotification(
 			notification.SeverityWarning,
 			notification.CategoryDNS,
@@ -848,7 +847,7 @@ func (s *DNSServer) LocalForwardLookup(req *Request) (model.RequestLogEntry, err
 		hostname += "."
 	}
 
-	queryType := req.Question.Header().Class
+	queryType := req.QType()
 	if queryType == 0 {
 		queryType = dns.TypeA
 	}
@@ -918,7 +917,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	var resolved []model.ResolvedIP
 	cacheTTL := uint32(s.Config.DNS.CacheTTL)
 
-	switch request.Question.Header().Class {
+	switch request.QType() {
 	case dns.TypeA:
 		request.Msg.Answer = []dns.RR{&dns.A{
 			Hdr: dns.Header{
@@ -956,7 +955,7 @@ func (s *DNSServer) handleBlacklisted(request *Request) model.RequestLogEntry {
 	return model.RequestLogEntry{
 		Domain:            request.Question.Header().Name,
 		Status:            dnsutil.CodeToString(request.Msg.Rcode),
-		QueryType:         dnsutil.TypeToString(request.Question.Header().Class),
+		QueryType:         dnsutil.TypeToString(request.QType()),
 		IP:                resolved,
 		ResponseSizeBytes: request.Msg.Len(),
 		Timestamp:         request.Sent,
