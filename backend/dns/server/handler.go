@@ -63,6 +63,10 @@ func (s *DNSServer) shouldBlockQuery(client *model.Client, domainName, fullName 
 func (s *DNSServer) processQuery(request *Request) model.RequestLogEntry {
 	domainName := trimDomainDot(request.Question.Header().Name)
 
+	if domainName == "" {
+		return s.handleRootZoneQuery(request)
+	}
+
 	if isPTRQuery(request, domainName) {
 		return s.handlePTRQuery(request)
 	}
@@ -592,14 +596,10 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 				log.Warning("Failed to parse TXT record: %v", err)
 			}
 		case *dns.NS:
-			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
-				resolved = append(resolved, model.ResolvedIP{
-					IP:    ip.String(),
-					RType: "NS",
-				})
-			} else {
-				log.Warning("Failed to parse NS record: %v", err)
-			}
+			resolved = append(resolved, model.ResolvedIP{
+				IP:    rr.Ns,
+				RType: "NS",
+			})
 		case *dns.SOA:
 			if ip, err := netip.ParseAddr(rr.Ns); err == nil {
 				resolved = append(resolved, model.ResolvedIP{
@@ -660,6 +660,31 @@ func (s *DNSServer) handleStandardQuery(request *Request) model.RequestLogEntry 
 		Timestamp:         request.Sent,
 		ResponseTime:      time.Since(request.Sent),
 		Cached:            cached,
+		ClientInfo:        request.Client,
+		Protocol:          request.Protocol,
+	}
+}
+
+// Handle DNS queries for the root zone (.)
+func (s *DNSServer) handleRootZoneQuery(request *Request) model.RequestLogEntry {
+	request.Msg.Response = true
+	request.Msg.Authoritative = false
+	request.Msg.RecursionAvailable = false
+	request.Msg.Rcode = dns.RcodeNameError
+
+	request.Respond(s.NotificationService)
+
+	log.Info("Rejected root zone query (.) from client %s", request.Client.IP)
+	return model.RequestLogEntry{
+		Domain:            ".",
+		Status:            dnsutil.CodeToString(dns.RcodeNameError),
+		QueryType:         dnsutil.TypeToString(request.QType()),
+		IP:                []model.ResolvedIP{},
+		ResponseSizeBytes: request.Msg.Len(),
+		Timestamp:         request.Sent,
+		ResponseTime:      time.Since(request.Sent),
+		Blocked:           false,
+		Cached:            false,
 		ClientInfo:        request.Client,
 		Protocol:          request.Protocol,
 	}

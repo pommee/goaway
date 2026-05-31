@@ -292,7 +292,7 @@ func (s *DNSServer) validQuery(w dns.ResponseWriter, r *dns.Msg) bool {
 		return failedCallback()
 	}
 
-	if len(r.Question[0].Header().Name) <= 1 {
+	if len(r.Question[0].Header().Name) <= 1 && r.Question[0].Header().Name != "." {
 		log.Warning("Query contains invalid question name '%s', ignoring!", r.Question[0].Header().Name)
 		return failedCallback()
 	}
