@@ -763,7 +763,7 @@ func (s *DNSServer) QueryUpstream(req *Request) ([]dns.RR, uint32, string) {
 		go s.WSCom(communicationMessage{IP: "", Client: false, Upstream: true, DNS: false})
 
 		q := req.Question.Header()
-		upstreamMsg := dns.NewMsg(q.Name, q.Class)
+		upstreamMsg := dns.NewMsg(q.Name, dns.RRToType(req.Question))
 		upstreamMsg.RecursionDesired = true
 		upstreamMsg.ID = dns.ID()
 
