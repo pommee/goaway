@@ -156,7 +156,7 @@ func (s *DNSServer) lookupVendor(clientIP, macAddress string) string {
 	log.Debug("Lookup vendor for mac %s", macAddress)
 	vendor, err = arp.GetMacVendor(macAddress)
 	if err != nil {
-		log.Warning(
+		log.Debug(
 			"Was not able to find vendor for addr '%s' with MAC '%s'. %v",
 			clientIP, macAddress, err,
 		)
