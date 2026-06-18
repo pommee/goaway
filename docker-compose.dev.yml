@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     restart: unless-stopped
-    user: 1000:1000
+    user: "${UID}:${GID}"
     volumes:
       - ./:/app
     environment:
