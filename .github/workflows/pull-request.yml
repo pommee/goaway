@@ -30,7 +30,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: pnpm -C ./client install --frozen-lockfile
+        run: pnpm -C ./client install --frozen-lockfile --allow-scripts
 
       - name: Commit lint
         run: pnpm -C ./client exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
