@@ -30,10 +30,10 @@ type Whitelist struct {
 
 type RequestLog struct {
 	ID                uint           `gorm:"primaryKey;autoIncrement" json:"id"`
-	Timestamp         time.Time      `gorm:"not null;index:idx_timestamp_response_size,priority:1" json:"timestamp"`
+	Timestamp         time.Time      `gorm:"not null;index:idx_timestamp_response_size,priority:1;index:idx_timestamp_covering,priority:1" json:"timestamp"`
 	Domain            string         `gorm:"type:varchar(255);not null;index:idx_domain_timestamp,priority:1;index:idx_client_ip_domain,priority:2" json:"domain" validate:"required"`
-	ClientIP          string         `gorm:"type:varchar(45);not null;index:idx_client_ip;index:idx_client_ip_domain,priority:1" json:"clientIP" validate:"required,ip"`
-	ClientName        string         `gorm:"type:varchar(255)" json:"clientName"`
+	ClientIP          string         `gorm:"type:varchar(45);not null;index:idx_client_ip;index:idx_client_ip_domain,priority:1;index:idx_client_ip_client_name,priority:1" json:"clientIP" validate:"required,ip"`
+	ClientName        string         `gorm:"type:varchar(255);index:idx_client_ip_client_name,priority:2" json:"clientName"`
 	QueryType         string         `gorm:"type:varchar(10);index:idx_query_type" json:"queryType"`
 	Status            string         `gorm:"type:varchar(20)" json:"status"`
 	Protocol          string         `gorm:"type:varchar(10)" json:"protocol"`
@@ -55,8 +55,8 @@ type RequestLogIP struct {
 }
 
 type MacAddress struct {
-	MAC       string    `gorm:"primaryKey" json:"mac" validate:"required,mac"`
-	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
+	MAC       string    `gorm:"primaryKey;index:idx_mac_lookup" json:"mac" validate:"required,mac"`
+	IP        string    `gorm:"index:idx_ip_lookup" json:"ip" validate:"required,ip"`
 	Vendor    string    `json:"vendor"`
 	Bypass    bool      `gorm:"default:false" json:"bypass"`
 	CreatedAt time.Time `json:"createdAt"`

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,12 +16,22 @@ func Initialize() *gorm.DB {
 	}
 
 	databasePath := filepath.Join("data", "database.db")
-	db, err := gorm.Open(sqlite.Open(databasePath), &gorm.Config{
+	dsn := fmt.Sprintf("file:%s?cache=shared&mode=rwc&_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL&_query_only=false", databasePath)
+
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		TranslateError: true,
 	})
 	if err != nil {
 		log.Fatal("failed while initializing database: %w", err)
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("failed to get database connection: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(25)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetConnMaxLifetime(0)
 
 	if err := AutoMigrate(db); err != nil {
 		log.Fatal("auto migrate failed: %w", err)
