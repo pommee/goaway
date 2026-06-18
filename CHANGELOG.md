@@ -1,3 +1,9 @@
+## [0.63.17](https://github.com/pommee/goaway/compare/v0.63.16...v0.63.17) (2026-06-18)
+
+### Bug Fixes
+
+* fix resource leak ([8f97026](https://github.com/pommee/goaway/commit/8f97026948e863e836363ccbd44f7a73a4307778))
+
 ## [0.63.16](https://github.com/pommee/goaway/compare/v0.63.15...v0.63.16) (2026-06-18)
 
 ### Bug Fixes
