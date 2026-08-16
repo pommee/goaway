@@ -714,7 +714,7 @@ func (s *DNSServer) resolveResolution(req *Request) ([]dns.RR, uint32, string, b
 		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), true
 	}
 
-	qType := dns.RRToType(req.Question)
+	qType := req.QType()
 	if ip.Is4() {
 		if qType == dns.TypeA || qType == dns.TypeANY {
 			records = append(records, &dns.A{
