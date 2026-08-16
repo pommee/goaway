@@ -126,6 +126,9 @@ func (a *Application) RestartApplication() {
 
 func (a *Application) Start() error {
 
+	logger := logging.GetLogger()
+	logger.SetLevel(logging.LogLevel(a.config.Logging.Level))
+
 	ctx, err := services.NewAppContext(a.config)
 	if err != nil {
 		return fmt.Errorf("failed to initialize application context: %w", err)

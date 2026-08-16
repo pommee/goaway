@@ -1,3 +1,16 @@
+## [0.63.17](https://github.com/pommee/goaway/compare/v0.63.16...v0.63.17) (2026-06-18)
+
+### Bug Fixes
+
+* fix resource leak ([8f97026](https://github.com/pommee/goaway/commit/8f97026948e863e836363ccbd44f7a73a4307778))
+
+## [0.63.16](https://github.com/pommee/goaway/compare/v0.63.15...v0.63.16) (2026-06-18)
+
+### Bug Fixes
+
+* corrently use set log level at start ([2ae7c0b](https://github.com/pommee/goaway/commit/2ae7c0b8623f1caee99a4c360fc2cac6b4540f8a))
+* use correct query type and name ([f09509c](https://github.com/pommee/goaway/commit/f09509c02d815b2bd5b921744c1b0882b8d770e1))
+
 ## [0.63.15](https://github.com/pommee/goaway/compare/v0.63.14...v0.63.15) (2026-05-01)
 
 ### Bug Fixes

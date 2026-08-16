@@ -296,16 +296,16 @@ func (r *repository) FetchClient(ip string) (*model.Client, error) {
 		Bypass     sql.NullBool   `gorm:"column:bypass"`
 	}
 
-	subquery := r.db.Table("request_logs").
-		Select("MAX(timestamp)").
-		Where("client_ip = ?", ip)
+	query := `
+		SELECT r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass
+		FROM request_logs r
+		LEFT JOIN mac_addresses m ON r.client_ip = m.ip
+		WHERE r.client_ip = ?
+		ORDER BY r.timestamp DESC
+		LIMIT 1
+	`
 
-	if err := r.db.Table("request_logs r").
-		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
-		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
-		Where("r.client_ip = ?", ip).
-		Where("r.timestamp = (?)", subquery).
-		Scan(&row).Error; err != nil {
+	if err := r.db.Raw(query, ip).Scan(&row).Error; err != nil {
 		return nil, err
 	}
 
@@ -339,15 +339,18 @@ func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 		Bypass     sql.NullBool   `gorm:"column:bypass"`
 	}
 
-	subquery := r.db.Table("request_logs").
-		Select("client_ip, MAX(timestamp) as max_timestamp").
-		Group("client_ip")
+	query := `
+		SELECT DISTINCT r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass
+		FROM (
+			SELECT client_ip, client_name, timestamp, ROW_NUMBER() OVER (PARTITION BY client_ip ORDER BY timestamp DESC) as rn
+			FROM request_logs
+		) r
+		LEFT JOIN mac_addresses m ON r.client_ip = m.ip
+		WHERE r.rn = 1
+		ORDER BY r.timestamp DESC
+	`
 
-	if err := r.db.Table("request_logs r").
-		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
-		Joins("INNER JOIN (?) latest ON r.client_ip = latest.client_ip AND r.timestamp = latest.max_timestamp", subquery).
-		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
-		Scan(&rows).Error; err != nil {
+	if err := r.db.Raw(query).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
