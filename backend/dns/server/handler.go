@@ -676,8 +676,10 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 		}
 	}
 
-	if answers, ttl, status := s.resolveResolution(req.Question.Header().Name); len(answers) > 0 {
-		s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
+	if answers, ttl, status, found := s.resolveResolution(req); found {
+		if len(answers) > 0 {
+			s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
+		}
 		return answers, false, status
 	}
 
@@ -688,49 +690,45 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 	return answers, false, status
 }
 
-func (s *DNSServer) resolveResolution(domain string) ([]dns.RR, uint32, string) {
+func (s *DNSServer) resolveResolution(req *Request) ([]dns.RR, uint32, string, bool) {
 	var (
 		records []dns.RR
-		rr      dns.RR
 		ttl     = uint32(s.Config.DNS.CacheTTL)
 		status  = dnsutil.CodeToString(dns.RcodeSuccess)
+		domain  = req.Question.Header().Name
 	)
 
 	ipFound, err := s.ResolutionService.GetResolution(domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
-		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), false
 	}
 
 	if ipFound == "" {
-		status = dnsutil.CodeToString(dns.RcodeNameError)
-	} else {
-		ip, err := netip.ParseAddr(ipFound)
-		if err != nil {
-			log.Warning("Failed to parse IP from database for domain '%s': %v", domain, err)
-			return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure)
-		}
-		if ip.Is4() {
-			rr = &dns.A{
-				Hdr: dns.Header{
-					Name:  dnsutil.Fqdn(domain),
-					TTL:   ttl,
-					Class: dns.ClassINET,
-				},
-				A: rdata.A{Addr: ip}}
-		} else {
-			rr = &dns.AAAA{
-				Hdr: dns.Header{
-					Name:  dnsutil.Fqdn(domain),
-					TTL:   ttl,
-					Class: dns.ClassINET,
-				},
-				AAAA: rdata.AAAA{Addr: ip},
-			}
-		}
-		records = append(records, rr)
+		return nil, 0, dnsutil.CodeToString(dns.RcodeNameError), false
 	}
-	return records, ttl, status
+
+	ip, err := netip.ParseAddr(ipFound)
+	if err != nil {
+		log.Warning("Failed to parse IP from database for domain '%s': %v", domain, err)
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), false
+	}
+
+	qType := req.QType()
+	if ip.Is4() {
+		if qType == dns.TypeA || qType == dns.TypeANY {
+			records = append(records, &dns.A{
+				Hdr: dns.Header{Name: dnsutil.Fqdn(domain), TTL: ttl, Class: dns.ClassINET},
+				A:   rdata.A{Addr: ip},
+			})
+		}
+	} else if qType == dns.TypeAAAA || qType == dns.TypeANY {
+		records = append(records, &dns.AAAA{
+			Hdr:  dns.Header{Name: dnsutil.Fqdn(domain), TTL: ttl, Class: dns.ClassINET},
+			AAAA: rdata.AAAA{Addr: ip},
+		})
+	}
+	return records, ttl, status, true
 }
 
 func (s *DNSServer) resolveCNAMEChain(req *Request, visited map[string]bool) ([]dns.RR, uint32, string) {
