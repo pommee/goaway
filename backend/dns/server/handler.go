@@ -676,7 +676,7 @@ func (s *DNSServer) Resolve(req *Request) ([]dns.RR, bool, string) {
 		}
 	}
 
-	if answers, ttl, status, matched := s.resolveResolution(req); matched {
+	if answers, ttl, status, found := s.resolveResolution(req); found {
 		if len(answers) > 0 {
 			s.CacheRecord(cacheKey, req.Question.Header().Name, answers, ttl)
 		}
@@ -701,7 +701,7 @@ func (s *DNSServer) resolveResolution(req *Request) ([]dns.RR, uint32, string, b
 	ipFound, err := s.ResolutionService.GetResolution(domain)
 	if err != nil {
 		log.Error("Database lookup error for domain (%s): %v", domain, err)
-		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), true
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), false
 	}
 
 	if ipFound == "" {
@@ -711,7 +711,7 @@ func (s *DNSServer) resolveResolution(req *Request) ([]dns.RR, uint32, string, b
 	ip, err := netip.ParseAddr(ipFound)
 	if err != nil {
 		log.Warning("Failed to parse IP from database for domain '%s': %v", domain, err)
-		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), true
+		return nil, 0, dnsutil.CodeToString(dns.RcodeServerFailure), false
 	}
 
 	qType := req.QType()
