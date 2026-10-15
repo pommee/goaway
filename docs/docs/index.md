@@ -7,7 +7,7 @@ A lightweight DNS sinkhole for blocking unwanted domains at the network level. B
 
 ![goaway banner](./assets/preview.png)
 
-<a href="https://github.com/pommee/goaway/blob/improve-setup-and-structure/resources/PREVIEW.md" target="_blank">View more screenshots</a>
+<a href="https://github.com/pommee/goaway/blob/main/resources/PREVIEW.md" target="_blank">View more screenshots</a>
 
 ## Features
 
